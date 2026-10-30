@@ -1,0 +1,18 @@
+.cf-catalogue__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-block);
+}
+
+.cf-catalogue__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-block);
+  margin-block-end: var(--gap-section);
+}
+
+/* One toolbar row: view tabs, filters, then the search at the far right with room to the filters. */
+.ds-catalogue .ds-toolbar { column-gap: var(--gap-section); }
+.ds-catalogue .cf-catalogue__filters { flex-wrap: nowrap; }
+.ds-catalogue .ds-toolbar > .ds-search { margin-left: auto; margin-right: 0; }

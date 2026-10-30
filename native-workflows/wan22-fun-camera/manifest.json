@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 2,
+  "id": "camera",
+  "version": "0.2.0",
+  "title": "Wan 2.2 Fun Camera",
+  "category": "video",
+  "description": "Local image-to-video workflow with native preset camera trajectories. A640×640 Pan Right trial produced17 real frames on RTX4090/64GB RAM. Nine native moves are mapped; a five-second Zoom In also passed through the app and SDK. Other hardware and all preset qualities need separate qualification.",
+  "inputs": [
+    { "id": "start_image", "label": "Start image", "type": "image", "required": true, "binding": { "node": "97", "field": "image" } }
+  ],
+  "outputs": [
+    { "id": "video", "label": "Camera-controlled video", "type": "video", "required": true }
+  ],
+  "controls": [
+    { "id": "prompt", "label": "Prompt", "type": "string", "default": "", "binding": { "node": "107", "field": "text" } },
+    { "id": "negative", "label": "Negative prompt", "type": "string", "default": "blurry, distorted, unstable", "binding": { "node": "99", "field": "text" } },
+    { "id": "camera_pose", "label": "Camera movement", "type": "select", "default": "Static", "options": ["Static", "Pan Up", "Pan Down", "Pan Left", "Pan Right", "Zoom In", "Zoom Out", "Anti Clockwise (ACW)", "ClockWise (CW)"], "binding": { "node": "108", "field": "camera_pose" } },
+    { "id": "speed", "label": "Camera speed", "type": "number", "min": 0, "max": 10, "step": 0.1, "default": 1, "binding": { "node": "108", "field": "speed" } },
+    { "id": "width", "label": "Width", "type": "integer", "min": 640, "max": 640, "default": 640, "binding": { "node": "108", "field": "width" } },
+    { "id": "height", "label": "Height", "type": "integer", "min": 640, "max": 640, "default": 640, "binding": { "node": "108", "field": "height" } },
+    { "id": "length", "label": "Duration", "type": "number", "min": 1, "max": 5, "default": 1, "binding": { "node": "108", "field": "length", "transform": "seconds_to_wan_frames" } },
+    { "id": "seed", "label": "Seed", "type": "integer", "min": 0, "max": 2147483647, "default": 528, "binding": { "node": "102", "field": "noise_seed" } }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "wan22-fun-camera",
+      "requirements": [
+        { "id": "node:VAELoader", "kind": "node", "name": "VAELoader", "instructions": "Install a ComfyUI version providing VAELoader." },
+        { "id": "node:UNETLoader", "kind": "node", "name": "UNETLoader", "instructions": "Install a ComfyUI version providing UNETLoader." },
+        { "id": "node:CLIPLoader", "kind": "node", "name": "CLIPLoader", "instructions": "Install a ComfyUI version providing CLIPLoader." },
+        { "id": "node:LoadImage", "kind": "node", "name": "LoadImage", "instructions": "Install a ComfyUI version providing LoadImage." },
+        { "id": "node:WanCameraImageToVideo", "kind": "node", "name": "WanCameraImageToVideo", "instructions": "Install ComfyUI 0.37.0 or another verified version providing the native Wan camera image-to-video node." },
+        { "id": "node:CLIPTextEncode", "kind": "node", "name": "CLIPTextEncode", "instructions": "Install a ComfyUI version providing CLIPTextEncode." },
+        { "id": "node:ModelSamplingSD3", "kind": "node", "name": "ModelSamplingSD3", "instructions": "Install a ComfyUI version providing ModelSamplingSD3." },
+        { "id": "node:KSamplerAdvanced", "kind": "node", "name": "KSamplerAdvanced", "instructions": "Install a ComfyUI version providing KSamplerAdvanced." },
+        { "id": "node:VAEDecode", "kind": "node", "name": "VAEDecode", "instructions": "Install a ComfyUI version providing VAEDecode." },
+        { "id": "node:CreateVideo", "kind": "node", "name": "CreateVideo", "instructions": "Install a ComfyUI version providing CreateVideo." },
+        { "id": "node:SaveVideo", "kind": "node", "name": "SaveVideo", "instructions": "Install a ComfyUI version providing SaveVideo." },
+        { "id": "node:WanCameraEmbedding", "kind": "node", "name": "WanCameraEmbedding", "instructions": "Install ComfyUI 0.37.0 or another verified version providing the native Wan camera embedding node." },
+        { "id": "model:camera-high", "kind": "model", "name": "wan2.2_fun_camera_high_noise_14B_fp8_scaled.safetensors", "location": "diffusion_models", "version": "sha256:89a99cb5ab29e388f2e24fddac48eab4d88ca339d236c7a8d96aabacd0f525ae", "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged", "instructions": "Install the pinned 15,301,408,048-byte high-noise Fun Camera model and verify its SHA-256." },
+        { "id": "model:camera-low", "kind": "model", "name": "wan2.2_fun_camera_low_noise_14B_fp8_scaled.safetensors", "location": "diffusion_models", "version": "sha256:a2b7b361e3fad907958aa6ad662a3673bad5ffdce14706cffde4baabb98f9020", "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged", "instructions": "Install the pinned 15,301,408,048-byte low-noise Fun Camera model and verify its SHA-256." },
+        { "id": "model:umt5", "kind": "model", "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors", "location": "text_encoders", "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged", "instructions": "Install the UMT5 XXL FP8 scaled text encoder." },
+        { "id": "model:vae", "kind": "model", "name": "wan_2.1_vae.safetensors", "location": "vae", "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged", "instructions": "Install the Wan 2.1 VAE." }
+      ],
+      "evidence": ["Both pinned diffusion weights were SHA-verified onG: on2026-10-21. Native promptfa500c95-1497-4758-a313-c2ae0cc5f47e succeeded with Pan Right,640x640,17frames,16fps,20steps. Decoded MP4 SHA2560b67b0a9c77da33cfd0f02d090edb3688d6aa9d6fac5da9e5484132588befb3c; actual duration1.0625s. Sampled whole-GPU use reached23288MiB and system free RAM fell to3.24GiB; samples are not a profiler peak or isolated model-memory measurement. App/SDK run c2d6bb80-78c9-46fe-b902-f2bb0b2c0dbe also produced81frames at640x640/16fps,5.0625s, with transportSDK in asset metadata. Other hardware and all movement/speed quality remain unproven."]
+    },
+    {
+      "id": "cloud",
+      "execution": "comfy_cloud",
+      "provider": "comfy-cloud",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "camera",
+      "endpointOrigin": "https://cloud.comfy.org",
+      "requirements": [
+        { "id": "node:VAELoader", "kind": "node", "name": "VAELoader", "instructions": "Comfy Cloud needs the ComfyUI node VAELoader." },
+        { "id": "node:UNETLoader", "kind": "node", "name": "UNETLoader", "instructions": "Comfy Cloud needs the ComfyUI node UNETLoader." },
+        { "id": "node:CLIPLoader", "kind": "node", "name": "CLIPLoader", "instructions": "Comfy Cloud needs the ComfyUI node CLIPLoader." },
+        { "id": "node:LoadImage", "kind": "node", "name": "LoadImage", "instructions": "Comfy Cloud needs the ComfyUI node LoadImage." },
+        { "id": "node:WanCameraImageToVideo", "kind": "node", "name": "WanCameraImageToVideo", "instructions": "Comfy Cloud needs the ComfyUI node WanCameraImageToVideo." },
+        { "id": "node:CLIPTextEncode", "kind": "node", "name": "CLIPTextEncode", "instructions": "Comfy Cloud needs the ComfyUI node CLIPTextEncode." },
+        { "id": "node:ModelSamplingSD3", "kind": "node", "name": "ModelSamplingSD3", "instructions": "Comfy Cloud needs the ComfyUI node ModelSamplingSD3." },
+        { "id": "node:KSamplerAdvanced", "kind": "node", "name": "KSamplerAdvanced", "instructions": "Comfy Cloud needs the ComfyUI node KSamplerAdvanced." },
+        { "id": "node:VAEDecode", "kind": "node", "name": "VAEDecode", "instructions": "Comfy Cloud needs the ComfyUI node VAEDecode." },
+        { "id": "node:CreateVideo", "kind": "node", "name": "CreateVideo", "instructions": "Comfy Cloud needs the ComfyUI node CreateVideo." },
+        { "id": "node:SaveVideo", "kind": "node", "name": "SaveVideo", "instructions": "Comfy Cloud needs the ComfyUI node SaveVideo." },
+        { "id": "node:WanCameraEmbedding", "kind": "node", "name": "WanCameraEmbedding", "instructions": "Comfy Cloud needs the ComfyUI node WanCameraEmbedding." },
+        { "id": "model:camera-high", "kind": "model", "name": "wan2.2_fun_camera_high_noise_14B_fp8_scaled.safetensors", "location": "diffusion_models", "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged", "instructions": "Comfy Cloud carries wan2.2_fun_camera_high_noise_14B_fp8_scaled.safetensors." },
+        { "id": "model:camera-low", "kind": "model", "name": "wan2.2_fun_camera_low_noise_14B_fp8_scaled.safetensors", "location": "diffusion_models", "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged", "instructions": "Comfy Cloud carries wan2.2_fun_camera_low_noise_14B_fp8_scaled.safetensors." },
+        { "id": "model:umt5", "kind": "model", "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors", "location": "text_encoders", "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged", "instructions": "Comfy Cloud carries umt5_xxl_fp8_e4m3fn_scaled.safetensors." },
+        { "id": "model:vae", "kind": "model", "name": "wan_2.1_vae.safetensors", "location": "vae", "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged", "instructions": "Comfy Cloud carries wan_2.1_vae.safetensors." }
+      ],
+      "evidence": [
+        "2026-10-27: every node and model file this graph names is in Comfy Cloud's own node list (GET /api/object_info: 3835 nodes, about 1500 model files). Nothing was run on Comfy Cloud here: that spends credits."
+      ]
+    }
+  ],
+  "coverage": { "local": "implemented", "hosted": "implemented" },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Integration license follows this repository.",
+    "weights": [
+      { "name": "Wan 2.2 Fun Camera weights", "license": "Apache-2.0 as declared by the model repository; full dependency audit pending.", "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged" }
+    ]
+  },
+  "sources": [
+    { "url": "https://docs.comfy.org/tutorials/video/wan/wan2-2-fun-camera", "observedAt": "2026-10-16", "kind": "implementation" },
+    { "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged", "observedAt": "2026-10-16", "kind": "implementation" }
+  ],
+  "tickets": ["VID-02"],
+  "timing": { "fps": 16, "minSeconds": 1, "maxSeconds": 5, "sourceTimed": false, "frameMapping": "wan_frames_round_4n1" },
+  "resolutions": { "square": { "width": 640, "height": 640 } },
+  "audioPolicies": ["mute"]
+}

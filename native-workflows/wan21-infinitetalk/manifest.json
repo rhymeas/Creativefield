@@ -1,0 +1,365 @@
+{
+  "schemaVersion": 2,
+  "id": "lip-sync",
+  "version": "0.2.0",
+  "title": "Local portrait lip sync",
+  "category": "video",
+  "description": "Local single-speaker portrait animation driven by a saved microphone take or mono PCM16 WAV. A close-up fictional portrait produced visible speech-related mouth motion with matching audio/video duration on RTX4090. Supported window1\u20133.2seconds; model fidelity varies.",
+  "inputs": [
+    {
+      "id": "start_image",
+      "label": "Portrait to animate",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "1",
+        "field": "image"
+      }
+    },
+    {
+      "id": "source_audio",
+      "label": "Voice take (mono PCM16 WAV)",
+      "type": "audio",
+      "required": true,
+      "binding": {
+        "node": "2",
+        "field": "audio"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Speaking portrait",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Performance instruction",
+      "type": "string",
+      "default": "A person speaking naturally to camera, stable portrait and lighting.",
+      "binding": {
+        "node": "6",
+        "field": "text"
+      }
+    },
+    {
+      "id": "length",
+      "label": "Duration",
+      "type": "number",
+      "min": 1,
+      "max": 3.2,
+      "step": 0.1,
+      "default": 2,
+      "binding": {
+        "node": "11",
+        "field": "length",
+        "transform": "seconds_to_wan_frames"
+      }
+    },
+    {
+      "id": "audio_start",
+      "label": "Audio start (seconds)",
+      "type": "number",
+      "min": 0,
+      "max": 59,
+      "step": 0.1,
+      "default": 0,
+      "binding": {
+        "node": "15",
+        "field": "start_index"
+      }
+    },
+    {
+      "id": "width",
+      "label": "Width",
+      "type": "integer",
+      "min": 480,
+      "max": 832,
+      "step": 16,
+      "default": 480,
+      "binding": {
+        "node": "11",
+        "field": "width"
+      }
+    },
+    {
+      "id": "height",
+      "label": "Height",
+      "type": "integer",
+      "min": 480,
+      "max": 832,
+      "step": 16,
+      "default": 832,
+      "binding": {
+        "node": "11",
+        "field": "height"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 20261021,
+      "binding": {
+        "node": "12",
+        "field": "seed"
+      }
+    },
+    {
+      "id": "audio_scale",
+      "label": "Speech motion strength",
+      "type": "number",
+      "min": 0.5,
+      "max": 1.5,
+      "step": 0.1,
+      "default": 1,
+      "binding": {
+        "node": "11",
+        "field": "audio_scale"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "wan21-infinitetalk",
+      "requirements": [
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install current ComfyUI core."
+        },
+        {
+          "id": "node:LoadAudio",
+          "kind": "node",
+          "name": "LoadAudio",
+          "instructions": "Install current ComfyUI core."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install current ComfyUI core."
+        },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Install current ComfyUI core."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install current ComfyUI core."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Install current ComfyUI core."
+        },
+        {
+          "id": "node:AudioEncoderLoader",
+          "kind": "node",
+          "name": "AudioEncoderLoader",
+          "instructions": "Install ComfyUI with native audio encoders."
+        },
+        {
+          "id": "node:AudioEncoderEncode",
+          "kind": "node",
+          "name": "AudioEncoderEncode",
+          "instructions": "Install ComfyUI with native audio encoders."
+        },
+        {
+          "id": "node:ModelPatchLoader",
+          "kind": "node",
+          "name": "ModelPatchLoader",
+          "instructions": "Install current ComfyUI core."
+        },
+        {
+          "id": "node:WanInfiniteTalkToVideo",
+          "kind": "node",
+          "name": "WanInfiniteTalkToVideo",
+          "instructions": "Install ComfyUI with native Wan InfiniteTalk."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Install current ComfyUI core."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install current ComfyUI core."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Install current ComfyUI core."
+        },
+        {
+          "id": "node:TrimAudioDuration",
+          "kind": "node",
+          "name": "TrimAudioDuration",
+          "instructions": "Install current ComfyUI core."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install current ComfyUI core."
+        },
+        {
+          "id": "model:base",
+          "kind": "model",
+          "name": "Wan2_1-I2V-14B-480p_fp8_e4m3fn_scaled_KJ.safetensors",
+          "location": "diffusion_models",
+          "version": "sha256:2ff922282cd84589702e6e8c26e083d1160bfc2b217dd44e1ae2688441dc495d",
+          "source": "https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/blob/033a4e487f60220b3d6e469599a6aebc46e13cee/I2V/Wan2_1-I2V-14B-480p_fp8_e4m3fn_scaled_KJ.safetensors",
+          "instructions": "Install the pinned 16643349018-byte FP8 base model on your model volume and verify its SHA-256."
+        },
+        {
+          "id": "model:patch",
+          "kind": "model",
+          "name": "wan2.1_infiniteTalk_single_fp16.safetensors",
+          "location": "model_patches",
+          "version": "sha256:bf212c5c647eaf1c019b2158d2edf4a360d97e38b746c4bac994fee485e09fc3",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/blob/123acf1cc74bccbb9bfff8ac1ee72edc08c2341d/split_files/model_patches/wan2.1_infiniteTalk_single_fp16.safetensors",
+          "instructions": "Install the pinned 5125258232-byte single-speaker patch and verify its SHA-256."
+        },
+        {
+          "id": "model:audio",
+          "kind": "model",
+          "name": "wav2vec2-chinese-base_fp16.safetensors",
+          "location": "audio_encoders",
+          "version": "sha256:000813e441020f18cff844c969d2d5d4adc2a5ce46b2db1f23950b05d88805b4",
+          "source": "https://huggingface.co/Kijai/wav2vec2_safetensors/blob/87847d3bc53702afda44078249e7c33e867827c4/wav2vec2-chinese-base_fp16.safetensors",
+          "instructions": "Install the pinned 190115368-byte audio encoder and verify its SHA-256."
+        },
+        {
+          "id": "model:text",
+          "kind": "model",
+          "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "location": "text_encoders",
+          "instructions": "Reuse the installed Wan UMT5 encoder."
+        },
+        {
+          "id": "model:vae",
+          "kind": "model",
+          "name": "wan_2.1_vae.safetensors",
+          "location": "vae",
+          "instructions": "Reuse the installed Wan2.1 VAE."
+        },
+        {
+          "id": "node:LoraLoaderModelOnly",
+          "kind": "node",
+          "name": "LoraLoaderModelOnly",
+          "instructions": "Install current ComfyUI core."
+        },
+        {
+          "id": "model:distilled-adapter",
+          "kind": "model",
+          "name": "wan2.1_i2v_lora_rank64_lightx2v_4step.safetensors",
+          "location": "loras",
+          "version": "sha256:8833bd4fd7c8eabebf0bc8ee5cfaf47f4f310ce116928a02c1adf8941dd4b0f1",
+          "source": "https://huggingface.co/lightx2v/Wan2.1-Distill-Loras/blob/27ae38da91014b947dd39cc3fa78b97cd7b386dd/wan2.1_i2v_lora_rank64_lightx2v_4step.safetensors",
+          "instructions": "Install the pinned739472104-byte official I2V adapter and verify its SHA-256."
+        }
+      ],
+      "evidence": [
+        "Native CFG1 full-base trial229504bd produced a valid41-frame480x832/25fps H264/AAC1.64s video, but the full-body fixture showed weak mouth movement. A closer portrait and speech-only window with the official Apache-2.0 Lightx2v I2V adapter are being qualified. CFG1 matches the installed template and avoids doubled audio conditioning. Negative prompt is not exposed because CFG1 skips the unconditional branch.",
+        "Native prompt4faec568-7764-46e4-9c70-980c87b41b0f succeeded with a close portrait and a voiced window using the official Apache-2.0 I2V adapter:480x832,49frames,25fps,H264+AACAUDIO1.96s,SHA91d6021852410427663461995edca3902e337e9c79e74b3eac97ca8160b49d04. Filmstrip shows mouth opening during speech and closed at the quiet end. No quantitative phoneme alignment or broad identity/quality guarantee is claimed."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0; application integration follows this repository. Weights remain external.",
+    "weights": [
+      {
+        "name": "Wan2.1 I2V FP8 base",
+        "license": "Apache-2.0 as declared by publishing repository",
+        "source": "https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled"
+      },
+      {
+        "name": "InfiniteTalk single-speaker patch",
+        "license": "Apache-2.0 as declared by publishing repository",
+        "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged"
+      },
+      {
+        "name": "Wav2vec2 audio encoder",
+        "license": "MIT as declared by publishing repository",
+        "source": "https://huggingface.co/Kijai/wav2vec2_safetensors"
+      },
+      {
+        "name": "Shared Wan UMT5 and VAE",
+        "license": "Apache-2.0 as declared by publishing repository",
+        "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged"
+      },
+      {
+        "name": "Official Lightx2v I2V rank64 adapter",
+        "license": "Apache-2.0 as declared by original publishing repository",
+        "source": "https://huggingface.co/lightx2v/Wan2.1-Distill-Loras"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://comfy.org/workflows/video_wan2_1_infinitetalk-b95499a55c9f/",
+      "observedAt": "2026-10-21",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://huggingface.co/lightx2v/Wan2.1-Distill-Loras",
+      "observedAt": "2026-10-21",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "timing": {
+    "fps": 25,
+    "minSeconds": 1,
+    "maxSeconds": 3.2,
+    "sourceTimed": false,
+    "frameMapping": "wan_frames_round_4n1"
+  },
+  "resolutions": {
+    "portrait": {
+      "width": 480,
+      "height": 832
+    },
+    "landscape": {
+      "width": 832,
+      "height": 480
+    }
+  },
+  "audioPolicies": [
+    "replace",
+    "mute"
+  ],
+  "voiceContract": {
+    "kind": "wan_infinitetalk_v1",
+    "audioInput": "source_audio",
+    "trimNode": "15",
+    "artifactNode": "16"
+  }
+}

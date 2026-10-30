@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 2,
+  "id": "sam31-video-mask",
+  "version": "0.1.0",
+  "title": "SAM 3.1 text-prompted video mask",
+  "category": "replacement",
+  "description": "Local SAM 3.1 propagation of the object named by a text prompt through a short video. The generated mask is review-gated before it can be used for masked editing.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Source video",
+      "type": "video",
+      "required": true,
+      "binding": { "node": "1", "field": "file" }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "tracked_mask",
+      "label": "Tracked mask",
+      "type": "mask",
+      "representation": "video",
+      "required": true
+    }
+  ],
+  "fpsPrepare": { "kind": "source_16fps_v1", "sourceInput": "source_video" },
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Object prompt",
+      "type": "string",
+      "default": "jacket",
+      "binding": { "node": "4", "field": "text" }
+    },
+    {
+      "id": "threshold",
+      "label": "Detection threshold",
+      "type": "number",
+      "min": 0.05,
+      "max": 0.95,
+      "step": 0.05,
+      "default": 0.35,
+      "binding": { "node": "5", "field": "detection_threshold" }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "sam31-video-mask",
+      "requirements": [
+        { "id": "node:LoadVideo", "kind": "node", "name": "LoadVideo", "instructions": "Install a ComfyUI version providing LoadVideo." },
+        { "id": "node:GetVideoComponents", "kind": "node", "name": "GetVideoComponents", "instructions": "Install a ComfyUI version providing GetVideoComponents." },
+        { "id": "node:CheckpointLoaderSimple", "kind": "node", "name": "CheckpointLoaderSimple", "instructions": "Install a ComfyUI version providing CheckpointLoaderSimple." },
+        { "id": "node:CLIPTextEncode", "kind": "node", "name": "CLIPTextEncode", "instructions": "Install a ComfyUI version providing CLIPTextEncode." },
+        { "id": "node:SAM3_VideoTrack", "kind": "node", "name": "SAM3_VideoTrack", "instructions": "Install a ComfyUI version providing the SAM 3 video tracker (SAM3_VideoTrack)." },
+        { "id": "node:SAM3_TrackToMask", "kind": "node", "name": "SAM3_TrackToMask", "instructions": "Install a ComfyUI version providing SAM3_TrackToMask." },
+        { "id": "node:MaskToImage", "kind": "node", "name": "MaskToImage", "instructions": "Install a ComfyUI version providing MaskToImage." },
+        { "id": "node:CreateVideo", "kind": "node", "name": "CreateVideo", "instructions": "Install a ComfyUI version providing CreateVideo." },
+        { "id": "node:SaveVideo", "kind": "node", "name": "SaveVideo", "instructions": "Install a ComfyUI version providing SaveVideo." },
+        {
+          "id": "model:sam3.1-multiplex-fp16",
+          "kind": "model",
+          "name": "sam3.1_multiplex_fp16.safetensors",
+          "location": "checkpoints",
+          "version": "sha256:9ba99c92703c2e8b4f47de2d34a539bb8e18923049e238b780d70dbe6368eb03",
+          "source": "https://huggingface.co/Comfy-Org/sam3.1_repackaged",
+          "instructions": "Preinstall the pinned SAM 3.1 multiplex FP16 checkpoint under ComfyUI/models/checkpoints and verify its SHA-256 before the route is used."
+        }
+      ],
+      "evidence": [
+        "SAM 3.1 image segmentation is qualified locally on the same checkpoint. The video tracker uses the installed SAM3_VideoTrack and SAM3_TrackToMask nodes; a full video-mask run is qualified before this route is offered."
+      ]
+    }
+  ],
+  "coverage": { "local": "implemented", "hosted": "planned" },
+  "licenses": {
+    "software": "SAM 3.1 and ComfyUI core: GPL-3.0. The installed SAM 3.1 nodes are part of ComfyUI. Full dependency audit pending.",
+    "weights": [
+      {
+        "name": "SAM 3.1 multiplex FP16 safetensors",
+        "license": "Check the model repository before redistribution; the local checkpoint is used for execution only.",
+        "source": "https://huggingface.co/Comfy-Org/sam3.1_repackaged"
+      }
+    ]
+  },
+  "sources": [
+    { "url": "https://github.com/comfyanonymous/ComfyUI", "observedAt": "2026-10-20", "kind": "implementation" },
+    { "url": "https://huggingface.co/Comfy-Org/sam3.1_repackaged", "observedAt": "2026-10-20", "kind": "implementation" }
+  ],
+  "tickets": ["EDT-01"],
+  "timing": { "fps": 16, "minSeconds": 1.0625, "maxSeconds": 5.0625, "sourceTimed": true },
+  "audioPolicies": ["mute"],
+  "outputContract": {
+    "kind": "source_linked_mask_v1",
+    "sourceInput": "source_video",
+    "maskOutput": "tracked_mask",
+    "artifactNode": "9",
+    "checkpointRequirementId": "model:sam3.1-multiplex-fp16",
+    "semantics": "white_edits_black_preserves",
+    "trackingMode": "prompt"
+  }
+}

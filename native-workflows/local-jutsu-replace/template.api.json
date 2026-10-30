@@ -1,0 +1,1362 @@
+{
+  "1": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "SOURCE_CLIP.mp4"
+    }
+  },
+  "2": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "1",
+        0
+      ]
+    }
+  },
+  "3": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+    }
+  },
+  "4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "person",
+      "clip": [
+        "3",
+        1
+      ]
+    }
+  },
+  "5": {
+    "class_type": "SAM3_VideoTrack",
+    "inputs": {
+      "images": [
+        "2",
+        0
+      ],
+      "model": [
+        "3",
+        0
+      ],
+      "conditioning": [
+        "4",
+        0
+      ],
+      "detection_threshold": 0.35,
+      "max_objects": 4,
+      "detect_interval": 1
+    }
+  },
+  "6": {
+    "class_type": "SAM3_TrackToMask",
+    "inputs": {
+      "track_data": [
+        "5",
+        0
+      ],
+      "object_indices": "1"
+    }
+  },
+  "10": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "2",
+        0
+      ],
+      "batch_index": 0,
+      "length": 1
+    }
+  },
+  "11": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "maskImage",
+        0
+      ],
+      "batch_index": 0,
+      "length": 1
+    }
+  },
+  "12": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "CHARACTER.png"
+    }
+  },
+  "245": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "compose",
+        0
+      ],
+      "fps": [
+        "2",
+        2
+      ]
+    }
+  },
+  "246": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "245",
+        0
+      ],
+      "filename_prefix": "jutsu/local-jutsu",
+      "format": "auto"
+    }
+  },
+  "289": {
+    "class_type": "BatchImagesNode",
+    "inputs": {
+      "images.image0": [
+        "261:299",
+        0
+      ],
+      "images.image1": [
+        "w1:299",
+        0
+      ]
+    }
+  },
+  "481": {
+    "class_type": "ImageToMask",
+    "inputs": {
+      "image": [
+        "11",
+        0
+      ],
+      "channel": "red"
+    }
+  },
+  "482": {
+    "class_type": "InpaintCrop",
+    "inputs": {
+      "context_expand_pixels": 32,
+      "context_expand_factor": 1.1,
+      "fill_mask_holes": false,
+      "blur_mask_pixels": 0,
+      "invert_mask": false,
+      "blend_pixels": 0,
+      "rescale_algorithm": "bicubic",
+      "mode": "forced size",
+      "force_width": 1024,
+      "force_height": 1024,
+      "rescale_factor": 1,
+      "min_width": 512,
+      "min_height": 512,
+      "max_width": 1024,
+      "max_height": 1024,
+      "padding": 32,
+      "image": [
+        "10",
+        0
+      ],
+      "mask": [
+        "481",
+        0
+      ]
+    }
+  },
+  "483": {
+    "class_type": "InpaintStitch",
+    "inputs": {
+      "stitch": [
+        "482",
+        0
+      ],
+      "inpainted_image": [
+        "75:65",
+        0
+      ],
+      "rescale_algorithm": "bicubic"
+    }
+  },
+  "484": {
+    "class_type": "KleinEditComposite",
+    "inputs": {
+      "delta_e_threshold": -1,
+      "flow_quality": "medium",
+      "use_occlusion": false,
+      "occlusion_threshold": -1,
+      "noise_removal_pct": 0,
+      "close_radius_pct": 0.5,
+      "fill_holes": false,
+      "fill_borders": false,
+      "max_islands": 0,
+      "grow_mask_pct": 0,
+      "feather_pct": 0.5,
+      "color_match_blend": 0,
+      "poisson_blend_edges": false,
+      "generated_image": [
+        "483",
+        0
+      ],
+      "original_image": [
+        "10",
+        0
+      ],
+      "custom_mask": [
+        "481",
+        0
+      ],
+      "custom_mask_mode": "replace",
+      "enable_debug": false
+    }
+  },
+  "604": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "Two men talking and gesturing at each other, small hand movements, steady camera."
+    },
+    "_meta": {
+      "title": "Text (Multiline - Post Prompt)"
+    }
+  },
+  "605": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "Two men talking in an orange studio with a microphone between them. The man on the left has a thick moustache, long dark hair and a striped shirt."
+    },
+    "_meta": {
+      "title": "Text (Multiline - Character Prompt)"
+    }
+  },
+  "maskImage": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": [
+        "6",
+        0
+      ]
+    }
+  },
+  "maskSlice": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "maskImage",
+        0
+      ],
+      "batch_index": 0,
+      "length": 157
+    }
+  },
+  "maskSliceBack": {
+    "class_type": "ImageToMask",
+    "inputs": {
+      "image": [
+        "maskSlice",
+        0
+      ],
+      "channel": "red"
+    }
+  },
+  "75:61": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "75:62": {
+    "class_type": "Flux2Scheduler",
+    "inputs": {
+      "steps": 4,
+      "width": [
+        "75:99",
+        0
+      ],
+      "height": [
+        "75:99",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Flux2Scheduler"
+    }
+  },
+  "75:63": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "model": [
+        "75:70",
+        0
+      ],
+      "positive": [
+        "75:124",
+        0
+      ],
+      "negative": [
+        "75:125",
+        0
+      ],
+      "cfg": 1
+    },
+    "_meta": {
+      "title": "CFGGuider"
+    }
+  },
+  "75:64": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "75:73",
+        0
+      ],
+      "guider": [
+        "75:63",
+        0
+      ],
+      "sampler": [
+        "75:61",
+        0
+      ],
+      "sigmas": [
+        "75:62",
+        0
+      ],
+      "latent_image": [
+        "75:66",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "75:65": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "75:64",
+        0
+      ],
+      "vae": [
+        "75:72",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAEDecode"
+    }
+  },
+  "75:66": {
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": {
+      "width": [
+        "75:99",
+        0
+      ],
+      "height": [
+        "75:99",
+        1
+      ],
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "EmptyFlux2LatentImage"
+    }
+  },
+  "75:70": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux-2-klein-4b-fp8.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "UNETLoader"
+    }
+  },
+  "75:71": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "CLIPLoader"
+    }
+  },
+  "75:72": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "_meta": {
+      "title": "VAELoader"
+    }
+  },
+  "75:73": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 20261019
+    },
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "75:74": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "Put the person from the second picture onto the masked man. Same face, hair and clothes. Keep his pose and gesture, the orange wall, the microphone and the light.",
+      "clip": [
+        "75:71",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "75:82": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": [
+        "75:74",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ConditioningZeroOut"
+    }
+  },
+  "75:99": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "482",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "GetImageSize"
+    }
+  },
+  "75:121": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "75:82",
+        0
+      ],
+      "latent": [
+        "75:122",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "75:122": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "482",
+        1
+      ],
+      "vae": [
+        "75:72",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAEEncode"
+    }
+  },
+  "75:123": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "75:74",
+        0
+      ],
+      "latent": [
+        "75:122",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "75:127": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "12",
+        0
+      ],
+      "vae": [
+        "75:72",
+        0
+      ]
+    }
+  },
+  "75:124": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "75:123",
+        0
+      ],
+      "latent": [
+        "75:127",
+        0
+      ]
+    }
+  },
+  "75:125": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "75:121",
+        0
+      ],
+      "latent": [
+        "75:127",
+        0
+      ]
+    }
+  },
+  "sdpose": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "sdpose_wholebody_fp16.safetensors"
+    }
+  },
+  "keypoints": {
+    "class_type": "SDPoseKeypointExtractor",
+    "inputs": {
+      "model": [
+        "sdpose",
+        0
+      ],
+      "vae": [
+        "sdpose",
+        2
+      ],
+      "image": [
+        "2",
+        0
+      ],
+      "batch_size": 16
+    }
+  },
+  "poseDraw": {
+    "class_type": "SDPoseDrawKeypoints",
+    "inputs": {
+      "keypoints": [
+        "keypoints",
+        0
+      ],
+      "draw_body": true,
+      "draw_hands": true,
+      "draw_face": true,
+      "draw_feet": false,
+      "stick_width": 4,
+      "face_point_size": 3,
+      "score_threshold": 0.3,
+      "draw_head": true
+    }
+  },
+  "261:239": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan_animate_2_distill_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "UNETLoader"
+    }
+  },
+  "261:9": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "CLIPLoader"
+    }
+  },
+  "261:4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走",
+      "clip": [
+        "261:9",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "261:3": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": [
+        "605",
+        0
+      ],
+      "clip": [
+        "261:9",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "261:75": {
+    "class_type": "CLIPVisionLoader",
+    "inputs": {
+      "clip_name": "clip_vision_h.safetensors"
+    },
+    "_meta": {
+      "title": "CLIPVisionLoader"
+    }
+  },
+  "261:7": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    },
+    "_meta": {
+      "title": "VAELoader"
+    }
+  },
+  "261:222": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": [
+        "604",
+        0
+      ],
+      "clip": [
+        "261:9",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIPTextEncode"
+    }
+  },
+  "261:257": {
+    "class_type": "ContextWindowsManual",
+    "inputs": {
+      "model": [
+        "261:239",
+        0
+      ],
+      "context_length": 21,
+      "context_overlap": 8,
+      "context_schedule": "standard_static",
+      "context_stride": 1,
+      "closed_loop": false,
+      "fuse_method": "pyramid",
+      "dim": 2,
+      "freenoise": true,
+      "cond_retain_index_list": "0",
+      "split_conds_to_windows": false,
+      "latent_retain_index_list": "",
+      "causal_window_fix": true
+    },
+    "_meta": {
+      "title": "ContextWindowsManual"
+    }
+  },
+  "261:247": {
+    "class_type": "WanAnimate2ToVideo",
+    "inputs": {
+      "positive": [
+        "261:3",
+        0
+      ],
+      "negative": [
+        "261:4",
+        0
+      ],
+      "vae": [
+        "261:7",
+        0
+      ],
+      "width": [
+        "261:256",
+        0
+      ],
+      "height": [
+        "261:256",
+        1
+      ],
+      "length": 81,
+      "batch_size": 1,
+      "video_frame_offset": 0,
+      "pose_strength": 1,
+      "pose_start_percent": 0,
+      "pose_end_percent": 1,
+      "reference_image_strength": 1,
+      "reference_image": [
+        "261:244",
+        0
+      ],
+      "pose_video": [
+        "261:243",
+        0
+      ],
+      "clip_vision_output": [
+        "261:76",
+        0
+      ],
+      "positive_pose": [
+        "261:222",
+        0
+      ],
+      "clip_vision_output_pose": [
+        "261:220",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "WanAnimate2ToVideo"
+    }
+  },
+  "261:258": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": false,
+      "on_false": [
+        "261:239",
+        0
+      ],
+      "on_true": [
+        "261:257",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ComfySwitchNode"
+    }
+  },
+  "261:76": {
+    "class_type": "CLIPVisionEncode",
+    "inputs": {
+      "clip_vision": [
+        "261:75",
+        0
+      ],
+      "image": [
+        "261:244",
+        0
+      ],
+      "crop": "none"
+    },
+    "_meta": {
+      "title": "CLIPVisionEncode"
+    }
+  },
+  "261:244": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "input": [
+        "484",
+        0
+      ],
+      "resize_type": "scale dimensions",
+      "resize_type.width": 832,
+      "resize_type.height": 624,
+      "resize_type.crop": "center",
+      "scale_method": "area"
+    }
+  },
+  "261:18": {
+    "class_type": "BasicScheduler",
+    "inputs": {
+      "model": [
+        "261:224",
+        0
+      ],
+      "scheduler": "simple",
+      "steps": 10,
+      "denoise": 1
+    },
+    "_meta": {
+      "title": "BasicScheduler"
+    }
+  },
+  "261:95": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "model": [
+        "261:224",
+        0
+      ],
+      "shift": 5
+    },
+    "_meta": {
+      "title": "ModelSamplingSD3"
+    }
+  },
+  "261:27": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "lcm"
+    },
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "261:224": {
+    "class_type": "WanAnimate2Cache",
+    "inputs": {
+      "model": [
+        "261:258",
+        0
+      ],
+      "device": "gpu",
+      "dtype": "int8"
+    },
+    "_meta": {
+      "title": "WanAnimate2Cache"
+    }
+  },
+  "261:241": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "240",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "GetVideoComponents"
+    }
+  },
+  "261:256": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "261:243",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "GetImageSize"
+    }
+  },
+  "261:19": {
+    "class_type": "SamplerCustom",
+    "inputs": {
+      "model": [
+        "261:95",
+        0
+      ],
+      "add_noise": true,
+      "noise_seed": 714297762067883,
+      "cfg": 1,
+      "positive": [
+        "261:247",
+        0
+      ],
+      "negative": [
+        "261:247",
+        1
+      ],
+      "sampler": [
+        "261:27",
+        0
+      ],
+      "sigmas": [
+        "261:18",
+        0
+      ],
+      "latent_image": [
+        "261:247",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "SamplerCustom"
+    }
+  },
+  "261:220": {
+    "class_type": "CLIPVisionEncode",
+    "inputs": {
+      "clip_vision": [
+        "261:75",
+        0
+      ],
+      "image": [
+        "261:236",
+        0
+      ],
+      "crop": "none"
+    },
+    "_meta": {
+      "title": "CLIPVisionEncode"
+    }
+  },
+  "261:236": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "261:243",
+        0
+      ],
+      "batch_index": 0,
+      "length": 1
+    },
+    "_meta": {
+      "title": "ImageFromBatch"
+    }
+  },
+  "261:243": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "input": [
+        "poseDraw",
+        0
+      ],
+      "resize_type": "scale dimensions",
+      "resize_type.width": 832,
+      "resize_type.height": 624,
+      "resize_type.crop": "center",
+      "scale_method": "area"
+    }
+  },
+  "261:6": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "261:223",
+        0
+      ],
+      "vae": [
+        "261:7",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAEDecode"
+    }
+  },
+  "261:223": {
+    "class_type": "TrimVideoLatent",
+    "inputs": {
+      "samples": [
+        "261:19",
+        0
+      ],
+      "trim_amount": [
+        "261:247",
+        3
+      ]
+    },
+    "_meta": {
+      "title": "TrimVideoLatent"
+    }
+  },
+  "261:297": {
+    "class_type": "PrimitiveBoolean",
+    "inputs": {
+      "value": false
+    },
+    "_meta": {
+      "title": "PrimitiveBoolean"
+    }
+  },
+  "261:298": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "261:6",
+        0
+      ],
+      "batch_index": 1,
+      "length": 4096
+    },
+    "_meta": {
+      "title": "ImageFromBatch"
+    }
+  },
+  "261:299": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": [
+        "261:297",
+        0
+      ],
+      "on_false": [
+        "261:6",
+        0
+      ],
+      "on_true": [
+        "261:298",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ComfySwitchNode"
+    }
+  },
+  "w1:4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走",
+      "clip": [
+        "261:9",
+        0
+      ]
+    }
+  },
+  "w1:3": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": [
+        "605",
+        0
+      ],
+      "clip": [
+        "261:9",
+        0
+      ]
+    }
+  },
+  "w1:222": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": [
+        "604",
+        0
+      ],
+      "clip": [
+        "261:9",
+        0
+      ]
+    }
+  },
+  "w1:247": {
+    "class_type": "WanAnimate2ToVideo",
+    "inputs": {
+      "positive": [
+        "w1:3",
+        0
+      ],
+      "negative": [
+        "w1:4",
+        0
+      ],
+      "vae": [
+        "261:7",
+        0
+      ],
+      "width": [
+        "w1:256",
+        0
+      ],
+      "height": [
+        "w1:256",
+        1
+      ],
+      "length": 81,
+      "batch_size": 1,
+      "video_frame_offset": [
+        "261:247",
+        3
+      ],
+      "pose_strength": 1,
+      "pose_start_percent": 0,
+      "pose_end_percent": 1,
+      "reference_image_strength": 1,
+      "reference_image": [
+        "w1:244",
+        0
+      ],
+      "pose_video": [
+        "w1:243",
+        0
+      ],
+      "clip_vision_output": [
+        "w1:76",
+        0
+      ],
+      "positive_pose": [
+        "w1:222",
+        0
+      ],
+      "clip_vision_output_pose": [
+        "w1:220",
+        0
+      ],
+      "continue_motion": [
+        "261:6",
+        0
+      ]
+    }
+  },
+  "w1:76": {
+    "class_type": "CLIPVisionEncode",
+    "inputs": {
+      "clip_vision": [
+        "261:75",
+        0
+      ],
+      "image": [
+        "w1:244",
+        0
+      ],
+      "crop": "none"
+    }
+  },
+  "w1:244": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "input": [
+        "189",
+        0
+      ],
+      "resize_type": "scale dimensions",
+      "resize_type.width": [
+        "w1:256",
+        0
+      ],
+      "resize_type.height": [
+        "w1:256",
+        1
+      ],
+      "resize_type.crop": "center",
+      "scale_method": "area"
+    }
+  },
+  "w1:18": {
+    "class_type": "BasicScheduler",
+    "inputs": {
+      "model": [
+        "261:224",
+        0
+      ],
+      "scheduler": "simple",
+      "steps": 10,
+      "denoise": 1
+    }
+  },
+  "w1:95": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "model": [
+        "261:224",
+        0
+      ],
+      "shift": 5
+    }
+  },
+  "w1:27": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "lcm"
+    }
+  },
+  "w1:241": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "240",
+        0
+      ]
+    }
+  },
+  "w1:256": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "w1:243",
+        0
+      ]
+    }
+  },
+  "w1:19": {
+    "class_type": "SamplerCustom",
+    "inputs": {
+      "model": [
+        "w1:95",
+        0
+      ],
+      "add_noise": true,
+      "noise_seed": 714297762067883,
+      "cfg": 1,
+      "positive": [
+        "w1:247",
+        0
+      ],
+      "negative": [
+        "w1:247",
+        1
+      ],
+      "sampler": [
+        "w1:27",
+        0
+      ],
+      "sigmas": [
+        "w1:18",
+        0
+      ],
+      "latent_image": [
+        "w1:247",
+        2
+      ]
+    }
+  },
+  "w1:220": {
+    "class_type": "CLIPVisionEncode",
+    "inputs": {
+      "clip_vision": [
+        "261:75",
+        0
+      ],
+      "image": [
+        "w1:236",
+        0
+      ],
+      "crop": "none"
+    }
+  },
+  "w1:236": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "w1:243",
+        0
+      ],
+      "batch_index": 0,
+      "length": 1
+    }
+  },
+  "w1:243": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "input": [
+        "w1:241",
+        0
+      ],
+      "resize_type": "scale dimensions",
+      "resize_type.width": 482,
+      "resize_type.height": 854,
+      "resize_type.crop": "center",
+      "scale_method": "area"
+    }
+  },
+  "w1:6": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "w1:223",
+        0
+      ],
+      "vae": [
+        "261:7",
+        0
+      ]
+    }
+  },
+  "w1:223": {
+    "class_type": "TrimVideoLatent",
+    "inputs": {
+      "samples": [
+        "w1:19",
+        0
+      ],
+      "trim_amount": [
+        "w1:247",
+        3
+      ]
+    }
+  },
+  "w1:297": {
+    "class_type": "PrimitiveBoolean",
+    "inputs": {
+      "value": true
+    }
+  },
+  "w1:298": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "w1:6",
+        0
+      ],
+      "batch_index": 1,
+      "length": 4096
+    }
+  },
+  "w1:299": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": [
+        "w1:297",
+        0
+      ],
+      "on_false": [
+        "w1:6",
+        0
+      ],
+      "on_true": [
+        "w1:298",
+        0
+      ]
+    }
+  },
+  "crop": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "289",
+        0
+      ],
+      "batch_index": 0,
+      "length": 157
+    }
+  },
+  "sourceSlice": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "2",
+        0
+      ],
+      "batch_index": 0,
+      "length": 157
+    }
+  },
+  "compose": {
+    "class_type": "ImageCompositeMasked",
+    "inputs": {
+      "destination": [
+        "sourceSlice",
+        0
+      ],
+      "source": [
+        "crop",
+        0
+      ],
+      "x": 0,
+      "y": 0,
+      "resize_source": true,
+      "mask": [
+        "maskSliceBack",
+        0
+      ]
+    }
+  }
+}

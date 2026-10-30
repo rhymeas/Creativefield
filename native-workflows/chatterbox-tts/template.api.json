@@ -1,0 +1,4 @@
+{
+ "1": { "class_type": "FL_ChatterboxTTS", "inputs": { "text": "Hello, this is a test.", "exaggeration": 0.5, "cfg_weight": 0.5, "temperature": 0.8, "seed": 7, "keep_model_loaded": false }, "_meta": { "title": "Chatterbox TTS" } },
+ "2": { "class_type": "SaveAudio", "inputs": { "audio": ["1", 0], "filename_prefix": "audio/comfyfield-speech" }, "_meta": { "title": "Save audio" } }
+}

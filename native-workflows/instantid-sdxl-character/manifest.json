@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 2,
+  "id": "elements",
+  "version": "0.1.0",
+  "title": "InstantID SDXL character references",
+  "category": "identity",
+  "description": "Experimental local image workflow for producing candidate character references from one face image with InstantID and SDXL. Identity consistency and output quality have not been evaluated.",
+  "inputs": [
+    {
+      "id": "reference_image",
+      "label": "Face reference",
+      "type": "image",
+      "required": true,
+      "binding": { "node": "2", "field": "image" }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "character_reference",
+      "label": "Candidate character reference",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    { "id": "prompt", "label": "Prompt", "type": "string", "default": "portrait photograph, detailed", "binding": { "node": "6", "field": "text" } },
+    { "id": "negative", "label": "Negative prompt", "type": "string", "default": "low quality, deformed, text, watermark", "binding": { "node": "7", "field": "text" } },
+    { "id": "identity_weight", "label": "Identity weight", "type": "number", "min": 0, "max": 5, "step": 0.01, "default": 0.8, "binding": { "node": "8", "field": "weight" } },
+    { "id": "start_at", "label": "Identity start", "type": "number", "min": 0, "max": 1, "step": 0.001, "default": 0, "binding": { "node": "8", "field": "start_at" } },
+    { "id": "end_at", "label": "Identity end", "type": "number", "min": 0, "max": 1, "step": 0.001, "default": 1, "binding": { "node": "8", "field": "end_at" } },
+    { "id": "width", "label": "Width", "type": "integer", "min": 1016, "max": 1016, "default": 1016, "binding": { "node": "9", "field": "width" } },
+    { "id": "height", "label": "Height", "type": "integer", "min": 1016, "max": 1016, "default": 1016, "binding": { "node": "9", "field": "height" } },
+    { "id": "seed", "label": "Seed", "type": "integer", "min": 0, "max": 2147483647, "default": 1631591050, "binding": { "node": "10", "field": "seed" } },
+    { "id": "steps", "label": "Steps", "type": "integer", "min": 1, "max": 100, "default": 30, "binding": { "node": "10", "field": "steps" } },
+    { "id": "cfg", "label": "CFG", "type": "number", "min": 1, "max": 5, "step": 0.1, "default": 4.5, "binding": { "node": "10", "field": "cfg" } }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "experimental",
+      "workflowId": "instantid-sdxl-character",
+      "requirements": [
+        { "id": "node:CheckpointLoaderSimple", "kind": "node", "name": "CheckpointLoaderSimple", "instructions": "Install a current ComfyUI version providing CheckpointLoaderSimple." },
+        { "id": "node:LoadImage", "kind": "node", "name": "LoadImage", "instructions": "Install a current ComfyUI version providing LoadImage." },
+        { "id": "node:CLIPTextEncode", "kind": "node", "name": "CLIPTextEncode", "instructions": "Install a current ComfyUI version providing CLIPTextEncode." },
+        { "id": "node:EmptyLatentImage", "kind": "node", "name": "EmptyLatentImage", "instructions": "Install a current ComfyUI version providing EmptyLatentImage." },
+        { "id": "node:KSampler", "kind": "node", "name": "KSampler", "instructions": "Install a current ComfyUI version providing KSampler." },
+        { "id": "node:VAEDecode", "kind": "node", "name": "VAEDecode", "instructions": "Install a current ComfyUI version providing VAEDecode." },
+        { "id": "node:SaveImage", "kind": "node", "name": "SaveImage", "instructions": "Install a current ComfyUI version providing SaveImage." },
+        { "id": "node:ControlNetLoader", "kind": "node", "name": "ControlNetLoader", "instructions": "Install a current ComfyUI version providing ControlNetLoader." },
+        { "id": "node:InstantIDModelLoader", "kind": "node", "name": "InstantIDModelLoader", "version": "72495e806bc2ab9c41581e15ccaa1bcf83c477e8", "source": "https://github.com/cubiq/ComfyUI_InstantID", "instructions": "Install cubiq/ComfyUI_InstantID at reviewed commit 72495e806bc2ab9c41581e15ccaa1bcf83c477e8." },
+        { "id": "node:InstantIDFaceAnalysis", "kind": "node", "name": "InstantIDFaceAnalysis", "version": "72495e806bc2ab9c41581e15ccaa1bcf83c477e8", "source": "https://github.com/cubiq/ComfyUI_InstantID", "instructions": "Install cubiq/ComfyUI_InstantID with its declared insightface, onnxruntime, and onnxruntime-gpu dependencies." },
+        { "id": "node:ApplyInstantID", "kind": "node", "name": "ApplyInstantID", "version": "72495e806bc2ab9c41581e15ccaa1bcf83c477e8", "source": "https://github.com/cubiq/ComfyUI_InstantID", "instructions": "Install the reviewed cubiq InstantID custom node; it is in maintenance-only mode upstream." },
+        { "id": "model:instantid-adapter", "kind": "model", "name": "ip-adapter.bin", "location": "instantid", "source": "https://huggingface.co/InstantX/InstantID/resolve/main/ip-adapter.bin", "instructions": "Download ip-adapter.bin into ComfyUI/models/instantid. No checksum is asserted by this bundle." },
+        { "id": "model:instantid-controlnet", "kind": "model", "name": "instantid/diffusion_pytorch_model.safetensors", "location": "controlnet", "source": "https://huggingface.co/InstantX/InstantID/resolve/main/ControlNetModel/diffusion_pytorch_model.safetensors", "instructions": "Download diffusion_pytorch_model.safetensors into ComfyUI/models/controlnet/instantid. No checksum is asserted by this bundle." },
+        { "id": "model:antelopev2", "kind": "model", "name": "models/antelopev2", "location": "insightface", "source": "https://github.com/cubiq/ComfyUI_InstantID", "instructions": "Install the complete antelopev2 InsightFace model pack under ComfyUI/models/insightface/models/antelopev2; buffalo_l is not supported by this workflow." },
+        { "id": "model:sdxl-checkpoint", "kind": "model", "name": "sdxl/AlbedoBaseXL.safetensors", "location": "checkpoints", "source": "https://github.com/cubiq/ComfyUI_InstantID/blob/72495e806bc2ab9c41581e15ccaa1bcf83c477e8/examples/InstantID_basic.json", "instructions": "Install the SDXL checkpoint named by cubiq's reviewed basic example at ComfyUI/models/checkpoints/sdxl/AlbedoBaseXL.safetensors, or revise and re-review the workflow bundle before selecting another checkpoint." }
+      ],
+      "evidence": [
+        "The manifest and API-format graph are mapped from cubiq's official README and basic example at commit 72495e806bc2ab9c41581e15ccaa1bcf83c477e8. No local generation, identity evaluation, output-quality evaluation, recovery, cancellation, offline behavior, or hardware use has been qualified."
+      ]
+    },
+    {
+      "id": "hosted",
+      "execution": "comfy_partner",
+      "provider": "comfy-partner",
+      "upstreamProviders": [],
+      "implementation": "planned",
+      "requirements": [],
+      "evidence": ["No hosted adapter or provider has been selected, implemented, or qualified."]
+    }
+  ],
+  "coverage": { "local": "experimental", "hosted": "planned" },
+  "licenses": {
+    "software": "cubiq/ComfyUI_InstantID: Apache-2.0. ComfyUI core: GPL-3.0. Full dependency audit pending.",
+    "weights": [
+      { "name": "InstantX InstantID adapter and ControlNet", "license": "Apache-2.0 as declared by the upstream model repository; redistribution is not performed by this bundle.", "source": "https://huggingface.co/InstantX/InstantID" },
+      { "name": "antelopev2 InsightFace pack", "license": "Operators must review the selected download source and applicable InsightFace model terms before installation.", "source": "https://github.com/cubiq/ComfyUI_InstantID" },
+      { "name": "AlbedoBaseXL SDXL checkpoint", "license": "Not established by cubiq's example; operators must verify the selected checkpoint license before installation.", "source": "https://github.com/cubiq/ComfyUI_InstantID/blob/72495e806bc2ab9c41581e15ccaa1bcf83c477e8/examples/InstantID_basic.json" }
+    ]
+  },
+  "sources": [
+    { "url": "https://github.com/cubiq/ComfyUI_InstantID/tree/72495e806bc2ab9c41581e15ccaa1bcf83c477e8", "observedAt": "2026-10-17", "kind": "implementation" },
+    { "url": "https://github.com/cubiq/ComfyUI_InstantID/blob/72495e806bc2ab9c41581e15ccaa1bcf83c477e8/examples/InstantID_basic.json", "observedAt": "2026-10-17", "kind": "implementation" },
+    { "url": "https://huggingface.co/InstantX/InstantID", "observedAt": "2026-10-17", "kind": "research" }
+  ],
+  "tickets": ["STU-01", "STU-02"],
+  "resolutions": { "portrait-reference": { "width": 1016, "height": 1016 } },
+  "audioPolicies": ["mute"]
+}

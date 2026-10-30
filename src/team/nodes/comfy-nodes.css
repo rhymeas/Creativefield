@@ -1,0 +1,13 @@
+.cf-nodes-page { display:flex; flex-direction:column; height:100%; min-height:0; }
+.cf-nodes { height:100%; min-height:0; }
+.cf-nodes .ds-canvas { height:100%; min-height:0; }
+.cf-nodes__shelf { display:flex; flex-direction:column; gap:var(--gap-stack); padding:var(--gap-stack) 0; }
+.cf-nodes__shelf-head { display:flex; align-items:center; justify-content:space-between; gap:var(--gap-block); flex-wrap:wrap; }
+.cf-nodes__saved { display:flex; flex-direction:column; gap:var(--gap-inline); }
+.cf-nodes__saved-item { display:flex; align-items:center; gap:var(--gap-inline); flex-wrap:wrap; }
+.cf-nodes__import { display:flex; flex-direction:column; gap:var(--gap-stack); }
+.cf-nodes__sources { display:flex; flex-wrap:wrap; gap:var(--gap-inline); }
+.cf-nodes__mapping { display:flex; flex-direction:column; gap:var(--gap-inline); }
+.cf-nodes__stage { position:relative; flex:1; min-height:0; }
+.cf-nodes__loading { position:absolute; inset:0; display:grid; place-items:center; z-index:2; }
+.cf-nodes__frame { display:block; width:100%; height:100%; min-height:0; border:0; }

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 2,
+  "id": "cloud-kling-omni-edit",
+  "version": "0.1.0",
+  "title": "Kling Omni character edit",
+  "category": "motion",
+  "description": "Changes the person in your clip into the character in your picture, with Kling 3.0 Omni Edit on Comfy Cloud. Give a clip, a character picture and what to change. The clip keeps its own length. Kling bills by the second of output: about $0.13 a second at 720p and $0.17 at 1080p.",
+  "inputs": [
+    { "id": "source_video", "label": "Your video", "type": "video", "required": true, "binding": { "node": "1", "field": "file" } },
+    { "id": "character_image", "label": "Character", "type": "image", "required": true, "binding": { "node": "2", "field": "image" } }
+  ],
+  "outputs": [
+    { "id": "video", "label": "Video", "type": "video", "required": true }
+  ],
+  "controls": [
+    { "id": "prompt", "label": "What should change", "type": "string", "default": "", "binding": { "node": "3", "field": "prompt" } },
+    { "id": "resolution", "label": "Size", "type": "select", "default": "1080p", "options": ["1080p", "720p"], "binding": { "node": "3", "field": "resolution" } },
+    { "id": "seed", "label": "Seed", "type": "integer", "min": 0, "max": 2147483647, "default": 1, "binding": { "node": "3", "field": "seed" } }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "cloud",
+      "execution": "comfy_cloud",
+      "provider": "comfy-cloud",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "cloud-kling-omni-edit",
+      "endpointOrigin": "https://cloud.comfy.org",
+      "requirements": [
+        { "id": "node:LoadVideo", "kind": "node", "name": "LoadVideo", "instructions": "Comfy Cloud needs the core node LoadVideo." },
+        { "id": "node:LoadImage", "kind": "node", "name": "LoadImage", "instructions": "Comfy Cloud needs the core node LoadImage." },
+        { "id": "node:KlingOmniProEditVideoNode", "kind": "node", "name": "KlingOmniProEditVideoNode", "instructions": "Comfy Cloud needs the Kling Omni Edit Video node." },
+        { "id": "node:SaveVideo", "kind": "node", "name": "SaveVideo", "instructions": "Comfy Cloud needs the core node SaveVideo." }
+      ],
+      "evidence": [
+        "2026-10-27: graph from Comfy's own api_kling_omni_edit_video template, cut to one clip and one character picture. The node takes a clip of 3 to 10 s at 720 to 2160 px, keeps the clip's own length, and holds up to 4 reference pictures with a video. Comfy's price badge for this node is $0.126 a second at 720p and $0.168 a second at 1080p.",
+        "Not yet run on Comfy Cloud: this task spent no credits. The graph, the node input names and the prices come from Comfy's template and node source of 2026-10-27."
+      ]
+    }
+  ],
+  "coverage": { "local": "planned", "hosted": "implemented" },
+  "licenses": {
+    "software": "ComfyUI core (GPL-3.0) runs this graph on Comfy Cloud; the Kling model itself is a paid service of Kuaishou.",
+    "weights": [{ "name": "Kling 3.0 Omni", "license": "Kling API terms, paid per second of output", "source": "https://app.klingai.com" }]
+  },
+  "sources": [
+    { "url": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/api_kling_omni_edit_video.json", "observedAt": "2026-10-27", "kind": "implementation" },
+    { "url": "https://raw.githubusercontent.com/comfyanonymous/ComfyUI/master/comfy_api_nodes/nodes_kling.py", "observedAt": "2026-10-27", "kind": "implementation" }
+  ],
+  "tickets": ["J4"],
+  "audioPolicies": ["mute"]
+}

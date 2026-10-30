@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 2,
+  "id": "local-jutsu-replace",
+  "version": "0.1.0",
+  "title": "Local jutsu character replace",
+  "category": "motion",
+  "description": "Replaces one tracked person in a clip with the character from a picture, the Openjutsu way, on locally installed models: SAM 3.1 marks the person, a local image edit model puts the character into the clip's first frame, Wan Animate 2 carries that first frame through the clip from the clip's own skeleton, and the render is composited back over the source by the same mask so the scene, the camera and everyone else stay. One window of 81 frames (3.4 s at 24 fps); a longer clip is refused. Person 1 is the leftmost person.",
+  "inputs": [
+    { "id": "source_video", "label": "Video", "type": "video", "required": true, "binding": { "node": "1", "field": "file" } },
+    { "id": "character_image", "label": "Character", "type": "image", "required": true, "binding": { "node": "12", "field": "image" } }
+  ],
+  "outputs": [
+    { "id": "video", "label": "Video", "type": "video", "required": true }
+  ],
+  "controls": [
+    { "id": "prompt", "label": "Describe the scene", "type": "string", "default": "", "binding": { "node": "605", "field": "value" } },
+    { "id": "pose_prompt", "label": "Describe the movement", "type": "string", "default": "", "binding": { "node": "604", "field": "value" } },
+    { "id": "seed", "label": "Seed", "type": "integer", "min": 0, "max": 2147483647, "default": 1, "binding": { "node": "261:19", "field": "noise_seed" } }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "local-jutsu-replace",
+      "requirements": [
+        { "id": "node:SAM3_VideoTrack", "kind": "node", "name": "SAM3_VideoTrack", "instructions": "Update ComfyUI to a version with native SAM 3 nodes." },
+        { "id": "node:SAM3_TrackToMask", "kind": "node", "name": "SAM3_TrackToMask", "instructions": "Update ComfyUI to a version with native SAM 3 nodes." },
+        { "id": "node:SDPoseKeypointExtractor", "kind": "node", "name": "SDPoseKeypointExtractor", "instructions": "Install a ComfyUI version that ships the SDPose nodes." },
+        { "id": "node:SDPoseDrawKeypoints", "kind": "node", "name": "SDPoseDrawKeypoints", "instructions": "Install a ComfyUI version that ships the SDPose nodes." },
+        { "id": "node:InpaintCrop", "kind": "node", "name": "InpaintCrop", "instructions": "Install the ComfyUI inpaint crop and stitch nodes." },
+        { "id": "node:InpaintStitch", "kind": "node", "name": "InpaintStitch", "instructions": "Install the ComfyUI inpaint crop and stitch nodes." },
+        { "id": "node:KleinEditComposite", "kind": "node", "name": "KleinEditComposite", "instructions": "Install the ComfyUI Flux 2 Klein edit nodes." },
+        { "id": "node:WanAnimate2ToVideo", "kind": "node", "name": "WanAnimate2ToVideo", "instructions": "Update ComfyUI to a version with native Wan Animate 2 nodes." },
+        { "id": "model:wan-animate2", "kind": "model", "name": "wan_animate_2_distill_int8_convrot.safetensors", "location": "diffusion_models", "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged", "instructions": "Install the Wan Animate 2 distilled int8 model." },
+        { "id": "model:flux2-klein", "kind": "model", "name": "flux-2-klein-4b-fp8.safetensors", "location": "diffusion_models", "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein", "instructions": "Install the Flux 2 Klein 4B model used for the first-frame anchor." },
+        { "id": "model:sam31", "kind": "model", "name": "sam3.1_multiplex_fp16.safetensors", "location": "checkpoints", "source": "https://huggingface.co/Comfy-Org/sam3.1", "instructions": "Install SAM 3.1 (SAM License)." },
+        { "id": "model:sdpose", "kind": "model", "name": "sdpose_wholebody_fp16.safetensors", "location": "checkpoints", "source": "https://huggingface.co/Comfy-Org/SDPose", "instructions": "Install the SDPose whole-body checkpoint." }
+      ],
+      "evidence": [
+        "2026-10-26 (0.1.0): built from the local models that were already installed, after SCAIL-2 runs kept returning the clip without the reference. Same clip and picture as docs/REPLACE-MODEL-COMPARE.md (asset 806b049c, picture A). The anchor is the clip's first frame with the picture edited onto the masked person by Flux 2 Klein in a masked inpaint crop; Wan Animate 2 then animates that anchor from the clip's SDPose skeleton, and the render is composited back over the source through the same SAM 3.1 person mask. The packed graph ran as shipped (prompt 0cc56da2, 81 frames of the user clip in 447 s at 23.4 GB). Identity is closer to the picture than SCAIL-2's face and hair. The second relay window does not run in this build: a two-member BatchImagesNode gives the final crop no frames, and the 157-frame attempt sat in the first sampler for ninety minutes, so the pack declares maxWindows 1 and refuses a longer clip. Numbers, frames and the honest reading are in docs/LOCAL-JUTSU.md."
+      ]
+    }
+  ],
+  "coverage": { "local": "implemented", "hosted": "missing" },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Integration license follows this repository.",
+    "weights": [
+      { "name": "Wan 2.2 Animate 2 distilled", "license": "Apache-2.0", "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged" },
+      { "name": "FLUX.2 Klein 4B", "license": "Apache-2.0", "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein" },
+      { "name": "SAM 3.1", "license": "SAM License (Meta)", "source": "https://huggingface.co/facebook/sam3" },
+      { "name": "SDPose whole body", "license": "Apache-2.0", "source": "https://huggingface.co/Comfy-Org/SDPose" }
+    ]
+  },
+  "sources": [
+    { "url": "https://github.com/Comfy-Org/ComfyUI_frontend/pull/20965", "observedAt": "2026-10-26", "kind": "research" },
+    { "url": "https://comfy.org/workflows/", "observedAt": "2026-10-26", "kind": "implementation" }
+  ],
+  "tickets": ["EDT-01"],
+  "audioPolicies": ["mute"],
+  "replaceContract": {
+    "kind": "jutsu_relay_v1",
+    "sourceInput": "source_video",
+    "artifactNode": "246",
+    "maxWindows": 1
+  }
+}
+

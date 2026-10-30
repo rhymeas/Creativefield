@@ -1,0 +1,82 @@
+{
+  "id": "wan22-ti2v-5b",
+  "family": "wan22-ti2v-5b",
+  "label": "Wan 2.2 TI2V 5B (image to video)",
+  "display": {
+    "title": "Wan 2.2",
+    "subtitle": "Image to video · 5B · 720p",
+    "short": "Wan 2.2 TI2V 5B",
+    "resolution": "720p"
+  },
+  "execution": { "route": "native-comfy" },
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": {
+    "prompt": {
+      "node": "6",
+      "field": "text"
+    },
+    "negative": {
+      "node": "7",
+      "field": "text"
+    },
+    "start_image": {
+      "node": "56",
+      "field": "image"
+    },
+    "width": {
+      "node": "55",
+      "field": "width"
+    },
+    "height": {
+      "node": "55",
+      "field": "height"
+    },
+    "length": {
+      "node": "55",
+      "field": "length",
+      "map": "seconds_to_wan_frames"
+    },
+    "seed": {
+      "node": "3",
+      "field": "seed"
+    }
+  },
+  "outputs": {
+    "video": {
+      "node": "58"
+    }
+  },
+  "limits": {
+    "minDurationSec": 1,
+    "maxDurationSec": 5,
+    "fps": 24,
+    "resolutions": {
+      "landscape": {
+        "width": 1280,
+        "height": 704
+      },
+      "portrait": {
+        "width": 704,
+        "height": 1280
+      }
+    }
+  },
+  "requires": {
+    "models": [
+      {
+        "folder": "diffusion_models",
+        "file": "wan2.2_ti2v_5B_fp16.safetensors"
+      },
+      {
+        "folder": "text_encoders",
+        "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+      },
+      {
+        "folder": "vae",
+        "file": "wan2.2_vae.safetensors"
+      }
+    ]
+  }
+}

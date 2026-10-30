@@ -1,0 +1,45 @@
+{
+  "id": "wan22-flf2v-14b",
+  "family": "wan22-14b",
+  "label": "Wan 2.2 14B (first and last frame, quality)",
+  "display": {
+    "title": "Wan 2.2 Quality",
+    "subtitle": "First and last frame · 14B · 480p",
+    "short": "Wan 2.2 14B FLF",
+    "resolution": "480p"
+  },
+  "execution": { "route": "native-comfy" },
+  "modes": ["first_last_frame"],
+  "inputs": {
+    "prompt":      { "node": "6",  "field": "text" },
+    "negative":    { "node": "7",  "field": "text" },
+    "start_image": { "node": "68", "field": "image" },
+    "end_image":   { "node": "62", "field": "image" },
+    "width":       { "node": "67", "field": "width" },
+    "height":      { "node": "67", "field": "height" },
+    "length":      { "node": "67", "field": "length", "map": "seconds_to_wan_frames" },
+    "seed":        { "node": "57", "field": "noise_seed" }
+  },
+  "outputs": {
+    "video": { "node": "61" }
+  },
+  "limits": {
+    "minDurationSec": 1,
+    "maxDurationSec": 5,
+    "fps": 16,
+    "resolutions": {
+      "landscape": { "width": 832, "height": 480 },
+      "portrait":  { "width": 480, "height": 832 }
+    }
+  },
+  "requires": {
+    "models": [
+      { "folder": "diffusion_models", "file": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors" },
+      { "folder": "diffusion_models", "file": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors" },
+      { "folder": "loras", "file": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors" },
+      { "folder": "loras", "file": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors" },
+      { "folder": "text_encoders", "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors" },
+      { "folder": "vae", "file": "wan_2.1_vae.safetensors" }
+    ]
+  }
+}

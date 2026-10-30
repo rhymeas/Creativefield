@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 2,
+  "id": "z-image-turbo-t2i",
+  "version": "0.1.0",
+  "title": "Z-Image Turbo",
+  "category": "image",
+  "description": "Local text-to-image generation from the official Z-Image Turbo workflow. Creation only, not Z-Image-Edit. Graph and software contracts are checked; local output quality and speed have not been qualified.",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "image",
+      "label": "Generated image",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Prompt",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "27",
+        "field": "text"
+      }
+    },
+    {
+      "id": "width",
+      "label": "Width",
+      "type": "integer",
+      "min": 256,
+      "max": 2048,
+      "step": 16,
+      "default": 1024,
+      "binding": {
+        "node": "13",
+        "field": "width"
+      }
+    },
+    {
+      "id": "height",
+      "label": "Height",
+      "type": "integer",
+      "min": 256,
+      "max": 2048,
+      "step": 16,
+      "default": 1024,
+      "binding": {
+        "node": "13",
+        "field": "height"
+      }
+    },
+    {
+      "id": "batch_size",
+      "label": "Batch size",
+      "type": "integer",
+      "min": 1,
+      "max": 4,
+      "default": 1,
+      "binding": {
+        "node": "13",
+        "field": "batch_size"
+      }
+    },
+    {
+      "id": "steps",
+      "label": "Steps",
+      "type": "integer",
+      "min": 1,
+      "max": 20,
+      "default": 8,
+      "binding": {
+        "node": "3",
+        "field": "steps"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 42,
+      "binding": {
+        "node": "3",
+        "field": "seed"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "z-image-turbo-t2i",
+      "requirements": [
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Use a current ComfyUI build providing KSampler. CLIPLoader must support lumina2 and KSampler must support res_multistep."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Use a current ComfyUI build providing VAEDecode. CLIPLoader must support lumina2 and KSampler must support res_multistep."
+        },
+        {
+          "id": "node:SaveImage",
+          "kind": "node",
+          "name": "SaveImage",
+          "instructions": "Use a current ComfyUI build providing SaveImage. CLIPLoader must support lumina2 and KSampler must support res_multistep."
+        },
+        {
+          "id": "node:ModelSamplingAuraFlow",
+          "kind": "node",
+          "name": "ModelSamplingAuraFlow",
+          "instructions": "Use a current ComfyUI build providing ModelSamplingAuraFlow. CLIPLoader must support lumina2 and KSampler must support res_multistep."
+        },
+        {
+          "id": "node:EmptySD3LatentImage",
+          "kind": "node",
+          "name": "EmptySD3LatentImage",
+          "instructions": "Use a current ComfyUI build providing EmptySD3LatentImage. CLIPLoader must support lumina2 and KSampler must support res_multistep."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Use a current ComfyUI build providing CLIPTextEncode. CLIPLoader must support lumina2 and KSampler must support res_multistep."
+        },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Use a current ComfyUI build providing UNETLoader. CLIPLoader must support lumina2 and KSampler must support res_multistep."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Use a current ComfyUI build providing VAELoader. CLIPLoader must support lumina2 and KSampler must support res_multistep."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Use a current ComfyUI build providing CLIPLoader. CLIPLoader must support lumina2 and KSampler must support res_multistep."
+        },
+        {
+          "id": "node:ConditioningZeroOut",
+          "kind": "node",
+          "name": "ConditioningZeroOut",
+          "instructions": "Use a current ComfyUI build providing ConditioningZeroOut. CLIPLoader must support lumina2 and KSampler must support res_multistep."
+        },
+        {
+          "id": "model:z-image-z-image-turbo-bf16",
+          "kind": "model",
+          "name": "z_image_turbo_bf16.safetensors",
+          "location": "diffusion_models",
+          "version": "sha256:2407613050b809ffdff18a4ac99af83ea6b95443ecebdf80e064a79c825574a6",
+          "source": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/6fc90a3b1b653e935a0d175e260736de25b84df5/split_files/diffusion_models/z_image_turbo_bf16.safetensors",
+          "sourceRevision": "6fc90a3b1b653e935a0d175e260736de25b84df5",
+          "bytes": 12309866400,
+          "instructions": "Download this exact file into ComfyUI/models/diffusion_models and verify its SHA-256. Reuse an already installed matching file."
+        },
+        {
+          "id": "model:z-image-qwen-3-4b",
+          "kind": "model",
+          "name": "qwen_3_4b.safetensors",
+          "location": "text_encoders",
+          "version": "sha256:6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a",
+          "source": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/6fc90a3b1b653e935a0d175e260736de25b84df5/split_files/text_encoders/qwen_3_4b.safetensors",
+          "sourceRevision": "6fc90a3b1b653e935a0d175e260736de25b84df5",
+          "bytes": 8044982048,
+          "instructions": "Download this exact file into ComfyUI/models/text_encoders and verify its SHA-256. Reuse an already installed matching file."
+        },
+        {
+          "id": "model:z-image-ae",
+          "kind": "model",
+          "name": "ae.safetensors",
+          "location": "vae",
+          "version": "sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38",
+          "source": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/6fc90a3b1b653e935a0d175e260736de25b84df5/split_files/vae/ae.safetensors",
+          "sourceRevision": "6fc90a3b1b653e935a0d175e260736de25b84df5",
+          "bytes": 335304388,
+          "instructions": "Download this exact file into ComfyUI/models/vae and verify its SHA-256. Reuse an already installed matching file."
+        }
+      ],
+      "evidence": [
+        "Adapted official Comfy-Org workflow_templates at e7cd011d4ded3411c2f481200544f0be6fdc962e; source SHA-256 baaf937ff071970cc6b1e2fa0093a4dd664a4cc734d38adc4c7810e535c1f1d3.",
+        "Retains the official 8-step, CFG 1, res_multistep/simple, shift 3 defaults; no negative-prompt or image-edit control.",
+        "Creation-only route; no local generation, model loading, speed or image-quality qualification performed. Node and filename readiness is not a verification of installed weight hashes."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0; adapted Comfy-Org workflow_templates: MIT (upstream notice included).",
+    "weights": [
+      {
+        "name": "Z-Image Turbo diffusion model, Qwen 3 4B encoder and AE VAE",
+        "license": "Apache-2.0 as declared by the pinned Comfy-Org/z_image_turbo repository. Model files are downloaded separately and are not bundled.",
+        "source": "https://huggingface.co/Comfy-Org/z_image_turbo"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/e7cd011d4ded3411c2f481200544f0be6fdc962e/templates/image_z_image_turbo.json",
+      "observedAt": "2026-10-28",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://docs.comfy.org/tutorials/image/z-image/z-image-turbo",
+      "observedAt": "2026-10-28",
+      "kind": "documentation"
+    },
+    {
+      "url": "https://github.com/Tongyi-MAI/Z-Image",
+      "observedAt": "2026-10-28",
+      "kind": "documentation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

@@ -1,0 +1,267 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.1_vace_1.3B_fp16.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    }
+  },
+  "4": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "SOURCE_REQUIRED.mp4"
+    }
+  },
+  "5": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "4",
+        0
+      ]
+    }
+  },
+  "6": {
+    "class_type": "Canny",
+    "inputs": {
+      "image": [
+        "16",
+        0
+      ],
+      "low_threshold": 0.4,
+      "high_threshold": 0.8
+    }
+  },
+  "7": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "16",
+        0
+      ]
+    }
+  },
+  "8": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "text": ""
+    }
+  },
+  "9": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "text": "blurry, distorted, unstable"
+    }
+  },
+  "10": {
+    "class_type": "WanVaceToVideo",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "width": [
+        "7",
+        0
+      ],
+      "height": [
+        "7",
+        1
+      ],
+      "length": [
+        "7",
+        2
+      ],
+      "batch_size": 1,
+      "strength": 1,
+      "control_video": [
+        "6",
+        0
+      ],
+      "reference_image": [
+        "19",
+        0
+      ]
+    }
+  },
+  "11": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "shift": 5
+    }
+  },
+  "12": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "11",
+        0
+      ],
+      "positive": [
+        "10",
+        0
+      ],
+      "negative": [
+        "10",
+        1
+      ],
+      "latent_image": [
+        "10",
+        2
+      ],
+      "seed": 543,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "13": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "12",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "14": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "20",
+        0
+      ],
+      "fps": [
+        "5",
+        2
+      ]
+    }
+  },
+  "15": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "14",
+        0
+      ],
+      "filename_prefix": "ComfyField/vace-canny-restyle",
+      "format": "auto",
+      "codec": "auto"
+    }
+  },
+  "16": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "input": [
+        "18",
+        0
+      ],
+      "resize_type": "scale to multiple",
+      "resize_type.multiple": 16,
+      "scale_method": "area"
+    },
+    "_meta": {
+      "title": "Snap to multiple of 16 (Wan VACE)"
+    }
+  },
+  "17": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "5",
+        0
+      ],
+      "batch_index": 0,
+      "length": 81
+    },
+    "_meta": {
+      "title": "First 81 frames (Wan VACE maximum)"
+    }
+  },
+  "18": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "input": [
+        "17",
+        0
+      ],
+      "resize_type": "scale total pixels",
+      "resize_type.megapixels": 0.4,
+      "scale_method": "area"
+    },
+    "_meta": {
+      "title": "About 832x480 worth of pixels (VACE 1.3B)"
+    }
+  },
+  "19": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "16",
+        0
+      ],
+      "batch_index": 0,
+      "length": 1
+    },
+    "_meta": {
+      "title": "First fitted frame as the person reference"
+    }
+  },
+  "20": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "13",
+        0
+      ],
+      "batch_index": 2,
+      "length": [
+        "7",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "Drop the two prepended reference frames"
+    }
+  }
+}

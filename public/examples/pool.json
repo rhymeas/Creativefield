@@ -1,0 +1,34 @@
+{
+ "images": [
+  "pool/img-00.webp",
+  "pool/img-01.webp",
+  "pool/img-03.webp",
+  "pool/img-04.webp",
+  "pool/img-05.webp",
+  "pool/img-06.webp",
+  "pool/img-07.webp",
+  "pool/img-08.webp",
+  "pool/img-09.webp",
+  "pool/img-10.webp",
+  "pool/img-11.webp",
+  "pool/img-12.webp",
+  "pool/img-13.webp",
+  "pool/img-14.webp",
+  "pool/img-15.webp",
+  "pool/img-16.webp",
+  "pool/img-17.webp",
+  "pool/img-18.webp",
+  "pool/img-19.webp",
+  "pool/img-20.webp"
+ ],
+ "videos": [
+  "/reels/mj-00.mp4",
+  "/reels/mj-01.mp4",
+  "/reels/mj-02.mp4",
+  "/reels/mj-03.mp4",
+  "/reels/mj-04.mp4",
+  "/reels/mj-05.mp4",
+  "/reels/mj-06.mp4",
+  "/reels/mj-07.mp4"
+ ]
+}

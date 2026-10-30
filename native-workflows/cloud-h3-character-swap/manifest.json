@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 2,
+  "id": "cloud-h3-character-swap",
+  "version": "0.1.0",
+  "title": "MiniMax H3 character swap",
+  "category": "motion",
+  "description": "Changes the person in your clip into the character in your picture, with MiniMax H3 on Comfy Cloud. Give a clip, a character picture and what to change. H3 reads the clip as a reference video, so the new person copies its movement. One pass covers 5 to 15 seconds. Comfy Cloud bills H3 by the machine time it uses.",
+  "inputs": [
+    { "id": "source_video", "label": "Your video", "type": "video", "required": true, "binding": { "node": "1", "field": "file" } },
+    { "id": "character_image", "label": "Character", "type": "image", "required": true, "binding": { "node": "2", "field": "image" } }
+  ],
+  "outputs": [
+    { "id": "video", "label": "Video", "type": "video", "required": true }
+  ],
+  "controls": [
+    { "id": "prompt", "label": "What should change", "type": "string", "default": "", "binding": { "node": "8", "field": "prompt" } },
+    { "id": "length", "label": "Frames", "type": "integer", "min": 5, "max": 3600, "step": 17, "default": 124, "binding": { "node": "8", "field": "length" } },
+    { "id": "width", "label": "Width", "type": "integer", "min": 32, "max": 16384, "step": 32, "default": 768, "binding": { "node": "8", "field": "width" } },
+    { "id": "height", "label": "Height", "type": "integer", "min": 32, "max": 16384, "step": 32, "default": 1344, "binding": { "node": "8", "field": "height" } },
+    { "id": "steps", "label": "Steps", "type": "integer", "min": 1, "max": 60, "default": 20, "binding": { "node": "12", "field": "steps" } },
+    { "id": "seed", "label": "Seed", "type": "integer", "min": 0, "max": 2147483647, "default": 1, "binding": { "node": "10", "field": "noise_seed" } }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "cloud",
+      "execution": "comfy_cloud",
+      "provider": "comfy-cloud",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "cloud-h3-character-swap",
+      "endpointOrigin": "https://cloud.comfy.org",
+      "requirements": [
+        { "id": "node:LoadVideo", "kind": "node", "name": "LoadVideo", "instructions": "Comfy Cloud needs the core node LoadVideo." },
+        { "id": "node:LoadImage", "kind": "node", "name": "LoadImage", "instructions": "Comfy Cloud needs the core node LoadImage." },
+        { "id": "node:GetVideoComponents", "kind": "node", "name": "GetVideoComponents", "instructions": "Comfy Cloud needs the core node GetVideoComponents." },
+        { "id": "node:MiniMaxH3ReferenceToVideo", "kind": "node", "name": "MiniMaxH3ReferenceToVideo", "instructions": "Comfy Cloud needs the MiniMax H3 reference node." },
+        { "id": "node:UNETLoader", "kind": "node", "name": "UNETLoader", "instructions": "Comfy Cloud needs the core node UNETLoader." },
+        { "id": "node:CLIPLoader", "kind": "node", "name": "CLIPLoader", "instructions": "Comfy Cloud needs the core node CLIPLoader." },
+        { "id": "node:VAELoader", "kind": "node", "name": "VAELoader", "instructions": "Comfy Cloud needs the core node VAELoader." },
+        { "id": "node:VAEDecodeAudio", "kind": "node", "name": "VAEDecodeAudio", "instructions": "Comfy Cloud needs the core node VAEDecodeAudio." },
+        { "id": "node:KSamplerSelect", "kind": "node", "name": "KSamplerSelect", "instructions": "Comfy Cloud needs the core node KSamplerSelect." },
+        { "id": "node:RandomNoise", "kind": "node", "name": "RandomNoise", "instructions": "Comfy Cloud needs the core node RandomNoise." },
+        { "id": "node:BasicGuider", "kind": "node", "name": "BasicGuider", "instructions": "Comfy Cloud needs the core node BasicGuider." },
+        { "id": "node:BasicScheduler", "kind": "node", "name": "BasicScheduler", "instructions": "Comfy Cloud needs the core node BasicScheduler." },
+        { "id": "node:SamplerCustomAdvanced", "kind": "node", "name": "SamplerCustomAdvanced", "instructions": "Comfy Cloud needs the core node SamplerCustomAdvanced." },
+        { "id": "node:VAEDecode", "kind": "node", "name": "VAEDecode", "instructions": "Comfy Cloud needs the core node VAEDecode." },
+        { "id": "node:CreateVideo", "kind": "node", "name": "CreateVideo", "instructions": "Comfy Cloud needs the core node CreateVideo." },
+        { "id": "node:SaveVideo", "kind": "node", "name": "SaveVideo", "instructions": "Comfy Cloud needs the core node SaveVideo." },
+        { "id": "model:h3-ref2va", "kind": "model", "name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors", "location": "diffusion_models", "source": "https://huggingface.co/Comfy-Org/MiniMax-H3", "instructions": "Install the H3 reference-to-video weights (19.5 GB)." },
+        { "id": "model:h3-text-encoder", "kind": "model", "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors", "location": "text_encoders", "source": "https://huggingface.co/Comfy-Org/MiniMax-H3", "instructions": "Install the H3 text encoder (14.6 GB)." },
+        { "id": "model:h3-video-vae", "kind": "model", "name": "minimax_h3_video_vae_fp16.safetensors", "location": "vae", "source": "https://huggingface.co/Comfy-Org/MiniMax-H3", "instructions": "Comfy Cloud carries the H3 video VAE (minimax_h3_video_vae_fp16.safetensors)." },
+        { "id": "model:h3-audio-vae", "kind": "model", "name": "minimax_h3_audio_vae_fp32.safetensors", "location": "vae", "source": "https://huggingface.co/Comfy-Org/MiniMax-H3", "instructions": "Install the H3 audio VAE (0.6 GB)." }
+      ],
+      "evidence": [
+        "2026-10-27: graph cut from Comfy's own video_minimax_h3_r2v template, the ref2va pass: the clip goes in as reference video frames (GetVideoComponents), the picture as the first reference image, and the prompt names both with <Video 1> and <Picture 1>. The sampler is res_multistep with the simple scheduler, 20 steps, 24 fps, and the video and audio VAE decode the one packed latent into a clip with sound. length is the frame count at 24 fps (124 is about 5 s); Comfy's template steps it by 17 to the trained range of about 124 to 362 frames (5 to 15 s).",
+        "Not yet run on Comfy Cloud: this task spent no credits, so no real swap exists yet. The model file names come from Comfy's template notes of 2026-10-27 and are the four files any H3 ref2va run needs; the turbo LoRA the template offers (minimax_h3_ref2v_turbo_4step_v0.1) is left out because no cloud model list can be read from here, and the graph runs without it at 20 steps.",
+        "One pass only: the 124-frame relay windows with history that Openjutsu-style runs use for clips longer than 15 s are not part of this pack yet; a longer clip needs the same chunking SCAIL-2 already has.",
+        "2026-10-27: the model file names were checked against Comfy Cloud's own node list (GET /api/object_info). The diffusion model, the text encoder and the audio VAE were there as written; the video VAE was not — Cloud carries minimax_h3_video_vae_fp16.safetensors, so the graph names that one. Cloud has every node this graph uses, and its CLIPLoader offers the minimax type."
+      ]
+    }
+  ],
+  "coverage": { "local": "planned", "hosted": "implemented" },
+  "licenses": {
+    "software": "ComfyUI core (GPL-3.0) runs this graph on Comfy Cloud; Comfy Cloud bills the machine time.",
+    "weights": [{ "name": "MiniMax H3 ref2va, text encoder and VAEs", "license": "MiniMax H3 open weights, see Comfy-Org/MiniMax-H3", "source": "https://huggingface.co/Comfy-Org/MiniMax-H3" }]
+  },
+  "sources": [
+    { "url": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/video_minimax_h3_r2v.json", "observedAt": "2026-10-27", "kind": "implementation" },
+    { "url": "https://raw.githubusercontent.com/Comfy-Org/embedded-docs/main/comfyui_embedded_docs/docs/MiniMaxH3ReferenceToVideo/en.md", "observedAt": "2026-10-27", "kind": "implementation" }
+  ],
+  "tickets": ["J4"],
+  "audioPolicies": ["preserve", "mute"]
+}

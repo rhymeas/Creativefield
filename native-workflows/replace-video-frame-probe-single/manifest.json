@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 2,
+  "id": "replace-video-frame-probe-single",
+  "version": "0.1.1",
+  "title": "Replace one character video-frame test",
+  "category": "motion",
+  "description": "Five-frame single-identity SCAIL control. Exports two decoded video frames; other source people should remain unchanged. Visual quality requires checking.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "155",
+        "field": "file"
+      }
+    },
+    {
+      "id": "character_image",
+      "label": "Character",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "30",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "frame_1",
+      "label": "Video frame 2",
+      "type": "image",
+      "required": true
+    },
+    {
+      "id": "frame_4",
+      "label": "Video frame 5",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Describe the result",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "213:3",
+        "field": "text"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 1,
+      "binding": {
+        "node": "213:19",
+        "field": "noise_seed"
+      }
+    },
+    {
+      "id": "person",
+      "label": "Source person",
+      "type": "select",
+      "default": "0",
+      "options": [
+        "0",
+        "1"
+      ],
+      "binding": {
+        "node": "213:197",
+        "field": "object_indices"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "replace-video-frame-probe-single",
+      "requirements": [
+        {
+          "id": "node:WanSCAILToVideo",
+          "kind": "node",
+          "name": "WanSCAILToVideo",
+          "instructions": "Update ComfyUI to a version with native SCAIL-2 nodes."
+        },
+        {
+          "id": "node:SCAIL2ColoredMask",
+          "kind": "node",
+          "name": "SCAIL2ColoredMask",
+          "instructions": "Update ComfyUI to a version with native SCAIL-2 nodes."
+        },
+        {
+          "id": "node:SAM3_VideoTrack",
+          "kind": "node",
+          "name": "SAM3_VideoTrack",
+          "instructions": "Update ComfyUI to a version with native SAM 3 nodes."
+        },
+        {
+          "id": "node:SAM3_TrackToMask",
+          "kind": "node",
+          "name": "SAM3_TrackToMask",
+          "instructions": "Install a ComfyUI version providing SAM3_TrackToMask."
+        },
+        {
+          "id": "node:ImageCropToMask",
+          "kind": "node",
+          "name": "ImageCropToMask",
+          "instructions": "Install a ComfyUI version providing ImageCropToMask."
+        },
+        {
+          "id": "node:MaskToImage",
+          "kind": "node",
+          "name": "MaskToImage",
+          "instructions": "Use the installed ComfyUI core node MaskToImage."
+        },
+        {
+          "id": "node:ImageToMask",
+          "kind": "node",
+          "name": "ImageToMask",
+          "instructions": "Use the installed ComfyUI core node ImageToMask."
+        },
+        {
+          "id": "model:scail2",
+          "kind": "model",
+          "name": "wan2.1_14B_SCAIL_2_int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "source": "https://huggingface.co/Comfy-Org/SCAIL-2",
+          "instructions": "Install the SCAIL-2 int8 model (15.5 GB, MIT)."
+        },
+        {
+          "id": "model:scail2-dpo",
+          "kind": "model",
+          "name": "wan2.1_SCAIL_2_DPO_lora_bf16.safetensors",
+          "location": "loras",
+          "source": "https://huggingface.co/Comfy-Org/SCAIL-2",
+          "instructions": "Install the SCAIL-2 DPO LoRA (1.1 GB, MIT)."
+        },
+        {
+          "id": "model:lightx2v",
+          "kind": "model",
+          "name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+          "location": "loras",
+          "source": "https://huggingface.co/Kijai/WanVideo_comfy",
+          "instructions": "Install the Lightx2v step-distill LoRA (0.7 GB, Apache-2.0)."
+        },
+        {
+          "id": "model:sam31",
+          "kind": "model",
+          "name": "sam3.1_multiplex_fp16.safetensors",
+          "location": "checkpoints",
+          "source": "https://huggingface.co/Comfy-Org/sam3.1",
+          "instructions": "Install SAM 3.1 (SAM License)."
+        }
+      ],
+      "evidence": [
+        "CPU graph validation only. Five-frame internal video generation; export decoder indices1/4. No actual GPU quality validation of this probe yet."
+      ]
+    }
+  ],
+  "coverage": [],
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Workflow template: MIT (Comfy-Org/workflow_templates). Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "SCAIL-2 (zai-org) and its DPO LoRA",
+        "license": "MIT",
+        "source": "https://huggingface.co/zai-org/SCAIL-2"
+      },
+      {
+        "name": "Lightx2v I2V 480p step-distill LoRA",
+        "license": "Apache-2.0",
+        "source": "https://huggingface.co/lightx2v"
+      },
+      {
+        "name": "SAM 3.1",
+        "license": "SAM License (Meta)",
+        "source": "https://huggingface.co/facebook/sam3"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://comfy.org/workflows/",
+      "observedAt": "2026-10-24",
+      "kind": "discovery"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/video_wan21_scail2_character_replacement_int8.json",
+      "observedAt": "2026-10-24",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

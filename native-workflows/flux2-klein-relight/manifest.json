@@ -1,0 +1,429 @@
+{
+  "schemaVersion": 2,
+  "id": "flux2-klein-relight",
+  "version": "0.1.0",
+  "title": "Flux 2 Klein 4B relight",
+  "category": "image",
+  "description": "Relight one reference image with the installed Flux 2 Klein 4B FP8 model. Reuses the qualified flux2-klein-edit graph unchanged; mood presets and the browser light guide write a lighting instruction into the edit prompt. Each generation is a separate run with its own Slate.",
+  "inputs": [
+    {
+      "id": "source_image",
+      "label": "Source image",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "76",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "image",
+      "label": "Edited image",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Edit prompt",
+      "type": "string",
+      "default": "Keep the subject, wardrobe and composition exactly as in the reference image.",
+      "binding": {
+        "node": "75:74",
+        "field": "text"
+      }
+    },
+    {
+      "id": "steps",
+      "label": "Steps",
+      "type": "integer",
+      "min": 1,
+      "max": 100,
+      "default": 4,
+      "binding": {
+        "node": "75:62",
+        "field": "steps"
+      }
+    },
+    {
+      "id": "megapixels",
+      "label": "Reference megapixels",
+      "type": "number",
+      "min": 0.25,
+      "max": 2,
+      "step": 0.1,
+      "default": 1,
+      "binding": {
+        "node": "75:80",
+        "field": "megapixels"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 20261019,
+      "binding": {
+        "node": "75:73",
+        "field": "noise_seed"
+      }
+    }
+  ],
+  "presets": [
+    {
+      "id": "golden-hour",
+      "title": "Golden hour",
+      "values": {
+        "prompt": "Relight the scene with warm low golden-hour sunlight from one side, soft long shadows and gentle warm highlights. Keep the subject, wardrobe and composition exactly as in the reference image."
+      }
+    },
+    {
+      "id": "noir",
+      "title": "Noir",
+      "values": {
+        "prompt": "Relight the scene as high-contrast black-and-white noir, one hard key light and deep dramatic shadows. Keep the subject, wardrobe and composition exactly as in the reference image."
+      }
+    },
+    {
+      "id": "night",
+      "title": "Night",
+      "values": {
+        "prompt": "Relight the scene as a quiet night with cool moonlight, soft ambient fill and deep but readable shadows. Keep the subject, wardrobe and composition exactly as in the reference image."
+      }
+    },
+    {
+      "id": "studio",
+      "title": "Studio",
+      "values": {
+        "prompt": "Relight the scene as a neutral studio with a large softbox and even fill, clean soft shadows and natural skin tones. Keep the subject, wardrobe and composition exactly as in the reference image."
+      }
+    }
+  ],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "flux2-klein-edit",
+      "requirements": [
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install a ComfyUI version providing LoadImage."
+        },
+        {
+          "id": "node:ImageScaleToTotalPixels",
+          "kind": "node",
+          "name": "ImageScaleToTotalPixels",
+          "instructions": "Install a ComfyUI version providing ImageScaleToTotalPixels."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Install a ComfyUI version providing GetImageSize."
+        },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Install a ComfyUI version providing UNETLoader."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install a ComfyUI version providing CLIPLoader with the flux2 type."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install a ComfyUI version providing VAELoader."
+        },
+        {
+          "id": "node:VAEEncode",
+          "kind": "node",
+          "name": "VAEEncode",
+          "instructions": "Install a ComfyUI version providing VAEEncode."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Install a ComfyUI version providing CLIPTextEncode."
+        },
+        {
+          "id": "node:ConditioningZeroOut",
+          "kind": "node",
+          "name": "ConditioningZeroOut",
+          "instructions": "Install a ComfyUI version providing ConditioningZeroOut."
+        },
+        {
+          "id": "node:ReferenceLatent",
+          "kind": "node",
+          "name": "ReferenceLatent",
+          "instructions": "Install a ComfyUI version providing ReferenceLatent."
+        },
+        {
+          "id": "node:EmptyFlux2LatentImage",
+          "kind": "node",
+          "name": "EmptyFlux2LatentImage",
+          "instructions": "Install a ComfyUI version providing EmptyFlux2LatentImage."
+        },
+        {
+          "id": "node:Flux2Scheduler",
+          "kind": "node",
+          "name": "Flux2Scheduler",
+          "instructions": "Install a ComfyUI version providing Flux2Scheduler."
+        },
+        {
+          "id": "node:KSamplerSelect",
+          "kind": "node",
+          "name": "KSamplerSelect",
+          "instructions": "Install a ComfyUI version providing KSamplerSelect."
+        },
+        {
+          "id": "node:SamplerCustomAdvanced",
+          "kind": "node",
+          "name": "SamplerCustomAdvanced",
+          "instructions": "Install a ComfyUI version providing SamplerCustomAdvanced."
+        },
+        {
+          "id": "node:CFGGuider",
+          "kind": "node",
+          "name": "CFGGuider",
+          "instructions": "Install a ComfyUI version providing CFGGuider."
+        },
+        {
+          "id": "node:RandomNoise",
+          "kind": "node",
+          "name": "RandomNoise",
+          "instructions": "Install a ComfyUI version providing RandomNoise."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install a ComfyUI version providing VAEDecode."
+        },
+        {
+          "id": "node:SaveImage",
+          "kind": "node",
+          "name": "SaveImage",
+          "instructions": "Install a ComfyUI version providing SaveImage."
+        },
+        {
+          "id": "model:flux2-klein-4b-fp8",
+          "kind": "model",
+          "name": "flux-2-klein-4b-fp8.safetensors",
+          "location": "diffusion_models",
+          "version": "sha256:97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6",
+          "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B/blob/main/flux-2-klein-4b-fp8.safetensors",
+          "instructions": "Install the Flux 2 Klein 4B FP8 diffusion file and verify its SHA-256; review the model license before use."
+        },
+        {
+          "id": "model:qwen-3-4b",
+          "kind": "model",
+          "name": "qwen_3_4b.safetensors",
+          "location": "text_encoders",
+          "version": "sha256:6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a",
+          "source": "https://huggingface.co/Comfy-Org/flux2-klein-4B/blob/main/text_encoders/qwen_3_4b.safetensors",
+          "instructions": "Install the Qwen 3 4B text encoder file and verify its SHA-256; review the repository license before use."
+        },
+        {
+          "id": "model:flux2-vae",
+          "kind": "model",
+          "name": "flux2-vae.safetensors",
+          "location": "vae",
+          "version": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+          "source": "https://huggingface.co/Comfy-Org/flux2-klein-4B/blob/main/vae/flux2-vae.safetensors",
+          "instructions": "Install the Flux 2 VAE file and verify its SHA-256; review the repository license before use."
+        }
+      ],
+      "evidence": [
+        "Graph reused unchanged from native-workflows/flux2-klein-angles/template.api.json, which was qualified against ComfyUI 0.37.0 object_info and produced a real 1024x1024 PNG on 2026-10-19.",
+        "Relight-specific E2E, identity fidelity and arbitrary-aspect behaviour are not proven yet; the app records each attempt as its own run and Slate."
+      ]
+    },
+    {
+      "id": "cloud",
+      "execution": "comfy_cloud",
+      "provider": "comfy-cloud",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "flux2-klein-relight",
+      "endpointOrigin": "https://cloud.comfy.org",
+      "requirements": [
+        {
+          "id": "node:SaveImage",
+          "kind": "node",
+          "name": "SaveImage",
+          "instructions": "Comfy Cloud needs the ComfyUI node SaveImage."
+        },
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Comfy Cloud needs the ComfyUI node LoadImage."
+        },
+        {
+          "id": "node:KSamplerSelect",
+          "kind": "node",
+          "name": "KSamplerSelect",
+          "instructions": "Comfy Cloud needs the ComfyUI node KSamplerSelect."
+        },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Comfy Cloud needs the ComfyUI node UNETLoader."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Comfy Cloud needs the ComfyUI node CLIPLoader."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Comfy Cloud needs the ComfyUI node VAELoader."
+        },
+        {
+          "id": "node:EmptyFlux2LatentImage",
+          "kind": "node",
+          "name": "EmptyFlux2LatentImage",
+          "instructions": "Comfy Cloud needs the ComfyUI node EmptyFlux2LatentImage."
+        },
+        {
+          "id": "node:ImageScaleToTotalPixels",
+          "kind": "node",
+          "name": "ImageScaleToTotalPixels",
+          "instructions": "Comfy Cloud needs the ComfyUI node ImageScaleToTotalPixels."
+        },
+        {
+          "id": "node:Flux2Scheduler",
+          "kind": "node",
+          "name": "Flux2Scheduler",
+          "instructions": "Comfy Cloud needs the ComfyUI node Flux2Scheduler."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Comfy Cloud needs the ComfyUI node CLIPTextEncode."
+        },
+        {
+          "id": "node:ConditioningZeroOut",
+          "kind": "node",
+          "name": "ConditioningZeroOut",
+          "instructions": "Comfy Cloud needs the ComfyUI node ConditioningZeroOut."
+        },
+        {
+          "id": "node:ReferenceLatent",
+          "kind": "node",
+          "name": "ReferenceLatent",
+          "instructions": "Comfy Cloud needs the ComfyUI node ReferenceLatent."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Comfy Cloud needs the ComfyUI node GetImageSize."
+        },
+        {
+          "id": "node:VAEEncode",
+          "kind": "node",
+          "name": "VAEEncode",
+          "instructions": "Comfy Cloud needs the ComfyUI node VAEEncode."
+        },
+        {
+          "id": "node:SamplerCustomAdvanced",
+          "kind": "node",
+          "name": "SamplerCustomAdvanced",
+          "instructions": "Comfy Cloud needs the ComfyUI node SamplerCustomAdvanced."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Comfy Cloud needs the ComfyUI node VAEDecode."
+        },
+        {
+          "id": "node:RandomNoise",
+          "kind": "node",
+          "name": "RandomNoise",
+          "instructions": "Comfy Cloud needs the ComfyUI node RandomNoise."
+        },
+        {
+          "id": "node:CFGGuider",
+          "kind": "node",
+          "name": "CFGGuider",
+          "instructions": "Comfy Cloud needs the ComfyUI node CFGGuider."
+        },
+        {
+          "id": "model:flux2-klein-4b-fp8",
+          "kind": "model",
+          "name": "flux-2-klein-4b-fp8.safetensors",
+          "location": "diffusion_models",
+          "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B/blob/main/flux-2-klein-4b-fp8.safetensors",
+          "instructions": "Comfy Cloud carries flux-2-klein-4b-fp8.safetensors."
+        },
+        {
+          "id": "model:qwen-3-4b",
+          "kind": "model",
+          "name": "qwen_3_4b.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/Comfy-Org/flux2-klein-4B/blob/main/text_encoders/qwen_3_4b.safetensors",
+          "instructions": "Comfy Cloud carries qwen_3_4b.safetensors."
+        },
+        {
+          "id": "model:flux2-vae",
+          "kind": "model",
+          "name": "flux2-vae.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/flux2-klein-4B/blob/main/vae/flux2-vae.safetensors",
+          "instructions": "Comfy Cloud carries flux2-vae.safetensors."
+        }
+      ],
+      "evidence": [
+        "2026-10-27: every node and model file this graph names is in Comfy Cloud's own node list (GET /api/object_info: 3835 nodes, about 1500 model files). Nothing was run on Comfy Cloud here: that spends credits."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "implemented"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Comfy-Org workflow_templates: MIT. Integration license follows this repository; full dependency audit pending.",
+    "weights": [
+      {
+        "name": "Flux 2 Klein 4B FP8 model, Qwen 3 4B encoder and Flux 2 VAE",
+        "license": "FLUX.2 Klein 4B is released by Black Forest Labs under Apache-2.0 for the Klein 4B weights; the Qwen 3 encoder follows its upstream Qwen license. Verify the exact license files in the source repositories before commercial use; conversion provenance and numerical equivalence have not been independently audited.",
+        "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B",
+      "observedAt": "2026-10-19",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

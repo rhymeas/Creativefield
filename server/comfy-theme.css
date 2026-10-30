@@ -1,0 +1,1570 @@
+/* ComfyUI runs in its own document. These are the COMFYFIELD tokens, mapped onto the
+   variables the official frontend already exposes. The canvas stays LiteGraph; only
+   its surfaces, type, accent, radius and node colours follow the studio. */
+:root,
+.dark-theme,
+html.dark-theme {
+  color-scheme: dark !important;
+
+  --fg-color: var(--text-primary) !important;
+  --bg-color: var(--surface-page) !important;
+  --base-background: var(--surface-page) !important;
+  --base-foreground: var(--text-primary) !important;
+  --color-base-foreground: var(--text-primary) !important;
+  --color-primary-comfy-canvas: var(--text-primary) !important;
+
+  --comfy-menu-bg: var(--surface-panel) !important;
+  --comfy-menu-secondary-bg: var(--surface-control) !important;
+  --comfy-input-bg: var(--surface-control) !important;
+  --input-text: var(--text-primary) !important;
+  --descrip-text: var(--text-secondary) !important;
+  --drag-text: var(--text-tertiary) !important;
+  --error-text: var(--status-danger) !important;
+  --border-color: var(--line-strong) !important;
+  --tr-even-bg-color: var(--surface-panel) !important;
+  --tr-odd-bg-color: var(--surface-control) !important;
+
+  --primary-bg: var(--accent) !important;
+  --primary-fg: var(--text-on-accent) !important;
+  --primary-hover-bg: color-mix(in srgb, var(--accent) 84%, white) !important;
+  --primary-hover-fg: var(--text-on-accent) !important;
+  --content-bg: var(--surface-control) !important;
+  --content-fg: var(--text-primary) !important;
+  --content-hover-bg: var(--surface-control-hover) !important;
+  --content-hover-fg: var(--text-primary) !important;
+  --button-surface: var(--surface-control) !important;
+  --button-surface-contrast: var(--text-primary) !important;
+  --button-hover-surface: var(--surface-control-hover) !important;
+  --button-active-surface: var(--surface-subtle) !important;
+  --button-icon: var(--text-secondary) !important;
+  --accent-primary: var(--accent) !important;
+  --accent-background: var(--accent-soft) !important;
+  --code-text-color: var(--accent) !important;
+  --code-bg-color: var(--accent-soft) !important;
+  --code-block-bg-color: var(--surface-subtle) !important;
+  --modal-panel-background: var(--surface-panel) !important;
+  --modal-card-background: var(--surface-control) !important;
+
+  --color-neutral-950: var(--surface-page) !important;
+  --color-neutral-900: var(--surface-page) !important;
+  --color-neutral-800: var(--surface-panel) !important;
+  --color-neutral-700: var(--surface-control) !important;
+  --color-neutral-600: var(--line-strong) !important;
+  --color-neutral-500: var(--text-muted) !important;
+  --color-neutral-400: var(--text-tertiary) !important;
+  --color-neutral-300: var(--text-secondary) !important;
+  --color-neutral-200: var(--text-primary) !important;
+  --color-neutral-100: var(--text-primary) !important;
+  --color-charcoal-900: var(--surface-page) !important;
+  --color-charcoal-800: var(--surface-panel) !important;
+  --color-charcoal-700: var(--surface-control) !important;
+  --color-charcoal-600: var(--surface-control-hover) !important;
+  --color-charcoal-500: var(--text-muted) !important;
+  --color-charcoal-400: var(--text-tertiary) !important;
+  --color-charcoal-300: var(--text-secondary) !important;
+  --color-charcoal-200: var(--text-primary) !important;
+  --color-charcoal-100: var(--text-primary) !important;
+  --color-border-default: var(--line-strong) !important;
+  --border-default: var(--line-hairline) !important;
+  --border-subtle: var(--line-hairline) !important;
+  --color-muted-foreground: var(--text-secondary) !important;
+  --color-muted: var(--text-secondary) !important;
+
+  --component-node-background: var(--node-bg) !important;
+  --component-node-border: var(--node-border) !important;
+  --component-node-foreground: var(--text-primary) !important;
+  --component-node-foreground-secondary: var(--text-secondary) !important;
+  --component-node-widget-background: var(--surface-control) !important;
+  --component-node-widget-background-hovered: var(--surface-control-hover) !important;
+  --component-node-widget-background-selected: var(--surface-subtle) !important;
+  --component-node-widget-background-highlighted: var(--surface-subtle) !important;
+  --component-node-widget-background-disabled: var(--surface-subtle) !important;
+  --component-node-widget-input: var(--text-primary) !important;
+  --component-node-widget-input-surface: var(--surface-control) !important;
+  --node-component-surface: var(--node-bg) !important;
+  --node-component-surface-hovered: var(--surface-control-hover) !important;
+  --node-component-surface-selected: var(--surface-control) !important;
+  --node-component-surface-highlight: var(--surface-subtle) !important;
+  --node-component-header: var(--node-header) !important;
+  --node-component-header-surface: var(--node-header) !important;
+  --node-component-header-icon: var(--text-secondary) !important;
+  --node-component-border: var(--node-border) !important;
+  --node-component-border-selected: var(--accent) !important;
+  --node-component-border-executing: var(--accent) !important;
+  --node-component-border-error: var(--status-danger) !important;
+  --node-component-ring: var(--accent-ring) !important;
+  --node-component-outline: var(--accent-ring) !important;
+  --node-component-slot-text: var(--text-secondary) !important;
+  --node-component-slot-dot-outline: var(--surface-page) !important;
+  --node-component-widget-input-surface: var(--surface-control) !important;
+  --node-component-tooltip: var(--surface-panel) !important;
+  --node-component-tooltip-surface: var(--surface-panel) !important;
+  --node-component-tooltip-border: var(--line-strong) !important;
+  --node-stroke: var(--node-border) !important;
+  --node-stroke-selected: var(--accent) !important;
+  --node-stroke-executing: var(--accent) !important;
+  --node-stroke-error: var(--status-danger) !important;
+  --node-divider: var(--line-hairline) !important;
+  --node-icon-disabled: var(--text-muted) !important;
+}
+
+html,
+body,
+#vue-app,
+body.litegraph {
+  background-color: var(--surface-page) !important;
+  color: var(--text-primary) !important;
+  font-family: var(--font-sans) !important;
+}
+
+.litegraph {
+  background-color: var(--surface-page) !important;
+}
+
+/* LiteGraph stacks the node DOM above a full-size canvas. Giving every canvas an opaque
+   background painted over the nodes, so the graph looked empty while its minimap still
+   showed the workflow. The canvas stays transparent; the studio surface sits underneath. */
+.litegraph canvas,
+.litegraph .graph-canvas,
+.litegraph .litegraph-canvas {
+  background-color: transparent !important;
+}
+
+.litegraph .dialog,
+.litegraph .litecontextmenu,
+.litegraph .comfy-menu,
+.comfy-modal,
+.comfy-menu,
+.comfy-settings,
+.comfy-dialog,
+.p-dialog,
+.p-overlaypanel {
+  background-color: var(--surface-panel) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--line-hairline) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-pop) !important;
+}
+
+.litegraph .litemenu-entry:hover,
+.litegraph .litecontextmenu .litemenu-entry:hover,
+.comfy-menu button:hover,
+.p-button:hover {
+  background-color: var(--surface-control-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+.comfy-menu button,
+.p-button,
+.litegraph button {
+  border-radius: var(--radius-sm) !important;
+  font-family: var(--font-sans) !important;
+}
+
+.p-button:not(.p-button-secondary):not(.p-button-text) {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--text-on-accent) !important;
+}
+
+.p-inputtext,
+.p-select,
+.p-textarea,
+.comfy-input,
+.litegraph .dialog input,
+.litegraph .dialog select,
+.litegraph .dialog textarea {
+  background-color: var(--surface-control) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--line-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* ---- ComfyField look for the node graph -------------------------------------------------
+   The official editor stays fully functional; only its surfaces follow the studio. The
+   Tailwind palette the frontend ships with (azure/sapphire) is pointed at the studio accent,
+   so every blue control, link highlight and selection follows it. */
+:root,
+.dark-theme,
+html.dark-theme {
+  --color-azure-600: var(--accent) !important;
+  --color-azure-400: color-mix(in srgb, var(--accent) 82%, white) !important;
+  --color-azure-300: color-mix(in srgb, var(--accent) 60%, white) !important;
+  --color-sapphire-700: var(--accent) !important;
+  --brand-blue: var(--accent) !important;
+  --primary-background: var(--accent) !important;
+  --primary-background-hover: color-mix(in srgb, var(--accent) 84%, white) !important;
+  --color-blue-selection: var(--accent-soft) !important;
+}
+
+/* Node card: the studio card with a hairline ring and a quiet shadow. */
+.lg-node {
+  background: var(--surface-panel) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 0 0 1px var(--line-strong), 0 10px 26px rgba(0, 0, 0, 0.28) !important;
+  filter: none !important;
+}
+
+.lg-node > div:first-child,
+.lg-node-header {
+  background: var(--surface-subtle) !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+
+.lg-node .lg-node-widgets {
+  gap: var(--space-2) !important;
+}
+
+/* The advanced-inputs strip is a quiet control, not a blue bar. */
+.lg-node button[class*="bg-secondary-background-hover"] {
+  background: var(--surface-control) !important;
+  color: var(--text-secondary) !important;
+}
+
+.lg-node button[class*="bg-secondary-background-hover"]:hover {
+  background: var(--surface-control-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Run and the other primary buttons. */
+button[class*="bg-primary-background"] {
+  background: var(--accent) !important;
+  color: var(--text-on-accent) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* ---- Editor chrome: run bar, tool group, minimap, rail and tabs ------------------------- */
+
+/* Run controls float as one surface; their children do not add more frames. */
+.actionbar.p-panel,
+.actionbar-container .p-panel {
+  background: var(--surface-panel) !important;
+  border: 1px solid var(--line-hairline) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-pop) !important;
+}
+
+.queue-button-group {
+  border-radius: var(--radius-sm) !important;
+  background: var(--surface-control) !important;
+}
+
+.queue-button-group button {
+  border-radius: var(--radius-sm) !important;
+}
+
+/* Bottom right tool group: select, fit, zoom, minimap toggle. */
+.p-buttongroup.absolute.bottom-0 {
+  background: var(--surface-panel) !important;
+  border: 1px solid var(--line-hairline) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-pop) !important;
+}
+
+.p-buttongroup.absolute.bottom-0 button {
+  border-radius: var(--radius-sm) !important;
+}
+
+/* Minimap. */
+.minimap-main-container > * {
+  background: var(--surface-panel) !important;
+  border: 1px solid var(--line-hairline) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-pop) !important;
+  overflow: hidden;
+}
+
+/* Left tool rail and workflow tabs. */
+.side-toolbar-container {
+  background: var(--surface-panel) !important;
+  border-right: 1px solid var(--line-hairline) !important;
+}
+
+.workflow-tabs-container {
+  background: var(--surface-page) !important;
+  border-bottom: 1px solid var(--line-hairline) !important;
+}
+
+/* ---- Node cards, pass two: radius, header, ports and controls --------------------------- */
+.lg-node {
+  border-radius: var(--radius-xl) !important;
+}
+
+.lg-node > div:first-child,
+.lg-node-header {
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+}
+
+.lg-node-header {
+  padding: var(--space-2) var(--space-3) !important;
+  font-size: var(--text-xs) !important;
+}
+
+.lg-node-header .flex-1.truncate {
+  font-size: var(--text-xs) !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+}
+
+/* Ports: a clear dot with a ring in the card colour. The data-type colour stays; it carries meaning. */
+.lg-node .slot-dot {
+  width: 10px !important;
+  height: 10px !important;
+  border: 0 !important;
+  box-shadow: 0 0 0 2px var(--surface-panel) !important;
+}
+
+/* Controls: the design-system control surface, a hairline ring, the small radius. */
+.lg-node [class*="bg-component-node-widget-background"] {
+  background: var(--surface-control) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: inset 0 0 0 1px var(--line-hairline) !important;
+}
+
+.lg-node [class*="bg-component-node-widget-background"]:hover {
+  background: var(--surface-control-hover) !important;
+}
+
+.lg-node textarea {
+  background: var(--surface-control) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: inset 0 0 0 1px var(--line-hairline) !important;
+  font-family: var(--font-sans) !important;
+}
+
+.lg-node label,
+.lg-node [class*="text-node-component-slot-text"] {
+  color: var(--text-secondary) !important;
+}
+
+/* ---- Node cards, pass three: the canvas-card look -----------------------------------------
+   Scoped to html[data-comfyfield] body so these rules outrank theme extensions installed in
+   ComfyUI (Precision UI, niutonian node styles), whatever order they load in. The card has no
+   title band: a large rounded surface, the title in the content, labels left, large fields right. */
+html[data-comfyfield] body .lg-node,
+html[data-comfyfield] body .lg-node::before,
+html[data-comfyfield] body .lg-node::after {
+  border-radius: var(--radius-2xl) !important;
+}
+
+html[data-comfyfield] body .lg-node {
+  background: var(--surface-control) !important;
+  box-shadow: 0 0 0 1px var(--line-hairline), 0 18px 40px rgba(0, 0, 0, 0.35) !important;
+  filter: none !important;
+}
+
+html[data-comfyfield] body .lg-node > div:first-child,
+html[data-comfyfield] body .lg-node [class*="bg-node-component-header-surface"] {
+  background: transparent !important;
+  border-radius: var(--radius-2xl) !important;
+}
+
+html[data-comfyfield] body .lg-node-header {
+  background: transparent !important;
+  padding: var(--space-4) var(--space-4) var(--space-1) !important;
+  min-height: 0 !important;
+  border: 0 !important;
+}
+
+html[data-comfyfield] body .lg-node-header .flex-1.truncate {
+  font-size: var(--text-md) !important;
+  line-height: var(--lh-md) !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-comfyfield] body .lg-node .lg-node-widgets {
+  padding: var(--space-2) var(--space-4) var(--space-3) !important;
+  row-gap: var(--space-3) !important;
+  column-gap: var(--space-3) !important;
+}
+
+html[data-comfyfield] body .lg-node .lg-node-widgets label,
+html[data-comfyfield] body .lg-node .lg-node-widgets [class*="truncate"] {
+  font-size: var(--text-sm) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-comfyfield] body .lg-node [class*="bg-component-node-widget-background"] {
+  background: var(--surface-control-hover) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: none !important;
+  min-height: calc(36px * var(--ui-scale)) !important;
+  font-size: var(--text-sm) !important;
+}
+
+html[data-comfyfield] body .lg-node [class*="bg-component-node-widget-background"]:hover {
+  background: color-mix(in srgb, var(--surface-control-hover) 80%, white) !important;
+}
+
+/* The textarea keeps room at the top for its floating "Text" label. */
+html[data-comfyfield] body .lg-node textarea {
+  background: var(--surface-control-hover) !important;
+  border: 0 !important;
+  border-radius: var(--radius-lg) !important;
+  padding: calc(var(--space-3) + 16px) var(--space-3) var(--space-3) !important;
+  font-size: var(--text-sm) !important;
+  line-height: var(--lh-sm) !important;
+  box-shadow: none !important;
+}
+
+html[data-comfyfield] body .lg-node button[class*="bg-secondary-background-hover"] {
+  background: transparent !important;
+  color: var(--text-tertiary) !important;
+}
+
+html[data-comfyfield] body .lg-node .slot-dot {
+  width: 10px !important;
+  height: 10px !important;
+  border: 0 !important;
+  box-shadow: 0 0 0 2px var(--surface-control) !important;
+}
+
+/* ---- Node cards, pass four: softer and rounder ------------------------------------------
+   Pill-shaped fields, a soft top light on the card, quieter type. Spacing stays compact:
+   ComfyUI fixes each node's width, so wide padding would leave the fields too narrow
+   (number values were cut to "1…"). */
+html[data-comfyfield] body .lg-node,
+html[data-comfyfield] body .lg-node::before,
+html[data-comfyfield] body .lg-node::after,
+html[data-comfyfield] body .lg-node > div:first-child,
+html[data-comfyfield] body .lg-node [class*="bg-node-component-header-surface"] {
+  border-radius: calc(var(--radius-2xl) + 4px) !important;
+}
+
+html[data-comfyfield] body .lg-node {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0) 38%), var(--surface-control) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 0 1px var(--line-hairline), 0 24px 48px -16px rgba(0, 0, 0, 0.6) !important;
+}
+
+html[data-comfyfield] body .lg-node-header {
+  padding: calc(var(--space-4) + 2px) calc(var(--space-4) + 2px) var(--space-1) !important;
+}
+
+html[data-comfyfield] body .lg-node-header .flex-1.truncate {
+  font-size: calc(15px * var(--ui-scale)) !important;
+  letter-spacing: -0.01em !important;
+}
+
+html[data-comfyfield] body .lg-node .lg-node-widgets {
+  padding: var(--space-2) calc(var(--space-3) + 2px) var(--space-4) !important;
+  row-gap: calc(var(--space-2) + 2px) !important;
+  column-gap: var(--space-2) !important;
+  font-weight: 500 !important;
+}
+
+html[data-comfyfield] body .lg-node .lg-node-widgets label,
+html[data-comfyfield] body .lg-node .lg-node-widgets [class*="truncate"] {
+  font-size: calc(13px * var(--ui-scale)) !important;
+  font-weight: 500 !important;
+  color: color-mix(in srgb, var(--text-primary) 86%, transparent) !important;
+}
+
+html[data-comfyfield] body .lg-node [class*="bg-component-node-widget-background"] {
+  border-radius: var(--radius-full) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+  min-height: calc(34px * var(--ui-scale)) !important;
+  font-size: calc(13px * var(--ui-scale)) !important;
+  font-weight: 500 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+html[data-comfyfield] body .lg-node [class*="bg-component-node-widget-background"]:hover {
+  background: rgba(255, 255, 255, 0.085) !important;
+}
+
+/* The value-fill layer inside number fields follows the pill shape. */
+html[data-comfyfield] body .lg-node [class*="bg-component-node-widget-background"] > .absolute.size-full {
+  border-radius: inherit !important;
+}
+
+html[data-comfyfield] body .lg-node [class*="bg-component-node-widget-background"] button {
+  color: var(--text-tertiary) !important;
+  min-width: calc(24px * var(--ui-scale)) !important;
+}
+
+html[data-comfyfield] body .lg-node [class*="bg-component-node-widget-background"] button:hover {
+  color: var(--text-primary) !important;
+}
+
+/* Prompt fields: rounder, with side room so text clears the curved corners. */
+html[data-comfyfield] body .lg-node textarea {
+  border-radius: calc(var(--radius-xl) + 2px) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+  padding: calc(var(--space-3) + 16px) calc(var(--space-3) + 6px) var(--space-3) !important;
+}
+
+html[data-comfyfield] body .lg-node textarea + *,
+html[data-comfyfield] body .lg-node .lg-node-widget label {
+  left: calc(var(--space-3) + 6px) !important;
+}
+
+/* Port labels: small and quiet. */
+html[data-comfyfield] body .lg-node [class*="text-node-component-slot-text"] {
+  font-size: calc(11px * var(--ui-scale)) !important;
+  color: var(--text-tertiary) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* ---- Node cards, pass five: corrections ------------------------------------------------- */
+
+/* The node body is its own element with its own fill; it hid the card's top light and drew
+   an edge under the title. */
+html[data-comfyfield] body .lg-node [class*="bg-component-node-background"] {
+  background: transparent !important;
+}
+
+/* Prompt fields are tall: the pill shape turned them into ellipses. They keep a large radius,
+   and their wrapper stays clear so no square shows behind the curve. The doubled attribute
+   outranks the pill rule above, which also matches these elements. */
+html[data-comfyfield][data-comfyfield] body .lg-node textarea[class],
+html[data-comfyfield][data-comfyfield] body .lg-node .group[class]:has(> textarea) {
+  border-radius: calc(var(--radius-xl) + 2px) !important;
+}
+
+html[data-comfyfield][data-comfyfield] body .lg-node .group[class]:has(> textarea) {
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+/* Firefox does not pass the page font to form controls; numbers showed in a serif. */
+html[data-comfyfield] body .lg-node input,
+html[data-comfyfield] body .lg-node textarea,
+html[data-comfyfield] body .lg-node select,
+html[data-comfyfield] body .lg-node button {
+  font-family: var(--font-sans) !important;
+}
+
+html[data-comfyfield] body .lg-node [class*="bg-component-node-widget-background"] input {
+  text-align: center !important;
+  font-weight: 500 !important;
+}
+
+/* Narrow steppers leave the value room inside fixed-width nodes. Only the +/- buttons:
+   a dropdown is also a button and keeps its width. */
+html[data-comfyfield] body .lg-node button:has(> i[class*="lucide--minus"]),
+html[data-comfyfield] body .lg-node button:has(> i[class*="lucide--plus"]) {
+  width: calc(26px * var(--ui-scale)) !important;
+  min-width: 0 !important;
+  flex: none !important;
+  padding: 0 !important;
+}
+
+/* ---- Dropdowns and the node library ------------------------------------------------------ */
+
+/* "Selected" and "hover" surfaces: the base mapping left them near-white, which lit up active
+   chips and the current category. */
+html[data-comfyfield] {
+  --secondary-background-selected: var(--accent-soft) !important;
+  --secondary-background-hover: var(--surface-hover) !important;
+}
+
+/* Dropdown fields: the value clears the pill's curve. */
+html[data-comfyfield] body .lg-node button > span[class*="text-left"] {
+  padding-left: calc(14px * var(--ui-scale)) !important;
+  font-size: calc(13px * var(--ui-scale)) !important;
+}
+
+/* Dropdown list. */
+html[data-comfyfield] body div[class*="z-3000"][class*="bg-base-background"] {
+  background: var(--surface-panel) !important;
+  border: 1px solid var(--line-hairline) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-pop) !important;
+  padding: 6px !important;
+}
+
+html[data-comfyfield] body div[class*="z-3000"] [role="option"] {
+  border-radius: var(--radius-sm) !important;
+  padding: calc(8px * var(--ui-scale)) calc(12px * var(--ui-scale)) !important;
+  font-family: var(--font-sans) !important;
+  font-size: calc(13px * var(--ui-scale)) !important;
+  color: var(--text-secondary) !important;
+  background: transparent !important;
+}
+
+html[data-comfyfield] body div[class*="z-3000"] [role="option"]:hover {
+  background: var(--surface-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-comfyfield] body div[class*="z-3000"] [role="option"][aria-selected="true"] {
+  background: var(--accent-soft) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Node library ("Add a node…"): one rounded panel, a pill search, pill filters, soft rows. */
+html[data-comfyfield] body .p-dialog:has(input[placeholder^="Add a node"]) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-comfyfield] body .p-dialog:has(input[placeholder^="Add a node"]) [class*="h-[min(80vh"] {
+  background: var(--surface-panel) !important;
+  border: 1px solid var(--line-hairline) !important;
+  border-radius: var(--radius-2xl) !important;
+  box-shadow: var(--shadow-pop) !important;
+}
+
+html[data-comfyfield] body .p-dialog:has(input[placeholder^="Add a node"]) div:has(> input[placeholder^="Add a node"]) {
+  border-radius: var(--radius-full) !important;
+  background: var(--surface-control) !important;
+  box-shadow: inset 0 0 0 1px var(--line-hairline) !important;
+  padding: calc(10px * var(--ui-scale)) calc(18px * var(--ui-scale)) !important;
+}
+
+html[data-comfyfield] body .p-dialog:has(input[placeholder^="Add a node"]) input[placeholder^="Add a node"] {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-sm) !important;
+}
+
+html[data-comfyfield] body .p-dialog:has(input[placeholder^="Add a node"]) button[class*="border-secondary-background"] {
+  border-radius: var(--radius-full) !important;
+  border-color: var(--line-strong) !important;
+  background: transparent !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-xs) !important;
+  padding: calc(5px * var(--ui-scale)) calc(12px * var(--ui-scale)) !important;
+  color: var(--text-secondary) !important;
+}
+
+html[data-comfyfield] body .p-dialog:has(input[placeholder^="Add a node"]) button[class*="border-secondary-background"]:hover {
+  background: var(--surface-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+/* An active filter chip was solid white. */
+html[data-comfyfield] body .p-dialog:has(input[placeholder^="Add a node"]) button[class*="bg-base-foreground"] {
+  background: var(--accent-soft) !important;
+  border-color: var(--accent-ring) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-full) !important;
+}
+
+/* Category list. */
+html[data-comfyfield] body .p-dialog:has(input[placeholder^="Add a node"]) button:has(> span.flex-1.truncate) {
+  border-radius: var(--radius-sm) !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-sm) !important;
+  color: var(--text-secondary) !important;
+}
+
+html[data-comfyfield] body .p-dialog:has(input[placeholder^="Add a node"]) button:has(> span.flex-1.truncate):hover {
+  background: var(--surface-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Result rows and their source badges. */
+html[data-comfyfield] body .p-dialog:has(input[placeholder^="Add a node"]) [class*="h-14"][class*="rounded-lg"] {
+  border-radius: var(--radius-lg) !important;
+  font-family: var(--font-sans) !important;
+}
+
+html[data-comfyfield] body .p-dialog:has(input[placeholder^="Add a node"]) [class*="h-14"][class*="rounded-lg"]:hover {
+  background: var(--surface-hover) !important;
+}
+
+html[data-comfyfield] body .p-dialog:has(input[placeholder^="Add a node"]) :has(> span.truncate.text-2xs) {
+  border-radius: var(--radius-full) !important;
+  background: var(--surface-subtle) !important;
+  color: var(--text-secondary) !important;
+  padding: 1px calc(8px * var(--ui-scale)) !important;
+}
+
+/* ---- Node cards, pass seven: port rows and round steppers -------------------------------- */
+
+/* Port rows (model, positive, …): taller rows and a readable label. ComfyUI measures the
+   slot elements for link endpoints, so links follow the new spacing. */
+html[data-comfyfield] body .lg-node .lg-slot {
+  height: calc(24px * var(--ui-scale)) !important;
+}
+
+html[data-comfyfield] body .lg-node .lg-slot [class*="text-node-component-slot-text"] {
+  font-size: calc(12px * var(--ui-scale)) !important;
+  line-height: 1.2 !important;
+}
+
+html[data-comfyfield] body .lg-node .flex.min-w-0.flex-col:has(> .lg-slot) {
+  padding: calc(4px * var(--ui-scale)) 0 !important;
+}
+
+/* +/- as circles. Their class also contains the field-surface name, so they inherited the
+   field's minimum height and stretched into ovals; the doubled attribute resets it. */
+html[data-comfyfield][data-comfyfield] body .lg-node button[class]:has(> i[class*="lucide--minus"]),
+html[data-comfyfield][data-comfyfield] body .lg-node button[class]:has(> i[class*="lucide--plus"]) {
+  width: calc(26px * var(--ui-scale)) !important;
+  height: calc(26px * var(--ui-scale)) !important;
+  min-height: 0 !important;
+  align-self: center !important;
+  border-radius: var(--radius-full) !important;
+  margin: 0 calc(4px * var(--ui-scale)) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+html[data-comfyfield][data-comfyfield] body .lg-node button[class]:has(> i[class*="lucide--minus"]):hover,
+html[data-comfyfield][data-comfyfield] body .lg-node button[class]:has(> i[class*="lucide--plus"]):hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* ---- Pass eight: dropdown text, filter menus, breadcrumb, rail and run bar ---------------- */
+
+/* Dropdown list text lives in inner elements that carry their own (smaller) size. */
+html[data-comfyfield] body div[class*="z-3000"] [role="option"] span,
+html[data-comfyfield] body div[class*="z-3000"] [role="option"] div {
+  font-size: calc(13px * var(--ui-scale)) !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* Filter menus (Input / Output in the node library). */
+html[data-comfyfield] body [role="dialog"][class*="z-1001"] {
+  background: var(--surface-panel) !important;
+  border: 1px solid var(--line-hairline) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-pop) !important;
+  padding: calc(10px * var(--ui-scale)) !important;
+}
+
+html[data-comfyfield] body [role="dialog"][class*="z-1001"] div:has(> input[placeholder="Search"]) {
+  border-radius: var(--radius-full) !important;
+  border-color: var(--line-hairline) !important;
+  background: var(--surface-control) !important;
+  height: calc(34px * var(--ui-scale)) !important;
+  padding: 0 calc(12px * var(--ui-scale)) !important;
+}
+
+html[data-comfyfield] body [role="dialog"][class*="z-1001"] [role="option"] {
+  border-radius: var(--radius-sm) !important;
+  padding: calc(7px * var(--ui-scale)) calc(10px * var(--ui-scale)) !important;
+  font-family: var(--font-sans) !important;
+  font-size: calc(13px * var(--ui-scale)) !important;
+  color: var(--text-secondary) !important;
+}
+
+html[data-comfyfield] body [role="dialog"][class*="z-1001"] [role="option"]:hover,
+html[data-comfyfield] body [role="dialog"][class*="z-1001"] [role="option"][data-highlighted] {
+  background: var(--surface-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-comfyfield] body [role="dialog"][class*="z-1001"] [role="option"][aria-selected="true"] {
+  color: var(--text-primary) !important;
+}
+
+html[data-comfyfield] body [role="dialog"][class*="z-1001"] [role="option"] span.size-4 {
+  border-radius: 6px !important;
+  border-color: var(--line-strong) !important;
+  width: calc(16px * var(--ui-scale)) !important;
+  height: calc(16px * var(--ui-scale)) !important;
+}
+
+html[data-comfyfield] body [role="dialog"][class*="z-1001"] [role="option"][aria-selected="true"] span.size-4 {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--text-on-accent) !important;
+}
+
+/* "Graph" breadcrumb: one floating pill. */
+html[data-comfyfield] body .subgraph-breadcrumb [id^="reka-dropdown-menu-trigger"] {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: var(--radius-full) !important;
+  box-shadow: var(--shadow-pop) !important;
+  padding: calc(3px * var(--ui-scale)) !important;
+}
+
+html[data-comfyfield] body .subgraph-breadcrumb button {
+  border-radius: var(--radius-full) !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* Left tool rail. */
+html[data-comfyfield] body .side-tool-bar-container button {
+  border-radius: var(--radius-sm) !important;
+  color: var(--text-secondary) !important;
+}
+
+html[data-comfyfield] body .side-tool-bar-container button:hover {
+  background: var(--surface-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-comfyfield] body .side-tool-bar-container button span {
+  font-family: var(--font-sans) !important;
+  font-size: calc(10px * var(--ui-scale)) !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* Run bar: pill-shaped panel and controls. */
+html[data-comfyfield] body .actionbar.p-panel,
+html[data-comfyfield] body .actionbar-container .p-panel {
+  border-radius: var(--radius-full) !important;
+  padding: calc(3px * var(--ui-scale)) !important;
+}
+
+html[data-comfyfield] body .actionbar button,
+html[data-comfyfield] body .queue-button-group,
+html[data-comfyfield] body .queue-button-group button {
+  border-radius: var(--radius-full) !important;
+}
+
+/* ---- Pass nine: workflow tabs, side panel, workflow menu and App builder ------------------ */
+
+/* App builder ships its own teal palette; it follows the studio accent and panels instead. */
+html[data-comfyfield] {
+  --interface-builder-mode-background: var(--accent-soft) !important;
+  --interface-builder-mode-button-background: var(--accent) !important;
+  --interface-builder-mode-button-foreground: var(--text-on-accent) !important;
+  --interface-builder-mode-footer-background: var(--surface-panel) !important;
+  --interface-panel-surface: var(--surface-panel) !important;
+  --interface-stroke: var(--line-strong) !important;
+}
+
+/* Builder step bar (top) and action bar (bottom): floating pills. */
+html[data-comfyfield] body nav[class*="workflow-tabs-height"] > div,
+html[data-comfyfield] body div.fixed.bottom-4 > nav {
+  background: var(--surface-panel) !important;
+  border: 1px solid var(--line-hairline) !important;
+  border-radius: var(--radius-full) !important;
+  box-shadow: var(--shadow-pop) !important;
+  padding: calc(6px * var(--ui-scale)) !important;
+}
+
+html[data-comfyfield] body nav[class*="workflow-tabs-height"] button,
+html[data-comfyfield] body div.fixed.bottom-4 > nav button {
+  border-radius: var(--radius-full) !important;
+  font-family: var(--font-sans) !important;
+}
+
+html[data-comfyfield] body nav[class*="workflow-tabs-height"] button {
+  padding-right: calc(18px * var(--ui-scale)) !important;
+}
+
+/* Step numbers: accent circles. */
+html[data-comfyfield] body [class*="bg-interface-builder-mode-button-background"] {
+  border-radius: var(--radius-full) !important;
+  width: calc(34px * var(--ui-scale)) !important;
+  height: calc(34px * var(--ui-scale)) !important;
+  font-weight: 600 !important;
+}
+
+/* Builder drop zone ("Output nodes will show up here"). */
+html[data-comfyfield] body div.border-dashed[class*="m-4"] {
+  border-radius: var(--radius-2xl) !important;
+  border: 1.5px dashed var(--accent-ring) !important;
+  background: color-mix(in srgb, var(--accent) 6%, transparent) !important;
+  color: var(--accent) !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* Workflow tabs use the studio mode-tab treatment, with one active underline. */
+html[data-comfyfield] body .workflow-tabs .p-togglebutton {
+  border-radius: var(--radius-full) !important;
+  background: transparent !important;
+  border: 0 !important;
+  margin: calc(4px * var(--ui-scale)) 2px !important;
+}
+
+html[data-comfyfield] body .workflow-tabs .p-togglebutton:hover {
+  background: var(--surface-hover) !important;
+}
+
+html[data-comfyfield] body .workflow-tabs .p-togglebutton-checked {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-comfyfield] body .workflow-tabs .p-togglebutton::before,
+html[data-comfyfield] body .workflow-tabs .p-togglebutton-content {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+html[data-comfyfield] body .workflow-tab {
+  padding: calc(4px * var(--ui-scale)) calc(12px * var(--ui-scale)) !important;
+}
+
+html[data-comfyfield] body .workflow-label {
+  font-family: var(--font-sans) !important;
+  font-size: calc(13px * var(--ui-scale)) !important;
+}
+
+/* Side panel (Apps, Workflows, Models, …). */
+html[data-comfyfield] body .side-bar-panel {
+  background: var(--surface-panel) !important;
+  border-right: 1px solid var(--line-hairline) !important;
+}
+
+html[data-comfyfield] body .side-bar-panel input {
+  font-family: var(--font-sans) !important;
+}
+
+html[data-comfyfield] body .side-bar-panel div:has(> input),
+html[data-comfyfield] body .side-bar-panel .p-iconfield {
+  border-radius: var(--radius-full) !important;
+}
+
+/* Workflow menu (Save, Export, …) and other dropdown menus. */
+html[data-comfyfield] body [role="menu"] {
+  background: var(--surface-panel) !important;
+  border: 1px solid var(--line-hairline) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-pop) !important;
+  padding: 6px !important;
+}
+
+html[data-comfyfield] body [role="menu"] [role="menuitem"] {
+  border-radius: var(--radius-sm) !important;
+  font-family: var(--font-sans) !important;
+  font-size: calc(13px * var(--ui-scale)) !important;
+  padding: calc(8px * var(--ui-scale)) calc(12px * var(--ui-scale)) !important;
+  color: var(--text-secondary) !important;
+}
+
+html[data-comfyfield] body [role="menu"] [role="menuitem"]:hover,
+html[data-comfyfield] body [role="menu"] [role="menuitem"][data-highlighted] {
+  background: var(--surface-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ---- Pass ten: Media Assets panel as studio media cards ---------------------------------- */
+/* Same structure as .ds-mediacard: full-bleed media on the page surface, title and meta below. */
+html[data-comfyfield] body .side-bar-panel div[class*="hover:bg-modal-card-background-hove"] {
+  background: var(--surface-control) !important;
+  border-radius: var(--radius-xl) !important;
+  padding: 0 0 calc(12px * var(--ui-scale)) !important;
+  gap: calc(10px * var(--ui-scale)) !important;
+  transition: background 140ms ease !important;
+}
+
+html[data-comfyfield] body .side-bar-panel div[class*="hover:bg-modal-card-background-hove"]:hover {
+  background: var(--surface-control-hover) !important;
+}
+
+html[data-comfyfield] body .side-bar-panel div[class*="hover:bg-modal-card-background-hove"] > div:first-child,
+html[data-comfyfield] body .side-bar-panel div[class*="bg-modal-card-placeholder-background"] {
+  border-radius: 0 !important;
+}
+
+html[data-comfyfield] body .side-bar-panel div[class*="bg-modal-card-placeholder-background"] {
+  background: var(--surface-page) !important;
+}
+
+html[data-comfyfield] body .side-bar-panel div[class*="hover:bg-modal-card-background-hove"] > div:not(:first-child) {
+  padding: 0 calc(12px * var(--ui-scale)) !important;
+}
+
+html[data-comfyfield] body .side-bar-panel div[class*="hover:bg-modal-card-background-hove"] [class*="truncate"],
+html[data-comfyfield] body .side-bar-panel div[class*="hover:bg-modal-card-background-hove"] span:not([class]) {
+  font-family: var(--font-sans) !important;
+}
+
+html[data-comfyfield] body .side-bar-panel div.flex.min-w-0.flex-col.gap-1 > :first-child {
+  font-size: var(--text-sm) !important;
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-comfyfield] body .side-bar-panel div.flex.items-center.text-xs.text-muted-foreground {
+  color: var(--text-meta) !important;
+  font-size: var(--text-xs) !important;
+}
+
+/* Generated / Imported switch: quiet pills. */
+html[data-comfyfield] body .side-bar-panel button.flex.h-8[class*="rounded-lg"][class*="px-2.5"] {
+  border-radius: var(--radius-full) !important;
+  font-family: var(--font-sans) !important;
+  padding: 0 calc(14px * var(--ui-scale)) !important;
+}
+
+/* ComfyField chrome integration. Scoped to the proxy document: graph widgets and
+   the standalone upstream editor retain their own behavior and functional borders. */
+html[data-comfyfield] body :is(.actionbar.p-panel, .actionbar-container .p-panel) {
+  background: var(--surface-panel) !important;
+  border: 0 !important;
+  box-shadow: var(--shadow-lift) !important;
+  padding: var(--space-2) !important;
+  border-radius: var(--radius-xl) !important;
+}
+html[data-comfyfield] body .actionbar :is(.p-panel-content-container, .p-panel-content, .queue-button-group, .batch-count, .batch-count > div) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body .actionbar :is(button, input) {
+  border: 0 !important;
+  box-shadow: none !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-sm) !important;
+}
+html[data-comfyfield] body .actionbar button:not([data-variant="primary"]) {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+}
+html[data-comfyfield] body .actionbar button:not([data-variant="primary"]):not(:disabled):hover {
+  background: var(--surface-control-hover) !important;
+  color: var(--text-primary) !important;
+}
+html[data-comfyfield] body .actionbar button[data-variant="primary"] {
+  background: var(--accent) !important;
+  color: var(--text-on-accent) !important;
+  font-weight: var(--weight-medium) !important;
+}
+html[data-comfyfield] body .subgraph-breadcrumb {
+  filter: none !important;
+}
+html[data-comfyfield] body .subgraph-breadcrumb [aria-haspopup] {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body .subgraph-breadcrumb > div {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body .subgraph-breadcrumb button {
+  background: var(--surface-control) !important;
+  color: var(--text-secondary) !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body .subgraph-breadcrumb button:hover {
+  background: var(--surface-control-hover) !important;
+  color: var(--text-primary) !important;
+}
+html[data-comfyfield] body :is(.side-toolbar-container, .side-tool-bar-container) {
+  background: var(--surface-page) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body .comfy-menu-button-wrapper {
+  border: 0 !important;
+  border-radius: var(--radius-lg) !important;
+  background: transparent !important;
+}
+html[data-comfyfield] body .comfy-menu-button-wrapper:hover {
+  background: var(--surface-control-hover) !important;
+}
+html[data-comfyfield] body .workflow-tabs-container {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body .workflow-tabs .p-togglebutton {
+  position: relative;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: none !important;
+  color: var(--text-secondary) !important;
+  margin: 0 var(--space-1) !important;
+  font-weight: var(--weight-regular) !important;
+}
+html[data-comfyfield] body .workflow-tabs .p-togglebutton-checked {
+  color: var(--text-primary) !important;
+}
+html[data-comfyfield] body .workflow-tabs .p-togglebutton-checked::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: var(--space-2);
+  right: var(--space-2);
+  height: 2px;
+  background: var(--accent);
+  border-radius: var(--radius-full);
+}
+html[data-comfyfield] body .workflow-tabs [data-testid="workflow-dirty-indicator"] {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+}
+/* PrimeVue menus were not covered by the Reka [role=menu] mapping. Each popup
+   gets one surface; lists, links and item wrappers remain unboxed. */
+html[data-comfyfield] body :is(.p-tieredmenu, .p-tieredmenu-submenu, .p-menu, .p-contextmenu, .p-select-overlay, .p-multiselect-overlay, [role="menu"]) {
+  background: var(--surface-control) !important;
+  color: var(--text-primary) !important;
+  border: 0 !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-pop) !important;
+  padding: var(--space-2) !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-sm) !important;
+}
+html[data-comfyfield] body :is(.p-tieredmenu-root-list, .p-menu-list, .p-contextmenu-root-list) {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+html[data-comfyfield] body :is(.p-tieredmenu-item-content, .p-menu-item-content, .p-contextmenu-item-content, [role="menu"] [role="menuitem"]) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--text-secondary) !important;
+  font-weight: var(--weight-regular) !important;
+}
+html[data-comfyfield] body :is(.p-tieredmenu-item-link, .p-menu-item-link, .p-contextmenu-item-link) {
+  padding: var(--space-2) var(--space-3) !important;
+  gap: var(--space-2) !important;
+  font-size: var(--text-sm) !important;
+  color: inherit !important;
+}
+html[data-comfyfield] body :is(.p-tieredmenu-item-content, .p-menu-item-content, .p-contextmenu-item-content):hover,
+html[data-comfyfield] body :is(.p-tieredmenu-item, .p-menu-item, .p-contextmenu-item)[data-p-focused="true"] > div,
+html[data-comfyfield] body [role="menu"] [role="menuitem"][data-highlighted] {
+  background: var(--surface-control-hover) !important;
+  color: var(--text-primary) !important;
+}
+html[data-comfyfield] body :is(.p-tieredmenu-separator, .p-menu-separator, .p-contextmenu-separator, [role="menu"] [role="separator"]) {
+  border-color: var(--line-hairline) !important;
+  margin-block: var(--space-2) !important;
+}
+/* Dialogs keep one outer surface. Prime's inner content must not add frames. */
+html[data-comfyfield] body :is(.p-dialog, [role="dialog"][aria-modal="true"]) {
+  background: var(--surface-panel) !important;
+  color: var(--text-primary) !important;
+  border: 0 !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-pop) !important;
+  font-family: var(--font-sans) !important;
+}
+html[data-comfyfield] body .p-dialog :is(.p-dialog-header, .p-dialog-content, .p-dialog-footer) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body :is(.p-tablist, .p-tablist-tab-list, .p-tabpanels, .p-tabview-nav, .p-tabview-panels) {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body :is(.p-tab, .p-tabview-tab-header) {
+  background: transparent !important;
+  border: 0 !important;
+  color: var(--text-secondary) !important;
+  font-family: var(--font-sans) !important;
+}
+html[data-comfyfield] body :is(.p-tab-active, .p-tabview-tab-header[aria-selected="true"]) {
+  color: var(--text-primary) !important;
+  box-shadow: inset 0 -2px var(--accent) !important;
+}
+html[data-comfyfield] body :is(.actionbar button, .subgraph-breadcrumb button, .workflow-tabs button, .p-tieredmenu-item-link):focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px !important;
+}
+
+/* The current frontend wraps the action bar and properties toggle once more. */
+html[data-comfyfield] body div:has(> .actionbar-container) {
+  background: var(--surface-panel) !important;
+  border: 0 !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-lift) !important;
+}
+html[data-comfyfield] body .actionbar-container .actionbar.p-panel {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+html[data-comfyfield] body :is(.p-buttongroup.absolute.bottom-0, .minimap-main-container > *) {
+  border: 0 !important;
+  box-shadow: var(--shadow-lift) !important;
+}
+html[data-comfyfield] body .p-buttongroup.absolute.bottom-0 button {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body [role="dialog"][class*="z-1700"] {
+  background: var(--surface-panel) !important;
+  border: 0 !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-pop) !important;
+  font-family: var(--font-sans) !important;
+}
+html[data-comfyfield] body [role="dialog"] [class*="bg-modal-panel-background"] {
+  background: transparent !important;
+  border: 0 !important;
+}
+html[data-comfyfield] body [role="dialog"] [class*="bg-interface-menu-component-surface-selected"] {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body [role="dialog"] [class*="hover:bg-interface-menu-component-surface-hovered"]:hover {
+  background: var(--surface-control-hover) !important;
+}
+
+/* The workflow strip and library panels use different tab implementations. */
+html[data-comfyfield] { --workflow-tabs-height: calc(40px * var(--ui-scale)) !important; }
+html[data-comfyfield] body .workflow-tabs-container :is(.p-scrollpanel, .p-scrollpanel-content-container, .p-scrollpanel-content, .workflow-tabs) {
+  height: 100% !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body .workflow-tabs .p-togglebutton {
+  height: 100% !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-sm) !important;
+}
+html[data-comfyfield] body .workflow-tab {
+  padding: var(--space-2) var(--space-3) !important;
+}
+html[data-comfyfield] body .workflow-tabs .p-togglebutton-content {
+  color: inherit !important;
+  font-weight: var(--weight-regular) !important;
+}
+html[data-comfyfield] body .side-bar-panel {
+  background: var(--surface-page) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-sm) !important;
+  color: var(--text-secondary) !important;
+}
+html[data-comfyfield] body .side-bar-panel :is(.comfy-vue-side-bar-header, .comfy-vue-side-bar-body, .p-scrollpanel, [class*="bg-comfy-menu-bg"]) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body .side-bar-panel [class*="font-bold"] {
+  font-size: var(--text-md) !important;
+  font-weight: var(--weight-medium) !important;
+  color: var(--text-primary) !important;
+}
+html[data-comfyfield] body .side-bar-panel [role="tablist"] {
+  gap: var(--space-2) !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+html[data-comfyfield] body .side-bar-panel [role="tab"] {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: var(--radius-full) !important;
+  color: var(--text-secondary) !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-sm) !important;
+  font-weight: var(--weight-regular) !important;
+}
+html[data-comfyfield] body .side-bar-panel [role="tab"][aria-selected="true"] {
+  background: var(--surface-control) !important;
+  color: var(--text-primary) !important;
+}
+html[data-comfyfield] body .side-bar-panel :is([class*="group/tree-node"], .p-tree-node-content) {
+  border: 0 !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: none !important;
+  color: var(--text-secondary) !important;
+  font-size: var(--text-sm) !important;
+}
+html[data-comfyfield] body .side-bar-panel :is([class*="group/tree-node"], .p-tree-node-content):hover {
+  background: var(--surface-control-hover) !important;
+  color: var(--text-primary) !important;
+}
+html[data-comfyfield] body .side-bar-panel .p-tree {
+  background: transparent !important;
+  border: 0 !important;
+}
+html[data-comfyfield] body .side-bar-panel :is(input:not([type="checkbox"]), select, textarea) {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-sm) !important;
+  color: var(--text-primary) !important;
+}
+html[data-comfyfield] body .side-bar-panel input::placeholder {
+  color: var(--text-placeholder) !important;
+}
+/* Legacy extension dialogs share the popup surface, not nested card frames. */
+html[data-comfyfield] body :is(.comfy-modal, .comfy-dialog, .comfy-settings, .litegraph .dialog) {
+  border: 0 !important;
+  background: var(--surface-panel) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-pop) !important;
+  font-family: var(--font-sans) !important;
+}
+html[data-comfyfield] body :is(.comfy-modal-content, .comfy-dialog-content, .p-dialog-content) {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body :is(.comfy-modal, .comfy-dialog, .comfy-settings, [role="dialog"]) :is(input:not([type="checkbox"]):not([type="range"]):not([type="radio"]), select, textarea) {
+  font-family: var(--font-sans) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-sm) !important;
+  border-color: transparent !important;
+}
+html[data-comfyfield] body :is(.comfy-modal, .comfy-dialog, .comfy-settings) button {
+  border: 0 !important;
+  background: var(--surface-control) !important;
+  color: var(--text-secondary) !important;
+  border-radius: var(--radius-full) !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-sm) !important;
+  padding: var(--space-2) var(--space-3) !important;
+}
+html[data-comfyfield] body :is(.comfy-modal, .comfy-dialog, .comfy-settings) button:hover {
+  background: var(--surface-control-hover) !important;
+  color: var(--text-primary) !important;
+}
+/* Local node help is mounted beside the title, outside the widget event paths. */
+html[data-comfyfield] body .lg-node .cf-node-help {
+  display: grid !important;
+  place-items: center;
+  flex: none;
+  width: var(--space-5) !important;
+  height: var(--space-5) !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: var(--radius-full) !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-xs) !important;
+  font-weight: var(--weight-medium) !important;
+  cursor: help;
+}
+html[data-comfyfield] body .lg-node .cf-node-help:is(:hover, :focus-visible) {
+  background: var(--surface-control-hover) !important;
+  color: var(--accent) !important;
+  outline: 1px solid var(--accent);
+}
+html[data-comfyfield] body .cf-node-help-tooltip {
+  position: fixed;
+  z-index: 10000;
+  width: min(calc(360px * var(--ui-scale)), calc(100vw - var(--space-6)));
+  max-height: calc(100vh - var(--space-6));
+  overflow-y: auto;
+  padding: var(--space-4);
+  background: var(--surface-control);
+  color: var(--text-secondary);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  font: var(--text-sm)/var(--lh-sm) var(--font-sans);
+  pointer-events: auto;
+}
+html[data-comfyfield] body .cf-node-help-tooltip[hidden] { display: none; }
+html[data-comfyfield] body .cf-node-help-tooltip strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+}
+html[data-comfyfield] body .cf-node-help-tooltip p { margin: var(--space-2) 0; }
+html[data-comfyfield] body .cf-node-help-tooltip small { font-size: var(--text-xs); color: var(--text-tertiary); }
+
+/* Keep the actionable part of a node failure readable; the backend report stays in a dialog. */
+html[data-comfyfield] body .cf-error-summary {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--pad-control);
+  border: 1px solid var(--status-danger-line);
+  border-radius: var(--radius-md);
+  background: var(--surface-control);
+  color: var(--text-secondary);
+  font: var(--weight-regular) var(--text-sm)/var(--lh-sm) var(--font-sans);
+}
+html[data-comfyfield] body .cf-error-summary__title {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+html[data-comfyfield] body .cf-error-summary__hint { margin: 0; }
+html[data-comfyfield] body .cf-error-summary__advanced {
+  justify-self: start;
+  padding: var(--pad-chip);
+  border: 1px solid var(--line-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--surface-panel);
+  color: var(--text-secondary);
+  font: var(--weight-regular) var(--text-xs)/var(--lh-xs) var(--font-sans);
+  cursor: pointer;
+}
+html[data-comfyfield] body .cf-error-summary__advanced:hover,
+html[data-comfyfield] body .cf-error-summary__advanced:focus-visible {
+  background: var(--surface-control-hover);
+  color: var(--text-primary);
+}
+html[data-comfyfield] body .cf-error-details {
+  width: min(720px, calc(100vw - 48px));
+  max-height: min(78vh, 720px);
+  padding: var(--pad-panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-xl);
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-pop);
+  font-family: var(--font-sans);
+}
+html[data-comfyfield] body .cf-error-details::backdrop { background: var(--surface-overlay); }
+html[data-comfyfield] body .cf-error-details pre {
+  max-height: 60vh;
+  overflow: auto;
+  padding: var(--pad-control);
+  border-radius: var(--radius-md);
+  background: var(--surface-page);
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: var(--weight-regular) var(--text-xs)/var(--lh-sm) var(--font-mono);
+}
+
+/* Settings/extension filters use Prime toggle buttons, not workflow tabs. */
+html[data-comfyfield] body :is([role="dialog"], .side-bar-panel) .p-selectbutton {
+  background: transparent !important;
+  border: 0 !important;
+  gap: var(--space-1) !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body :is([role="dialog"], .side-bar-panel) .p-togglebutton {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: var(--radius-full) !important;
+  color: var(--text-secondary) !important;
+  box-shadow: none !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-sm) !important;
+  font-weight: var(--weight-regular) !important;
+}
+html[data-comfyfield] body :is([role="dialog"], .side-bar-panel) .p-togglebutton[aria-pressed="true"] {
+  background: var(--surface-control) !important;
+  color: var(--text-primary) !important;
+}
+html[data-comfyfield] body :is([role="dialog"], .side-bar-panel) .p-togglebutton::before,
+html[data-comfyfield] body :is([role="dialog"], .side-bar-panel) .p-togglebutton-content {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+html[data-comfyfield] body [role="dialog"] :is(.p-datatable, .p-datatable-table-container, .p-datatable-thead > tr > th, .p-datatable-tbody > tr, .p-datatable-tbody > tr > td) {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--line-hairline) !important;
+  box-shadow: none !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-sm) !important;
+}
+html[data-comfyfield] body [role="dialog"] .p-datatable-tbody > tr:hover {
+  background: var(--surface-control-hover) !important;
+}
+
+/* Template filters and other newer dialogs use native buttons with ARIA state. */
+html[data-comfyfield] body [role="dialog"] button[aria-pressed] {
+  border: 0 !important;
+  border-radius: var(--radius-full) !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  box-shadow: none !important;
+  font-family: var(--font-sans) !important;
+  font-weight: var(--weight-regular) !important;
+}
+html[data-comfyfield] body [role="dialog"] button[aria-pressed="true"] {
+  background: var(--surface-control) !important;
+  color: var(--text-primary) !important;
+}
+html[data-comfyfield] body [role="dialog"] :is(button[aria-haspopup="listbox"], button[role="combobox"]) {
+  border: 0 !important;
+  border-radius: var(--radius-full) !important;
+  background: var(--surface-control) !important;
+  color: var(--text-secondary) !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body [role="dialog"] [class*="border-border-subtle"]:has(> input) {
+  border: 0 !important;
+  border-radius: var(--radius-full) !important;
+  background: var(--surface-control) !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body [role="dialog"] button:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px !important;
+}
+html[data-comfyfield] body .p-splitter-gutter {
+  background: transparent !important;
+  border: 0 !important;
+}
+html[data-comfyfield] body .p-splitter-gutter-handle {
+  background: var(--line-hairline) !important;
+  border-radius: var(--radius-full) !important;
+}
+html[data-comfyfield] body * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-muted) transparent;
+}
+
+/* Canvas dialogs: image mask editor and 3D viewer. Keep viewport/layer canvases,
+   transforms, hit targets and semantic preview borders owned by the upstream tool. */
+html[data-comfyfield] body [role="dialog"]:has(canvas) {
+  background: var(--surface-page) !important;
+  border: 0 !important;
+  font-family: var(--font-sans) !important;
+  color: var(--text-primary) !important;
+}
+html[data-comfyfield] body [role="dialog"]:has(canvas) :is(button, select, input, label) {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-sm) !important;
+}
+html[data-comfyfield] body [role="dialog"]:has(canvas) button:not([data-variant="primary"]):not([class*="bg-primary-background"]) {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: var(--radius-full) !important;
+  font-weight: var(--weight-regular) !important;
+}
+html[data-comfyfield] body [role="dialog"]:has(canvas) button:not(:disabled):hover {
+  background: var(--surface-control-hover) !important;
+  color: var(--text-primary) !important;
+}
+html[data-comfyfield] body [role="dialog"]:has(canvas) :is([role="combobox"], select, input[type="number"]) {
+  border: 0 !important;
+  border-radius: var(--radius-full) !important;
+  background: var(--surface-control) !important;
+  color: var(--text-primary) !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body [role="dialog"]:has(canvas) [role="group"] {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body [role="dialog"]:has(canvas) :is(button[aria-pressed="true"], button[data-state="on"]) {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+}
+html[data-comfyfield] body [role="dialog"]:has(canvas) :is(input[type="range"], input[type="checkbox"]) { accent-color: var(--accent); }
+html[data-comfyfield] body .mask-editor-dialog :is(.maskEditor_sidePanel, .maskEditor_sidePanelBrushSettings, .maskEditor_sidePanelLayers, .maskEditor-ui-container) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html[data-comfyfield] body .mask-editor-dialog [class*="maskEditor_sidePanel"] {
+  font-family: var(--font-sans) !important;
+  color: var(--text-secondary) !important;
+}
+html[data-comfyfield] body .mask-editor-dialog .maskEditor_sidePanelDropdown {
+  border: 0 !important;
+  border-radius: var(--radius-full) !important;
+  background: var(--surface-control) !important;
+}
+html[data-comfyfield] body [role="dialog"]:has(canvas) :is(input, select):focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px !important;
+}
+
+html[data-comfyfield] body .mask-editor-dialog :is(h2, h3, h4, p, label, span:not([class*="pi-"]):not([class*="icon-"]), [class*="maskEditor_sidePanel"]) {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-sm) !important;
+}
+html[data-comfyfield] body .mask-editor-dialog :is(h2, h3, h4) {
+  font-weight: var(--weight-medium) !important;
+  color: var(--text-primary) !important;
+}
+html[data-comfyfield] body [role="dialog"]:has(canvas) input[type="color"] {
+  border: 0 !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
+  padding: 0 !important;
+}

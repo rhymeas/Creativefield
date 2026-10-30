@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 2,
+  "id": "replace-scene-anchor",
+  "version": "0.1.1",
+  "title": "Replace character scene frame",
+  "category": "image",
+  "description": "Creates one reviewable scene image from a video frame and two intact character references. No reference segmentation or video generation. Approval is a separate action.",
+  "inputs": [
+    {
+      "id": "source_image",
+      "label": "Image to edit",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "470",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image",
+      "label": "Reference image",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "475",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image_2",
+      "label": "Right character reference",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "476",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "image",
+      "label": "Scene frame candidate",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Edit instruction",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "459:474",
+        "field": "prompt"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 42,
+      "binding": {
+        "node": "459:458",
+        "field": "seed"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "replace-scene-anchor",
+      "requirements": [
+        {
+          "id": "node:ResolutionSelector",
+          "kind": "node",
+          "name": "ResolutionSelector",
+          "instructions": "Install ComfyUI 0.37.0 or another qualified version providing ResolutionSelector."
+        },
+        {
+          "id": "node:SaveImageAdvanced",
+          "kind": "node",
+          "name": "SaveImageAdvanced",
+          "instructions": "Install ComfyUI 0.37.0 or another qualified version providing SaveImageAdvanced."
+        },
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install a ComfyUI version providing LoadImage."
+        },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Install a ComfyUI version providing UNETLoader."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install a ComfyUI version providing CLIPLoader with the qwen_image type."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install a ComfyUI version providing VAELoader."
+        },
+        {
+          "id": "node:EmptyLatentImage",
+          "kind": "node",
+          "name": "EmptyLatentImage",
+          "instructions": "Install a ComfyUI version providing EmptyLatentImage."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install a ComfyUI version providing VAEDecode."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Install a ComfyUI version providing KSampler."
+        },
+        {
+          "id": "node:ComfySwitchNode",
+          "kind": "node",
+          "name": "ComfySwitchNode",
+          "instructions": "Install ComfyUI 0.37.0 or another qualified version providing ComfySwitchNode."
+        },
+        {
+          "id": "node:QwenImage21Cache",
+          "kind": "node",
+          "name": "QwenImage21Cache",
+          "instructions": "Install ComfyUI 0.37.0 or another qualified version providing the experimental Qwen Image 2.1 cache node."
+        },
+        {
+          "id": "node:TextEncodeQwenImage21",
+          "kind": "node",
+          "name": "TextEncodeQwenImage21",
+          "instructions": "Install ComfyUI 0.37.0 or another qualified version providing native Qwen Image 2.1 conditioning."
+        },
+        {
+          "id": "model:qwen-image-21-int8",
+          "kind": "model",
+          "name": "qwen_image_2.1_int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "version": "sha256:cb74113cb03faecd79611b01fd7fd642f0aa60d6f0b95086abee214d75eaa57d",
+          "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/blob/main/diffusion_models/qwen_image_2.1_int8_convrot.safetensors",
+          "instructions": "Install the exact Qwen Image 2.1 INT8 ConvRot diffusion file and verify its SHA-256. The Qwen Research License restricts use to non-commercial research or evaluation unless a separate commercial license is obtained."
+        },
+        {
+          "id": "model:qwen3vl-8b-int8",
+          "kind": "model",
+          "name": "qwen3vl_8b_int8_convrot.safetensors",
+          "location": "text_encoders",
+          "version": "sha256:8bfd0f6e12abf2d2d697ecc888e5e90b0d6741d6708f05799f53afa560452e8f",
+          "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/blob/main/text_encoders/qwen3vl_8b_int8_convrot.safetensors",
+          "instructions": "Install the exact Qwen3-VL 8B INT8 ConvRot encoder file and verify its SHA-256; review the repository license before use."
+        },
+        {
+          "id": "model:qwen-image-21-vae",
+          "kind": "model",
+          "name": "qwen_image_2.1_vae_bf16.safetensors",
+          "location": "vae",
+          "version": "sha256:bb21f7473051e1ac368515dd3f2e15cd44d7a11748ee8823e1ddca3e4876b7c9",
+          "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/blob/main/vae/qwen_image_2.1_vae_bf16.safetensors",
+          "instructions": "Install the exact Qwen Image 2.1 BF16 VAE file and verify its SHA-256; review the repository license before use."
+        }
+      ],
+      "evidence": [
+        "Static-only scene candidate using the installed Qwen Image 2.1 edit workflow. All reference pixels are passed as image inputs; no SAM, reference mask or subject crop. Output requires human review; execution does not establish likeness."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Comfy-Org workflow_templates: MIT. Integration license follows this repository; full dependency audit pending.",
+    "weights": [
+      {
+        "name": "Qwen Image 2.1 model, Qwen3-VL encoder conversion and VAE",
+        "license": "Qwen Research License Agreement: non-commercial research or evaluation only. Commercial use requires a separate license from the Qwen licensor. Conversion provenance and numerical equivalence have not been independently audited.",
+        "source": "https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/Comfy-Org/workflow_templates/blob/main/templates/image_qwen_image_2_1_image_edit.json",
+      "observedAt": "2026-10-16",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1",
+      "observedAt": "2026-10-16",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE",
+      "observedAt": "2026-10-16",
+      "kind": "research"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

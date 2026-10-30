@@ -1,0 +1,90 @@
+/* Team screens: LAYOUT ONLY (flex, grid, gap, size, overflow).
+   Colors, fonts, weights, borders, radii and shadows belong to src/ds/. test/ds-guard.test.ts enforces this. */
+.cf-team { height:100%; display:flex; flex-direction:column; overflow:hidden; }
+.cf-team > .cf-team__body { padding: var(--gap-block); gap: var(--gap-block); }
+.cf-team__main > .ds-wsbar { margin-top: var(--gap-block); }
+.cf-team__body { flex:1; min-height:0; display:flex; }
+.cf-team__main { flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden; }
+.cf-team__body { min-height:0; flex:1; display:flex; overflow:hidden; }
+.cf-team__content { flex:1; min-width:0; min-height:0; overflow:auto; }
+.cf-models-dialog { height: min(720px, calc(100dvh - 2 * var(--pad-page))); }
+.cf-models-dialog .ds-dialog__body { padding-top: 0; }
+.cf-models-dialog .ds-catalogue--modal,
+.cf-models-dialog .ds-catalogue--modal .ds-page { flex: 1; }
+.cf-form { display:flex; flex-direction:column; gap:var(--gap-stack); min-width:0; }
+.cf-webcam { display:flex; flex-direction:column; gap:var(--gap-stack); }
+.cf-webcam__video { width:100%; aspect-ratio:4 / 3; object-fit:cover; }
+.cf-webcam__actions { display:flex; flex-wrap:wrap; gap:var(--gap-inline); }
+.cf-auth { min-height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--gap-block); padding:var(--pad-page-y) var(--pad-page-x); }
+.cf-auth .ds-panel { align-self:center; max-width:100%; }
+.cf-auth--embedded { min-height:0; padding:0; }
+.cf-auth--embedded .ds-panel { width:100%; }
+.cf-workspace-picker { max-width:var(--panel-w); }
+.cf-workspace-picker .ds-pill { max-width:100%; }
+.cf-production { display:flex; align-items:flex-start; gap:calc(var(--gap-section) + var(--gap-inline)); min-width:0; }
+/* A production panel starts under the top bar, the workspace bar and the page's own padding, so its cap
+   takes those three away: the body scrolls and the footer (the Generate button) stays inside the work
+   area at every window height (rule 41). */
+.cf-production>.ds-panel { flex-shrink:0; position:sticky; top:0; max-height:calc(100dvh - var(--topbar-h) - var(--row-h) * 3.5); }
+.cf-composer-heading { padding:var(--pad-card); }
+.cf-fieldset { border:0; padding:0; margin:0; min-width:0; display:flex; flex-direction:column; gap:var(--gap-stack); }
+.cf-scroll-reserve { display:block; min-height:var(--space-2); flex:none; }
+.cf-run-list { flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gap-block); }
+.cf-run-item { display:flex; flex-direction:column; gap:var(--gap-inline); min-width:0; align-self:start; }
+.cf-assets { display:flex; flex-direction:column; gap:var(--gap-block); }
+.cf-upload { display:flex; gap:var(--gap-stack); align-items:center; flex-wrap:wrap; }
+.cf-asset-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--panel-w)),1fr)); gap:var(--gap-block); }
+.cf-asset { display:flex; flex-direction:column; align-items:flex-start; gap:var(--gap-stack); min-width:0; }
+.cf-asset>img,.cf-asset>video { width:100%; aspect-ratio:16/9; object-fit:contain; }
+.cf-asset>audio { width:100%; }
+.cf-asset>strong { overflow-wrap:anywhere; }
+.cf-settings-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--gap-stack); padding:var(--pad-row); }
+.cf-settings-row p { overflow-wrap:anywhere; }
+.cf-storyboard>.ds-panel { width:calc(var(--panel-w) * 1.2); max-height:calc(100dvh - var(--topbar-h) - var(--row-h) * 4); }
+.cf-storyboard-page { display:flex; flex-direction:column; gap:var(--gap-block); min-width:0; }
+.cf-character-thumb { width:100%; height:100%; object-fit:cover; }
+.cf-character-list { position:sticky; top:0; align-self:flex-start; }
+.cf-character-detail-heading { display:flex; flex-direction:column; gap:var(--gap-inline); }
+.cf-character-detail { flex:1; min-width:0; max-width:calc(var(--panel-w) * 3); max-height:calc(100dvh - var(--topbar-h) - var(--row-h) - var(--pad-page-y) * 2); overflow-y:auto; padding-bottom:var(--space-8); scroll-padding-bottom:var(--space-8); }
+.cf-character-create-grid { grid-template-columns:repeat(auto-fill,calc(140px * var(--ui-scale))); align-items:start; }
+.cf-character-create-grid .ds-mediacard__media { height:calc(112px * var(--ui-scale)); aspect-ratio:auto; overflow:hidden; }
+.cf-character-create-grid .ds-meta { flex-wrap:nowrap; }
+.cf-character-reference-grid { grid-template-columns:repeat(auto-fill,calc(180px * var(--ui-scale))); align-items:start; }
+.cf-character-reference-grid .ds-mediacard__media { height:calc(112px * var(--ui-scale)); aspect-ratio:auto; overflow:hidden; }
+.cf-library-drop { width:100%; max-width:calc(var(--panel-w) * 1.8); margin-inline:auto; }
+
+.cf-sb-head { display:flex; align-items:center; gap:var(--gap-block); }
+.cf-sb-head__end { margin-left:auto; display:flex; align-items:center; gap:var(--gap-block); }
+.cf-sheet-pick { display:flex; align-items:center; flex-wrap:wrap; gap:var(--gap-inline); margin-block:var(--gap-stack); }
+.cf-library-grid { grid-template-columns:repeat(var(--cols,var(--density-cols,4)),minmax(0,1fr)); }
+.cf-panel-tools { display:flex; justify-content:flex-end; align-items:center; gap:var(--gap-inline); padding:var(--space-2) var(--space-2) 0; }
+.cf-image-studio > .ds-page { padding-inline: 0; }
+
+.cf-three-d { display:flex; flex-direction:column; flex:1; height:100%; min-width:0; min-height:0; gap:var(--gap-block); }
+.cf-three-d > .ds-page, .cf-three-d > .cf-nodes { flex:1; min-height:0; }
+
+.cf-run-item[id^="cf-run-"] { scroll-margin-top:calc(var(--topbar-h) + var(--space-6)); }
+.cf-performance-canvas { align-self:center; max-width:100%; max-height:45vh; width:auto; height:auto; }
+.cf-orbit-preview { display:grid; gap:var(--gap-stack); max-width:480px; }
+.cf-orbit-preview[data-compact] { width:100%; max-width:none; gap:0; }
+.cf-orbit-preview[data-compact] .ds-orbit-preview { max-width:none; cursor:default; }
+.cf-orbit-preview__meta { display:flex; align-items:flex-start; justify-content:space-between; gap:var(--gap-inline); flex-wrap:wrap; }
+
+/* All tools: the controls stay in the page header; available tools occupy the visual centre. */
+.cf-start { display:flex; flex-direction:column; gap:var(--gap-section); min-height:100%; }
+.cf-start__tools { flex:1; display:grid; align-content:start; gap:var(--gap-block); padding-block:var(--space-5); }
+/* All tools: the tool tiles stay narrower than the page frame, so the whole set reads as one quiet menu. */
+.cf-start .ds-presetgrid { grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(230px * var(--ui-scale))),calc(300px * var(--ui-scale)))); justify-content:start; align-items:stretch; grid-auto-flow:dense; gap:var(--gap-block); }
+.cf-start .ds-preset__art { aspect-ratio:16/10; }
+/* The led tool is twice as wide and its picture fills the card; every picture is shown uncropped to its frame (cover), never as a small inset. */
+.cf-start .ds-preset--featured { grid-column:span 2; grid-row:span 2; }
+.cf-start .ds-preset--featured .ds-preset__art { aspect-ratio:auto; flex:1; min-height:calc(240px * var(--ui-scale)); }
+.cf-start .ds-preset__art img { object-position:center 30%; }
+.cf-start .ds-preset__art img { transition:transform var(--dur-med) var(--ease); }
+.cf-start .ds-preset:hover .ds-preset__art img { transform:scale(1.04); }
+
+.cf-onboarding { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--gap-block); }
+
+.cf-team__pagehero { padding-bottom: var(--space-3); max-width: min(100%, calc(1000px * var(--ui-scale))); }
+.cf-split-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.cf-start .ds-hero--stage { max-width: min(100%, calc(1000px * var(--ui-scale))); }

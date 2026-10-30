@@ -1,0 +1,7 @@
+.ds-posestrip { display:flex; gap:var(--gap-inline); overflow-x:auto; max-width:100%; padding:var(--pad-chip); }
+.ds-posestrip__item { flex:none; width:calc(var(--control-h) * 2); height:calc(var(--control-h) * 2); padding:0; border:1px solid var(--line-soft); border-radius:var(--radius-sm); background:var(--surface-control); color:var(--text-secondary); cursor:pointer; }
+.ds-posestrip__item:hover { background:var(--surface-control-hover); color:var(--text-primary); }
+.ds-posestrip__item[aria-current] { border-color:var(--accent); color:var(--text-primary); }
+.ds-posestrip__item:focus-visible { outline:1px solid var(--accent-ring); outline-offset:2px; }
+.ds-posestrip__item svg { display:block; width:100%; height:100%; overflow:hidden; fill:none; stroke:currentColor; }
+.ds-posestrip__item line { stroke-width:1; vector-effect:non-scaling-stroke; }

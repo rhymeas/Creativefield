@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 2,
+  "id": "qwen-image-21-angles",
+  "version": "0.1.0",
+  "title": "Qwen Image 2.1 45° angle shots",
+  "category": "image",
+  "description": "A genuine camera-angle reshot of one reference image using the Qwen Image 2.1 Multiple-Angles v2 LoRA. The model receives an explicit <mva> azimuth/elevation instruction and the source image; it does not promise a 3D orbit. Every angle is a separate run with its own Slate.",
+  "inputs": [
+    {
+      "id": "source_image",
+      "label": "Source image",
+      "type": "image",
+      "required": true,
+      "binding": { "node": "470", "field": "image" }
+    }
+  ],
+  "outputs": [
+    { "id": "image", "label": "Angle shot", "type": "image", "required": true }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Angle instruction",
+      "type": "string",
+      "default": "Keep the subject, wardrobe, composition and background exactly as in the reference image.",
+      "binding": { "node": "459:474", "field": "prompt" }
+    },
+    {
+      "id": "steps",
+      "label": "Steps",
+      "type": "integer",
+      "min": 4,
+      "max": 50,
+      "step": 1,
+      "default": 20,
+      "binding": { "node": "459:458", "field": "steps" }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 42,
+      "binding": { "node": "459:458", "field": "seed" }
+    }
+  ],
+  "presets": [
+    {
+      "id": "front-left-quarter",
+      "title": "Front-left 45°",
+      "values": { "prompt": "<mva> front-left quarter view, eye-level shot. Keep the subject identity, wardrobe, scene and visual style." }
+    },
+    {
+      "id": "left-side",
+      "title": "Left 90°",
+      "values": { "prompt": "<mva> left side view, eye-level shot. Keep the subject identity, wardrobe, scene and visual style." }
+    },
+    {
+      "id": "back-left-quarter",
+      "title": "Back-left 135°",
+      "values": { "prompt": "<mva> back-left quarter view, eye-level shot. Keep the subject identity, wardrobe, scene and visual style." }
+    },
+    {
+      "id": "back",
+      "title": "Back 180°",
+      "values": { "prompt": "<mva> back view, eye-level shot. Keep the subject identity, wardrobe, scene and visual style." }
+    },
+    {
+      "id": "back-right-quarter",
+      "title": "Back-right 225°",
+      "values": { "prompt": "<mva> back-right quarter view, eye-level shot. Keep the subject identity, wardrobe, scene and visual style." }
+    },
+    {
+      "id": "right-side",
+      "title": "Right 270°",
+      "values": { "prompt": "<mva> right side view, eye-level shot. Keep the subject identity, wardrobe, scene and visual style." }
+    },
+    {
+      "id": "front-right-quarter",
+      "title": "Front-right 315°",
+      "values": { "prompt": "<mva> front-right quarter view, eye-level shot. Keep the subject identity, wardrobe, scene and visual style." }
+    },
+    {
+      "id": "high-angle",
+      "title": "High angle",
+      "values": { "prompt": "<mva> front-right quarter view, high-angle shot. Keep the subject identity, wardrobe, scene and visual style." }
+    }
+  ],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "qwen-image-21-angles",
+      "requirements": [
+        { "id": "node:LoadImage", "kind": "node", "name": "LoadImage", "instructions": "Install a ComfyUI version providing LoadImage." },
+        { "id": "node:UNETLoader", "kind": "node", "name": "UNETLoader", "instructions": "Install a ComfyUI version providing UNETLoader." },
+        { "id": "node:LoraLoaderModelOnly", "kind": "node", "name": "LoraLoaderModelOnly", "instructions": "Install a ComfyUI version providing LoraLoaderModelOnly." },
+        { "id": "node:CLIPLoader", "kind": "node", "name": "CLIPLoader", "instructions": "Install a ComfyUI version providing CLIPLoader with the qwen_image type." },
+        { "id": "node:VAELoader", "kind": "node", "name": "VAELoader", "instructions": "Install a ComfyUI version providing VAELoader." },
+        { "id": "node:KSampler", "kind": "node", "name": "KSampler", "instructions": "Install a ComfyUI version providing KSampler." },
+        { "id": "node:QwenImage21Cache", "kind": "node", "name": "QwenImage21Cache", "instructions": "Install ComfyUI 0.37.0 or another qualified version providing the experimental Qwen Image 2.1 cache node." },
+        { "id": "node:TextEncodeQwenImage21", "kind": "node", "name": "TextEncodeQwenImage21", "instructions": "Install ComfyUI 0.37.0 or another qualified version providing native Qwen Image 2.1 conditioning." },
+        { "id": "node:VAEDecode", "kind": "node", "name": "VAEDecode", "instructions": "Install a ComfyUI version providing VAEDecode." },
+        { "id": "node:SaveImageAdvanced", "kind": "node", "name": "SaveImageAdvanced", "instructions": "Install a ComfyUI version providing SaveImageAdvanced." },
+        { "id": "node:ResolutionSelector", "kind": "node", "name": "ResolutionSelector", "instructions": "Install a ComfyUI version providing ResolutionSelector." },
+        { "id": "node:EmptyLatentImage", "kind": "node", "name": "EmptyLatentImage", "instructions": "Install a ComfyUI version providing EmptyLatentImage." },
+        { "id": "node:ComfySwitchNode", "kind": "node", "name": "ComfySwitchNode", "instructions": "Install a ComfyUI version providing ComfySwitchNode." },
+        {
+          "id": "model:qwen-image-21-int8",
+          "kind": "model",
+          "name": "qwen_image_2.1_int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "version": "sha256:cb74113cb03faecd79611b01fd7fd642f0aa60d6f0b95086abee214d75eaa57d",
+          "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/blob/main/diffusion_models/qwen_image_2.1_int8_convrot.safetensors",
+          "instructions": "Install the exact Qwen Image 2.1 INT8 ConvRot diffusion file and verify its SHA-256. The Qwen Research License restricts use to non-commercial research or evaluation unless a separate commercial license is obtained."
+        },
+        {
+          "id": "model:qwen3vl-8b-int8",
+          "kind": "model",
+          "name": "qwen3vl_8b_int8_convrot.safetensors",
+          "location": "text_encoders",
+          "version": "sha256:8bfd0f6e12abf2d2d697ecc888e5e90b0d6741d6708f05799f53afa560452e8f",
+          "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/blob/main/text_encoders/qwen3vl_8b_int8_convrot.safetensors",
+          "instructions": "Install the exact Qwen3-VL 8B INT8 ConvRot encoder file and verify its SHA-256; review the repository license before use."
+        },
+        {
+          "id": "model:qwen-image-21-vae",
+          "kind": "model",
+          "name": "qwen_image_2.1_vae_bf16.safetensors",
+          "location": "vae",
+          "version": "sha256:bb21f7473051e1ac368515dd3f2e15cd44d7a11748ee8823e1ddca3e4876b7c9",
+          "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/blob/main/vae/qwen_image_2.1_vae_bf16.safetensors",
+          "instructions": "Install the exact Qwen Image 2.1 BF16 VAE file and verify its SHA-256; review the repository license before use."
+        },
+        {
+          "id": "model:qwen21-multiple-angles-v2",
+          "kind": "model",
+          "name": "qwen21_multiple_angles_v2.safetensors",
+          "location": "loras",
+          "version": "sha256:548c57977c3f1c09c2c9e5f4e83e930cbc6f719c878a576ab8666ce29fef39b6",
+          "bytes": 318819792,
+          "source": "https://huggingface.co/akhaliq/Qwen-Image-2.1-Multiple-Angles-LoRA/blob/main/checkpoints_v2/angles_v2_full_qwen21_multiple_angles_v2_qwen21_multiple_angles_v2_000001500.safetensors",
+          "instructions": "Install the step-1,500 rank-64 v2 LoRA under models/loras and verify its SHA-256. The LoRA is Apache-2.0; the Qwen Image 2.1 base remains under the Qwen Research License."
+        }
+      ],
+      "evidence": [
+        "This graph is the existing Qwen Image 2.1 edit template with one source image, a LoraLoaderModelOnly step at strength 1.0, and explicit <mva> preset prompts. The LoRA is Qwen-Image-2.1 Multiple-Angles v2 step 1500, Apache-2.0, 319 MB, trained for the installed Qwen Image 2.1 base.",
+        "The source image is the only image input; no reference or mask is supplied. This is a generative angle reshot, not a reconstructed 3D orbit. Real output and identity fidelity must be reviewed per image."
+      ]
+    }
+  ],
+  "coverage": { "local": "implemented", "hosted": "planned" },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Comfy-Org workflow_templates: MIT. Integration license follows this repository; full dependency audit pending.",
+    "weights": [
+      {
+        "name": "Qwen Image 2.1 model, Qwen3-VL encoder conversion and VAE",
+        "license": "Qwen Research License Agreement: non-commercial research or evaluation only. Commercial use requires a separate license from the Qwen licensor. Conversion provenance and numerical equivalence have not been independently audited.",
+        "source": "https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE"
+      },
+      {
+        "name": "Qwen-Image-2.1 Multiple-Angles LoRA v2",
+        "license": "Apache-2.0 for the LoRA adapter; the Qwen Image 2.1 base model remains under the Qwen Research License. The adapter is a community-trained camera-control LoRA.",
+        "source": "https://huggingface.co/akhaliq/Qwen-Image-2.1-Multiple-Angles-LoRA"
+      }
+    ]
+  },
+  "sources": [
+    { "url": "https://huggingface.co/akhaliq/Qwen-Image-2.1-Multiple-Angles-LoRA", "observedAt": "2026-10-24", "kind": "implementation" },
+    { "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1", "observedAt": "2026-10-24", "kind": "implementation" }
+  ],
+  "tickets": ["F01"],
+  "audioPolicies": ["mute"]
+}

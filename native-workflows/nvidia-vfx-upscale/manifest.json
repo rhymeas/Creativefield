@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 2,
+  "id": "nvidia-vfx-upscale",
+  "version": "0.1.0",
+  "title": "Sharpen and upscale",
+  "category": "enhance",
+  "description": "Upscale a clip 2x or 4x with NVIDIA RTX super resolution, or clean noise and sharpen soft footage at its original size. Sound and frame rate stay the same. Needs an NVIDIA RTX GPU.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Source video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "1",
+        "field": "file"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Sharper video",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "scale",
+      "label": "Scale",
+      "type": "select",
+      "options": [2, 4],
+      "default": 2,
+      "binding": {
+        "node": "3",
+        "field": "resize_type.scale"
+      }
+    },
+    {
+      "id": "mode",
+      "label": "Mode",
+      "type": "select",
+      "options": ["ULTRA", "DENOISE_HIGH", "DEBLUR_HIGH"],
+      "default": "ULTRA",
+      "binding": {
+        "node": "3",
+        "field": "quality"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "nvidia-vfx-upscale",
+      "requirements": [
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Install a ComfyUI version providing LoadVideo."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Install a ComfyUI version providing GetVideoComponents."
+        },
+        {
+          "id": "node:RTXVideoSuperResolution",
+          "kind": "node",
+          "name": "RTXVideoSuperResolution",
+          "instructions": "Install ComfyUI Nvidia VFX Nodes v0.2.1 and the nvidia-vfx runtime into ComfyUI's own Python, then restart ComfyUI. See docs/NVIDIA-VFX.md."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Install a ComfyUI version providing CreateVideo."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install a ComfyUI version providing SaveVideo."
+        }
+      ],
+      "evidence": [
+        "2026-10-25: installed ComfyUI Nvidia VFX Nodes at commit 38d790d (pyproject version 0.2.1) and nvidia-vfx 0.2.0.0 into ComfyUI 0.37.0's Python. The node module exposed RTXVideoSuperResolution, RTXTrueHDR and RTXVideoFrameGeneration. This template has not had a GPU run; execution, output quality and the local allowlist review are still open."
+      ]
+    },
+    {
+      "id": "cloud",
+      "execution": "comfy_cloud",
+      "provider": "comfy-cloud",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "nvidia-vfx-upscale",
+      "endpointOrigin": "https://cloud.comfy.org",
+      "requirements": [
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Comfy Cloud needs the ComfyUI node LoadVideo."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Comfy Cloud needs the ComfyUI node GetVideoComponents."
+        },
+        {
+          "id": "node:RTXVideoSuperResolution",
+          "kind": "node",
+          "name": "RTXVideoSuperResolution",
+          "instructions": "Comfy Cloud needs the ComfyUI node RTXVideoSuperResolution."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Comfy Cloud needs the ComfyUI node CreateVideo."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Comfy Cloud needs the ComfyUI node SaveVideo."
+        }
+      ],
+      "evidence": [
+        "2026-10-27: every node and model file this graph names is in Comfy Cloud's own node list (GET /api/object_info: 3835 nodes, about 1500 model files). Nothing was run on Comfy Cloud here: that spends credits."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "implemented"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. ComfyUI Nvidia VFX Nodes: Apache-2.0 (repository LICENSE, commit 38d790d). nvidia-vfx Python wheel: NVIDIA proprietary (LicenseRef-NvidiaProprietary), installed separately and not redistributed. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "NVIDIA VFX runtime (nvidia-vfx 0.2.0.0)",
+        "license": "NVIDIA proprietary (LicenseRef-NvidiaProprietary); external runtime wheel, not bundled. No model weights are downloaded by this pack.",
+        "source": "https://pypi.org/project/nvidia-vfx/0.2.0.0/"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/Comfy-Org/ComfyUI_Nvidia_VFX_Nodes",
+      "observedAt": "2026-10-25",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://pypi.org/project/nvidia-vfx/0.2.0.0/",
+      "observedAt": "2026-10-25",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": ["preserve", "mute"]
+}

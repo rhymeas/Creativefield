@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 2,
+  "id": "vace-canny-restyle-14b",
+  "version": "0.1.0",
+  "title": "Wan 2.1 VACE 14B Canny restyle",
+  "category": "finishing",
+  "description": "Local edge-conditioned restyle on the 14B VACE model. Not offered in the workspace: on 2026-10-24 the installed local FP8 conversion loaded (16.5 GB staged) but produced corrupted output on a clean 480x848 comparison, while the 1.3B route on the same clip and prompt stayed coherent. Re-qualify the weights before making this route selectable.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Source video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "4",
+        "field": "file"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Restyled video",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "fpsPrepare": { "kind": "source_16fps_v1", "sourceInput": "source_video" },
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Restyle prompt",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "8",
+        "field": "text"
+      }
+    },
+    {
+      "id": "negative",
+      "label": "Negative prompt",
+      "type": "string",
+      "default": "blurry, distorted, unstable",
+      "binding": {
+        "node": "9",
+        "field": "text"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 543,
+      "binding": {
+        "node": "12",
+        "field": "seed"
+      }
+    },
+    {
+      "id": "strength",
+      "label": "VACE conditioning strength",
+      "type": "number",
+      "min": 0,
+      "max": 2,
+      "default": 1,
+      "binding": {
+        "node": "10",
+        "field": "strength"
+      }
+    },
+    {
+      "id": "canny_low_threshold",
+      "label": "Canny low threshold",
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "default": 0.4,
+      "binding": {
+        "node": "6",
+        "field": "low_threshold"
+      }
+    },
+    {
+      "id": "canny_high_threshold",
+      "label": "Canny high threshold",
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "default": 0.8,
+      "binding": {
+        "node": "6",
+        "field": "high_threshold"
+      }
+    }
+  ],
+  "presets": [
+    {
+      "id": "noir",
+      "title": "Noir",
+      "values": {
+        "prompt": "Black-and-white film noir, hard directional key light, deep shadows, soft haze, 1950s cinematography."
+      }
+    },
+    {
+      "id": "golden-hour",
+      "title": "Golden hour",
+      "values": {
+        "prompt": "Warm golden-hour sunlight, long soft shadows, amber highlights, gentle lens flare, cinematic color grade."
+      }
+    },
+    {
+      "id": "neon-night",
+      "title": "Neon night",
+      "values": {
+        "prompt": "Night scene lit by neon signage, cyan and warm practical lights, wet reflective ground, shallow depth of field."
+      }
+    },
+    {
+      "id": "hand-painted",
+      "title": "Hand-painted",
+      "values": {
+        "prompt": "Hand-painted animation look, soft brush edges, visible canvas texture, muted storybook palette."
+      }
+    }
+  ],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "experimental",
+      "workflowId": "vace-canny-restyle-14b",
+      "requirements": [
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Install a ComfyUI version providing UNETLoader."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install a ComfyUI version providing CLIPLoader."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install a ComfyUI version providing VAELoader."
+        },
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Install a ComfyUI version providing LoadVideo."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Install a ComfyUI version providing GetVideoComponents."
+        },
+        {
+          "id": "node:Canny",
+          "kind": "node",
+          "name": "Canny",
+          "instructions": "Install a ComfyUI version providing the core Canny node."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Install a ComfyUI version providing GetImageSize."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Install a ComfyUI version providing CLIPTextEncode."
+        },
+        {
+          "id": "node:WanVaceToVideo",
+          "kind": "node",
+          "name": "WanVaceToVideo",
+          "instructions": "Install a ComfyUI version providing WanVaceToVideo."
+        },
+        {
+          "id": "node:ModelSamplingSD3",
+          "kind": "node",
+          "name": "ModelSamplingSD3",
+          "instructions": "Install a ComfyUI version providing ModelSamplingSD3."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Install a ComfyUI version providing KSampler."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install a ComfyUI version providing VAEDecode."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Install a ComfyUI version providing CreateVideo."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install a ComfyUI version providing SaveVideo."
+        },
+        {
+          "id": "model:vace14b",
+          "kind": "model",
+          "name": "wan2.1_vace_14B_fp8_e4m3fn_local.safetensors",
+          "location": "diffusion_models",
+          "source": "https://huggingface.co/Wan-AI/Wan2.1-VACE-14B",
+          "instructions": "Install the locally quantized Wan 2.1 VACE 14B FP8 model (16.15 GB). The route is heavy for 24 GB cards; see docs/TRANSFORM-EVIDENCE.md."
+        },
+        {
+          "id": "model:umt5",
+          "kind": "model",
+          "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the UMT5 XXL FP8 scaled text encoder."
+        },
+        {
+          "id": "model:vae",
+          "kind": "model",
+          "name": "wan_2.1_vae.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the Wan 2.1 VAE."
+        }
+      ],
+      "evidence": [
+        "Benchmark 2026-10-24, run 10c45fdb-967b-4519-9113-e732c017c893: the local FP8 14B weights staged 16,538 MB and completed 480x848/17 frames, but the output is high-frequency colour noise with no recognisable subject. The 1.3B control on the same clip, prompt and seed (run 2930d2bc-c396-4ac5-88be-0e59281b2848) produced a coherent watercolour restyle. The 14B route is therefore experimental and hidden from the picker."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "experimental",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0; see upstream LICENSE. Workflow template files: MIT (Comfy-Org/workflow_templates). Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "Wan2.1-VACE-14B, local FP8 derivative",
+        "license": "Apache-2.0 upstream; locally quantized derivative. Conversion and runtime receipts: VIDEO-FORWARD-EVIDENCE.md.",
+        "source": "https://huggingface.co/Wan-AI/Wan2.1-VACE-14B/blob/main/LICENSE.txt"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://docs.comfy.org/tutorials/video/wan/vace",
+      "observedAt": "2026-10-24",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://huggingface.co/Wan-AI/Wan2.1-VACE-14B",
+      "observedAt": "2026-10-24",
+      "kind": "research"
+    }
+  ],
+  "tickets": [
+    "FIN-03"
+  ],
+  "audioPolicies": [
+    "mute"
+  ]
+}

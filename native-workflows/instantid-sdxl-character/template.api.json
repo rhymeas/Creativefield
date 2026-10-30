@@ -1,0 +1,14 @@
+{
+  "1": { "class_type": "CheckpointLoaderSimple", "inputs": { "ckpt_name": "sdxl/AlbedoBaseXL.safetensors" }, "_meta": { "title": "SDXL checkpoint" } },
+  "2": { "class_type": "LoadImage", "inputs": { "image": "reference.png" }, "_meta": { "title": "Face reference" } },
+  "3": { "class_type": "InstantIDModelLoader", "inputs": { "instantid_file": "ip-adapter.bin" }, "_meta": { "title": "Load InstantID model" } },
+  "4": { "class_type": "InstantIDFaceAnalysis", "inputs": { "provider": "CPU" }, "_meta": { "title": "InstantID face analysis" } },
+  "5": { "class_type": "ControlNetLoader", "inputs": { "control_net_name": "instantid/diffusion_pytorch_model.safetensors" }, "_meta": { "title": "InstantID ControlNet" } },
+  "6": { "class_type": "CLIPTextEncode", "inputs": { "text": "portrait photograph, detailed", "clip": ["1", 1] }, "_meta": { "title": "Positive prompt" } },
+  "7": { "class_type": "CLIPTextEncode", "inputs": { "text": "low quality, deformed, text, watermark", "clip": ["1", 1] }, "_meta": { "title": "Negative prompt" } },
+  "8": { "class_type": "ApplyInstantID", "inputs": { "instantid": ["3", 0], "insightface": ["4", 0], "control_net": ["5", 0], "image": ["2", 0], "model": ["1", 0], "positive": ["6", 0], "negative": ["7", 0], "weight": 0.8, "start_at": 0, "end_at": 1 }, "_meta": { "title": "Apply InstantID" } },
+  "9": { "class_type": "EmptyLatentImage", "inputs": { "width": 1016, "height": 1016, "batch_size": 1 }, "_meta": { "title": "Reference canvas" } },
+  "10": { "class_type": "KSampler", "inputs": { "model": ["8", 0], "seed": 1631591050, "steps": 30, "cfg": 4.5, "sampler_name": "ddpm", "scheduler": "karras", "positive": ["8", 1], "negative": ["8", 2], "latent_image": ["9", 0], "denoise": 1 }, "_meta": { "title": "Sample candidate" } },
+  "11": { "class_type": "VAEDecode", "inputs": { "samples": ["10", 0], "vae": ["1", 2] }, "_meta": { "title": "Decode candidate" } },
+  "12": { "class_type": "SaveImage", "inputs": { "images": ["11", 0], "filename_prefix": "ComfyField/character-reference" }, "_meta": { "title": "Save candidate character reference" } }
+}

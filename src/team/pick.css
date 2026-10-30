@@ -1,0 +1,9 @@
+﻿/* Visual media picker: a picture grid with a plain name under each tile. */
+.cf-pick { display:flex; flex-direction:column; gap:var(--space-1); min-width:0; }
+.cf-pick .ds-thumb__art { aspect-ratio:16/10; }
+/* The name is design-system caption text; only the overflow behaviour is local. */
+.cf-pick .ds-meta { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* Video tiles play when you point at them, so you see what the clip is before choosing it. */
+.cf-pick video { pointer-events:none; }
+/* Change page: the four tool cards at the top of the panel, compact (2 x 2). */
+.cf-change-cards .ds-preset__art { aspect-ratio: 5 / 2; }

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="CreativeField">
+  <!-- The studio mark: a dark tile with the accent's play triangle and the two field lines
+       that stand for the shot list. Only the design system's accent colour is used. -->
+  <rect width="32" height="32" rx="7" fill="#0f1113"/>
+  <rect x="0.6" y="0.6" width="30.8" height="30.8" rx="6.6" fill="none" stroke="#2fa8ff" stroke-opacity="0.35" stroke-width="1.2"/>
+  <path d="M13 10.5 22 16l-9 5.5z" fill="#2fa8ff"/>
+  <rect x="7" y="11" width="2" height="10" rx="1" fill="#2fa8ff" fill-opacity="0.55"/>
+</svg>

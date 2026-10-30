@@ -1,0 +1,11 @@
+{
+  "id": "comfyfield-marketing-static-ad",
+  "version": "1.0.0",
+  "kind": "server-local-compositor",
+  "runtime": "sharp-opentype",
+  "outputs": ["image/png"],
+  "formats": ["square_1080", "portrait_1080x1350", "landscape_1920x1080"],
+  "font": "Space Grotesk 600 / 400 (Fontsource 5.1.0)",
+  "generative": false,
+  "comfyuiGraph": false
+}

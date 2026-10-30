@@ -1,0 +1,293 @@
+{
+  "schemaVersion": 2,
+  "id": "wan21-vace-two-region-edit",
+  "version": "0.1.0",
+  "title": "Two-region video edit",
+  "category": "replacement",
+  "description": "Change two selected areas of a clip and combine both edits into one new silent video using local ComfyUI.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Source video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "4",
+        "field": "file"
+      }
+    },
+    {
+      "id": "edit_mask",
+      "label": "Aligned edit mask",
+      "type": "mask",
+      "representation": "video",
+      "required": true,
+      "binding": {
+        "node": "6",
+        "field": "file"
+      }
+    },
+    {
+      "id": "edit_mask_2",
+      "label": "Second aligned edit mask",
+      "type": "mask",
+      "representation": "video",
+      "required": true,
+      "binding": {
+        "node": "30",
+        "field": "file"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Edited video",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Replacement prompt",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "10",
+        "field": "text"
+      }
+    },
+    {
+      "id": "negative",
+      "label": "Negative prompt",
+      "type": "string",
+      "default": "blurry, distorted, unstable",
+      "binding": {
+        "node": "11",
+        "field": "text"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 543,
+      "binding": {
+        "node": "17",
+        "field": "seed"
+      }
+    },
+    {
+      "id": "prompt_2",
+      "label": "Second replacement prompt",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "36",
+        "field": "text"
+      }
+    },
+    {
+      "id": "seed_2",
+      "label": "Second seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 544,
+      "binding": {
+        "node": "38",
+        "field": "seed"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "wan21-vace-two-region-edit",
+      "requirements": [
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Install a ComfyUI version providing UNETLoader."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install a ComfyUI version providing CLIPLoader."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install a ComfyUI version providing VAELoader."
+        },
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Install a ComfyUI version providing LoadVideo."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Install a ComfyUI version providing GetVideoComponents."
+        },
+        {
+          "id": "node:ImageToMask",
+          "kind": "node",
+          "name": "ImageToMask",
+          "instructions": "Install a ComfyUI version providing ImageToMask."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Install a ComfyUI version providing GetImageSize."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Install a ComfyUI version providing CLIPTextEncode."
+        },
+        {
+          "id": "node:InvertMask",
+          "kind": "node",
+          "name": "InvertMask",
+          "instructions": "Install a ComfyUI version providing InvertMask."
+        },
+        {
+          "id": "node:MaskToImage",
+          "kind": "node",
+          "name": "MaskToImage",
+          "instructions": "Install a ComfyUI version providing MaskToImage."
+        },
+        {
+          "id": "node:ImageCompositeMasked",
+          "kind": "node",
+          "name": "ImageCompositeMasked",
+          "instructions": "Install a ComfyUI version providing ImageCompositeMasked."
+        },
+        {
+          "id": "node:WanVaceToVideo",
+          "kind": "node",
+          "name": "WanVaceToVideo",
+          "instructions": "Install a ComfyUI version providing WanVaceToVideo."
+        },
+        {
+          "id": "node:ModelSamplingSD3",
+          "kind": "node",
+          "name": "ModelSamplingSD3",
+          "instructions": "Install a ComfyUI version providing ModelSamplingSD3."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Install a ComfyUI version providing KSampler."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install a ComfyUI version providing VAEDecode."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Install a ComfyUI version providing CreateVideo."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install a ComfyUI version providing SaveVideo."
+        },
+        {
+          "id": "model:vace13b",
+          "kind": "model",
+          "name": "wan2.1_vace_1.3B_fp16.safetensors",
+          "location": "diffusion_models",
+          "version": "123acf1cc74bccbb9bfff8ac1ee72edc08c2341d",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the pinned Wan 2.1 VACE 1.3B FP16 diffusion model (4.31 GB). Qualification uses an RTX 4090; minimum VRAM is not measured."
+        },
+        {
+          "id": "model:umt5",
+          "kind": "model",
+          "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the UMT5 XXL FP8 scaled text encoder."
+        },
+        {
+          "id": "model:vae",
+          "kind": "model",
+          "name": "wan_2.1_vae.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the Wan 2.1 VAE."
+        }
+      ],
+      "evidence": [
+        "Native prompt e9e3948f-0fe6-40e5-897e-07c6aada1813 succeeded on a cleared fictional jacket clip: 832x480,17frames,16FPS,mute;284732-byte combined MP4 SHA256 a905d3a1dbf58e36faaa9e13f01d83386f68f901ce5f1a25d25d88f6ab117066. Blue jacket and yellow backdrop visible; garment details changed. One fixture only.",
+        "Real isolated app qualification: tracked/approved point mask run 06002fc4-49c4-4c8c-8717-2f4fdab10b33 and background mask run 6bac98c9-1525-42e7-89b7-9c9fc309bb2e, then combined run 8e3c5ba4-e422-41a3-b16a-8febce732ccd survived service reconstruction. Native remote c6b762d7-095b-4807-8570-597e55f8e3e4 produced one 288750-byte 832x480/17frame/16FPS mute video, SHA256 ed7794aa838b6d84f34890323fdf1014c258ded6975b56202b470d02c7b669b7. Independent mask admission/review and pre-upload checks; user interface uses Add edit in existing video editor. One cleared fixture, model detail/edge limitations remain."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0; see upstream LICENSE. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "Wan2.1-VACE-1.3B",
+        "license": "Apache-2.0 (upstream LICENSE.txt); full dependency license audit pending",
+        "source": "https://huggingface.co/Wan-AI/Wan2.1-VACE-1.3B/blob/main/LICENSE.txt"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://docs.comfy.org/tutorials/video/wan/vace",
+      "observedAt": "2026-10-16",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://comfy.org/workflows/video_wan_vace_inpainting-a1bb55d904c9/",
+      "observedAt": "2026-10-16",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [
+    "VID-05",
+    "EDT-01",
+    "EDT-02",
+    "EDT-03"
+  ],
+  "audioPolicies": [
+    "mute"
+  ],
+  "mediaContract": {
+    "kind": "aligned_video_mask_v1",
+    "sourceInput": "source_video",
+    "maskInput": "edit_mask",
+    "additionalMaskInputs": [
+      "edit_mask_2"
+    ]
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 2,
+  "id": "scail2-character-replace",
+  "version": "0.5.1",
+  "title": "SCAIL-2 character replace",
+  "category": "motion",
+  "description": "Replaces one tracked person in a clip with the character from an image, keeping the movement, the camera and everyone else. Give a second character and one run replaces two people together, both held in one reference frame. People are counted from the left. Built from the official SCAIL-2 int8 Character Replacement template (first 81-frame segment).",
+  "inputs": [
+    { "id": "source_video", "label": "Video", "type": "video", "required": true, "binding": { "node": "155", "field": "file" } },
+    { "id": "character_image", "label": "Character", "type": "image", "required": true, "binding": { "node": "30", "field": "image" } },
+    { "id": "character_image_2", "label": "Second character", "type": "image", "required": false, "binding": { "node": "330", "field": "image" } }
+  ],
+  "outputs": [
+    { "id": "video", "label": "Video", "type": "video", "required": true }
+  ],
+  "controls": [
+    { "id": "prompt", "label": "Describe the result", "type": "string", "default": "", "binding": { "node": "213:3", "field": "text" } },
+    { "id": "person", "label": "Person to replace (from the left)", "type": "select", "default": "0", "options": ["0", "1", "2", "3", "0,1"], "binding": { "node": "213:197", "field": "object_indices" } },
+    { "id": "two_people", "label": "Replace two people", "type": "boolean", "default": false, "binding": { "node": "344", "field": "value" } },
+    { "id": "seed", "label": "Seed", "type": "integer", "min": 0, "max": 2147483647, "default": 1, "binding": { "node": "213:19", "field": "noise_seed" } }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "scail2-character-replace",
+      "requirements": [
+        { "id": "node:WanSCAILToVideo", "kind": "node", "name": "WanSCAILToVideo", "instructions": "Update ComfyUI to a version with native SCAIL-2 nodes." },
+        { "id": "node:SCAIL2ColoredMask", "kind": "node", "name": "SCAIL2ColoredMask", "instructions": "Update ComfyUI to a version with native SCAIL-2 nodes." },
+        { "id": "node:SAM3_VideoTrack", "kind": "node", "name": "SAM3_VideoTrack", "instructions": "Update ComfyUI to a version with native SAM 3 nodes." },
+        { "id": "node:SAM3_TrackToMask", "kind": "node", "name": "SAM3_TrackToMask", "instructions": "Install a ComfyUI version providing SAM3_TrackToMask." },
+        { "id": "node:ImageCropToMask", "kind": "node", "name": "ImageCropToMask", "instructions": "Install a ComfyUI version providing ImageCropToMask." },
+        { "id": "node:MaskToImage", "kind": "node", "name": "MaskToImage", "instructions": "Use the installed ComfyUI core node MaskToImage." },
+        { "id": "node:ImageToMask", "kind": "node", "name": "ImageToMask", "instructions": "Use the installed ComfyUI core node ImageToMask." },
+        { "id": "model:scail2", "kind": "model", "name": "wan2.1_14B_SCAIL_2_int8_convrot.safetensors", "location": "diffusion_models", "source": "https://huggingface.co/Comfy-Org/SCAIL-2", "instructions": "Install the SCAIL-2 int8 model (15.5 GB, MIT)." },
+        { "id": "model:scail2-dpo", "kind": "model", "name": "wan2.1_SCAIL_2_DPO_lora_bf16.safetensors", "location": "loras", "source": "https://huggingface.co/Comfy-Org/SCAIL-2", "instructions": "Install the SCAIL-2 DPO LoRA (1.1 GB, MIT)." },
+        { "id": "model:lightx2v", "kind": "model", "name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors", "location": "loras", "source": "https://huggingface.co/Kijai/WanVideo_comfy", "instructions": "Install the Lightx2v step-distill LoRA (0.7 GB, Apache-2.0)." },
+        { "id": "model:sam31", "kind": "model", "name": "sam3.1_multiplex_fp16.safetensors", "location": "checkpoints", "source": "https://huggingface.co/Comfy-Org/sam3.1", "instructions": "Install SAM 3.1 (SAM License)." }
+      ],
+      "evidence": [
+        "2026-10-24: template converted from Comfy-Org/workflow_templates video_wan21_scail2_character_replacement_int8 and reduced to its first segment; output size follows the source at about 0.46 MP. Not yet run.",
+        "Real runs 2026-10-24 after the first-segment frame-offset repair (2386c19): a 1280x720 / 96-frame two-person studio clip produced 896x512 / 81 frames / 3.38 s. Run 0490a2cd-1415-4213-b723-a273ba61dfa7 used a prompt that named a park and moved the scene; run 04e39d78-128f-485b-9dd5-079c18c2aa5f used a studio-accurate prompt, replaced the left person with the reference character, and kept the second person and the grey studio. Wardrobe colour drifted from the requested navy to a pale jacket. Identity and scene preservation are real but not exact.",
+        "2026-10-24 (identity check): front-facing close-up reference with purple locs (fixtures/real/portrait-man-front.jpg) on clip-two-talking, person 0, turbo preset, prompt describing the whole scene including the unchanged person: the left person took the reference's face, hair and t-shirt with the source motion; the right person kept clothes, braids and pose with a slightly re-rendered face. An earlier run with a small downward-looking full-body reference transferred only clothing, and a prompt that described only the target re-dressed both people (SCAIL-2 re-renders the full frame from the prompt). Guidance: use a clear front-facing reference and describe every person as they should look. The run needs roughly 30 GB of system RAM while loading; under memory pressure it swaps (up to ~230 s/step) and a supervised ComfyUI was restarted mid-run three times.",
+        "2026-10-25 (0.2.0): the 81-frame cap moved off the pose stream. WanSCAILToVideo.length is still the size of the first 81 resized frames, while the pose video and the SAM 3 mask now keep the whole clip so a later chunk can be sliced with video_frame_offset and previous_frames. Output is still the first 81 frames and clips of 81 frames or fewer keep their old frame count. Not yet run after this change.",
+        "2026-10-26 (0.3.0, identity): WanSCAILToVideo upscales reference_image to (width,height) with a centre crop, so the raw picture used to arrive as one middle slice. The user's 2000x1122 two-view sheet arrived at 448x1024 as a blank white panel with a sliver of hair (no character at all, generic result), and an 800x800 portrait arrived as its own frame-filling close-up, which the model copied: the bearded man filled the whole frame. The pack now cuts the character out with its own SAM 3 mask (SAM3_TrackToMask, object 0) at the frame's shape on black (ImageCropToMask, pad_factor 1.1), and feeds that same crop to reference_image, to CLIP vision and, through MaskToImage, to the reference mask, so the mask and the picture cannot drift apart. Real runs on the user's clip (4f21de9b, 41 frames, 448x1024): prompt 0ea4643c-fbc8-421f-a93b-e4f3b3d925ae replaced the left person with the moustache sheet (moustache, long hair, white tee) and kept the frame; prompt 05463660-07fa-4c88-a5cd-8b12f2a6fb69 put the bearded man's beard, grey shirt and strap on the left person. The old raw link with the same clean prompt (prompt a99a94a8-0319-4d6e-8a2b-978622fffbfe) still fills the frame and loses the scene, so the crop is what changed. Limits: the model may put the reference on the neighbouring person (the user accepts a left/right swap), and a second pass chained on the pack's own output changed nothing visible (prompts 956db03a-b742-444c-b52a-1069bf24f9ea and 4fe6180e-9cd8-438e-b1e4-345b8fc79fae). A head-only reference (prompt 55e014ba-b1b2-4296-ab92-b64196b67b58) was measured and dropped: no identity, no gain. Evidence table in docs/TRANSFORM-EVIDENCE.md.",
+        "2026-10-26 (0.4.0, two people in one pass): a second character input sits behind one lazy ComfySwitchNode. Off, the model gets exactly the reviewed single view, so one person is unchanged and the same picture is never batched twice. On, the second picture is cut out with its own SAM 3 mask, its mask is painted in the second palette colour (red) with two core EmptyImage nodes, and both views and both masks are batched in person order (the leftmost person keeps blue). One run through the app's own step builder and compiler on the user's clip (1206x904, 24 fps, first 81 frames, 800x576 output, seed 1, turbo): prompt cac8c1f5-e668-4733-b598-7bb6f6ed7ece replaced both people with their own picture in 224 s at 21.6 GB peak GPU. A 157-frame two-window run (ea0dbef6-a60c-4451-8a55-549ee93f6d84, 352 s, 22.0 GB) kept both, and its seam at frame 81 measured 1.34 (not suspicious). The words decide: the same one-pass run with the instruction sentence (04d5fdcc-3e46-4730-9bf7-b32398916551, 219 s) put the second picture on the FIRST person and left the first picture without an effect, while one picture with describing words (7261b550-cf70-4192-93b2-5b161f1ce375, 207 s) landed the picture on the left man and the right man kept his own look. Two faces therefore take the one-pass route only when both pictures have been described by the local vision model; until then the chained passes stay. Evidence in docs/TRANSFORM-EVIDENCE.md.",
+        "2026-10-27 (identity check on 0.4.0, no graph change): two separate reference frames do not give two identities. Through the app's own calls (reference-plan, reference-describe, POST runs) on the user's 263-frame clip and the two pictures, prompt c4f95051 and run 6ede1bb6 land the clothes on the right people but mix both faces onto both, and 40 steps at cfg 5 with the DPO LoRA (prompt ff9ed38f, 1673 s against 212 s for the same 81 frames) changes the faces not at all. WanSCAILToVideo's own contract says the first image is the primary reference and extra batch images are further views of that identity, which is what the frames show. Probe prompt 9313c646 puts both characters side by side in ONE 800x576 reference frame, tracks both with SAM 3 and paints both colours with SCAIL2ColoredMask: both faces land on their own people and hold, at 209 s, turbo, seed 1. Wiring that needs src/capabilities/replace.ts, which pins the reference links to the two-crop batch. Evidence in docs/TRANSFORM-EVIDENCE.md.",
+        "2026-10-27 (0.5.0, one reference frame holding both people): the two-crop batch is gone. Each picture is cut out at half the frame's width with its own SAM 3 mask (ImageCropToMask 346, 347), the first pasted at the left edge of a black frame at the video's shape (EmptyImage 337 into 340) and the second at x = width / 2 (ComfyMathExpression 348 into 341), so one reference frame holds both people; that frame is tracked (345), cropped at the frame's shape (349, 350) for reference_image, and its two people are painted blue and red by SCAIL2ColoredMask 352 for reference_image_mask. CLIPVisionEncode reads the same picture through the switch. The single view is unchanged: switch 344 off hands the model exactly 213:225 / 213:199. One real run through the app's step builder and the pack's compiler on the user's full clean clip (263 frames, 4 windows, 800x576): prompt bdfa85be-f138-465c-8869-d464d73297a5 replaced both people with their own picture in 597 s at 22.4 GB, and both faces held from frame 0 to frame 260 across every window seam, where the two-crop batch mixed both faces onto both (6ede1bb6, 654 s). One person still runs the reviewed crops: prompt 93270aa1 with the picture described put the sheet's moustache and jacket on the left man and left the right man alone, and the same graph with the bare instruction sentence (3f363d84) landed no identity, the wording weakness measured before. The run's graph carried node 333 unreferenced; ComfyUI pruned it and the committed template drops it. Evidence in docs/TRANSFORM-EVIDENCE.md.",
+        "2026-10-27 (0.5.1): two-person reference colours pass through ImageCropToMask353 with the same union mask and geometry as reference image350. Previously the image was cropped while colours remained in the pre-crop frame. Contract tests pin identical spatial transforms. No new GPU/video result is claimed; reference fidelity remains unqualified."
+      ]
+    },
+    {
+      "id": "cloud",
+      "execution": "comfy_cloud",
+      "provider": "comfy-cloud",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "scail2-character-replace",
+      "endpointOrigin": "https://cloud.comfy.org",
+      "requirements": [
+        { "id": "node:WanSCAILToVideo", "kind": "node", "name": "WanSCAILToVideo", "instructions": "Comfy Cloud needs the native SCAIL-2 node WanSCAILToVideo." },
+        { "id": "node:SCAIL2ColoredMask", "kind": "node", "name": "SCAIL2ColoredMask", "instructions": "Comfy Cloud needs the native SCAIL-2 node SCAIL2ColoredMask." },
+        { "id": "node:SAM3_VideoTrack", "kind": "node", "name": "SAM3_VideoTrack", "instructions": "Comfy Cloud needs the SAM 3 node SAM3_VideoTrack." },
+        { "id": "node:SAM3_TrackToMask", "kind": "node", "name": "SAM3_TrackToMask", "instructions": "Comfy Cloud needs the SAM 3 node SAM3_TrackToMask." },
+        { "id": "node:ImageCropToMask", "kind": "node", "name": "ImageCropToMask", "instructions": "Comfy Cloud needs the core node ImageCropToMask." },
+        { "id": "node:MaskToImage", "kind": "node", "name": "MaskToImage", "instructions": "Comfy Cloud needs the core node MaskToImage." },
+        { "id": "node:ImageToMask", "kind": "node", "name": "ImageToMask", "instructions": "Comfy Cloud needs the core node ImageToMask." }
+      ],
+      "evidence": [
+        "2026-10-27 (cloud route): the same reviewed graph addressed to Comfy Cloud. Comfy Cloud keeps its own model files, so this route asks for nodes only: a missing SCAIL-2 or SAM 3 node reads as a plain sentence naming it instead of an installation step. The same 81-frame window and chunk compile apply, and the run is posted to the cloud worker with the Comfy Cloud key. Not yet run on Comfy Cloud: this task spent no credits."
+      ]
+    }
+  ],
+  "coverage": { "local": "implemented", "hosted": "implemented" },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Workflow template: MIT (Comfy-Org/workflow_templates). Integration license follows this repository.",
+    "weights": [
+      { "name": "SCAIL-2 (zai-org) and its DPO LoRA", "license": "MIT", "source": "https://huggingface.co/zai-org/SCAIL-2" },
+      { "name": "Lightx2v I2V 480p step-distill LoRA", "license": "Apache-2.0", "source": "https://huggingface.co/lightx2v" },
+      { "name": "SAM 3.1", "license": "SAM License (Meta)", "source": "https://huggingface.co/facebook/sam3" }
+    ]
+  },
+  "sources": [
+    { "url": "https://comfy.org/workflows/", "observedAt": "2026-10-24", "kind": "discovery" },
+    { "url": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/video_wan21_scail2_character_replacement_int8.json", "observedAt": "2026-10-24", "kind": "implementation" }
+  ],
+  "tickets": ["F04"],
+  "audioPolicies": ["mute"],
+  "replaceContract": {
+    "kind": "scail_replace_chunks_v1",
+    "sourceInput": "source_video",
+    "artifactNode": "202"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "vace-reference-restyle",
+  "version": "0.3.0",
+  "title": "Wan 2.1 VACE reference restyle (graph-execution MVP)",
+  "capability": {
+    "id": "vace-reference-restyle",
+    "version": "0.3.0",
+    "routeId": "local"
+  },
+  "qualification": "graph-execution",
+  "inputs": [
+    { "id": "source_video", "role": "source", "type": "video", "required": true },
+    { "id": "style_reference", "role": "style_reference", "type": "image", "required": true }
+  ],
+  "outputs": [
+    { "id": "video", "role": "result", "type": "video", "required": true }
+  ],
+  "controls": [
+    { "id": "prompt", "role": "prompt", "enabled": true },
+    { "id": "negative", "role": "negative_prompt", "enabled": true },
+    { "id": "seed", "role": "seed", "enabled": true },
+    { "id": "strength", "role": "conditioning_strength", "enabled": true },
+    { "id": "canny_low_threshold", "role": "edge_low_threshold", "enabled": true },
+    { "id": "canny_high_threshold", "role": "edge_high_threshold", "enabled": true }
+  ],
+  "sources": [
+    {
+      "url": "https://docs.comfy.org/tutorials/video/wan/vace",
+      "observedAt": "2026-10-24",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://huggingface.co/Wan-AI/Wan2.1-VACE-1.3B",
+      "observedAt": "2026-10-24",
+      "kind": "research"
+    }
+  ],
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0; see upstream LICENSE. Workflow template files: MIT (Comfy-Org/workflow_templates). Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "Wan2.1-VACE-1.3B",
+        "license": "Apache-2.0 (upstream LICENSE.txt); full dependency license audit pending",
+        "source": "https://huggingface.co/Wan-AI/Wan2.1-VACE-1.3B/blob/main/LICENSE.txt"
+      }
+    ]
+  },
+  "limitations": [
+    "One recorded run proves graph execution and output structure only; effect quality, reference fidelity and temporal consistency remain unqualified.",
+    "Only the first 81 frames are restyled at about 0.4 megapixels with sides divisible by 16, at the source frame rate; the two generated reference frames are trimmed. No FPS, duration, timeline or segment control exists in this recipe.",
+    "Edge conditioning follows visible contours and can prevent intended clothing or geometry changes.",
+    "Mute only: source audio is not carried into the output.",
+    "VACE dependency and weight license audit is incomplete; see docs/EFFECTS-FINISHING.md."
+  ]
+}

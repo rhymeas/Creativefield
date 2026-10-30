@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 2,
+  "id": "cloud-seedance2-reference",
+  "version": "0.1.0",
+  "title": "Seedance 2 character reference",
+  "category": "motion",
+  "description": "Changes the person in your clip into the character in your picture, with Seedance 2 on Comfy Cloud. Give a clip, a character picture and what to change. Seedance bills by size and length; Comfy's node shows the price before a run.",
+  "inputs": [
+    { "id": "source_video", "label": "Your video", "type": "video", "required": true, "binding": { "node": "1", "field": "file" } },
+    { "id": "character_image", "label": "Character", "type": "image", "required": true, "binding": { "node": "2", "field": "image" } }
+  ],
+  "outputs": [
+    { "id": "video", "label": "Video", "type": "video", "required": true }
+  ],
+  "controls": [
+    { "id": "prompt", "label": "What should change", "type": "string", "default": "", "binding": { "node": "3", "field": "model.prompt" } },
+    { "id": "resolution", "label": "Size", "type": "select", "default": "720p", "options": ["480p", "720p", "1080p", "4k"], "binding": { "node": "3", "field": "model.resolution" } },
+    { "id": "duration", "label": "Seconds", "type": "integer", "min": 4, "max": 15, "default": 7, "binding": { "node": "3", "field": "model.duration" } },
+    { "id": "seed", "label": "Seed", "type": "integer", "min": 0, "max": 2147483647, "default": 1, "binding": { "node": "3", "field": "seed" } }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "cloud",
+      "execution": "comfy_cloud",
+      "provider": "comfy-cloud",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "cloud-seedance2-reference",
+      "endpointOrigin": "https://cloud.comfy.org",
+      "requirements": [
+        { "id": "node:LoadVideo", "kind": "node", "name": "LoadVideo", "instructions": "Comfy Cloud needs the core node LoadVideo." },
+        { "id": "node:LoadImage", "kind": "node", "name": "LoadImage", "instructions": "Comfy Cloud needs the core node LoadImage." },
+        { "id": "node:ByteDance2ReferenceNodeV2", "kind": "node", "name": "ByteDance2ReferenceNodeV2", "instructions": "Comfy Cloud needs the Seedance 2 reference node." },
+        { "id": "node:SaveVideo", "kind": "node", "name": "SaveVideo", "instructions": "Comfy Cloud needs the core node SaveVideo." }
+      ],
+      "evidence": [
+        "2026-10-27: graph from Comfy's own api_seedance2_0_r2v template, cut to one clip and one character picture. The node takes the clip as a reference video (2 to 15 s, 15 s in total with the picture) and the character as a reference picture, and is asked to change the person rather than to make a new clip. Comfy's price badge for this node is priced by size and length; it counts the price before a run.",
+        "Not yet run on Comfy Cloud: this task spent no credits. The graph and the node input names come from Comfy's template and the Seedance 2 reference node docs of 2026-10-27."
+      ]
+    }
+  ],
+  "coverage": { "local": "planned", "hosted": "implemented" },
+  "licenses": {
+    "software": "ComfyUI core (GPL-3.0) runs this graph on Comfy Cloud; the Seedance model itself is a paid service of ByteDance.",
+    "weights": [{ "name": "Seedance 2.0", "license": "ByteDance Seedance API terms", "source": "https://www.byteplus.com/en/product/modelark" }]
+  },
+  "sources": [
+    { "url": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/api_seedance2_0_r2v.json", "observedAt": "2026-10-27", "kind": "implementation" },
+    { "url": "https://raw.githubusercontent.com/Comfy-Org/embedded-docs/main/comfyui_embedded_docs/docs/ByteDance2ReferenceNode/en.md", "observedAt": "2026-10-27", "kind": "implementation" }
+  ],
+  "tickets": ["J4"],
+  "audioPolicies": ["mute"]
+}

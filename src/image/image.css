@@ -1,0 +1,30 @@
+/* Image workspace layout only. Visual styling stays in src/ds. */
+.cf-image-studio {
+  height: 100%;
+  min-height: 0;
+}
+
+.cf-image-studio > .ds-page,
+.cf-image-studio .ds-split {
+  height: 100%;
+  min-height: 0;
+}
+.cf-image-studio > .ds-page { padding:0; }
+
+.cf-image-studio .ds-panel {
+  max-height: 100%;
+}
+
+.cf-image-studio .ds-canvas {
+  height: 100%;
+  min-height: 0;
+}
+
+.cf-image-studio .ds-result__media img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 60dvh;
+  object-fit: contain;
+  margin-inline: auto;
+}

@@ -1,0 +1,186 @@
+/*
+ * Design tokens. Surfaces, type, and sizes were measured from the reference
+ * video generator (computed styles, 2026-10-16); accent, radii, and padding
+ * are our own. Components read only these variables — never hard-code a
+ * color, radius, or size in a component.
+ *
+ * Size, type and spacing base values are authored at 100%. --ui-scale is the
+ * single density knob: the studio defaults to .9 across supported desktop widths.
+ */
+
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/space-grotesk/700.css";
+
+:root {
+  color-scheme: dark;
+  --ui-scale: 0.9;
+  --job-menu-w: 380px;
+  --panel-pull: var(--pad-page-x);                                          /* how far every left side panel hangs out to the left of the content frame; capped by the page gutter so the shell never clips it, the content itself does not move */
+  --frame-w: calc(1500px * var(--ui-scale)); /* the widest a screen's content gets; wider windows add margin, not stretch */
+  --bar-inset: max(var(--pad-page-x), calc((100% - var(--frame-w)) / 2)); /* the bar's own content takes the page frame's inset, so the bar's end group and a page Toolbar's end control share one right edge at every width (rule 35); a page that fills the work area keeps --pad-page-x */
+
+  /* ── Surfaces (darkest → lightest) ─────────────────────────── */
+  --surface-page: #0f1113;      /* app background */
+  --surface-panel: #131517;     /* left control panel, side columns */
+  --surface-control: #1c1e20;   /* param buttons, rows, upload slot, media cards */
+  --surface-control-hover: #232528;
+  --surface-input: #0b0c0d;     /* where you type: darker than the panel it sits in, with a hairline, so a field reads as a hole to fill */
+  --line-input: rgba(255, 255, 255, 0.10);
+  --surface-subtle: rgba(255, 255, 255, 0.05);  /* secondary rows, pills */
+  --surface-hover: rgba(255, 255, 255, 0.08);
+  --surface-glass: rgba(27, 27, 27, 0.35);       /* buttons on top of media */
+  --surface-overlay: rgba(10, 11, 12, 0.72);
+
+  /* ── Text ──────────────────────────────────────────────────── */
+  --text-primary: #f7f7f8;
+  --text-secondary: #898a8b;
+  --text-tertiary: rgba(255, 255, 255, 0.5);
+  --text-muted: rgba(255, 255, 255, 0.3);       /* inactive top-nav items */
+  --text-placeholder: rgba(255, 255, 255, 0.3);
+  --text-meta: rgba(255, 255, 255, 0.42);        /* level 3: quiet but readable facts */
+  --text-tab-inactive: rgba(255, 255, 255, 0.6);
+  --text-on-accent: #0b1520;
+
+  /* ── Accent: neon blue ─────────────────────────────────────── */
+  /* Used as light, not paint: text, rings, and glows on dark surfaces.
+     No gradients anywhere. */
+  --accent: #2fa8ff;
+  --brand-soft: rgba(253, 209, 0, 0.14);
+  --brand: #fdd100; /* the CreativeField logo yellow; used for the app name only */
+  --accent-soft: rgba(47, 168, 255, 0.12);
+  --accent-ring: rgba(47, 168, 255, 0.55);
+  --accent-glow: 0 0 0 1px rgba(47, 168, 255, 0.45), 0 0 14px rgba(47, 168, 255, 0.35), 0 0 32px rgba(47, 168, 255, 0.18);
+  --accent-glow-strong: 0 0 0 1px rgba(47, 168, 255, 0.8), 0 0 18px rgba(47, 168, 255, 0.55), 0 0 44px rgba(47, 168, 255, 0.3);
+
+  /* Primary button: dark fill that glows, instead of a bright fill. */
+  --button-primary-bg: #171b21;
+  --button-primary-bg-hover: #1b2028;
+  --button-primary-text: #f7f7f8;
+
+  --badge-hot: #e8b46a;   /* discount / promo badge */
+
+  /* ── Lines ─────────────────────────────────────────────────── */
+  --line-hairline: rgba(255, 255, 255, 0.06);
+  --line-dashed: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.12);
+  --line-soft: rgba(255, 255, 255, 0.072);
+  --line-faint: rgba(255, 255, 255, 0.036);
+  --line-hover: rgba(255, 255, 255, 0.18);
+  --line-tab-active: #ffffff;
+
+  /* ── Status (no red, no neon green) ────────────────────────── */
+  --status-danger: #e8b46a;                       /* warm amber */
+  --status-danger-soft: rgba(232, 180, 106, 0.07);
+  --status-danger-line: rgba(232, 180, 106, 0.22);
+  --status-ok: #a9c7b5;                           /* muted sage */
+  --status-ok-soft: rgba(169, 199, 181, 0.16);
+
+  /* ── Type ──────────────────────────────────────────────────── */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", monospace;
+
+  --text-3xs: calc(10px * var(--ui-scale));  --lh-3xs: calc(13px * var(--ui-scale));
+  --text-2xs: calc(11px * var(--ui-scale));  --lh-2xs: calc(14px * var(--ui-scale));
+  --text-2xs: calc(11px * var(--ui-scale));  --lh-2xs: calc(14px * var(--ui-scale));
+  --text-xs: calc(12px * var(--ui-scale));   --lh-xs: calc(16px * var(--ui-scale));
+  --text-caption: calc(13px * var(--ui-scale)); --lh-caption: calc(18px * var(--ui-scale)); /* tab and mode-switch captions */
+  --text-sm: calc(14px * var(--ui-scale));   --lh-sm: calc(20px * var(--ui-scale));
+  --text-md: calc(16px * var(--ui-scale));   --lh-md: calc(24px * var(--ui-scale));
+  --display-xs: calc(20px * var(--ui-scale)); --lh-display-xs: calc(28px * var(--ui-scale));   /* model card title */
+  --display-md: calc(32px * var(--ui-scale)); --lh-display-md: calc(36px * var(--ui-scale));   /* hero title over a results pane */
+  --display-lg: calc(40px * var(--ui-scale)); --lh-display-lg: calc(44px * var(--ui-scale));   /* empty-state headline */
+
+  --weight-regular: 400;   /* inputs, body, error text */
+  --weight-medium: 500;    /* labels, values, tabs */
+  --weight-semibold: 600;  /* primary button only */
+  --weight-bold: 700;      /* display font only */
+
+  --tracking-nav: 0.1px;
+  --tracking-display: -0.01em;
+
+  /* ── Radius (rounder, "bubbly") ────────────────────────────── */
+  --radius-xs: calc(8px * var(--ui-scale));     /* tags, tool chips, badges */
+  --radius-sm: calc(12px * var(--ui-scale));    /* param buttons and rows */
+  --radius-md: calc(12px * var(--ui-scale));    /* small buttons, tabs, nav items */
+  --radius-lg: calc(14px * var(--ui-scale));    /* menus */
+  --radius-xl: calc(18px * var(--ui-scale));    /* primary generate button, nodes */
+  --radius-2xl: calc(22px * var(--ui-scale));   /* upload slot, prompt, media cards, canvas */
+  --radius-full: 999px; /* pills, avatar, sliders — intentionally unscaled */
+
+  /* ── Spacing (4 px grid) ───────────────────────────────────── */
+  --space-1: calc(4px * var(--ui-scale));
+  --space-2: calc(8px * var(--ui-scale));
+  --space-3: calc(12px * var(--ui-scale));
+  --space-4: calc(16px * var(--ui-scale));
+  --space-5: calc(20px * var(--ui-scale));
+  --space-6: calc(24px * var(--ui-scale));
+  --space-8: calc(32px * var(--ui-scale));
+
+  /* ── Padding roles: use these, not raw spacing, in components ─ */
+  --pad-chip: calc(4px * var(--ui-scale)) calc(10px * var(--ui-scale));      /* tags, tool chips, badges */
+  --pad-control: 0 calc(14px * var(--ui-scale));                             /* param buttons, small buttons */
+  --pad-row: calc(8px * var(--ui-scale)) calc(14px * var(--ui-scale));        /* full-width rows */
+  --pad-field: calc(14px * var(--ui-scale));                                 /* text fields (top padding adds the label) */
+  --pad-card: calc(14px * var(--ui-scale));                                  /* details card, notice, node body */
+  --pad-panel: calc(10px * var(--ui-scale));                                 /* inside the control panel */
+  --pad-canvas: calc(12px * var(--ui-scale));                                /* inside the canvas */
+  --pad-page: calc(16px * var(--ui-scale));                                  /* small gutter (dialogs, narrow screens) */
+  --pad-page-x: calc(32px * var(--ui-scale));                                /* page side margin: nothing touches the window edge */
+  --pad-page-y: calc(20px * var(--ui-scale));                                /* page top and bottom margin */
+  --gap-stack: calc(10px * var(--ui-scale));                                 /* vertical gap between panel parts */
+  --gap-inline: calc(6px * var(--ui-scale));                                 /* icon + label */
+  --gap-block: calc(16px * var(--ui-scale));                                 /* between blocks inside a column or toolbar */
+  --gap-section: calc(28px * var(--ui-scale));                               /* between page sections and columns */
+
+  /* ── Sizes ─────────────────────────────────────────────────── */
+  --topbar-h: calc(36px * var(--ui-scale));
+  --panel-w: calc(318px * var(--ui-scale));
+  --menu-max-w: calc(240px * var(--ui-scale)); /* dropdowns hug their options up to this width */
+  --prompt-max-lines: 8; /* text fields grow to this many lines, then scroll and offer a larger editor */
+  --page-content-w: calc(1120px * var(--ui-scale)); /* list pages (catalogue, library, projects) form a centered column */
+  --canvas-content-w: calc(1560px * var(--ui-scale)); /* the work area never stretches wider than this */
+  --button-max-w: calc(298px * var(--ui-scale)); /* buttons hug their text and never grow past this */
+  --catalogue-content-w: calc(1000px * var(--ui-scale));
+  --control-h: calc(40px * var(--ui-scale));      /* param buttons */
+  --row-h: calc(48px * var(--ui-scale));          /* model row, generate button */
+  --tab-h: calc(36px * var(--ui-scale));
+  --nav-item-h: calc(28px * var(--ui-scale));
+  --pill-h: calc(24px * var(--ui-scale));
+  --pill-h-lg: calc(32px * var(--ui-scale));      /* tall pill: one full action label */
+
+  /* ── Node graph ────────────────────────────────────────────── */
+  --node-bg: #17191c;
+  --node-header: #1f2124;
+  --node-border: rgba(255, 255, 255, 0.08);
+  --node-selected: var(--accent);
+  --node-w: calc(240px * var(--ui-scale));
+  --port-size: calc(10px * var(--ui-scale));
+  --wire-width: 2.5px; /* wire stroke stays crisp, like a hairline */
+  /* Data-type colors, one per ComfyUI socket type. Muted, distinct hues;
+     no red, purple, or neon green. */
+  --type-image: #8ec5ff;
+  --type-latent: #e3b4c8;
+  --type-model: #d9c38b;
+  --type-clip: #f0d9a0;
+  --type-vae: #e8a878;
+  --type-conditioning: #9fd0cf;
+  --type-video: #b9d4f0;
+  --type-int: #b9c49a;
+  --type-string: #cfd3d8;
+
+  /* ── Effects ───────────────────────────────────────────────── */
+  --inset-glint: inset 0 1.5px 3px rgba(255, 255, 255, 0.05);
+  --shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--line-hairline);
+  --shadow-lift: 0 6px 20px rgba(0, 0, 0, 0.35);
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 140ms;
+  --dur-med: 220ms;
+  --dur-slow: 1600ms;
+}
+
+/* One scale across desktop sizes; the content frame adds breathing room on wider screens. */
+/* Default studio scale stays at 90% on every desktop width. Browser zoom remains user controlled. */

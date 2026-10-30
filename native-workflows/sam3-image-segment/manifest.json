@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 2,
+  "id": "sam3-image-segment",
+  "version": "0.2.0",
+  "title": "SAM 3.1 image segment",
+  "category": "canvas",
+  "description": "Local text-prompted segmentation with Meta SAM 3.1 in ComfyUI. Name what to select (face, hair, jacket); the output is a white-on-black mask of the source image's size, used by the image editor as a selection.",
+  "inputs": [
+    { "id": "source_image", "label": "Image", "type": "image", "required": true, "binding": { "node": "1", "field": "image" } }
+  ],
+  "outputs": [
+    { "id": "mask", "label": "Selection mask", "type": "image", "required": true }
+  ],
+  "controls": [
+    { "id": "prompt", "label": "What to select", "type": "string", "default": "face", "binding": { "node": "3", "field": "text" } },
+    { "id": "threshold", "label": "Detection threshold", "type": "number", "min": 0.05, "max": 0.95, "step": 0.05, "default": 0.35, "binding": { "node": "4", "field": "threshold" } },
+    { "id": "individual_masks", "label": "Separate object masks", "type": "boolean", "default": false, "binding": { "node": "4", "field": "individual_masks" } }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "sam3-image-segment",
+      "requirements": [
+        { "id": "node:LoadImage", "kind": "node", "name": "LoadImage", "instructions": "Install a ComfyUI version providing LoadImage." },
+        { "id": "node:CheckpointLoaderSimple", "kind": "node", "name": "CheckpointLoaderSimple", "instructions": "Install a ComfyUI version providing CheckpointLoaderSimple." },
+        { "id": "node:CLIPTextEncode", "kind": "node", "name": "CLIPTextEncode", "instructions": "Install a ComfyUI version providing CLIPTextEncode." },
+        { "id": "node:SAM3_Detect", "kind": "node", "name": "SAM3_Detect", "instructions": "Install ComfyUI 0.37.0 or another version providing the native SAM3_Detect node." },
+        { "id": "node:MaskToImage", "kind": "node", "name": "MaskToImage", "instructions": "Install a ComfyUI version providing MaskToImage." },
+        { "id": "node:SaveImage", "kind": "node", "name": "SaveImage", "instructions": "Install a ComfyUI version providing SaveImage." },
+        {
+          "id": "model:sam3.1-multiplex-fp16",
+          "kind": "model",
+          "name": "sam3.1_multiplex_fp16.safetensors",
+          "location": "checkpoints",
+          "version": "sha256:9ba99c92703c2e8b4f47de2d34a539bb8e18923049e238b780d70dbe6368eb03",
+          "source": "https://huggingface.co/Comfy-Org/sam3.1/blob/main/checkpoints/sam3.1_multiplex_fp16.safetensors",
+          "instructions": "Install the SAM 3.1 multiplex FP16 checkpoint into models/checkpoints and verify its SHA-256; review the Meta SAM license before use."
+        }
+      ],
+      "evidence": [
+        "Graph follows the installed ComfyUI template utility_image_segment_sam3.json (comfyui-workflow-templates-json 0.1.92): CheckpointLoaderSimple feeds MODEL and CLIP, CLIPTextEncode carries the text prompt, SAM3_Detect returns the union mask, MaskToImage and SaveImage export it as PNG.",
+        "Direct ComfyUI 0.37.0 / RTX 4090 probe on 2026-10-19 with a 1920x1072 photo of people on a giant chessboard: prompts 'hair', 'face' and 'jacket' each returned a 1920x1072 mask in 7.4 s (cold), 2.0 s and 1.0 s. 'hair' isolated the visible woman's hair and 'jacket' one man's jacket at threshold 0.5; the packaged default is lowered to 0.35 so more matching objects pass. Segmentation accuracy on other images and edge quality are not proven."
+      ]
+    },
+    {
+      "id": "cloud",
+      "execution": "comfy_cloud",
+      "provider": "comfy-cloud",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "sam3-image-segment",
+      "endpointOrigin": "https://cloud.comfy.org",
+      "requirements": [
+        { "id": "node:LoadImage", "kind": "node", "name": "LoadImage", "instructions": "Comfy Cloud needs the ComfyUI node LoadImage." },
+        { "id": "node:CheckpointLoaderSimple", "kind": "node", "name": "CheckpointLoaderSimple", "instructions": "Comfy Cloud needs the ComfyUI node CheckpointLoaderSimple." },
+        { "id": "node:CLIPTextEncode", "kind": "node", "name": "CLIPTextEncode", "instructions": "Comfy Cloud needs the ComfyUI node CLIPTextEncode." },
+        { "id": "node:SAM3_Detect", "kind": "node", "name": "SAM3_Detect", "instructions": "Comfy Cloud needs the ComfyUI node SAM3_Detect." },
+        { "id": "node:MaskToImage", "kind": "node", "name": "MaskToImage", "instructions": "Comfy Cloud needs the ComfyUI node MaskToImage." },
+        { "id": "node:SaveImage", "kind": "node", "name": "SaveImage", "instructions": "Comfy Cloud needs the ComfyUI node SaveImage." },
+        { "id": "model:sam3.1-multiplex-fp16", "kind": "model", "name": "sam3.1_multiplex_fp16.safetensors", "location": "checkpoints", "source": "https://huggingface.co/Comfy-Org/sam3.1/blob/main/checkpoints/sam3.1_multiplex_fp16.safetensors", "instructions": "Comfy Cloud carries sam3.1_multiplex_fp16.safetensors." }
+      ],
+      "evidence": [
+        "2026-10-27: every node and model file this graph names is in Comfy Cloud's own node list (GET /api/object_info: 3835 nodes, about 1500 model files). Nothing was run on Comfy Cloud here: that spends credits."
+      ]
+    }
+  ],
+  "coverage": { "local": "implemented", "hosted": "implemented" },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Comfy-Org workflow_templates: MIT. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "SAM 3.1 multiplex FP16 checkpoint",
+        "license": "Meta SAM License for SAM 3 / 3.1 weights (custom license). Review the license file in the source repository before any distribution or commercial use.",
+        "source": "https://huggingface.co/Comfy-Org/sam3.1"
+      }
+    ]
+  },
+  "sources": [
+    { "url": "https://huggingface.co/Comfy-Org/sam3.1", "observedAt": "2026-10-19", "kind": "implementation" }
+  ],
+  "tickets": [],
+  "audioPolicies": ["mute"]
+}

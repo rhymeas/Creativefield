@@ -1,0 +1,48 @@
+/* Image editor layout only. Visual styling stays in src/ds. */
+.cf-editor { height: 100%; min-height: 0; }
+.cf-editor > .ds-page { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: var(--gap-block); }
+.cf-editor .ds-split { flex: 1; min-height: 0; }
+.cf-editor .ds-canvas { height: 100%; min-height: 0; }
+.cf-editor-fields { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-block); }
+.cf-editor .ds-panel { max-height: 100%; }
+.cf-editor .ds-canvas__body { display: flex; min-height: 0; }
+.cf-editor-canvas { cursor: crosshair; }
+.cf-editor-canvas[data-tool="move"] { cursor: grab; }
+.cf-editor-canvas[data-tool="eyedropper"] {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='4' stroke-linecap='round' stroke-linejoin='round' opacity='.7'%3E%3Cpath d='m2 22 1-1h3l9-9'/%3E%3Cpath d='M3 21v-3l9-9'/%3E%3Cpath d='m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z'/%3E%3C/g%3E%3Cg fill='none' stroke='%23fff' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2 22 1-1h3l9-9'/%3E%3Cpath d='M3 21v-3l9-9'/%3E%3Cpath d='m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z'/%3E%3C/g%3E%3C/svg%3E") 2 22, crosshair;
+}
+.cf-editor-start { display: flex; flex-direction: column; gap: var(--gap-block); width: 100%; max-width: calc(var(--panel-w) * 1); }
+.cf-editor-rail { display: flex; flex-direction: column; gap: var(--gap-section); align-self: center; align-items: center; }
+.cf-editor-side { flex: none; display: flex; flex-direction: column; gap: var(--gap-block); min-height: 0; max-height: 100%; overflow-y: auto; overflow-x: hidden; }
+.cf-editor-side .ds-panel { align-self: stretch; max-height: none; }
+.cf-layer-head { display: flex; align-items: center; gap: var(--gap-block); }
+.cf-editor-canvas[data-tool="brush"], .cf-editor-canvas[data-tool="eraser"] { cursor: none; }
+.cf-editor-selectionmodes {
+  position: absolute;
+  top: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+}
+.cf-editor-subject {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-4);
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--gap-block);
+  width: min(calc(100% - var(--space-8)), calc(var(--panel-w) * 1.6));
+}
+.cf-editor-subject > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.cf-editor-cropbar {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-4);
+  z-index: 5;
+  transform: translateX(-50%);
+}

@@ -1,0 +1,396 @@
+{
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "484",
+        0
+      ],
+      "filename_prefix": "ComfyField/precision-final"
+    },
+    "_meta": {
+      "title": "SaveImage"
+    }
+  },
+  "76": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "handbag_white.png"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  },
+  "75:61": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "75:70": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux-2-klein-4b-fp8.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "UNETLoader"
+    }
+  },
+  "75:71": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "CLIPLoader"
+    }
+  },
+  "75:72": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "_meta": {
+      "title": "VAELoader"
+    }
+  },
+  "75:66": {
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": {
+      "width": [
+        "75:99",
+        0
+      ],
+      "height": [
+        "75:99",
+        1
+      ],
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "EmptyFlux2LatentImage"
+    }
+  },
+  "75:62": {
+    "class_type": "Flux2Scheduler",
+    "inputs": {
+      "steps": 4,
+      "width": [
+        "75:99",
+        0
+      ],
+      "height": [
+        "75:99",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Flux2Scheduler"
+    }
+  },
+  "75:74": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "Change only the selected object to blue.",
+      "clip": [
+        "75:71",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "75:82": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": [
+        "75:74",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ConditioningZeroOut"
+    }
+  },
+  "75:121": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "75:82",
+        0
+      ],
+      "latent": [
+        "75:122",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "75:99": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "482",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "GetImageSize"
+    }
+  },
+  "75:123": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "75:74",
+        0
+      ],
+      "latent": [
+        "75:122",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "75:122": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "482",
+        1
+      ],
+      "vae": [
+        "75:72",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAEEncode"
+    }
+  },
+  "75:64": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "75:73",
+        0
+      ],
+      "guider": [
+        "75:63",
+        0
+      ],
+      "sampler": [
+        "75:61",
+        0
+      ],
+      "sigmas": [
+        "75:62",
+        0
+      ],
+      "latent_image": [
+        "75:66",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "75:65": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "75:64",
+        0
+      ],
+      "vae": [
+        "75:72",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAEDecode"
+    }
+  },
+  "75:73": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 20261019
+    },
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "75:63": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "model": [
+        "75:70",
+        0
+      ],
+      "positive": [
+        "75:123",
+        0
+      ],
+      "negative": [
+        "75:121",
+        0
+      ],
+      "cfg": 1
+    },
+    "_meta": {
+      "title": "CFGGuider"
+    }
+  },
+  "477": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "MASK_REQUIRED.png"
+    }
+  },
+  "481": {
+    "class_type": "ImageToMask",
+    "inputs": {
+      "image": [
+        "477",
+        0
+      ],
+      "channel": "red"
+    }
+  },
+  "482": {
+    "class_type": "InpaintCrop",
+    "inputs": {
+      "context_expand_pixels": 32,
+      "context_expand_factor": 1.1,
+      "fill_mask_holes": false,
+      "blur_mask_pixels": 0,
+      "invert_mask": false,
+      "blend_pixels": 0,
+      "rescale_algorithm": "bicubic",
+      "mode": "forced size",
+      "force_width": 768,
+      "force_height": 768,
+      "rescale_factor": 1.0,
+      "min_width": 512,
+      "min_height": 512,
+      "max_width": 768,
+      "max_height": 768,
+      "padding": 32,
+      "image": [
+        "76",
+        0
+      ],
+      "mask": [
+        "489",
+        0
+      ]
+    }
+  },
+  "483": {
+    "class_type": "InpaintStitch",
+    "inputs": {
+      "stitch": [
+        "482",
+        0
+      ],
+      "inpainted_image": [
+        "75:65",
+        0
+      ],
+      "rescale_algorithm": "bicubic"
+    }
+  },
+  "484": {
+    "class_type": "KleinEditComposite",
+    "inputs": {
+      "delta_e_threshold": -1.0,
+      "flow_quality": "medium",
+      "use_occlusion": false,
+      "occlusion_threshold": -1.0,
+      "noise_removal_pct": 0.0,
+      "close_radius_pct": 0.5,
+      "fill_holes": false,
+      "fill_borders": false,
+      "max_islands": 0,
+      "grow_mask_pct": 0,
+      "feather_pct": 0.5,
+      "color_match_blend": 0,
+      "poisson_blend_edges": false,
+      "generated_image": [
+        "483",
+        0
+      ],
+      "original_image": [
+        "76",
+        0
+      ],
+      "custom_mask": [
+        "489",
+        0
+      ],
+      "custom_mask_mode": "replace",
+      "enable_debug": false
+    }
+  },
+  "485": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "483",
+        0
+      ],
+      "filename_prefix": "ComfyField/precision-candidate"
+    }
+  },
+  "486": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": [
+        "484",
+        1
+      ]
+    }
+  },
+  "487": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "486",
+        0
+      ],
+      "filename_prefix": "ComfyField/precision-effective-mask"
+    }
+  },
+  "488": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "484",
+        2
+      ]
+    }
+  },
+  "489": {
+    "class_type": "GrowMask",
+    "inputs": {
+      "mask": [
+        "481",
+        0
+      ],
+      "expand": 8,
+      "tapered_corners": false
+    }
+  }
+}

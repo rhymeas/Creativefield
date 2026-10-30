@@ -1,0 +1,63 @@
+.cf-library {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: var(--gap-stack);
+}
+
+.cf-library__bar {
+  align-items: center;
+}
+
+.cf-library__end {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-inline);
+  margin-inline-start: auto;
+}
+
+/* The worker choice: one DS card per worker, centred as a row. */
+.cf-library__workers {
+  width: 100%;
+  max-width: calc(1600px + (3 * var(--space-3)));
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  padding-block: var(--space-2) var(--space-3);
+}
+
+.cf-library__workers > * {
+  flex: 1 1 400px;
+  max-width: 400px;
+  min-width: 0;
+}
+
+/* Nothing has loaded yet: the worker choice and the reason sit together in the middle of the
+   space, because with no models they are the whole screen. */
+.cf-library__stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-section);
+}
+
+.cf-library__scroll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-section);
+  max-height: 62vh;
+  overflow-y: auto;
+  padding-inline-end: var(--space-2);
+}
+
+.cf-library__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-block);
+}

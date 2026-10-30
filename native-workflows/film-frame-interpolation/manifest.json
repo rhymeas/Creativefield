@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 2,
+  "id": "film-frame-interpolation",
+  "version": "0.1.0",
+  "title": "FILM frame interpolation",
+  "category": "enhance",
+  "description": "Local FILM frame interpolation for short project clips. The graph reads a project video, interpolates frames with a multiplier, and writes a new muted video at the chosen output frame rate. The output frame rate must be set to source FPS x multiplier to keep the duration unchanged.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Source video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "1",
+        "field": "file"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Interpolated video",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "multiplier",
+      "label": "Frame multiplier",
+      "type": "integer",
+      "min": 2,
+      "max": 4,
+      "default": 2,
+      "binding": {
+        "node": "4",
+        "field": "multiplier"
+      }
+    },
+    {
+      "id": "output_fps",
+      "label": "Output FPS",
+      "type": "integer",
+      "min": 8,
+      "max": 60,
+      "default": 32,
+      "binding": {
+        "node": "5",
+        "field": "fps"
+      }
+    }
+  ],
+  "presets": [
+    {
+      "id": "double-16",
+      "title": "2x from 16 FPS to 32 FPS",
+      "values": { "multiplier": 2, "output_fps": 32 }
+    },
+    {
+      "id": "double-24",
+      "title": "2x from 24 FPS to 48 FPS",
+      "values": { "multiplier": 2, "output_fps": 48 }
+    }
+  ],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "film-frame-interpolation",
+      "requirements": [
+        { "id": "node:LoadVideo", "kind": "node", "name": "LoadVideo", "instructions": "Install a ComfyUI version providing LoadVideo." },
+        { "id": "node:GetVideoComponents", "kind": "node", "name": "GetVideoComponents", "instructions": "Install a ComfyUI version providing GetVideoComponents." },
+        { "id": "node:FrameInterpolationModelLoader", "kind": "node", "name": "FrameInterpolationModelLoader", "instructions": "Install a ComfyUI version providing FrameInterpolationModelLoader." },
+        { "id": "node:FrameInterpolate", "kind": "node", "name": "FrameInterpolate", "instructions": "Install a ComfyUI version providing FrameInterpolate." },
+        { "id": "node:CreateVideo", "kind": "node", "name": "CreateVideo", "instructions": "Install a ComfyUI version providing CreateVideo." },
+        { "id": "node:SaveVideo", "kind": "node", "name": "SaveVideo", "instructions": "Install a ComfyUI version providing SaveVideo." },
+        {
+          "id": "model:film-net-fp16",
+          "kind": "model",
+          "name": "film_net_fp16.safetensors",
+          "location": "frame_interpolation",
+          "version": "sha256:f226e51375dc839d4b40e5c3d63da560dd1ea1c962364ec78f5adf2d05db05c0",
+          "source": "https://huggingface.co/Comfy-Org/frame_interpolation/blob/main/frame_interpolation/film_net_fp16.safetensors",
+          "instructions": "Install the FILM FP16 frame interpolation file and verify its SHA-256; review the model license before use."
+        }
+      ],
+      "evidence": [
+        "GPU-qualified 2026-10-19 on ComfyUI 0.37.0 / RTX 4090: the exact template graph interpolated a 320x180, 16 FPS, 17-frame testsrc2 source (SHA-256 d877c754873751e17596d91e1fa91850ec9f81363459e0e1fa23877b5f4eaa58) with multiplier 2 and output FPS 32 to a 32,211-byte H.264 MP4 (SHA-256 656294eba3d03e30685f383201899956a03105847b83f3112bc4f6f3b1058ce2) with 33 frames, 32 FPS and 1.031 seconds in 4.1 s (prompt e1f7d75b-1ec6-4fe3-adda-7e6bcf5621e8). This proves graph execution, frame multiplication and output structure. Interpolation artifacts, perceptual quality, temporal consistency, longer clips, memory limits and offline behavior are not proven."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Integration license follows this repository; full dependency audit pending.",
+    "weights": [
+      {
+        "name": "FILM frame interpolation FP16",
+        "license": "MIT and Apache-2.0 as declared by the Comfy-Org frame_interpolation repository; verify the exact model card and source terms before redistribution or commercial use.",
+        "source": "https://huggingface.co/Comfy-Org/frame_interpolation"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://huggingface.co/Comfy-Org/frame_interpolation",
+      "observedAt": "2026-10-19",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://github.com/comfyanonymous/ComfyUI/blob/master/comfy_extras/nodes_frame_interpolation.py",
+      "observedAt": "2026-10-19",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": ["FIN-04"],
+  "audioPolicies": ["mute"]
+}

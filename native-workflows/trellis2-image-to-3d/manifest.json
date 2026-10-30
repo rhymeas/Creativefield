@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 2,
+  "id": "trellis2-image-to-3d",
+  "version": "0.1.0",
+  "title": "TRELLIS.2 image to 3D (textured)",
+  "category": "3d",
+  "description": "Local image-to-mesh with PBR textures (base color, metallic, roughness, normal, occlusion), built from the TRELLIS.2 branch of the official Pixal3D & TRELLIS.2 template; the editor-only viewer is replaced by SaveGLB. Used by Camera angles to render true viewpoints with real surface colors.",
+  "inputs": [
+    {
+      "id": "start_image",
+      "label": "Subject image",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "122",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "model",
+      "label": "Textured 3D model (GLB)",
+      "type": "model3d",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 56,
+      "binding": {
+        "node": "3",
+        "field": "seed"
+      }
+    },
+    {
+      "id": "texture_size",
+      "label": "Texture size",
+      "type": "integer",
+      "min": 1024,
+      "max": 4096,
+      "step": 1024,
+      "default": 2048,
+      "binding": {
+        "node": "288",
+        "field": "value"
+      }
+    },
+    {
+      "id": "face_count",
+      "label": "Mesh detail (faces)",
+      "type": "integer",
+      "min": 50000,
+      "max": 1000000,
+      "step": 50000,
+      "default": 300000,
+      "binding": {
+        "node": "186",
+        "field": "target_face_count"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "trellis2-image-to-3d",
+      "requirements": [
+        {
+          "id": "node:Trellis2ShapeStage",
+          "kind": "node",
+          "name": "Trellis2ShapeStage",
+          "instructions": "Install a ComfyUI version with native TRELLIS.2 nodes (comfy_extras.nodes_trellis2)."
+        },
+        {
+          "id": "node:Trellis2TextureStage",
+          "kind": "node",
+          "name": "Trellis2TextureStage",
+          "instructions": "Install a ComfyUI version with native TRELLIS.2 nodes (comfy_extras.nodes_trellis2)."
+        },
+        {
+          "id": "node:RemoveBackground",
+          "kind": "node",
+          "name": "RemoveBackground",
+          "instructions": "Install a ComfyUI version with native background removal (comfy_extras.nodes_bg_removal)."
+        },
+        {
+          "id": "node:BakeTextureFromVoxel",
+          "kind": "node",
+          "name": "BakeTextureFromVoxel",
+          "instructions": "Install a ComfyUI version with native mesh post-processing nodes."
+        },
+        {
+          "id": "node:SaveGLB",
+          "kind": "node",
+          "name": "SaveGLB",
+          "instructions": "Install a ComfyUI version providing SaveGLB."
+        },
+        {
+          "id": "model:trellis2",
+          "kind": "model",
+          "name": "trellis_2_int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "source": "https://huggingface.co/Comfy-Org/TRELLIS.2",
+          "instructions": "Install the 5.25 GB TRELLIS.2 int8 model (MIT)."
+        },
+        {
+          "id": "model:shape-vae",
+          "kind": "model",
+          "name": "trellis_2_shape_vae_bf16.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/Pixal3D",
+          "instructions": "Install the TRELLIS.2 shape VAE (1.10 GB, MIT)."
+        },
+        {
+          "id": "model:texture-vae",
+          "kind": "model",
+          "name": "trellis_2_texture_vae_bf16.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/Pixal3D",
+          "instructions": "Install the TRELLIS.2 texture VAE (0.95 GB, MIT)."
+        },
+        {
+          "id": "model:dinov3",
+          "kind": "model",
+          "name": "dino_v3_L_naf_fp32.safetensors",
+          "location": "clip_vision",
+          "source": "https://huggingface.co/Comfy-Org/Pixal3D",
+          "instructions": "Install the DINOv3 encoder (1.22 GB, DINOv3 License)."
+        },
+        {
+          "id": "model:birefnet",
+          "kind": "model",
+          "name": "birefnet.safetensors",
+          "location": "background_removal",
+          "source": "https://huggingface.co/Comfy-Org/BiRefNet",
+          "instructions": "Install BiRefNet background removal (0.44 GB, MIT)."
+        }
+      ],
+      "evidence": [
+        "2026-10-24: direct native run on a teal-cup product fixture (texture 2048, 300k faces) succeeded in about 7 min and wrote comfyfield-trellis_00001_.glb (75,771,056 bytes; glTF 2; 1 mesh, 727,889 vertices; PBR material with base color, metallic-roughness, normal and occlusion, 3 images). RemeshMesh was rebuilt from the installed schema (sdf mode, defaults) because the template targets an older node version. App-ledger runs and other subjects remain unproven."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "TRELLIS.2, TRELLIS.2 VAEs, BiRefNet",
+        "license": "MIT",
+        "source": "https://huggingface.co/microsoft/TRELLIS.2-4B"
+      },
+      {
+        "name": "DINOv3 ViT-L encoder",
+        "license": "DINOv3 License (worldwide, royalty-free; attribution in publications, trade controls, no ITAR/military use). See docs/LICENSE-INVENTORY.md.",
+        "source": "https://ai.meta.com/resources/models-and-libraries/dinov3-license"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://comfy.org/workflows/",
+      "observedAt": "2026-10-24",
+      "kind": "discovery"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/3d_pixal3d_trellis2_image_to_model.json",
+      "observedAt": "2026-10-24",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [
+    "F01"
+  ],
+  "audioPolicies": [
+    "mute"
+  ]
+}

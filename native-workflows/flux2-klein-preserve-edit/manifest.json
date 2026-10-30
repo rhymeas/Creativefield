@@ -1,0 +1,511 @@
+{
+  "schemaVersion": 2,
+  "id": "flux2-klein-preserve-edit",
+  "version": "0.1.2",
+  "title": "Flux 2 Klein precision edit",
+  "category": "canvas",
+  "description": "Experimental localized still edit using unmodified upstream Crop & Stitch and Klein Edit Composite. Manual aligned mask; original, candidate, effective mask and final are retained.",
+  "inputs": [
+    {
+      "id": "source_image",
+      "label": "Original image",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "76",
+        "field": "image"
+      }
+    },
+    {
+      "id": "edit_mask",
+      "label": "Aligned edit mask",
+      "type": "mask",
+      "representation": "image",
+      "required": true,
+      "binding": {
+        "node": "477",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "edited_image",
+      "label": "Preserved image",
+      "type": "image",
+      "required": true
+    },
+    {
+      "id": "candidate_image",
+      "label": "Crop-and-stitch candidate",
+      "type": "image",
+      "required": true
+    },
+    {
+      "id": "effective_mask",
+      "label": "Effective Klein mask",
+      "type": "mask",
+      "representation": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Edit prompt",
+      "type": "string",
+      "default": "Change the background to a snowy mountain at dusk, keep the foreground unchanged",
+      "binding": {
+        "node": "75:74",
+        "field": "text"
+      }
+    },
+    {
+      "id": "steps",
+      "label": "Steps",
+      "type": "integer",
+      "min": 1,
+      "max": 100,
+      "default": 4,
+      "binding": {
+        "node": "75:62",
+        "field": "steps"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 20261019,
+      "binding": {
+        "node": "75:73",
+        "field": "noise_seed"
+      }
+    },
+    {
+      "id": "mask_mode",
+      "label": "Mask mode",
+      "type": "select",
+      "options": [
+        "replace",
+        "add",
+        "subtract"
+      ],
+      "default": "replace",
+      "binding": {
+        "node": "484",
+        "field": "custom_mask_mode"
+      }
+    },
+    {
+      "id": "feather_pct",
+      "label": "Feather (% diagonal)",
+      "type": "number",
+      "min": 0,
+      "max": 3,
+      "step": 0.1,
+      "default": 0.5,
+      "binding": {
+        "node": "484",
+        "field": "feather_pct"
+      }
+    },
+    {
+      "id": "context_pixels",
+      "label": "Context pixels",
+      "type": "integer",
+      "min": 0,
+      "max": 512,
+      "default": 32,
+      "binding": {
+        "node": "482",
+        "field": "context_expand_pixels"
+      }
+    },
+    {
+      "id": "mask_grow",
+      "label": "Mask grow (pixels)",
+      "type": "integer",
+      "min": 0,
+      "max": 16,
+      "default": 8,
+      "binding": {
+        "node": "489",
+        "field": "expand"
+      }
+    },
+    {
+      "id": "seamless_edges",
+      "label": "Seamless edges",
+      "type": "boolean",
+      "default": false,
+      "binding": {
+        "node": "484",
+        "field": "poisson_blend_edges"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "flux2-klein-preserve-edit",
+      "requirements": [
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install a ComfyUI version providing LoadImage."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Install a ComfyUI version providing GetImageSize."
+        },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Install a ComfyUI version providing UNETLoader."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install a ComfyUI version providing CLIPLoader with the flux2 type."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install a ComfyUI version providing VAELoader."
+        },
+        {
+          "id": "node:VAEEncode",
+          "kind": "node",
+          "name": "VAEEncode",
+          "instructions": "Install a ComfyUI version providing VAEEncode."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Install a ComfyUI version providing CLIPTextEncode."
+        },
+        {
+          "id": "node:ConditioningZeroOut",
+          "kind": "node",
+          "name": "ConditioningZeroOut",
+          "instructions": "Install a ComfyUI version providing ConditioningZeroOut."
+        },
+        {
+          "id": "node:ReferenceLatent",
+          "kind": "node",
+          "name": "ReferenceLatent",
+          "instructions": "Install a ComfyUI version providing ReferenceLatent."
+        },
+        {
+          "id": "node:EmptyFlux2LatentImage",
+          "kind": "node",
+          "name": "EmptyFlux2LatentImage",
+          "instructions": "Install a ComfyUI version providing EmptyFlux2LatentImage."
+        },
+        {
+          "id": "node:Flux2Scheduler",
+          "kind": "node",
+          "name": "Flux2Scheduler",
+          "instructions": "Install a ComfyUI version providing Flux2Scheduler."
+        },
+        {
+          "id": "node:KSamplerSelect",
+          "kind": "node",
+          "name": "KSamplerSelect",
+          "instructions": "Install a ComfyUI version providing KSamplerSelect."
+        },
+        {
+          "id": "node:SamplerCustomAdvanced",
+          "kind": "node",
+          "name": "SamplerCustomAdvanced",
+          "instructions": "Install a ComfyUI version providing SamplerCustomAdvanced."
+        },
+        {
+          "id": "node:CFGGuider",
+          "kind": "node",
+          "name": "CFGGuider",
+          "instructions": "Install a ComfyUI version providing CFGGuider."
+        },
+        {
+          "id": "node:RandomNoise",
+          "kind": "node",
+          "name": "RandomNoise",
+          "instructions": "Install a ComfyUI version providing RandomNoise."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install a ComfyUI version providing VAEDecode."
+        },
+        {
+          "id": "node:SaveImage",
+          "kind": "node",
+          "name": "SaveImage",
+          "instructions": "Install a ComfyUI version providing SaveImage."
+        },
+        {
+          "id": "model:flux2-klein-4b-fp8",
+          "kind": "model",
+          "name": "flux-2-klein-4b-fp8.safetensors",
+          "location": "diffusion_models",
+          "version": "sha256:97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6",
+          "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B/blob/main/flux-2-klein-4b-fp8.safetensors",
+          "instructions": "Install the Flux 2 Klein 4B FP8 diffusion file and verify its SHA-256; review the model license before use."
+        },
+        {
+          "id": "model:qwen-3-4b",
+          "kind": "model",
+          "name": "qwen_3_4b.safetensors",
+          "location": "text_encoders",
+          "version": "sha256:6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a",
+          "source": "https://huggingface.co/Comfy-Org/flux2-klein-4B/blob/main/text_encoders/qwen_3_4b.safetensors",
+          "instructions": "Install the Qwen 3 4B text encoder file and verify its SHA-256; review the repository license before use."
+        },
+        {
+          "id": "model:flux2-vae",
+          "kind": "model",
+          "name": "flux2-vae.safetensors",
+          "location": "vae",
+          "version": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+          "source": "https://huggingface.co/Comfy-Org/flux2-klein-4B/blob/main/vae/flux2-vae.safetensors",
+          "instructions": "Install the Flux 2 VAE file and verify its SHA-256; review the repository license before use."
+        },
+        {
+          "id": "node:KleinEditComposite",
+          "kind": "node",
+          "name": "KleinEditComposite",
+          "instructions": "Install the pinned upstream dependency described in this workflow README; no substitute algorithm is used.",
+          "source": "https://github.com/supermansundies/comfyui-klein-edit-composite",
+          "sourceRevision": "1505bc58d38abf5411457804ed4923e83f986eee"
+        },
+        {
+          "id": "node:InpaintCrop",
+          "kind": "node",
+          "name": "InpaintCrop",
+          "instructions": "Install the pinned upstream dependency described in this workflow README; no substitute algorithm is used.",
+          "source": "https://github.com/comfyorg/comfyui-crop-and-stitch",
+          "sourceRevision": "2abf837822d761110ac383d9a1cdffcc7ebfab36"
+        },
+        {
+          "id": "node:InpaintStitch",
+          "kind": "node",
+          "name": "InpaintStitch",
+          "instructions": "Install the pinned upstream dependency described in this workflow README; no substitute algorithm is used.",
+          "source": "https://github.com/comfyorg/comfyui-crop-and-stitch",
+          "sourceRevision": "2abf837822d761110ac383d9a1cdffcc7ebfab36"
+        },
+        {
+          "id": "node:ImageToMask",
+          "kind": "node",
+          "name": "ImageToMask",
+          "instructions": "Install the pinned upstream dependency described in this workflow README; no substitute algorithm is used."
+        },
+        {
+          "id": "node:MaskToImage",
+          "kind": "node",
+          "name": "MaskToImage",
+          "instructions": "Install the pinned upstream dependency described in this workflow README; no substitute algorithm is used."
+        },
+        {
+          "id": "node:PreviewAny",
+          "kind": "node",
+          "name": "PreviewAny",
+          "instructions": "Install the pinned upstream dependency described in this workflow README; no substitute algorithm is used."
+        }
+      ],
+      "evidence": []
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Comfy-Org workflow_templates: MIT. Integration license follows this repository; full dependency audit pending. Klein Edit Composite has no explicit source license in the inspected revision; source is not redistributed or vendored. Local installation does not establish redistribution permission. Crop & Stitch retains its upstream license.",
+    "weights": [
+      {
+        "name": "Flux 2 Klein 4B FP8 model, Qwen 3 4B encoder and Flux 2 VAE",
+        "license": "FLUX.2 Klein 4B is released by Black Forest Labs under Apache-2.0 for the Klein 4B weights; the Qwen 3 encoder follows its upstream Qwen license. Verify the exact license files in the source repositories before commercial use; conversion provenance and numerical equivalence have not been independently audited.",
+        "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B",
+      "observedAt": "2026-10-19",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://github.com/supermansundies/comfyui-klein-edit-composite",
+      "observedAt": "2026-10-21",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://github.com/comfyorg/comfyui-crop-and-stitch",
+      "observedAt": "2026-10-21",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ],
+  "imageInputContract": {
+    "kind": "aligned_still_image_mask_v1",
+    "schemaVersion": 1,
+    "sourceInput": "source_image",
+    "maskInput": "edit_mask",
+    "semantics": "white_edits_black_preserves",
+    "dimensionMultiple": 8
+  },
+  "imageArtifacts": {
+    "kind": "image_artifacts_v1",
+    "schemaVersion": 1,
+    "maxArtifacts": 3,
+    "artifacts": [
+      {
+        "id": "preserved-image",
+        "outputPort": "edited_image",
+        "node": "9",
+        "nodeOutput": 0,
+        "role": "image",
+        "contentType": "image/png",
+        "cardinality": {
+          "min": 1,
+          "max": 1
+        },
+        "indexing": {
+          "strategy": "history_array",
+          "start": 0
+        },
+        "dimensions": {
+          "mode": "match_input",
+          "inputPort": "source_image",
+          "maxWidth": 2048,
+          "maxHeight": 2048,
+          "maxPixels": 4194304
+        },
+        "maxBytes": 33554432,
+        "alpha": "allow",
+        "parents": [
+          {
+            "order": 0,
+            "inputPort": "source_image",
+            "role": "source"
+          },
+          {
+            "order": 1,
+            "inputPort": "edit_mask",
+            "role": "mask"
+          }
+        ]
+      },
+      {
+        "id": "candidate-image",
+        "outputPort": "candidate_image",
+        "node": "485",
+        "nodeOutput": 0,
+        "role": "image",
+        "contentType": "image/png",
+        "cardinality": {
+          "min": 1,
+          "max": 1
+        },
+        "indexing": {
+          "strategy": "history_array",
+          "start": 0
+        },
+        "dimensions": {
+          "mode": "match_input",
+          "inputPort": "source_image",
+          "maxWidth": 2048,
+          "maxHeight": 2048,
+          "maxPixels": 4194304
+        },
+        "maxBytes": 33554432,
+        "alpha": "allow",
+        "parents": [
+          {
+            "order": 0,
+            "inputPort": "source_image",
+            "role": "source"
+          },
+          {
+            "order": 1,
+            "inputPort": "edit_mask",
+            "role": "mask"
+          }
+        ]
+      },
+      {
+        "id": "effective-mask",
+        "outputPort": "effective_mask",
+        "node": "487",
+        "nodeOutput": 0,
+        "role": "mask",
+        "contentType": "image/png",
+        "cardinality": {
+          "min": 1,
+          "max": 1
+        },
+        "indexing": {
+          "strategy": "history_array",
+          "start": 0
+        },
+        "dimensions": {
+          "mode": "match_input",
+          "inputPort": "source_image",
+          "maxWidth": 2048,
+          "maxHeight": 2048,
+          "maxPixels": 4194304
+        },
+        "maxBytes": 33554432,
+        "alpha": "allow",
+        "parents": [
+          {
+            "order": 0,
+            "inputPort": "source_image",
+            "role": "source"
+          },
+          {
+            "order": 1,
+            "inputPort": "edit_mask",
+            "role": "mask"
+          }
+        ]
+      }
+    ]
+  },
+  "editPreservation": {
+    "kind": "klein_still_v1",
+    "sourceInput": "source_image",
+    "maskInput": "edit_mask",
+    "finalArtifact": "preserved-image",
+    "candidateArtifact": "candidate-image",
+    "maskArtifact": "effective-mask",
+    "reportNode": "488",
+    "kleinNode": "484",
+    "upstream": {
+      "klein": "1505bc58d38abf5411457804ed4923e83f986eee",
+      "cropStitch": "2abf837822d761110ac383d9a1cdffcc7ebfab36"
+    },
+    "cropNode": "482"
+  }
+}

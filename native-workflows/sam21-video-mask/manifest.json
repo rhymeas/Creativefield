@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 2,
+  "id": "sam21-video-mask",
+  "version": "0.1.0",
+  "title": "SAM 2.1 one-object video mask",
+  "category": "replacement",
+  "description": "Experimental local propagation of one object from include and exclude points placed on frame zero. Output must be reviewed and server-validated before masked editing.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Source video",
+      "type": "video",
+      "required": true,
+      "binding": { "node": "1", "field": "file" }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "tracked_mask",
+      "label": "Tracked mask",
+      "type": "mask",
+      "representation": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "include_points",
+      "label": "Include points",
+      "type": "string",
+      "default": "[]",
+      "binding": { "node": "5", "field": "coordinates_positive" }
+    },
+    {
+      "id": "exclude_points",
+      "label": "Exclude points",
+      "type": "string",
+      "default": "[]",
+      "binding": { "node": "5", "field": "coordinates_negative" }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "experimental",
+      "workflowId": "sam21-video-mask",
+      "requirements": [
+        { "id": "node:LoadVideo", "kind": "node", "name": "LoadVideo", "instructions": "Install a ComfyUI version providing LoadVideo." },
+        { "id": "node:GetVideoComponents", "kind": "node", "name": "GetVideoComponents", "instructions": "Install a ComfyUI version providing GetVideoComponents." },
+        { "id": "node:DownloadAndLoadSAM2Model", "kind": "node", "name": "DownloadAndLoadSAM2Model", "version": "0c35fff5f382803e2310103357b5e985f5437f32", "source": "https://github.com/kijai/ComfyUI-segment-anything-2", "instructions": "Install ComfyUI-segment-anything-2 at commit 0c35fff5f382803e2310103357b5e985f5437f32. Automatic model download is not an accepted installation path." },
+        { "id": "node:Sam2Segmentation", "kind": "node", "name": "Sam2Segmentation", "version": "0c35fff5f382803e2310103357b5e985f5437f32", "source": "https://github.com/kijai/ComfyUI-segment-anything-2", "instructions": "Install the pinned SAM 2 integration. Upstream describes it as work in progress and for testing only." },
+        { "id": "node:MaskToImage", "kind": "node", "name": "MaskToImage", "instructions": "Install a ComfyUI version providing MaskToImage." },
+        { "id": "node:CreateVideo", "kind": "node", "name": "CreateVideo", "instructions": "Install a ComfyUI version providing CreateVideo." },
+        { "id": "node:SaveVideo", "kind": "node", "name": "SaveVideo", "instructions": "Install a ComfyUI version providing SaveVideo." },
+        {
+          "id": "model:sam21-tiny-fp16",
+          "kind": "model",
+          "name": "sam2.1_hiera_tiny-fp16.safetensors",
+          "location": "sam2",
+          "version": "sha256:974d84a2a54080b3d00ef3d6be08da48635389834e02ad4793c6404b2dd2e851",
+          "source": "https://huggingface.co/Kijai/sam2-safetensors/blob/f885607d88bb3f9145efa49c3e3c50a9e5bf13eb/sam2.1_hiera_tiny-fp16.safetensors",
+          "instructions": "Preinstall the pinned 77,980,668-byte SAM 2.1 Tiny FP16 checkpoint under ComfyUI/models/sam2 and verify its SHA-256. Do not let the workflow download weights at run time."
+        }
+      ],
+      "evidence": [
+        "Manifest and graph are source-mapped only. No local installation, output, temporal quality, recovery or offline execution has been qualified; this route must remain unavailable for execution."
+      ]
+    }
+  ],
+  "coverage": { "local": "experimental", "hosted": "planned" },
+  "licenses": {
+    "software": "Meta SAM 2 and Kijai ComfyUI-segment-anything-2: Apache-2.0. ComfyUI core: GPL-3.0. Full dependency audit pending.",
+    "weights": [
+      {
+        "name": "SAM 2.1 Hiera Tiny FP16 safetensors conversion",
+        "license": "Apache-2.0 as declared by the Kijai/sam2-safetensors repository; conversion provenance and numerical equivalence are not independently verified.",
+        "source": "https://huggingface.co/Kijai/sam2-safetensors"
+      }
+    ]
+  },
+  "sources": [
+    { "url": "https://github.com/facebookresearch/sam2", "observedAt": "2026-10-16", "kind": "research" },
+    { "url": "https://github.com/kijai/ComfyUI-segment-anything-2/tree/0c35fff5f382803e2310103357b5e985f5437f32", "observedAt": "2026-10-16", "kind": "implementation" },
+    { "url": "https://huggingface.co/Kijai/sam2-safetensors/tree/f885607d88bb3f9145efa49c3e3c50a9e5bf13eb", "observedAt": "2026-10-16", "kind": "implementation" }
+  ],
+  "tickets": ["EDT-01"],
+  "timing": { "fps": 16, "minSeconds": 1.0625, "maxSeconds": 5.0625, "sourceTimed": true },
+  "audioPolicies": ["mute"],
+  "outputContract": {
+    "kind": "source_linked_mask_v1",
+    "sourceInput": "source_video",
+    "maskOutput": "tracked_mask",
+    "artifactNode": "8",
+    "checkpointRequirementId": "model:sam21-tiny-fp16",
+    "semantics": "white_edits_black_preserves"
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 2,
+  "id": "flux2-klein-angles",
+  "version": "0.2.0",
+  "title": "Flux 2 Klein 4B camera angles",
+  "category": "image",
+  "description": "Local camera-angle coverage from one reference image with the installed Flux 2 Klein 4B FP8 model. Reuses the qualified flux2-klein-edit graph unchanged: the source image stays the reference latent and each preset writes one viewing direction into the prompt. Every picked angle is a separate run with its own Slate.",
+  "inputs": [
+    {
+      "id": "source_image",
+      "label": "Source image",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "76",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    { "id": "image", "label": "Edited image", "type": "image", "required": true }
+  ],
+  "controls": [
+    { "id": "prompt", "label": "Edit prompt", "type": "string", "default": "Preserve the subjects, their poses, clothing, objects, setting and lighting while changing the camera viewpoint.", "binding": { "node": "75:74", "field": "text" } },
+    { "id": "steps", "label": "Steps", "type": "integer", "min": 1, "max": 100, "default": 4, "binding": { "node": "75:62", "field": "steps" } },
+    { "id": "megapixels", "label": "Reference megapixels", "type": "number", "min": 0.25, "max": 2, "step": 0.1, "default": 1, "binding": { "node": "75:80", "field": "megapixels" } },
+    { "id": "seed", "label": "Seed", "type": "integer", "min": 0, "max": 2147483647, "default": 20261019, "binding": { "node": "75:73", "field": "noise_seed" } }
+  ],
+  "presets": [
+    { "id": "high-left", "title": "High left", "values": { "prompt": "Move the camera around the stationary scene to the subject's left and raise it, looking down at 30 degrees. Photograph the same scene from this elevated left three-quarter viewpoint. The new perspective reveals upper surfaces and the left sides of subjects and objects, with foreground and background shifting relative to each other. Preserve subject identities, poses, clothing, object placement, setting and lighting." } },
+    { "id": "high", "title": "High", "values": { "prompt": "Raise the camera above the stationary scene and tilt it downward at 25 degrees. Photograph the same scene from this elevated frontal viewpoint. The new perspective reveals upper surfaces and more ground behind the subjects. Preserve subject identities, poses, clothing, object placement, setting and lighting." } },
+    { "id": "high-right", "title": "High right", "values": { "prompt": "Move the camera around the stationary scene to the subject's right and raise it, looking down at 30 degrees. Photograph the same scene from this elevated right three-quarter viewpoint. The new perspective reveals upper surfaces and the right sides of subjects and objects, with foreground and background shifting relative to each other. Preserve subject identities, poses, clothing, object placement, setting and lighting." } },
+    { "id": "left-45", "title": "Left 45", "values": { "prompt": "Orbit the camera 45 degrees around the stationary scene toward the subject's left, at eye level and the same distance. Photograph the same scene from this new left three-quarter viewpoint. The new perspective reveals the left sides of subjects and objects, with foreground and background shifting relative to each other. Preserve subject identities, poses, clothing, object placement, setting and lighting." } },
+    { "id": "right-45", "title": "Right 45", "values": { "prompt": "Orbit the camera 45 degrees around the stationary scene toward the subject's right, at eye level and the same distance. Photograph the same scene from this new right three-quarter viewpoint. The new perspective reveals the right sides of subjects and objects, with foreground and background shifting relative to each other. Preserve subject identities, poses, clothing, object placement, setting and lighting." } },
+    { "id": "low-left", "title": "Low left", "values": { "prompt": "Move the camera around the stationary scene to the subject's left and lower it, looking up at 25 degrees. Photograph the same scene from this low left three-quarter viewpoint. The new perspective reveals lower surfaces and the left sides of subjects and objects, with foreground and background shifting relative to each other. Preserve subject identities, poses, clothing, object placement, setting and lighting." } },
+    { "id": "low", "title": "Low", "values": { "prompt": "Lower the camera toward ground level in front of the stationary scene and tilt it upward at 20 degrees. Photograph the same scene from this low frontal viewpoint. The new perspective emphasizes the subjects against the background above them. Preserve subject identities, poses, clothing, object placement, setting and lighting." } },
+    { "id": "low-right", "title": "Low right", "values": { "prompt": "Move the camera around the stationary scene to the subject's right and lower it, looking up at 25 degrees. Photograph the same scene from this low right three-quarter viewpoint. The new perspective reveals lower surfaces and the right sides of subjects and objects, with foreground and background shifting relative to each other. Preserve subject identities, poses, clothing, object placement, setting and lighting." } }
+  ],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "flux2-klein-edit",
+      "requirements": [
+        { "id": "node:LoadImage", "kind": "node", "name": "LoadImage", "instructions": "Install a ComfyUI version providing LoadImage." },
+        { "id": "node:ImageScaleToTotalPixels", "kind": "node", "name": "ImageScaleToTotalPixels", "instructions": "Install a ComfyUI version providing ImageScaleToTotalPixels." },
+        { "id": "node:GetImageSize", "kind": "node", "name": "GetImageSize", "instructions": "Install a ComfyUI version providing GetImageSize." },
+        { "id": "node:UNETLoader", "kind": "node", "name": "UNETLoader", "instructions": "Install a ComfyUI version providing UNETLoader." },
+        { "id": "node:CLIPLoader", "kind": "node", "name": "CLIPLoader", "instructions": "Install a ComfyUI version providing CLIPLoader with the flux2 type." },
+        { "id": "node:VAELoader", "kind": "node", "name": "VAELoader", "instructions": "Install a ComfyUI version providing VAELoader." },
+        { "id": "node:VAEEncode", "kind": "node", "name": "VAEEncode", "instructions": "Install a ComfyUI version providing VAEEncode." },
+        { "id": "node:CLIPTextEncode", "kind": "node", "name": "CLIPTextEncode", "instructions": "Install a ComfyUI version providing CLIPTextEncode." },
+        { "id": "node:ConditioningZeroOut", "kind": "node", "name": "ConditioningZeroOut", "instructions": "Install a ComfyUI version providing ConditioningZeroOut." },
+        { "id": "node:ReferenceLatent", "kind": "node", "name": "ReferenceLatent", "instructions": "Install a ComfyUI version providing ReferenceLatent." },
+        { "id": "node:EmptyFlux2LatentImage", "kind": "node", "name": "EmptyFlux2LatentImage", "instructions": "Install a ComfyUI version providing EmptyFlux2LatentImage." },
+        { "id": "node:Flux2Scheduler", "kind": "node", "name": "Flux2Scheduler", "instructions": "Install a ComfyUI version providing Flux2Scheduler." },
+        { "id": "node:KSamplerSelect", "kind": "node", "name": "KSamplerSelect", "instructions": "Install a ComfyUI version providing KSamplerSelect." },
+        { "id": "node:SamplerCustomAdvanced", "kind": "node", "name": "SamplerCustomAdvanced", "instructions": "Install a ComfyUI version providing SamplerCustomAdvanced." },
+        { "id": "node:CFGGuider", "kind": "node", "name": "CFGGuider", "instructions": "Install a ComfyUI version providing CFGGuider." },
+        { "id": "node:RandomNoise", "kind": "node", "name": "RandomNoise", "instructions": "Install a ComfyUI version providing RandomNoise." },
+        { "id": "node:VAEDecode", "kind": "node", "name": "VAEDecode", "instructions": "Install a ComfyUI version providing VAEDecode." },
+        { "id": "node:SaveImage", "kind": "node", "name": "SaveImage", "instructions": "Install a ComfyUI version providing SaveImage." },
+        {
+          "id": "model:flux2-klein-4b-fp8",
+          "kind": "model",
+          "name": "flux-2-klein-4b-fp8.safetensors",
+          "location": "diffusion_models",
+          "version": "sha256:97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6",
+          "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B/blob/main/flux-2-klein-4b-fp8.safetensors",
+          "instructions": "Install the Flux 2 Klein 4B FP8 diffusion file and verify its SHA-256; review the model license before use."
+        },
+        {
+          "id": "model:qwen-3-4b",
+          "kind": "model",
+          "name": "qwen_3_4b.safetensors",
+          "location": "text_encoders",
+          "version": "sha256:6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a",
+          "source": "https://huggingface.co/Comfy-Org/flux2-klein-4B/blob/main/text_encoders/qwen_3_4b.safetensors",
+          "instructions": "Install the Qwen 3 4B text encoder file and verify its SHA-256; review the repository license before use."
+        },
+        {
+          "id": "model:flux2-vae",
+          "kind": "model",
+          "name": "flux2-vae.safetensors",
+          "location": "vae",
+          "version": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+          "source": "https://huggingface.co/Comfy-Org/flux2-klein-4B/blob/main/vae/flux2-vae.safetensors",
+          "instructions": "Install the Flux 2 VAE file and verify its SHA-256; review the repository license before use."
+        }
+      ],
+      "evidence": [
+        "Converted from image_flux2_klein_image_edit_4b_distilled.json in the installed comfyui-workflow-templates-json package with src/workflow/ui-to-api.ts against the live ComfyUI 0.37.0 object_info inventory. Installed source SHA-256: e0388a8870495802314d58fa61616ddcdb7064dac5f85a8787c9e08180b8a560. Qualified packaged API graph SHA-256 (UTF-8 with LF line endings): 5023e7ef985b2532dab27baac1203e590c883303ff660df26122b60ea4f54609.",
+        "GPU-qualified 2026-10-19 on ComfyUI 0.37.0 / RTX 4090 with the exact packaged graph: a 1024x1024 testsrc2 source (SHA-256 ef819bfb8fc9e97bd21bc39731bb117fb11b68da7c5cc0b0f48ed95fe4ff06) edited with the prompt 'Change the background to a snowy mountain at dusk, keep the foreground unchanged' produced a 1024x1024 PNG (1,425,159 bytes; SHA-256 0d751b60c1f907429745d730936d34ef6334d807c661ebe589f42b2b4d88a745) in 2.1 s on a warm worker (prompt 6e57dadf-c129-4ddf-95af-2f2d28d70afb). This proves graph execution and output structure. Edit fidelity, identity preservation, perceptual quality and arbitrary-aspect behavior are not proven.",
+        "Full ComfyField E2E on 2026-10-19: run d70f6035-b72b-4a6e-a5fc-25f549406bc9 succeeded with workflow hash e3a21cc496e6b9985defc6c0b4ac298a6c4462b11446f3a1a839a8d05252bdb6, imported asset Flux2-Klein_00001_.png at 1024x1024 in 6.1 s through the authenticated API and local ComfyUI worker."
+      ]
+    },
+    {
+      "id": "cloud",
+      "execution": "comfy_cloud",
+      "provider": "comfy-cloud",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "flux2-klein-angles",
+      "endpointOrigin": "https://cloud.comfy.org",
+      "requirements": [
+        { "id": "node:SaveImage", "kind": "node", "name": "SaveImage", "instructions": "Comfy Cloud needs the ComfyUI node SaveImage." },
+        { "id": "node:LoadImage", "kind": "node", "name": "LoadImage", "instructions": "Comfy Cloud needs the ComfyUI node LoadImage." },
+        { "id": "node:KSamplerSelect", "kind": "node", "name": "KSamplerSelect", "instructions": "Comfy Cloud needs the ComfyUI node KSamplerSelect." },
+        { "id": "node:UNETLoader", "kind": "node", "name": "UNETLoader", "instructions": "Comfy Cloud needs the ComfyUI node UNETLoader." },
+        { "id": "node:CLIPLoader", "kind": "node", "name": "CLIPLoader", "instructions": "Comfy Cloud needs the ComfyUI node CLIPLoader." },
+        { "id": "node:VAELoader", "kind": "node", "name": "VAELoader", "instructions": "Comfy Cloud needs the ComfyUI node VAELoader." },
+        { "id": "node:EmptyFlux2LatentImage", "kind": "node", "name": "EmptyFlux2LatentImage", "instructions": "Comfy Cloud needs the ComfyUI node EmptyFlux2LatentImage." },
+        { "id": "node:ImageScaleToTotalPixels", "kind": "node", "name": "ImageScaleToTotalPixels", "instructions": "Comfy Cloud needs the ComfyUI node ImageScaleToTotalPixels." },
+        { "id": "node:Flux2Scheduler", "kind": "node", "name": "Flux2Scheduler", "instructions": "Comfy Cloud needs the ComfyUI node Flux2Scheduler." },
+        { "id": "node:CLIPTextEncode", "kind": "node", "name": "CLIPTextEncode", "instructions": "Comfy Cloud needs the ComfyUI node CLIPTextEncode." },
+        { "id": "node:ConditioningZeroOut", "kind": "node", "name": "ConditioningZeroOut", "instructions": "Comfy Cloud needs the ComfyUI node ConditioningZeroOut." },
+        { "id": "node:ReferenceLatent", "kind": "node", "name": "ReferenceLatent", "instructions": "Comfy Cloud needs the ComfyUI node ReferenceLatent." },
+        { "id": "node:GetImageSize", "kind": "node", "name": "GetImageSize", "instructions": "Comfy Cloud needs the ComfyUI node GetImageSize." },
+        { "id": "node:VAEEncode", "kind": "node", "name": "VAEEncode", "instructions": "Comfy Cloud needs the ComfyUI node VAEEncode." },
+        { "id": "node:SamplerCustomAdvanced", "kind": "node", "name": "SamplerCustomAdvanced", "instructions": "Comfy Cloud needs the ComfyUI node SamplerCustomAdvanced." },
+        { "id": "node:VAEDecode", "kind": "node", "name": "VAEDecode", "instructions": "Comfy Cloud needs the ComfyUI node VAEDecode." },
+        { "id": "node:RandomNoise", "kind": "node", "name": "RandomNoise", "instructions": "Comfy Cloud needs the ComfyUI node RandomNoise." },
+        { "id": "node:CFGGuider", "kind": "node", "name": "CFGGuider", "instructions": "Comfy Cloud needs the ComfyUI node CFGGuider." },
+        { "id": "model:flux2-klein-4b-fp8", "kind": "model", "name": "flux-2-klein-4b-fp8.safetensors", "location": "diffusion_models", "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B/blob/main/flux-2-klein-4b-fp8.safetensors", "instructions": "Comfy Cloud carries flux-2-klein-4b-fp8.safetensors." },
+        { "id": "model:qwen-3-4b", "kind": "model", "name": "qwen_3_4b.safetensors", "location": "text_encoders", "source": "https://huggingface.co/Comfy-Org/flux2-klein-4B/blob/main/text_encoders/qwen_3_4b.safetensors", "instructions": "Comfy Cloud carries qwen_3_4b.safetensors." },
+        { "id": "model:flux2-vae", "kind": "model", "name": "flux2-vae.safetensors", "location": "vae", "source": "https://huggingface.co/Comfy-Org/flux2-klein-4B/blob/main/vae/flux2-vae.safetensors", "instructions": "Comfy Cloud carries flux2-vae.safetensors." }
+      ],
+      "evidence": [
+        "2026-10-27: every node and model file this graph names is in Comfy Cloud's own node list (GET /api/object_info: 3835 nodes, about 1500 model files). Nothing was run on Comfy Cloud here: that spends credits."
+      ]
+    }
+  ],
+  "coverage": { "local": "implemented", "hosted": "implemented" },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Comfy-Org workflow_templates: MIT. Integration license follows this repository; full dependency audit pending.",
+    "weights": [
+      {
+        "name": "Flux 2 Klein 4B FP8 model, Qwen 3 4B encoder and Flux 2 VAE",
+        "license": "FLUX.2 Klein 4B is released by Black Forest Labs under Apache-2.0 for the Klein 4B weights; the Qwen 3 encoder follows its upstream Qwen license. Verify the exact license files in the source repositories before commercial use; conversion provenance and numerical equivalence have not been independently audited.",
+        "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B"
+      }
+    ]
+  },
+  "sources": [
+    { "url": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B", "observedAt": "2026-10-19", "kind": "implementation" }
+  ],
+  "tickets": [],
+  "audioPolicies": ["mute"]
+}

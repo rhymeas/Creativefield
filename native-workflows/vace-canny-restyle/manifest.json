@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 2,
+  "id": "vace-canny-restyle",
+  "version": "0.3.0",
+  "title": "Wan 2.1 VACE Canny restyle",
+  "category": "finishing",
+  "description": "Local edge-conditioned video-to-video restyle. Source frames are edge-detected with the core Canny node and fed to WanVaceToVideo, and the first fitted source frame also reaches VACE as the reference image, so the person, clothes and pose come from the clip instead of from the prompt. The prompt carries a keep-the-subject clause. One real run verified graph execution and MP4 structure; perceptual restyle quality and temporal consistency remain unqualified.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Source video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "4",
+        "field": "file"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Restyled video",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "fpsPrepare": { "kind": "source_16fps_v1", "sourceInput": "source_video" },
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Restyle prompt",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "8",
+        "field": "text"
+      }
+    },
+    {
+      "id": "negative",
+      "label": "Negative prompt",
+      "type": "string",
+      "default": "blurry, distorted, unstable",
+      "binding": {
+        "node": "9",
+        "field": "text"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 543,
+      "binding": {
+        "node": "12",
+        "field": "seed"
+      }
+    },
+    {
+      "id": "strength",
+      "label": "VACE conditioning strength",
+      "type": "number",
+      "min": 0,
+      "max": 2,
+      "default": 1,
+      "binding": {
+        "node": "10",
+        "field": "strength"
+      }
+    },
+    {
+      "id": "canny_low_threshold",
+      "label": "Canny low threshold",
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "default": 0.4,
+      "binding": {
+        "node": "6",
+        "field": "low_threshold"
+      }
+    },
+    {
+      "id": "canny_high_threshold",
+      "label": "Canny high threshold",
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "default": 0.8,
+      "binding": {
+        "node": "6",
+        "field": "high_threshold"
+      }
+    }
+  ],
+  "presets": [
+    {
+      "id": "noir",
+      "title": "Noir",
+      "values": {
+        "prompt": "Black-and-white film noir, hard directional key light, deep shadows, soft haze, 1950s cinematography."
+      }
+    },
+    {
+      "id": "golden-hour",
+      "title": "Golden hour",
+      "values": {
+        "prompt": "Warm golden-hour sunlight, long soft shadows, amber highlights, gentle lens flare, cinematic color grade."
+      }
+    },
+    {
+      "id": "neon-night",
+      "title": "Neon night",
+      "values": {
+        "prompt": "Night scene lit by neon signage, cyan and warm practical lights, wet reflective ground, shallow depth of field."
+      }
+    },
+    {
+      "id": "hand-painted",
+      "title": "Hand-painted",
+      "values": {
+        "prompt": "Hand-painted animation look, soft brush edges, visible canvas texture, muted storybook palette."
+      }
+    }
+  ],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "vace-canny-restyle",
+      "requirements": [
+        { "id": "node:UNETLoader", "kind": "node", "name": "UNETLoader", "instructions": "Install a ComfyUI version providing UNETLoader." },
+        { "id": "node:CLIPLoader", "kind": "node", "name": "CLIPLoader", "instructions": "Install a ComfyUI version providing CLIPLoader." },
+        { "id": "node:VAELoader", "kind": "node", "name": "VAELoader", "instructions": "Install a ComfyUI version providing VAELoader." },
+        { "id": "node:LoadVideo", "kind": "node", "name": "LoadVideo", "instructions": "Install a ComfyUI version providing LoadVideo." },
+        { "id": "node:GetVideoComponents", "kind": "node", "name": "GetVideoComponents", "instructions": "Install a ComfyUI version providing GetVideoComponents." },
+        { "id": "node:Canny", "kind": "node", "name": "Canny", "instructions": "Install a ComfyUI version providing the core Canny node." },
+        { "id": "node:GetImageSize", "kind": "node", "name": "GetImageSize", "instructions": "Install a ComfyUI version providing GetImageSize." },
+        { "id": "node:ImageFromBatch", "kind": "node", "name": "ImageFromBatch", "instructions": "Install a ComfyUI version providing ImageFromBatch." },
+        { "id": "node:ResizeImageMaskNode", "kind": "node", "name": "ResizeImageMaskNode", "instructions": "Install a ComfyUI version providing ResizeImageMaskNode." },
+        { "id": "node:CLIPTextEncode", "kind": "node", "name": "CLIPTextEncode", "instructions": "Install a ComfyUI version providing CLIPTextEncode." },
+        { "id": "node:WanVaceToVideo", "kind": "node", "name": "WanVaceToVideo", "instructions": "Install a ComfyUI version providing WanVaceToVideo." },
+        { "id": "node:ModelSamplingSD3", "kind": "node", "name": "ModelSamplingSD3", "instructions": "Install a ComfyUI version providing ModelSamplingSD3." },
+        { "id": "node:KSampler", "kind": "node", "name": "KSampler", "instructions": "Install a ComfyUI version providing KSampler." },
+        { "id": "node:VAEDecode", "kind": "node", "name": "VAEDecode", "instructions": "Install a ComfyUI version providing VAEDecode." },
+        { "id": "node:CreateVideo", "kind": "node", "name": "CreateVideo", "instructions": "Install a ComfyUI version providing CreateVideo." },
+        { "id": "node:SaveVideo", "kind": "node", "name": "SaveVideo", "instructions": "Install a ComfyUI version providing SaveVideo." },
+        {
+          "id": "model:vace13b",
+          "kind": "model",
+          "name": "wan2.1_vace_1.3B_fp16.safetensors",
+          "location": "diffusion_models",
+          "version": "123acf1cc74bccbb9bfff8ac1ee72edc08c2341d",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the pinned Wan 2.1 VACE 1.3B FP16 diffusion model (4.31 GB). Minimum VRAM for this candidate is not measured."
+        },
+        {
+          "id": "model:umt5",
+          "kind": "model",
+          "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the UMT5 XXL FP8 scaled text encoder."
+        },
+        {
+          "id": "model:vae",
+          "kind": "model",
+          "name": "wan_2.1_vae.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the Wan 2.1 VAE."
+        }
+      ],
+      "evidence": [
+        "Graph execution qualification 2026-10-18 on ComfyUI 0.37.0 / RTX 4090: the exact template graph ran a 160x96, 16 FPS, 17-frame testsrc2 source to a 21,865-byte H.264 MP4 (SHA-256 7641ccb72e2b83f88b90df72097ddf0e520cc509eabe918e81aee6ddb4849124) in 207.8 s (prompt 4f3b50a8-7ace-4964-bf07-8841038d7d43), preserving 160x96, 16 FPS and 17 frames. This proves graph execution and output structure. Perceptual restyle quality, facial/identity preservation, temporal consistency and offline behavior remain unqualified and are not proven.",
+        "Fresh local graph execution 2026-10-22, prompt cc5a80b9-60ae-4b57-85b0-4f0018f11167: cleared fictional jacket fixture produced 79185-byte H.264 MP4,832x480,16 FPS,17 frames,1.0625s,SHA-256 2005ae4b7f9805868c9ddb02ae1c1b57a78b39b7cd871f76fd5052365a4b7b47. This records output structure and a recoloring example only. Seams,pockets and lettering changed; preservation,occlusion and broad temporal quality are unqualified.",
+        "Person-kept restyle 0.3.0 (2026-10-26): the first fitted source frame now reaches WanVaceToVideo.reference_image (ImageFromBatch length 1 on the fitted frames), the two prepended reference frames are dropped before CreateVideo (ImageFromBatch batch_index 2, source length), and the prompt carries the keep-the-subject clause. The graph was compiled by the app's compileLocal and queued straight to the local ComfyUI 0.37.0 on 8188 (prompt bdf556c0-155f-45b5-bb27-32df322d3ea0), 95 s, on the reported input asset c3648408-c471-405c-ba5d-24fd35e12cb3 (512x928, 24 fps, 49 frames) with prompt \"imagine this gentleman standing in his grandpa livingroom\", seed 543, strength 1. Output vace-canny-restyle_00018_.mp4: 480x864, 24 fps, 49 frames, 2.0417 s, 235660 bytes, H.264 yuv420p, SHA-256 209f0114232e8d8bc804a656a73ac74ea412d99e9afa1f75ce1b9b66250cacfd. The same man, blue jacket, grey trousers and boots and the same raised hand at frame 24 as the source, in a new living room, with no extra person. Before this change the same input and prompt (run 69632ddc-c99f-4980-99e0-01d8c1327566) returned a different man in a checked shirt plus an extra child. Control runs: the reference image alone also kept the man (prompt b48aa4a7-961c-4fb9-a6bb-91a204df3df7, SHA-256 43eab4a0bf36348d28a082021a591444af9cd8da403d6e77851bec9122c05632); the clause alone on the old graph still returned a different man (prompt f3c10d22-6cfa-4e85-a9a8-c8c69b624c5b, SHA-256 f310666d307da24d7193f32934a8445d42ec47718b64bf517e86bbce88f9c83f). So the reference carries identity and the clause is a written guard, not the measured lever. One run per variant on one clip: identity, wardrobe and pose hold here, and broader robustness, other framings and long clips stay unqualified."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "subjectContract": {
+    "kind": "keep_source_subject_v1"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0; see upstream LICENSE. Workflow template files: MIT (Comfy-Org/workflow_templates). Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "Wan2.1-VACE-1.3B",
+        "license": "Apache-2.0 (upstream LICENSE.txt); full dependency license audit pending",
+        "source": "https://huggingface.co/Wan-AI/Wan2.1-VACE-1.3B/blob/main/LICENSE.txt"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/Comfy-Org/workflow_templates/blob/9afccb38bb9173575411189a75f4fc6cc8acd06c/templates/video_wan_vace_14B_v2v.json",
+      "observedAt": "2026-10-17",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://docs.comfy.org/tutorials/video/wan/vace",
+      "observedAt": "2026-10-17",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://huggingface.co/Wan-AI/Wan2.1-VACE-14B",
+      "observedAt": "2026-10-17",
+      "kind": "research"
+    }
+  ],
+  "tickets": [
+    "FIN-03"
+  ],
+  "audioPolicies": [
+    "mute"
+  ]
+}
