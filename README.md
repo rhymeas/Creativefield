@@ -1,7 +1,7 @@
 <div align="center">
   <img src="src/assets/creativefield-logo.png" alt="CreativeField" width="360">
 
-  <img src="docs/screens/creativefield/creativefield-promo.gif" alt="CreativeField product video: one picture travels through FotoField, Create Video and 3D" width="100%">
+  <img src="docs/screens/creativefield/creativefield-promo.webp" alt="CreativeField product video: one picture travels through FotoField, Create Video and 3D" width="100%">
 
   # CreativeField
 
