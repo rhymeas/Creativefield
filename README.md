@@ -18,7 +18,7 @@ Along the way we built our own free, open-source, AI-powered alternative to Phot
 
 **Everything connects.** CreativeField is meant to cover a whole workflow, not a list of separate tools. Make a picture, then edit it. Use it as the reference for a video, or turn it into a 3D model. Use that 3D model as the reference for the next picture or video edit, and keep going. We will keep extending it towards the top ten film-creation tools and the most important photo-editing goals, all working together.
 
-**Nodes you can read.** We reworked how ComfyUI nodes look, so a graph is clearer and easier to use, with a short description that tells you what each node does.
+**Nodes you can read.** We are reworking how ComfyUI nodes look, so a graph is clearer and easier to use. A first design preview is in the app; the goal is a short description on every node that tells you what it does.
 
 **Your workflows become apps.** Download a workflow or build your own, and CreativeField turns it into an app in the matching category: Video, Image or 3D.
 
