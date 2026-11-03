@@ -1,6 +1,6 @@
 import type { CapabilityManifestV2, Control, Port, Readiness } from "../capabilities/types";
 import { assetMatchesPort } from "../capabilities/assets";
-import type { CharacterRecord } from "../team/api";
+import type { CharacterRecord, Run } from "../team/api";
 import type { ElementInputBinding } from "../team/state";
 import {characterEditBindings} from "./editor/character-references";
 
@@ -73,6 +73,21 @@ export function defaultImageDraft(manifest: CapabilityManifestV2): ImageDraft {
         .map((control) => [control.id, control.default as string | number | boolean]),
     ),
   };
+}
+
+/** Restore saved element bindings as well as ordinary project inputs for a retake. */
+export function restoreImageRetakeDraft(manifest: CapabilityManifestV2, invocation: NonNullable<Run["invocation"]>): ImageDraft {
+  const next = defaultImageDraft(manifest);
+  const inputs = { ...invocation.inputs };
+  const elementInputs: Record<string, ElementInputBinding> = {};
+  for (const [port, snapshot] of Object.entries(invocation.elementInputSnapshots ?? {})) {
+    const assetId = inputs[port];
+    if (!snapshot || snapshot.inputPort !== port || !snapshot.elementId || !assetId) throw new Error("The original reference is not available for this retake.");
+    elementInputs[port] = { elementId: snapshot.elementId, assetId };
+    delete inputs[port];
+  }
+  const controls = Object.fromEntries(Object.entries(invocation.controls).filter(([, value]) => ["string", "number", "boolean"].includes(typeof value))) as ImageDraft["controls"];
+  return { ...next, inputs, elementInputs, controls: { ...next.controls, ...controls } };
 }
 
 /** Carry the person's prompt and selected pictures into the chosen edit workflow. */

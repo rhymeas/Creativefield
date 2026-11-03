@@ -36,7 +36,7 @@ import {isSelectedImageModel} from "../capabilities/image-model-selection";
 import {ImageStudio} from "../image/ImageStudio";
 import {identityPhotosetWorkerAllowed} from "../image/identity-photoset";
 import {ImageEditor} from "../image/editor/ImageEditor";
-import {addCharacterReferences,defaultImageDraft,imageDraftWithReferences,imageRunBody,type ImageDraft} from "../image/image-state";
+import {addCharacterReferences,defaultImageDraft,imageDraftWithReferences,imageRunBody,restoreImageRetakeDraft,type ImageDraft} from "../image/image-state";
 import {isSelectedVideoCreate,routeImageToVideo,routeTask,taskPacks} from "../capabilities/tasks";
 import {CharacterWorkspace,type CharacterMode} from "./characters/CharacterWorkspace";
 import {AudioStudio,type AudioRequirements} from "./audio";
@@ -287,10 +287,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       const original=await call<Run>(workspacePath(workspace.id,`runs/${run.id}`));
       if(original.project_id!==project?.id||original.capability_id!==manifest.id||!original.invocation)
         throw new Error("The original run inputs are not available for this workflow.");
-      const recorded=Object.fromEntries(Object.entries(original.invocation.controls)
-        .filter(([,value])=>["string","number","boolean"].includes(typeof value))) as ImageDraft["controls"];
-      const next={...defaultImageDraft(manifest),inputs:{...original.invocation.inputs},
-        controls:{...defaultImageDraft(manifest).controls,...recorded}};
+      const next=restoreImageRetakeDraft(manifest,original.invocation);
       setImageDraft(next);imageDraftMemory.current[manifest.id]=next;
       await queueImage(manifest,next);
     }catch(error){setError((error as Error).message);}

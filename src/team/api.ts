@@ -1,4 +1,4 @@
-﻿import type {CapabilityManifestV2,WorkerInventory} from "../capabilities/types";
+﻿import type {CapabilityManifestV2,ElementAssetSnapshotV1,WorkerInventory} from "../capabilities/types";
 export type User={id:string;email:string;localSingleUser?:boolean};
 export type Workspace={id:string;name:string;role:"admin"|"creator"|"viewer"};
 export type Project={id:string;name:string;description?:string};
@@ -9,7 +9,7 @@ export type CharacterReference={ordinal:number;assetId:string;assetProjectId:str
 export type CharacterRecord={id:string;projectId:string;elementId:string;name:string;description:string;createdAt:string;usage?:{referenceRuns:number;completedShots:number};referencePack:{version:1;references:CharacterReference[]}};
 export type CreatedCharacter=CharacterRecord&{repeated:boolean};
 export type Worker={id:string;name:string;enabled:boolean;origin:string;checked_at:string|null;inventory:WorkerInventory|null;can_start?:boolean};
-export type Run={id:string;project_id:string;worker_id?:string|null;created_by:string;capability_id:string;capability_version:string;state:string;error:string|null;remote_id?:string|null;transport?:string;output_ids:string[];output_content_type?:string|null;scene?:number|null;shot?:number|null;take?:number|null;created_at:string;updated_at:string;invocation?:{controls:Record<string,unknown>;inputs:Record<string,string>}};
+export type Run={id:string;project_id:string;worker_id?:string|null;created_by:string;capability_id:string;capability_version:string;state:string;error:string|null;remote_id?:string|null;transport?:string;output_ids:string[];output_content_type?:string|null;scene?:number|null;shot?:number|null;take?:number|null;created_at:string;updated_at:string;invocation?:{controls:Record<string,unknown>;inputs:Record<string,string>;elementInputSnapshots?:Record<string,ElementAssetSnapshotV1>}};
 export class ApiError extends Error {constructor(readonly status:number,message:string){super(message);}}
 export type RequestOptions={signal?:AbortSignal;timeoutMs?:number};
 export async function request<T>(path:string,method="GET",body?:unknown,options:AbortSignal|RequestOptions={}):Promise<T>{

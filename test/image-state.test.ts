@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CapabilityManifestV2, Port } from "../src/capabilities/types";
-import { characterReferenceBinding, imageDraftIssues, imageDraftWithReferences, imageRunBody, isCharacterPort, type ImageDraft } from "../src/image/image-state";
+import { characterReferenceBinding, imageDraftIssues, imageDraftWithReferences, imageRunBody, isCharacterPort, restoreImageRetakeDraft, type ImageDraft } from "../src/image/image-state";
 import type { CharacterReference, CharacterRecord } from "../src/team/api";
 
 const port = (id: string, type: Port["type"] = "image", required = false): Port => ({ id, label: id, type, required, binding: { node: "1", field: "image" } });
@@ -32,6 +32,25 @@ const character: CharacterRecord = {
   id: "character-a", projectId: "project-a", elementId: "11111111-1111-4111-8111-111111111111", name: "Mara", description: "", createdAt: "2026-10-16T00:00:00.000Z",
   referencePack: { version: 1, references: [reference(1, "22222222-2222-4222-8222-222222222222"), reference(0, "33333333-3333-4333-8333-333333333333")] },
 };
+
+describe("retaking an image run", () => {
+  it("restores a saved element reference with the exact resolved asset alongside ordinary inputs", () => {
+    const draft = restoreImageRetakeDraft(manifest, {
+      controls: { prompt: "Change the scene", seed: 42 },
+      inputs: { source_image: "project-picture", reference_image: "derived-picture" },
+      elementInputSnapshots: { reference_image: { validationVersion: 1, inputPort: "reference_image", elementId: "element", elementKind: "character", assetId: "original-picture", assetSha256: "a".repeat(64), assetMediaType: "image", assetProjectId: null } },
+    });
+    const body = imageRunBody({ projectId: "project-a", workerId: "worker", idempotencyKey: "key", routeId: "local" }, manifest, draft);
+    expect(body.inputs).toEqual({ source_image: "project-picture" });
+    expect(body.elementInputs).toEqual({ reference_image: { elementId: "element", assetId: "derived-picture" } });
+    expect(body.controls.prompt).toBe("Change the scene");
+  });
+
+  it("keeps ordinary input assets and rejects an incomplete reference snapshot", () => {
+    expect(restoreImageRetakeDraft(manifest, { controls: {}, inputs: { reference_image: "picture" } }).inputs).toEqual({ reference_image: "picture" });
+    expect(() => restoreImageRetakeDraft(manifest, { controls: {}, inputs: {}, elementInputSnapshots: { reference_image: { validationVersion: 1, inputPort: "reference_image", elementId: "element", elementKind: "character", assetId: "picture", assetSha256: "a".repeat(64), assetMediaType: "image", assetProjectId: null } } })).toThrow("original reference");
+  });
+});
 
 describe("a saved character as an image reference", () => {
   it("takes only reference ports", () => {
