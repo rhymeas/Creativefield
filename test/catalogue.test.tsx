@@ -127,6 +127,19 @@ describe("capability catalogue",()=>{
     expect(css).toContain("flex: 1 1 400px");
     expect(css).toContain("max-width: 400px");
   });
+  it("groups loopback installations under one computer while retaining their selector",()=>{
+    const workers=[
+      {id:"a",name:"Local ComfyUI",origin:"http://127.0.0.1:8188",enabled:true,checked_at:"2026-01-01",inventory:{online:false,nodes:[],models:[],credentials:[]}},
+      {id:"b",name:"H3",origin:"http://localhost:8288",enabled:true,checked_at:"2026-01-01",inventory:{online:true,nodes:[],models:[],credentials:[]}},
+      {id:"c",name:"Remote",origin:"http://worker.example:8188",enabled:true,checked_at:null,inventory:null},
+    ];
+    const html=renderToStaticMarkup(<ComfyLibraryPanel workspace={{id:"qa",name:"QA",role:"creator"}} workers={workers} call={async<T,>()=>({} as T)}/>);
+    expect((html.match(/class="ds-option"/g)??[])).toHaveLength(2);
+    expect(html).toContain("This computer");
+    expect(html).toContain("Installation");
+    expect(html).toContain("Remote");
+    expect(html).toContain("http://localhost:8288");
+  });
   it("puts the worker choice and the offline reason in one centred stage",()=>{
     const workers=[{id:"local",name:"Local ComfyUI",origin:"http://127.0.0.1:8188",enabled:true,checked_at:"2026-10-28T00:00:00Z",inventory:{online:false,nodes:[],models:[],credentials:[]},can_start:true}];
     const html=renderToStaticMarkup(<ComfyLibraryPanel workspace={{id:"qa",name:"QA",role:"creator"}} workers={workers} call={async<T,>()=>({} as T)}/>);

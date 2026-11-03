@@ -19,6 +19,7 @@ const THREE_D = new URL("./comfy-3d.mjs", import.meta.url);
 const FEATURE = new URL("./comfy-feature.mjs", import.meta.url);
 const THEMES = new URL("./comfy-theme.css", import.meta.url);
 const LINKS = new URL("./comfy-links.mjs", import.meta.url);
+const NODE_MODE = new URL("./comfy-node-mode.js", import.meta.url);
 const TOKENS = new URL("../src/ds/tokens.css", import.meta.url);
 const WORKSPACE_PATH = /^\/comfy\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(\/.*)?$/i;
 
@@ -77,6 +78,8 @@ export async function comfyProxyRoutes(app: FastifyInstance, pool: Pool, publicO
     reply.type("text/javascript; charset=utf-8").header("Cache-Control", "no-cache").send(await readFile(NODE_HELP, "utf8")));
   app.get("/comfyfield-links.js", async (_request, reply) =>
     reply.type("text/javascript; charset=utf-8").header("Cache-Control", "no-cache").send(await readFile(LINKS, "utf8")));
+  app.get("/comfyfield-node-mode.js", async (_request, reply) =>
+    reply.type("text/javascript; charset=utf-8").header("Cache-Control", "no-cache").send(await readFile(NODE_MODE, "utf8")));
   app.get("/comfyfield-3d.js", async (_request, reply) =>
     reply.type("text/javascript; charset=utf-8").header("Cache-Control", "no-cache").send(await readFile(THREE_D, "utf8")));
   app.get("/comfyfield-feature.js", async (_request, reply) =>
@@ -128,7 +131,7 @@ export async function comfyProxyRoutes(app: FastifyInstance, pool: Pool, publicO
     return reply.type("text/html; charset=utf-8").header("Cache-Control", "no-store")
       .header("X-Content-Type-Options", "nosniff")
       .header("Content-Security-Policy", `frame-ancestors 'self' ${appOrigin}; base-uri 'self'; object-src 'none'`)
-      .send(html.replace("</head>", `${inject}</head>`));
+      .send(html.replace(/<head(?:\s[^>]*)?>/i, match => `${match}<script src="/comfyfield-node-mode.js"></script>`).replace("</head>", `${inject}</head>`));
   }
 
   const wsOptions:ClientOptions & {rewriteRequestHeaders:(headers:IncomingHttpHeaders,request:FastifyRequest)=>IncomingHttpHeaders}={

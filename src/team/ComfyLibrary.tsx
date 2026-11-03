@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { AudioLines, Box, Image as ImageIcon, Layers, RefreshCw, SlidersHorizontal, Sparkles, Video } from "lucide-react";
-import { Dialog, EmptyState, IconButton, InfoButton, Meta, ModelTile, ModelOption, Notice, SectionHeader, SegmentedTabs, SparkleLoader, StatusText, TileGrid, Toolbar, Button } from "../ds";
+import { Dialog, EmptyState, IconButton, InfoButton, Meta, ModelTile, ModelOption, Notice, Row, SectionHeader, SegmentedTabs, SparkleLoader, StatusText, TileGrid, Toolbar, Button } from "../ds";
 import type { CatalogueControls } from "../ui/CapabilityCatalogue";
 import type { ComfyLibrary } from "../capabilities/types";
 import {assessHardware,gib} from "../capabilities/hardware";
@@ -14,6 +14,15 @@ type Props = { workspace: Workspace; workers: Worker[]; call: Call; controls?: C
 type Inspect = { title: string; parts: string[] };
 
 const countLabel = (count: number, singular: string) => `${count} ${count === 1 ? singular : `${singular}s`}`;
+
+/** Distinct loopback servers are installations on this machine, not separate computers. */
+export function isLocalInstallation(worker: Worker): boolean {
+  try {
+    if ((worker as Worker & {kind?: string}).kind === "cloud") return false;
+    const host = new URL(worker.origin).hostname.toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "::1";
+  } catch { return false; }
+}
 
 const roleIcon = (role: LibraryRole) => role.filter === "generation"
   ? (role.id === "video" ? <Video size={16} /> : <ImageIcon size={16} />)
@@ -98,13 +107,33 @@ export function ComfyLibraryPanel({ workspace, workers, call, controls, onWorker
     ? <Button variant="secondary" onClick={()=>controls?.onClearQuery?.()}>Clear search</Button>
     : <Button variant="secondary" disabled={busy} onClick={()=>void load()}>Check again</Button>;
 
+  // Group loopback installations visually, but keep each worker and its own inventory selectable.
+  const localInstallations = enabled.filter(isLocalInstallation);
+  const groupedLocal = localInstallations.length > 1;
+  const localChoice = localInstallations.find(candidate => candidate.id === workerId)
+    ?? localInstallations.find(candidate => candidate.inventory?.online)
+    ?? localInstallations[0];
+  const workerStatus = (candidate: Worker) => candidate.id === workerId && library
+    ? (library.online ? "ready" as const : "offline" as const)
+    : candidate.inventory?.online === true ? "ready" as const : candidate.checked_at ? "offline" as const : "checking" as const;
+  const localCard = groupedLocal && localChoice && <ModelOption
+    key="this-computer"
+    title="This computer"
+    subtitle={localChoice.origin}
+    status={workerStatus(localChoice)}
+    selected={localInstallations.some(candidate => candidate.id === workerId)}
+    onSelect={() => setWorkerId(localChoice.id)}
+    detail={<Row label="Installation" display={localChoice.name} value={localChoice.id} options={localInstallations.map(candidate => ({value:candidate.id,label:`${candidate.name} · ${candidate.origin}`}))} onChange={setWorkerId} />}
+  />;
+
   /** One worker choice, the same card on every view of this panel. */
   const workerChoice = <div className="cf-library__workers" role="radiogroup" aria-label="ComfyUI worker">
-    {enabled.map(candidate => <ModelOption
+    {localCard}
+    {enabled.filter(candidate => !groupedLocal || !isLocalInstallation(candidate)).map(candidate => <ModelOption
       key={candidate.id}
       title={candidate.name}
       subtitle={candidate.origin}
-      status={candidate.id === workerId && library ? (library.online ? "ready" : "offline") : candidate.inventory?.online === true ? "ready" : candidate.checked_at ? "offline" : "checking"}
+      status={workerStatus(candidate)}
       selected={candidate.id === workerId}
       onSelect={() => setWorkerId(candidate.id)}
     />)}

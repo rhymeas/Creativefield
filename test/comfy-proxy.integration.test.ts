@@ -25,7 +25,7 @@ describe.skipIf(!connectionString)("workspace node-editor proxy boundaries",()=>
     const record=(req:import("node:http").IncomingMessage,ws=false)=>seen.push({worker:label,url:req.url!,cookie:req.headers.cookie,authorization:req.headers.authorization,origin:req.headers.origin,ws});
     const server=createServer((req,res)=>{
       record(req);res.setHeader("set-cookie","cf_session=worker-injection; Path=/");
-      if(req.url==="/"){res.setHeader("content-type","text/html");res.end("<!doctype html><html><head></head><body>"+label+"</body></html>");}
+      if(req.url==="/"){res.setHeader("content-type","text/html");res.end("<!doctype html><html><head><script type=\"module\" src=\"/app.js\"></script></head><body>"+label+"</body></html>");}
       else{res.setHeader("content-type","application/json");res.end(JSON.stringify({worker:label,path:req.url}));}
     });
     const wss=new WebSocketServer({server});
@@ -115,6 +115,8 @@ describe.skipIf(!connectionString)("workspace node-editor proxy boundaries",()=>
     for(const response of responses){expect(response.headers["set-cookie"]).toBeUndefined();expect(response.headers["x-content-type-options"]).toBe("nosniff");}
     for(const request of seen.slice(-2)){expect(request.cookie).toBeUndefined();expect(request.authorization).toBeUndefined();}
     const page=await app.inject({url:base()+"/",headers:auth()});expect(page.body).toContain("comfyfield-theme.css");
+    expect(page.body.indexOf("comfyfield-node-mode.js")).toBeLessThan(page.body.indexOf("/app.js"));
+    const mode=await app.inject({url:"/comfyfield-node-mode.js"});expect(mode.statusCode).toBe(200);expect(mode.body).toContain("Comfy.VueNodes.Enabled");
     expect(page.headers["content-security-policy"]).toContain("frame-ancestors 'self'");
   });
   it("qualifies absolute imports by a validated workspace referer without a fallback",async()=>{
