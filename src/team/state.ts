@@ -34,6 +34,10 @@ export const runLabel:Record<string,string>={pending:"Pending",submitting:"Submi
 export function activeRun(state:string){return ["pending","submitting","submission_unknown","queued","running","cancel_requested"].includes(state);}
 export type ElementInputBinding={elementId:string;assetId:string};
 export type Draft={controls:Record<string,string|number|boolean>;inputs:Record<string,string>;elementInputs:Record<string,ElementInputBinding>;audioPolicy:"preserve"|"replace"|"mix"|"mute";presetId?:string;cameraMove?:string};
+/** Carry the prompt the user is actually submitting, including an intentional empty value. */
+export function draftPromptForHandoff(manifest:CapabilityManifestV2,draft:Draft,promptOn:boolean):string {
+  return promptOptional(manifest)&&!promptOn ? "" : String(draft.controls.prompt??"");
+}
 /** These H3 creation graphs decode generated audio; replace retains that output. */
 export function h3GeneratedAudio(m:CapabilityManifestV2){return ["h3-t2v","h3-i2v","h3-flf2v","h3-effects"].includes(m.id)&&m.audioPolicies.includes("replace");}
 export function defaultDraft(m:CapabilityManifestV2):Draft {

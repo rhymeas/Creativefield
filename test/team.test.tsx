@@ -2,7 +2,7 @@ import {describe,it,expect,vi,afterEach} from "vitest";
 import {renderToStaticMarkup} from "react-dom/server";
 import {byteRange} from "../server/range";
 import {request,ApiError,composerAssets,mergeAssets,type Worker,type Asset,type Call} from "../src/team/api";
-import {bestWorkerReadiness,defaultDraft,draftErrors,draftKey,promptOptional,refreshWorkerInventory,soleReadyWorker,submissionIntent,workerReadiness} from "../src/team/state";
+import {bestWorkerReadiness,defaultDraft,draftErrors,draftKey,draftPromptForHandoff,promptOptional,refreshWorkerInventory,soleReadyWorker,submissionIntent,workerReadiness} from "../src/team/state";
 import {buildCatalogue} from "../src/capabilities/catalogue";
 import {providers,enhancers} from "../src/pipelines/registry";
 import {AuthPanel} from "../src/team/AuthPanel";
@@ -171,6 +171,18 @@ describe("team UI contracts",()=>{
     expect(html).not.toContain("Add a video to edit");
     expect(html).toContain("Add a picture to start from");
     expect(html.match(/Choose from library/g)?.length).toBeGreaterThanOrEqual(1);
+  });
+  it("hands off the current prompt, including empty and disabled optional prompts",async()=>{
+    const catalogue=(await loadServerCatalogue()).map(bundle=>bundle.manifest);
+    const text=catalogue.find(item=>item.id==="h3-t2v")!,image=catalogue.find(item=>item.id==="h3-i2v")!;
+    const draft=defaultDraft(text);
+    draft.controls.prompt="  a moonlit street  ";
+    expect(draftPromptForHandoff(text,draft,true)).toBe("  a moonlit street  ");
+    draft.controls.prompt="";
+    expect(draftPromptForHandoff(text,draft,true)).toBe("");
+    const optional=defaultDraft(image);optional.controls.prompt="old disabled text";
+    expect(draftPromptForHandoff(image,optional,false)).toBe("");
+    expect(draftPromptForHandoff(image,optional,true)).toBe("old disabled text");
   });
   it("parses bounded, open-ended and suffix byte ranges",()=>{
     expect(byteRange(undefined,10)).toBe(null);expect(byteRange("bytes=2-4",10)).toEqual({start:2,end:4});expect(byteRange("bytes=7-",10)).toEqual({start:7,end:9});expect(byteRange("bytes=-3",10)).toEqual({start:7,end:9});

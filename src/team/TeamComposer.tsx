@@ -14,7 +14,7 @@ import {ToolHero} from "./heroes";
 import {ProductionContent} from "./ProductionWorkspace";
 import type {CapabilityManifestV2} from "../capabilities/types";
 import {ApiError,assetUrl,workspacePath,composerAssets,mergeAssets,type Asset,type Call,type Project,type ReusableElement,type User,type Worker,type Workspace} from "./api";
-import {defaultDraft,draftErrors,draftKey,h3GeneratedAudio,promptOptional,restoreDraft,soleReadyWorker,submissionIntent,workerReadiness,type Draft} from "./state";
+import {defaultDraft,draftErrors,draftKey,draftPromptForHandoff,h3GeneratedAudio,promptOptional,restoreDraft,soleReadyWorker,submissionIntent,workerReadiness,type Draft} from "./state";
 import {plainProblem,plainReasons,workerBlocker} from "./problems";
 import {audienceOf,settingsLabel} from "./audience";
 import {TeamRuns} from "./TeamLibrary";
@@ -231,7 +231,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
     const nextKey=draftKey(user.id,workspace.id,project.id,target.id),next=readDraft(nextKey,target);
     next.inputs[port]=assetId;
     if(supportsH3PromptCamera(manifest)&&supportsH3PromptCamera(target))next.cameraMove=draft.cameraMove;
-    if(target.controls.some(control=>control.id==="prompt")&&String(draft.controls.prompt??"").trim())next.controls.prompt=draft.controls.prompt;
+    if(target.controls.some(control=>control.id==="prompt"))next.controls.prompt=draftPromptForHandoff(manifest,draft,promptOn);
     localStorage.setItem(nextKey,JSON.stringify(next));onCapability(target.id);
   }
   async function upload(role:string,chosen?:File,isCurrent:()=>boolean=()=>true){const file=chosen??files[role];if(!file)return false;const sourceId=contract&&role===contract.maskInput?draft.inputs[contract.sourceInput]:undefined;if(contract&&role===contract.maskInput&&!sourceId){setError("Add and upload a source clip before validating its mask.");return false;}const current=beginOperation(uploadGate.current,role);setBusy(role);setError("");try{const form=new FormData();form.append("file",file);const path=sourceId?workspacePath(workspace.id,`assets/${sourceId}/mask-sequence`):workspacePath(workspace.id,`assets?projectId=${project.id}`);const asset=await call<Asset>(path,"POST",form,sourceId?{timeoutMs:180000}:undefined);if(!ownsOperation(uploadGate.current,current)||!isCurrent())return false;setAssets(a=>[asset,...a]);setDraft(d=>({...d,inputs:{...d.inputs,[role]:asset.id}}));setFiles(f=>({...f,[role]:null}));return true;}catch(e){if(ownsOperation(uploadGate.current,current)&&isCurrent())setError(`${(e as Error).message} The file is still selected; retry explicitly after checking the requirements.`);return false;}finally{if(finishOperation(uploadGate.current,current))setBusy("");}}
