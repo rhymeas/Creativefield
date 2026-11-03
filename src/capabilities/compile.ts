@@ -1,8 +1,9 @@
 import { secondsToWanFrames, type ApiGraph } from "../workflow/build";
 import type { CapabilityBundle, Invocation } from "./types";
-import { assertCloudGraphPolicy, assertLocalGraphPolicy, assertRoutePolicy } from "./policy";
+import { assertCloudGraphPolicy, assertLocalGraphPolicy, assertRoutePolicy, OPENJUTSU_ADVANCED_CLASSES } from "./policy";
 import {omitMissingReferences} from "./optional-image-references";
 import {keepSourceSubjectPrompt} from "./keep-subject";
+import {prepareOpenJutsuAdvancedCharacters} from "./openjutsu-advanced";
 
 /** Compiles only server-owned templates. Asset filenames must have been resolved by
  * the server after workspace ownership checks, never supplied as browser paths. */
@@ -14,7 +15,7 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
   /* A cloud route compiles the same template; only where the graph runs differs. */
   const cloud = route?.execution === "comfy_cloud";
   if (!route || (route.execution !== "local_comfy" && !cloud) || !allowed || !template) throw new Error("Selected route is unavailable");
-  const graphPolicy = cloud ? assertCloudGraphPolicy : assertLocalGraphPolicy;
+  const graphPolicy = cloud ? assertCloudGraphPolicy : (graph: ApiGraph) => assertLocalGraphPolicy(graph, manifest.id === "openjutsu-h3-advanced" && options.allowExperimental ? OPENJUTSU_ADVANCED_CLASSES : undefined);
   assertRoutePolicy(route); graphPolicy(template);
   const silentImageOperation=manifest.imageArtifacts&&manifest.audioPolicies.length===0&&invocation.audioPolicy==="mute";
   if (!silentImageOperation&&!manifest.audioPolicies.includes(invocation.audioPolicy)) throw new Error("Audio policy is not supported by this workflow");
@@ -23,7 +24,7 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
     const height = invocation.controls.height ?? manifest.controls.find(c => c.id === "height")?.default;
     if (!Object.values(manifest.resolutions).some(r => r.width === width && r.height === height)) throw new Error("Unsupported resolution pair");
   }
-  const graph = structuredClone(template);
+  let graph = structuredClone(template);
   const preset=invocation.presetId?manifest.presets.find(p=>p.id===invocation.presetId):undefined;
   if(invocation.presetId&&!preset)throw new Error("Selected preset is not part of this workflow");
   const values={...invocation.controls};
@@ -77,6 +78,20 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
       if (!graph[also.node] || !(also.field in graph[also.node].inputs)) throw new Error(`Unbound control: ${control.id}`);
       graph[also.node].inputs[also.field] = value;
     }
+  }
+  if (manifest.id === "openjutsu-h3-advanced") {
+    const ports = ["reference_image", "reference_image_2", "reference_image_3", "reference_image_4"];
+    const filenames: string[] = [];
+    let missing = false;
+    for (const port of ports) {
+      const filename = invocation.inputs[port];
+      if (!filename) { missing = true; continue; }
+      if (missing) throw new Error("Fill character references in order without empty slots.");
+      filenames.push(filename);
+    }
+    const roles = String(values.roles ?? "").split(/\r?\n/);
+    while (roles.length && !roles[roles.length - 1].trim()) roles.pop();
+    graph = prepareOpenJutsuAdvancedCharacters(graph, filenames, roles);
   }
   /* The words are read after presets and defaults, because the look, the note and the clause meet there. */
   const promptControl = manifest.controls.find(c => c.id === "prompt" && !c.disabledReason);

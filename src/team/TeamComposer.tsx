@@ -65,7 +65,7 @@ export const audioChoice=(manifest:CapabilityManifestV2)=>manifest.audioPolicies
 export function sizeLabel(id:string,value:unknown){const n=Number(value);if(id==="resolution")return `${n}p`;return n<=0.5?"480p":n<=1?"720p":n<=1.6?"900p":`${n} MP`;}
 /** The Advanced dialog holds the settings the panel keeps out of sight. Motion adds its pose text and its negative prompt. */
 export function advancedControls(manifest:CapabilityManifestV2,motionRoute:boolean,nativeCamera:boolean){
-  const inline=["width","height","length","seconds","prompt","seed","megapixels","resolution",...(nativeCamera?["camera_pose","speed"]:[])];
+  const inline=["width","height","length","seconds","prompt","seed","megapixels","resolution",...(manifest.id==="openjutsu-h3-advanced"?["roles"]:[]),...(nativeCamera?["camera_pose","speed"]:[])];
   return manifest.controls.filter(control=>!inline.includes(control.id)&&(motionRoute?control.id==="motion_prompt"||control.id==="negative":control.id!=="motion_prompt"));
 }
 /** Lip sync is an audio tool, so Create Video leaves it out; a workflow already open stays in its own list. */
@@ -353,6 +353,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
         {masked&&source&&<ParamButton disabled={locked} title="Edit ideas" icon={<WandSparkles size={16}/>} label="Edit ideas" value={MASK_EDIT_IDEAS.find(idea=>idea.prompt===draft.controls.prompt)?.value??"custom"} options={MASK_EDIT_IDEAS.map(idea=>({value:idea.value as string,label:idea.label}))} onChange={value=>{const idea=MASK_EDIT_IDEAS.find(idea=>idea.value===value);if(idea)changeControl("prompt",idea.prompt);}}/>}
         {promptControl&&optionalPrompt&&<ToggleRow label="Prompt" checked={promptOn} onChange={setPromptOn} disabled={locked}/>}
         {promptControl&&(!optionalPrompt||promptOn)&&controlField(promptControl)}
+        {manifest.id==="openjutsu-h3-advanced"&&manifest.controls.filter(c=>c.id==="roles").map(c=><div key={c.id}>{controlField(c)}</div>)}
         {manifest.controls.filter(c=>c.id==="motion_prompt"&&!motionRoute).map(c=><div key={c.id}>{controlField(c)}</div>)}
         {(size||qualityOptions.length>0||lengthControl)&&<Params>{size?<ParamButton disabled={locked} title="Size" icon={<Maximize2 size={16}/>} label={sizeLabel(size.id,draft.controls[size.id]??size.default)} value={Number(draft.controls[size.id]??size.default)} onChange={v=>changeControl(size.id,Number(v))} options={(size.options??[]).map(o=>({value:Number(o),label:sizeLabel(size.id,o)}))}/>:qualityOptions.length>0?<ParamButton disabled={locked} title="Size" icon={<Maximize2 size={16}/>} label={quality?.label??"Choose size"} value={selectedResolution} options={qualityOptions} onChange={id=>{if(locked)return;const selected=manifest.resolutions![id];setDraft(d=>({...d,controls:{...d.controls,width:selected.width,height:selected.height}}));}}/>:null}{lengthControl&&<ParamButton disabled={locked} title="Duration" icon={<Clock size={16}/>} label={lengthLabel(Number(draft.controls[lengthControl.id]??lengthControl.default))} value={Number(draft.controls[lengthControl.id]??lengthControl.default)} onChange={v=>changeControl(lengthControl.id,Number(v))} options={lengthOptions}/>}</Params>}
         <Row subtle disabled={locked} label="Advanced settings" display="Optional controls" onClick={()=>setAdvancedOpen(true)}/>

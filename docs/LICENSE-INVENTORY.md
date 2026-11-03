@@ -136,3 +136,7 @@ The z-image-turbo-t2i graph is adapted from Comfy-Org/workflow_templates at e7cd
 Declared weight group: Z-Image Turbo diffusion model, Qwen 3 4B encoder and AE VAE. Source: https://huggingface.co/Comfy-Org/z_image_turbo
 
 - MiniMax H3 latent upscaler v1 (LBH-123-AI/Minimax_h3_latent_Upscaler, Apache-2.0): the Sharpen 2x stage of `h3-t2v`, `h3-i2v`, `h3-flf2v`, `minimax-h3-video`, `h3-effects` and `previs-to-video`; installed in the H3 ComfyUI models/latent_upscale_models, not bundled. https://huggingface.co/LBH-123-AI/Minimax_h3_latent_Upscaler
+
+### Experimental OpenJutsu advanced swap
+
+`openjutsu-h3-advanced` adapts the MIT-licensed [OpenJutsu advanced workflow](https://github.com/D3voz/openjutsu/tree/7fe118bb5a61fcfac0148e1bfea3dd29884dbf26). MiniMax H3, Qwen3-VL, SAM 3.1 and DMAD are not bundled; obtain each separately under its published terms. The workflow remains experimental and has not been verified with a real worker.

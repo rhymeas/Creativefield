@@ -317,7 +317,7 @@ export default function Showcase() {
             label="Example"
             value={utab}
             onChange={setUtab}
-            items={[{ id: "a", label: "Create Video" }, { id: "b", label: "Edit Video" }, { id: "c", label: "Motion Control" }]}
+            items={[{ id: "a", label: "Create Video" }, { id: "b", label: "Edit Area" }, { id: "c", label: "Motion Control" }]}
           />
         </div>
         {/* The Change panel is 268 px wide: four modes wrap instead of overflowing, short labels keep

@@ -46,10 +46,10 @@ It is an early preview, not a Photoshop clone. FotoField covers the everyday lay
 | App | What it does | Requirements |
 | --- | --- | --- |
 | **FotoField** | Layered image editing, selections, masks and AI-assisted modifications | Image workflows and models must be installed separately; results vary. |
-| **Create Video** | Generate video from a prompt or image, with camera guidance where supported | Local H3 workflows and required ComfyUI nodes must be installed. |
-| **Change Video / OpenJutsu** | Restyle or replace elements in a source video | Availability and quality depend on the workflow, inputs and installed model. |
-| **Image** | Generate, edit, relight and explore camera angles | FLUX Klein, Qwen Image and Fibo workflows depend on their installed models. |
-| **Storyboard and Keyframes** | Plan shots, configure frames and assemble generated clips | Requires compatible video workflows and FFmpeg. |
+| **Create Video** | Turn a prompt or picture into motion, with camera guidance where supported | Local H3 workflows and required ComfyUI nodes must be installed. |
+| **Transform Video / OpenJutsu** | Reimagine a clip: transfer motion, swap elements or explore a new look | Availability and quality depend on the workflow, inputs and installed model. |
+| **Image** | Dream up an image, reshape it, change the light or explore another angle | FLUX Klein, Qwen Image and Fibo workflows depend on their installed models. |
+| **Storyboard and Keyframes** | Sketch your shots, place key moments and shape the transitions | Requires compatible video workflows and FFmpeg. |
 | **3D** | Explore the available 3D workflows and viewer | Requires separate compatible models and nodes. |
 | **Import a workflow** | Open a saved ComfyUI workflow through a simplified panel | Supported inputs depend on the workflow and available nodes. |
 
@@ -61,7 +61,11 @@ It is an early preview, not a Photoshop clone. FotoField covers the everyday lay
 
 ![3D](docs/screens/creativefield/3d.png)
 
-The screenshots show the real application in a demo project. They show the interface, not a claim about output quality.
+![Keyframes workspace in the public preview](docs/screens/creativefield/keyframes-preview.webp)
+
+![Node design preview](docs/screens/creativefield/nodes-preview.webp)
+
+The node screenshot is a design preview; the remaining screenshots show the real application in a demo project. They show the interface, not a claim about output quality.
 
 ### Camera guidance
 

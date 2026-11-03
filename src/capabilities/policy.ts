@@ -94,6 +94,8 @@ export const APPROVED_LOCAL_CLASSES = new Set([
   "MiniMaxH3SourceTimeline", "MiniMaxH3ChainLoopStart", "MiniMaxH3ChainCurrent", "H3SourceSlice", "H3PeopleMask", "H3GreyMannequins", "GrowMaskWithBlur",
   "H3ClipShots", "H3FillShots", "MiniMaxH3ContexMaskGridPreview", "MiniMaxH3FantasticVideoEditLatent", "MiniMaxH3ContexMaskedTarget", "MiniMaxH3ChainContext",
   "MiniMaxH3LoopTrim", "MiniMaxH3ChainSegmentSave", "MiniMaxH3ChainReview", "MiniMaxH3ChainLoopEnd", "MiniMaxH3ChainAssemble",
+  // Core audio/mask operations and the VideoHelperSuite frame selector.
+  "AudioAdjustVolume", "MaskComposite", "VHS_SelectEveryNthImage",
   // Local single-speaker audio-driven animation; canonical bounded WAV inputs.
   "LoadAudio", "TrimAudioDuration", "AudioEncoderLoader", "AudioEncoderEncode", "ModelPatchLoader", "WanInfiniteTalkToVideo",
 ]);
@@ -126,10 +128,12 @@ export function assertRoutePolicy(route: RouteDefinition): void {
     if (forbiddenProvider(url.hostname)) throw new Error("Forbidden execution endpoint");
   }
 }
-export function assertLocalGraphPolicy(graph: ApiGraph): void {
+export const OPENJUTSU_ADVANCED_CLASSES = new Set(["H3AdvancedSwapPlan", "H3TrackCrops", "H3TrackRoles", "H3RoleMask"]);
+
+export function assertLocalGraphPolicy(graph: ApiGraph, additionalClasses: ReadonlySet<string> = new Set()): void {
   if (!Object.keys(graph).length) throw new Error("Workflow is empty");
   for (const [id, node] of Object.entries(graph)) {
-    if (!node || forbiddenProvider(node.class_type) || !APPROVED_LOCAL_CLASSES.has(node.class_type)) {
+    if (!node || forbiddenProvider(node.class_type) || (!APPROVED_LOCAL_CLASSES.has(node.class_type) && !additionalClasses.has(node.class_type))) {
       const name = typeof node?.class_type === "string" && /^[A-Za-z0-9_.-]{1,128}$/.test(node.class_type) ? ` (${node.class_type})` : "";
       throw new Error(`Unreviewed or forbidden node at ${id}${name}`);
     }

@@ -6,7 +6,7 @@ const actions: Record<Exclude<IntentTarget,"unknown">,string> = {
   image: "Generate image",
   video: "Open Create Video",
   motion: "Open Motion Control",
-  edit: "Open Edit Video",
+  edit: "Open Edit Area",
   trim: "Open Trim Video",
   storyboard: "Open Storyboard",
   audio: "Open Audio",

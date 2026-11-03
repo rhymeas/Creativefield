@@ -14,7 +14,8 @@ import {ExampleTiles} from "./ExampleTiles";
 import {LIBRARY_EXAMPLE_VIDEOS} from "./reels";
 import {jobQueueTitle,runLocation} from "./job-queue";
 import {useRecreate} from "./recreate";
-import {capability,capabilityHasControl} from "../capabilities/lookup";
+import {capabilityHasControl} from "../capabilities/lookup";
+import {sharpenRunBody} from "./sharpen-run";
 
 export function downloadJson(value:unknown,name:string){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:"application/json"}));const link=document.createElement("a");link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 export type RunTitles=Record<string,string>;
@@ -42,7 +43,7 @@ function ProjectRuns({workspace,project,call,canEdit,authorized,version,user,tit
   /** Sharpen this take: the same inputs and settings (so the same seed and draft) again, with the 2x Sharpen stage on. */
   async function sharpen(run:Run){
     if(!run.invocation||!run.worker_id)return;setCanceling(run.id);
-    try{await call(workspacePath(workspace.id,"runs"),"POST",{projectId:run.project_id,workerId:run.worker_id,idempotencyKey:`sharpen-${run.id}`,capabilityId:run.capability_id,version:capability(run.capability_id).version,routeId:"local",inputs:run.invocation.inputs,controls:{...run.invocation.controls,sharpen:true},audioPolicy:(run.invocation as {audioPolicy?:string}).audioPolicy??"replace"});setUpdate(v=>v+1);}
+    try{await call(workspacePath(workspace.id,"runs"),"POST",sharpenRunBody(run,crypto.randomUUID()));setUpdate(v=>v+1);}
     catch(e){setError((e as Error).message);}finally{setCanceling("");}
   }
   async function cancel(run:Run){setCanceling(run.id);try{await call(workspacePath(workspace.id,`runs/${run.id}/cancel`),"POST");setUpdate(v=>v+1);}catch(e){setError((e as Error).message);}finally{setCanceling("");}}
