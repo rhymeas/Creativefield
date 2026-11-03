@@ -1,8 +1,7 @@
 import type { ApiGraph } from "../workflow/build";
 
-/** The upstream graph is pinned to D3voz/openjutsu 7fe118bb.  This is a candidate
- * compiler, not a registered workflow: the caller must validate node/model
- * readiness and bind the video and the other controls before submitting. */
+/** The upstream graph is pinned to D3voz/openjutsu 7fe118bb. The route remains
+ * experimental; the caller must validate worker and model readiness. */
 type TitledNode = ApiGraph[string] & { _meta?: { title?: string } };
 type TitledGraph = Record<string, TitledNode>;
 const isLink = (value: unknown): value is [string, number] => Array.isArray(value) && value.length === 2 && typeof value[0] === "string" && Number.isInteger(value[1]);
@@ -33,10 +32,14 @@ export function prepareOpenJutsuAdvancedCharacters(source: TitledGraph, filename
   for (const id of removed) delete graph[id];
   for (const [id, node] of Object.entries(graph)) {
     for (const [field, value] of Object.entries(node.inputs)) {
-      if (!isLink(value) || !removed.has(value[0])) continue;
-      const permitted = (id === planId && /^picture_[1-4](?:_text)?$/.test(field)) || (node.class_type === "MiniMaxH3ReferenceToVideo" && /^ref_images\.ref_image_[0-3]$/.test(field));
-      if (!permitted) throw new Error(`Unexpected link from ${id}.${field} to removed character branch.`);
-      delete node.inputs[field];
+      if (!isLink(value)) continue;
+      if (removed.has(value[0])) {
+        const permitted = (id === planId && /^picture_[1-4](?:_text)?$/.test(field)) || (node.class_type === "MiniMaxH3ReferenceToVideo" && /^ref_images\.ref_image_[0-3]$/.test(field));
+        if (!permitted) throw new Error(`Unexpected link from ${id}.${field} to removed character branch.`);
+        delete node.inputs[field];
+      } else if (!graph[value[0]] || value[1] < 0) {
+        throw new Error(`Invalid workflow link at ${id}.${field}.`);
+      }
     }
   }
   const cleaned = Array.from({ length: filenames.length }, (_, i) => (roles[i] ?? "").replace(/\s+/g, " ").trim());

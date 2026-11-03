@@ -41,6 +41,14 @@ describe("OpenJutsu advanced character branches", () => {
     changed["20"].inputs.unexpected = ["5", 0];
     expect(() => prepareOpenJutsuAdvancedCharacters(changed, ["a"])).toThrow("Unexpected link");
   });
+
+  it("rejects dangling or invalid links before submitting the graph", () => {
+    const changed = structuredClone(upstream) as Record<string, {class_type:string;inputs:Record<string,unknown>;_meta?:{title?:string}}>;
+    changed["20"].inputs.source_frames = ["missing", 0];
+    expect(() => prepareOpenJutsuAdvancedCharacters(changed, ["a"])).toThrow("Invalid workflow link at 20.source_frames");
+    changed["20"].inputs.source_frames = ["14", -1];
+    expect(() => prepareOpenJutsuAdvancedCharacters(changed, ["a"])).toThrow("Invalid workflow link at 20.source_frames");
+  });
 });
 
 describe("experimental OpenJutsu advanced pack", () => {
