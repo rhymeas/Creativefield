@@ -10,6 +10,8 @@
 
 Made for the [#OpenSourceHiggsfield](https://comfy.org/open-source-higgsfield/) challenge.
 
+**[Try the online preview](https://creativefield-production.up.railway.app/)** — a shared public test workspace. Anyone with the link can view, change or remove its content; please do not upload private files. The preview does not currently have a GPU renderer connected.
+
 ## Why CreativeField
 
 Having a pro-grade palette at your fingertips, and every feature ComfyUI brings with it, does not mean you need a toolbox with all the equipment in it. Most of the time the work comes down to a few core moves: you start from an input and you want a video, a picture, or an edit of a picture. CreativeField is built around exactly those moves.
