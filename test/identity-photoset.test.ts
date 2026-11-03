@@ -3,10 +3,24 @@ import {describe,expect,it} from "vitest";
 import {ApiError} from "../src/team/api";
 import {defaultImageDraft} from "../src/image/image-state";
 import type {CapabilityManifestV2} from "../src/capabilities/types";
-import {hasUnresolvedLegacyPhotoset,identityPhotosetDrafts,identityPhotosetRequest,identityPhotosetStorageKey,identityPhotosetWorkerAllowed,submitIdentityPhotoset,type IdentityPhotosetRecipe} from "../src/image/identity-photoset";
+import {hasUnresolvedLegacyPhotoset,identityPhotosetCanResume,identityPhotosetDrafts,identityPhotosetRequest,identityPhotosetStorageKey,identityPhotosetWorkerAllowed,readIdentityPhotoset,submitIdentityPhotoset,type IdentityPhotosetRecipe} from "../src/image/identity-photoset";
 const manifest=JSON.parse(readFileSync("native-workflows/fibo2-edit/manifest.json","utf8")) as CapabilityManifestV2;
 const draft={inputs:{source_image:"source"},elementInputs:{reference_image:{elementId:"character",assetId:"reference"}},controls:{prompt:"Keep the same character",seed:42}};
 describe("character photoset requests",()=>{
+  it("retains an uncertain or partly submitted batch across worker and version changes",()=>{
+    const scope={userId:"u",workspaceId:"ws",projectId:"project",model:manifest.id};
+    const original:IdentityPhotosetRecipe={id:"batch",...scope,workerId:"worker-a",version:manifest.version,drafts:identityPhotosetDrafts(manifest,draft,"one\ntwo"),accepted:{0:"run-1"},pending:1};
+    for(const saved of [original,{...original,pending:undefined}]){
+      const restored=readIdentityPhotoset(JSON.stringify(saved),scope)!;
+      expect(restored).toEqual(saved);
+      expect(identityPhotosetCanResume(restored,"worker-b",manifest.version)).toBe(false);
+      expect(identityPhotosetCanResume(restored,"worker-a","other-version")).toBe(false);
+      expect(identityPhotosetCanResume(restored,"worker-a",manifest.version)).toBe(true);
+      expect(restored.id).toBe("batch");
+      expect(restored.accepted[0]).toBe("run-1");
+    }
+    expect(readIdentityPhotoset(JSON.stringify(original),{...scope,userId:"other"})).toBeNull();
+  });
   it("freezes distinct user variations with the same character and prompt",()=>{
     const variants=identityPhotosetDrafts(manifest,draft,"in a studio\nin a park");
     expect(variants.map(v=>v.controls.prompt)).toEqual(["Keep the same character\n\nin a studio","Keep the same character\n\nin a park"]);

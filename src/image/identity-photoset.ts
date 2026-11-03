@@ -4,6 +4,19 @@ import {ApiError,workspacePath,type Call,type Run} from "../team/api";
 
 export type IdentityPhotosetRecipe={id:string;workspaceId:string;projectId:string;userId:string;workerId:string;model:string;version:string;drafts:ImageDraft[];accepted:Record<number,string>;pending?:number};
 
+/** Retain a saved batch even if the selected worker or workflow version changes. */
+export function readIdentityPhotoset(raw:string|null,scope:{userId:string;workspaceId:string;projectId:string;model:string}):IdentityPhotosetRecipe|null{
+  try{
+    const r=raw?JSON.parse(raw) as IdentityPhotosetRecipe:null;
+    return r&&r.workspaceId===scope.workspaceId&&r.projectId===scope.projectId&&r.userId===scope.userId&&r.model===scope.model&&Array.isArray(r.drafts)&&r.drafts.length>=2&&r.drafts.length<=8?r:null;
+  }catch{return null;}
+}
+
+/** A batch must resume with the worker and graph version it was submitted to. */
+export function identityPhotosetCanResume(recipe:IdentityPhotosetRecipe,workerId:string,version:string):boolean{
+  return recipe.workerId===workerId&&recipe.version===version;
+}
+
 /** Keep Remix batches separate from character photosets without abandoning older character batches. */
 export function identityPhotosetStorageKey(scope:{userId:string;workspaceId:string;projectId:string;model:string},variant:"character"|"remix"):string{
   const base=`comfyfield:photoset:${scope.userId}:${scope.workspaceId}:${scope.projectId}:${scope.model}`;
