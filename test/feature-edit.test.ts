@@ -35,7 +35,7 @@ describe("editing a feature in the node editor",()=>{
   });
   it("does not mistake a previous link-rich tab for the selected starter",async()=>{
     const workflow={nodes:[{id:1,type:"LoadImage",inputs:[]},{id:2,type:"SaveImage",inputs:[{name:"images"}]}],links:[[1,1,0,2,0,"IMAGE"]],extra:{comfyfield:{ids:{"1":"source","2":"save"}}}};
-    let current={nodes:[{id:1,type:"Other"},{id:2,type:"SaveImage"},{id:3,type:"Extra"}],links:[[1,1,0,2,0,"IMAGE"],[2,3,0,2,0,"IMAGE"]],extra:{comfyfield:{ids:{"1":"other"}}}},loads=0;
+    let current: {nodes:Array<{id:number;type:string;inputs?:Array<{name:string}>}>;links:Array<Array<string|number>>;extra:{comfyfield:{ids:Record<string,string>}}}={nodes:[{id:1,type:"Other"},{id:2,type:"SaveImage"},{id:3,type:"Extra"}],links:[[1,1,0,2,0,"IMAGE"],[2,3,0,2,0,"IMAGE"]],extra:{comfyfield:{ids:{"1":"other"}}}},loads=0;
     const app={graph:{serialize:()=>current},loadGraphData:async(graph:typeof workflow,_clean:boolean,_restore:boolean,name:string)=>{
       loads++;
       expect(name).toBe("CreativeField - starter");
@@ -57,7 +57,7 @@ describe("editing a feature in the node editor",()=>{
   });
   it("shows a visible error after the bounded load attempts fail",()=>{
     const appended:Array<{textContent?:string;attributes:Record<string,string>}>=[];
-    const doc={createElement:()=>({style:{},attributes:{},setAttribute(name:string,value:string){this.attributes[name]=value;}}),body:{append:(node:typeof appended[number])=>appended.push(node)}};
+    const doc={createElement:()=>({style:{},attributes:{} as Record<string,string>,setAttribute(name:string,value:string){this.attributes[name]=value;}}),body:{append:(node:typeof appended[number])=>appended.push(node)}};
     showFeatureError(doc,"Try again.");
     expect(appended).toHaveLength(1);
     expect(appended[0].attributes.role).toBe("alert");
