@@ -80,3 +80,5 @@
 @media (prefers-reduced-motion: reduce) {
   .ds-welcome, .ds-welcome__logo, .ds-welcome__text, .ds-welcome__picks > * { animation: none; }
 }
+.ds-welcome__clip img, .ds-welcome__clip video { grid-area: 1 / 1; width: 100%; height: 100%; object-fit: cover; }
+@media (prefers-reduced-motion: reduce) { .ds-welcome__clip video { display: none; } }

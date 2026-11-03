@@ -1,7 +1,9 @@
 <div align="center">
   <img src="src/assets/creativefield-logo.png" alt="CreativeField" width="360">
 
-  <img src="docs/screens/creativefield/creativefield-promo.webp" alt="CreativeField product video: one picture travels through FotoField, Create Video and 3D" width="100%">
+  <a href="https://github.com/rhymeas/Creativefield/raw/refs/heads/main/docs/screens/creativefield/creativefield-promo-v3.mp4"><img src="docs/screens/creativefield/creativefield-promo-v3.webp" alt="Watch the CreativeField introduction video" width="100%"></a>
+
+  [▶ Watch the CreativeField video](https://github.com/rhymeas/Creativefield/raw/refs/heads/main/docs/screens/creativefield/creativefield-promo-v3.mp4)
 
   # CreativeField
 
