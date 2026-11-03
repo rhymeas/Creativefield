@@ -73,6 +73,10 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
     if (binding.transform === "divide_native_scale") value = Number(value) / manifest.nativeScale!;
     if (!manifest.mediaContract && (control.id === "negative" || control.id === "motion_prompt") && typeof value === "string" && !value.trim()) continue;
     graph[binding.node].inputs[binding.field] = value;
+    for (const also of control.alsoBindings ?? []) {
+      if (!graph[also.node] || !(also.field in graph[also.node].inputs)) throw new Error(`Unbound control: ${control.id}`);
+      graph[also.node].inputs[also.field] = value;
+    }
   }
   /* The words are read after presets and defaults, because the look, the note and the clause meet there. */
   const promptControl = manifest.controls.find(c => c.id === "prompt" && !c.disabledReason);

@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 2,
+  "id": "video-bg-remove-birefnet",
+  "version": "0.1.0",
+  "title": "Remove video background",
+  "category": "enhance",
+  "description": "Cut the subject out of every frame of a clip with BiRefNet. You get a WebM with a transparent background and a black-and-white matte of the same clip. Sound is not carried over. Long clips are slow: every frame is processed one by one.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Clip",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "1",
+        "field": "file"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "cutout",
+      "label": "Cut-out (WebM with transparency)",
+      "type": "video",
+      "required": true
+    },
+    {
+      "id": "matte",
+      "label": "Matte (white = subject)",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "video-bg-remove-birefnet",
+      "requirements": [
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Install a ComfyUI version providing LoadVideo."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Install a ComfyUI version providing GetVideoComponents."
+        },
+        {
+          "id": "node:LoadBackgroundRemovalModel",
+          "kind": "node",
+          "name": "LoadBackgroundRemovalModel",
+          "instructions": "Install a ComfyUI version providing LoadBackgroundRemovalModel."
+        },
+        {
+          "id": "node:RemoveBackground",
+          "kind": "node",
+          "name": "RemoveBackground",
+          "instructions": "Install a ComfyUI version providing RemoveBackground."
+        },
+        {
+          "id": "node:InvertMask",
+          "kind": "node",
+          "name": "InvertMask",
+          "instructions": "Install a ComfyUI version providing InvertMask."
+        },
+        {
+          "id": "node:JoinImageWithAlpha",
+          "kind": "node",
+          "name": "JoinImageWithAlpha",
+          "instructions": "Install a ComfyUI version providing JoinImageWithAlpha."
+        },
+        {
+          "id": "node:SaveWEBM",
+          "kind": "node",
+          "name": "SaveWEBM",
+          "instructions": "Install a ComfyUI version providing SaveWEBM."
+        },
+        {
+          "id": "node:MaskToImage",
+          "kind": "node",
+          "name": "MaskToImage",
+          "instructions": "Install a ComfyUI version providing MaskToImage."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Install a ComfyUI version providing CreateVideo."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install a ComfyUI version providing SaveVideo."
+        },
+        {
+          "id": "model:birefnet",
+          "kind": "model",
+          "name": "birefnet.safetensors",
+          "location": "background_removal",
+          "version": "sha256:9ab37426bf4de0567af6b5d21b16151357149139362e6e8992021b8ce356a154",
+          "source": "https://huggingface.co/ZhengPeng7/BiRefNet",
+          "instructions": "Install BiRefNet into ComfyUI models/background_removal and verify its SHA-256 (444,473,596 bytes)."
+        }
+      ],
+      "evidence": [
+        "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/video-bg-remove-birefnet.json (MIT, commit c307034); only the output file prefix was set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
+        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, no GPU), workflow hash 093c2a44cac8, 354 s. Input: 1 s, 12 fps, 320 px wide cut of Pexels clip-woman-walking.mp4 (12 frames). Result: VP9 WebM with alpha flag (alpha_mode 1) and a matte MP4, both 320x180, 1.00 s; one frame looked at: clean outline on a blue background, matte matches. Only 12 small frames; CPU time 354 s, so long or large clips are slow. Sound not carried over. Receipt: scripts/utility-packs-e2e.mjs."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Graph from workingprototype/Fuobe (MIT, commit c307034) built on ComfyUI core nodes: GPL-3.0. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "BiRefNet",
+        "license": "MIT per the BiRefNet repository, not independently verified here; read the model card before any distribution or commercial use.",
+        "source": "https://huggingface.co/ZhengPeng7/BiRefNet"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/video-bg-remove-birefnet.json",
+      "observedAt": "2026-10-30",
+      "kind": "implementation"
+    }
+  ],
+  "credit": {
+    "name": "Fuobe",
+    "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/video-bg-remove-birefnet.json",
+    "license": "MIT",
+    "what": "The workflow behind this app"
+  },
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 2,
+  "id": "video-concat-2",
+  "version": "0.1.0",
+  "title": "Join two clips",
+  "category": "enhance",
+  "description": "Put one clip after another. Both are scaled to the size you choose (centered crop). The frame rate of the first clip is used for the whole clip, so a second clip with a different frame rate plays faster or slower (25 fps after 30 fps runs about 20% fast). The joined clip has no sound.",
+  "inputs": [
+    {
+      "id": "first_video",
+      "label": "First clip",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "1",
+        "field": "file"
+      }
+    },
+    {
+      "id": "second_video",
+      "label": "Second clip",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "4",
+        "field": "file"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Joined clip",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "width",
+      "label": "Width",
+      "type": "number",
+      "min": 64,
+      "max": 3840,
+      "step": 2,
+      "default": 1280,
+      "binding": {
+        "node": "3",
+        "field": "width"
+      },
+      "alsoBindings": [
+        {
+          "node": "6",
+          "field": "width"
+        }
+      ]
+    },
+    {
+      "id": "height",
+      "label": "Height",
+      "type": "number",
+      "min": 64,
+      "max": 2160,
+      "step": 2,
+      "default": 720,
+      "binding": {
+        "node": "3",
+        "field": "height"
+      },
+      "alsoBindings": [
+        {
+          "node": "6",
+          "field": "height"
+        }
+      ]
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "video-concat-2",
+      "requirements": [
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Install a ComfyUI version providing LoadVideo."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Install a ComfyUI version providing GetVideoComponents."
+        },
+        {
+          "id": "node:ImageScale",
+          "kind": "node",
+          "name": "ImageScale",
+          "instructions": "Install a ComfyUI version providing ImageScale."
+        },
+        {
+          "id": "node:BatchImagesNode",
+          "kind": "node",
+          "name": "BatchImagesNode",
+          "instructions": "Install a ComfyUI version providing BatchImagesNode."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Install a ComfyUI version providing CreateVideo."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install a ComfyUI version providing SaveVideo."
+        }
+      ],
+      "evidence": [
+        "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/video-concat-2.json (MIT, commit c307034); only the output file prefix was set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
+        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, no GPU), workflow hash edaca9430666, 16 s. Input: two 2 s clips (ocean 29.97 fps, traffic 25 fps), size 640x360. Result: 640x360, 3.67 s (not 4 s): the first clip frame rate is used for everything, so the 25 fps clip plays about 20% fast; the description says so. Frames looked at: ocean, then traffic. No sound in the result. Receipt: scripts/utility-packs-e2e.mjs."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Graph from workingprototype/Fuobe (MIT, commit c307034) built on ComfyUI core nodes: GPL-3.0. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "No model weights",
+        "license": "This pack runs ComfyUI core nodes only and loads no model.",
+        "source": "https://github.com/comfyanonymous/ComfyUI"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/video-concat-2.json",
+      "observedAt": "2026-10-30",
+      "kind": "implementation"
+    }
+  ],
+  "credit": {
+    "name": "Fuobe",
+    "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/video-concat-2.json",
+    "license": "MIT",
+    "what": "The workflow behind this app"
+  },
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

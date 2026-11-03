@@ -1,13 +1,14 @@
 // Opt-in real ComfyUI smoke: submits shipped graphs to a live ComfyUI server and
 // verifies real media comes back. Not part of `npm test` (needs a GPU + installed
 // models + FFmpeg). Usage: npm run smoke:real
-// Covers: Flux 2 Klein 4B text-to-image (PNG) and Real-ESRGAN video x2 (MP4).
+// Covers: FLUX Klein text-to-image (PNG) and Real-ESRGAN video x2 (MP4).
 // Env: COMFYUI_URL (default http://127.0.0.1:8188), SMOKE_TIMEOUT_MS.
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { configureImageSmoke } from "./real-smoke-config.mjs";
 
 const base = (process.env.COMFYUI_URL ?? "http://127.0.0.1:8188").replace(/\/$/, "");
 const timeoutMs = Number(process.env.SMOKE_TIMEOUT_MS ?? 300000);
@@ -55,10 +56,10 @@ async function download(file) {
 const stats = await json("/system_stats").catch(() => fail("ComfyUI unreachable"));
 console.log(`comfyui ${stats.system?.comfyui_version ?? "?"} devices=${stats.devices?.length ?? 0}`);
 
-// 1. Text to image, shipped Flux 2 Klein 4B pack.
+// 1. Text to image, shipped FLUX Klein pack.
 const flux = JSON.parse(await readFile(new URL("../native-workflows/flux2-klein-t2i/template.api.json", import.meta.url), "utf8"));
-flux["76"].inputs.value = "smoke test: a red cabin beside a frozen lake, photographic";
-flux["75:73"].inputs.noise_seed = 20261018;
+const fluxManifest = JSON.parse(await readFile(new URL("../native-workflows/flux2-klein-t2i/manifest.json", import.meta.url), "utf8"));
+configureImageSmoke(flux, fluxManifest);
 const fluxRun = await submitAndWait(flux, "flux2-klein-t2i");
 const image = outputFile(fluxRun.entry);
 if (!image) fail("flux2-klein-t2i: no output image");

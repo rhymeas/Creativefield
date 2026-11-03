@@ -4,7 +4,7 @@
   "version": "0.2.0",
   "title": "Local portrait lip sync",
   "category": "video",
-  "description": "Local single-speaker portrait animation driven by a saved microphone take or mono PCM16 WAV. A close-up fictional portrait produced visible speech-related mouth motion with matching audio/video duration on RTX4090. Supported window1\u20133.2seconds; model fidelity varies.",
+  "description": "Local single-speaker portrait animation driven by a saved microphone take or mono PCM16 WAV. A close-up fictional portrait produced visible speech-related mouth motion with matching audio/video duration on RTX4090. Supported window1–3.2seconds; model fidelity varies.",
   "inputs": [
     {
       "id": "start_image",
@@ -284,7 +284,7 @@
       ],
       "evidence": [
         "Native CFG1 full-base trial229504bd produced a valid41-frame480x832/25fps H264/AAC1.64s video, but the full-body fixture showed weak mouth movement. A closer portrait and speech-only window with the official Apache-2.0 Lightx2v I2V adapter are being qualified. CFG1 matches the installed template and avoids doubled audio conditioning. Negative prompt is not exposed because CFG1 skips the unconditional branch.",
-        "Native prompt4faec568-7764-46e4-9c70-980c87b41b0f succeeded with a close portrait and a voiced window using the official Apache-2.0 I2V adapter:480x832,49frames,25fps,H264+AACAUDIO1.96s,SHA91d6021852410427663461995edca3902e337e9c79e74b3eac97ca8160b49d04. Filmstrip shows mouth opening during speech and closed at the quiet end. No quantitative phoneme alignment or broad identity/quality guarantee is claimed."
+        "Native prompt[local run] succeeded with a close portrait and a voiced window using the official Apache-2.0 I2V adapter:480x832,49frames,25fps,H264+AACAUDIO1.96s,SHA91d6021852410427663461995edca3902e337e9c79e74b3eac97ca8160b49d04. Filmstrip shows mouth opening during speech and closed at the quiet end. No quantitative phoneme alignment or broad identity/quality guarantee is claimed."
       ]
     }
   ],

@@ -17,7 +17,8 @@ export function ModelToolsPanel({mode,workspace,project,call,canEdit,onChanged}:
 
  const [assets,setAssets]=useState<Asset[]>([]),[source,setSource]=useState(location.hash.split("/")[2]??""),[texture,setTexture]=useState(""),[result,setResult]=useState<Asset>(),[scale,setScale]=useState("1"),[rotation,setRotation]=useState("0"),[center,setCenter]=useState(true),[busy,setBusy]=useState(""),[error,setError]=useState(""),[loading,setLoading]=useState(true),[retry,setRetry]=useState(0),[cursor,setCursor]=useState<string|null>(null),[previewStatus,setPreviewStatus]=useState<"loading"|"ready"|"failed">("loading");
 
- const working=useRef(false),mounted=useRef(true),preview=useRef<OrbitPreviewHandle>(null);useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
+ const working=useRef(false),loadingMoreRef=useRef(false),mounted=useRef(true),preview=useRef<OrbitPreviewHandle>(null);useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
+ const [loadingMore,setLoadingMore]=useState(false),[moreError,setMoreError]=useState("");
  const onPreviewStatus=useCallback((status:"loading"|"ready"|"failed")=>setPreviewStatus(status),[]);
 
  useEffect(()=>{let live=true;setLoading(true);void composerAssets(call,workspace.id,project.id,[source,texture].filter(Boolean)).then(page=>{if(live){setAssets(old=>[...new Map([...old,...page.items].map(a=>[a.id,a])).values()]);setCursor(page.nextCursor);setError("");}}).catch(e=>{if(live)setError((e as Error).message);}).finally(()=>{if(live)setLoading(false);});return()=>{live=false;};},[workspace.id,project.id,call,retry]);
@@ -26,7 +27,7 @@ export function ModelToolsPanel({mode,workspace,project,call,canEdit,onChanged}:
 
  const valid=Number.isFinite(Number(scale))&&Number(scale)>=0.01&&Number(scale)<=100&&rotation.trim()!==""&&Number.isFinite(Number(rotation))&&Math.abs(Number(rotation))<=360;
 
- async function more(){try{const page=await call<{items:Asset[];nextCursor:string|null}>(workspacePath(workspace.id,`assets?projectId=${project.id}&cursor=${encodeURIComponent(cursor!)}`));setAssets(old=>[...new Map([...old,...page.items].map(a=>[a.id,a])).values()]);setCursor(page.nextCursor);}catch(e){setError((e as Error).message);}}
+ async function more(){if(!cursor||loadingMoreRef.current)return;loadingMoreRef.current=true;setLoadingMore(true);setMoreError("");try{const page=await call<{items:Asset[];nextCursor:string|null}>(workspacePath(workspace.id,`assets?projectId=${encodeURIComponent(project.id)}&cursor=${encodeURIComponent(cursor)}`));if(mounted.current){setAssets(old=>[...new Map([...old,...page.items].map(a=>[a.id,a])).values()]);setCursor(page.nextCursor);}}catch{if(mounted.current)setMoreError("Could not load more files. Try again.");}finally{loadingMoreRef.current=false;if(mounted.current)setLoadingMore(false);}}
 
  async function upload(file:File|null,kind:"model3d"|"image"){
 
@@ -67,9 +68,9 @@ export function ModelToolsPanel({mode,workspace,project,call,canEdit,onChanged}:
 
   <LibraryChoice chosen={!!selected} value={source} disabled={!!busy} options={models.map(a=>({value:a.id,label:a.name,icon:<Suspense fallback={null}><Preview compact url={assetUrl(workspace.id,a.id)}/></Suspense>}))} onChange={id=>{setPreviewStatus("loading");setSource(id);setResult(undefined);}}/>
 
-  {loading&&<ShimmerText>Reading Library</ShimmerText>}{cursor&&<Button variant="ghost" onClick={()=>void more()}>More Library assets</Button>}
+  {loading&&<ShimmerText>Reading Library</ShimmerText>}{cursor&&<Button variant="ghost" disabled={loadingMore} onClick={()=>void more()}>{loadingMore?"Loading…":"More Library assets"}</Button>}
 
-  {mode==="texture"?<><TeamMediaInput label="Base-color texture" type="image" hint="Applied to existing UVs" accept="image/png,image/jpeg,image/webp" file={null} selected={image} options={images} disabled={!!busy||!canEdit} canUpload={canEdit} workspace={workspace.id} onFile={f=>void upload(f,"image")} onSelect={setTexture} onUpload={()=>{}}/></>:mode==="mesh"?<><TextField label="Scale multiplier" type="number" value={scale} min={0.01} max={100} disabled={!!busy} onChange={setScale}/><TextField label="Y rotation (degrees)" type="number" value={rotation} min={-360} max={360} disabled={!!busy} onChange={setRotation}/><Checkbox checked={center} disabled={!!busy} onChange={setCenter}>Center at origin</Checkbox></>:null}
+  {mode==="texture"?<><TeamMediaInput projectId={project.id} onLoadMore={cursor?()=>void more():undefined} loadingMore={loadingMore} loadMoreError={moreError} label="Base-color texture" type="image" hint="Applied to existing UVs" accept="image/png,image/jpeg,image/webp" file={null} selected={image} options={images} disabled={!!busy||!canEdit} canUpload={canEdit} workspace={workspace.id} onFile={f=>void upload(f,"image")} onSelect={setTexture} onUpload={()=>{}}/></>:mode==="mesh"?<><TextField label="Scale multiplier" type="number" value={scale} min={0.01} max={100} disabled={!!busy} onChange={setScale}/><TextField label="Y rotation (degrees)" type="number" value={rotation} min={-360} max={360} disabled={!!busy} onChange={setRotation}/><Checkbox checked={center} disabled={!!busy} onChange={setCenter}>Center at origin</Checkbox></>:null}
 
   {mode==="viewer"&&shown&&<PanelSection label="Continue with"><Toolbar><Button variant="secondary" disabled={previewStatus!=="ready"||!!busy} onClick={()=>void continueFromView("edit")}>Image edit</Button><Button variant="secondary" disabled={previewStatus!=="ready"||!!busy} onClick={()=>void continueFromView("image")}>Image to 3D</Button><Button variant="ghost" disabled={!!busy} onClick={()=>{location.hash=threeDContinuationHash("texture",shown.id);}}>Textures</Button><Button variant="ghost" disabled={!!busy} onClick={()=>{location.hash=threeDContinuationHash("mesh",shown.id);}}>Mesh tools</Button></Toolbar></PanelSection>}
 

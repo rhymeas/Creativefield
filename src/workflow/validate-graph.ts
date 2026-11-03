@@ -40,32 +40,58 @@ export function validateGraph(graph: ApiGraph, info: ObjectInfo | null, skip: Re
     const def = info[node.class_type];
     if (!def) { add(id, "missing_node", `${node.class_type} is not available on this ComfyUI`); continue; }
     if (def.output_node) hasOutput = true;
-    for (const [name, raw] of Object.entries(def.input.required ?? {})) {
+    const validateInput = (name: string, raw: unknown, required: boolean) => {
       const spec = raw as Spec, value = node.inputs[name];
       /* Dynamic inputs (COMFY_AUTOGROW_V3, COMFY_DYNAMICCOMBO_V3, ...) hold their own value, their
          members as "<name>.<member>" keys, or both; their contents are not judged here. */
       if (typeof spec[0] === "string" && spec[0].startsWith("COMFY_")) {
         const present = (value !== undefined && value !== null) || Object.keys(node.inputs).some(key => key.startsWith(`${name}.`));
         const optional = (spec[1] as { template?: { min?: number }; min?: number } | undefined)?.template?.min === 0;
-        if (!present && !optional) add(id, "missing_input", `${name} is required and empty`, name);
-        continue;
+        if (required && !present && !optional) add(id, "missing_input", `${name} is required and empty`, name);
+        return;
       }
-      if (value === undefined || value === null) { add(id, "missing_input", `${name} is required and empty`, name); continue; }
-      if (isLink(value) || skip.has(`${id}.${name}`)) continue;
+      if (value === undefined || value === null) {
+        if (required) add(id, "missing_input", `${name} is required and empty`, name);
+        return;
+      }
+      if (isLink(value) || skip.has(`${id}.${name}`)) return;
       const options = comboOptions(spec);
       if (options) {
-        if (!options.includes(String(value))) add(id, "bad_option", `${name} is "${String(value)}", which this ComfyUI does not offer`, name);
-        continue;
+        if (!options.some(option => String(option) === String(value))) add(id, "bad_option", `${name} is "${String(value)}", which this ComfyUI does not offer`, name);
+        return;
       }
       const limits = spec[1] ?? {}, kind = spec[0];
       if ((kind === "INT" || kind === "FLOAT") && typeof value === "number") {
         const { min, max } = limits as { min?: number; max?: number };
         if ((min !== undefined && value < min) || (max !== undefined && value > max)) add(id, "out_of_range", `${name} is ${value}, outside ${min ?? "-"}..${max ?? "-"}`, name);
       }
-    }
+    };
+    for (const [name, raw] of Object.entries(def.input.required ?? {})) validateInput(name, raw, true);
+    for (const [name, raw] of Object.entries(def.input.optional ?? {})) validateInput(name, raw, false);
   }
   if (info && !hasOutput && Object.values(graph).every(node => info[node.class_type])) add("-", "no_output", "no node in the graph produces a result");
   return issues;
+}
+
+/** Separate diagnostics on disconnected nodes only when every output can be identified. */
+export function partitionOutputIssues(graph: ApiGraph, info: ObjectInfo | null, issues: GraphIssue[]) {
+  const nodes = Object.entries(graph);
+  if (!info || nodes.some(([, node]) => !info[node.class_type])) return { active: issues, disconnected: [] as GraphIssue[] };
+  const outputs = nodes.filter(([, node]) => info[node.class_type].output_node).map(([id]) => id);
+  if (!outputs.length) return { active: issues, disconnected: [] as GraphIssue[] };
+  const reachable = new Set<string>();
+  const pending = [...outputs];
+  while (pending.length) {
+    const id = pending.pop()!;
+    if (reachable.has(id)) continue;
+    reachable.add(id);
+    const node = graph[id];
+    if (node) for (const value of Object.values(node.inputs)) if (isLink(value)) pending.push(String(value[0]));
+  }
+  return {
+    active: issues.filter(issue => issue.node === "-" || reachable.has(issue.node)),
+    disconnected: issues.filter(issue => issue.node !== "-" && !reachable.has(issue.node)),
+  };
 }
 
 /** One line per problem class, so a report says which node packs and which models to look for. */

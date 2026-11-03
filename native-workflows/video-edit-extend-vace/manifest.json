@@ -232,8 +232,8 @@
       ],
       "evidence": [
         "2026-10-22 native VACE first-clip graph: context zero-mask, gray/white-mask generation tail; 50 steps and shift16.",
-        "Native prompt4d9ffdd4-c166-431f-b890-c0c1bed710df: 832x480,13 frames,16 FPS.",
-        "Isolated app job0bce0094-f05c-4fcc-91cf-deb8333bcea7; SDK runa6c9d225-b883-442c-b367-975c36fc7293 survived service restart and produced24 frames from16 retained +8 generated. See docs/VIDEO-FORWARD-EVIDENCE.md for limits."
+        "Native prompt[local run]: 832x480,13 frames,16 FPS.",
+        "Isolated app job[local run]; SDK run[local run] survived service restart and produced24 frames from16 retained +8 generated. See docs/VIDEO-FORWARD-EVIDENCE.md for limits."
       ]
     }
   ],

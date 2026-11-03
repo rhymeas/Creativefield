@@ -2,7 +2,7 @@ import {assetMatchesPort} from "../../capabilities/assets";
 import type {CapabilityManifestV2} from "../../capabilities/types";
 import type {CharacterRecord,ReusableElement} from "../api";
 import type {ShotPayload} from "../storyboard-state";
-import {defaultDraft} from "../state";
+import {defaultDraft,h3GeneratedAudio} from "../state";
 
 export const MAX_SCENES=20;
 export const WORDS_PER_SECOND=2.5;
@@ -128,7 +128,7 @@ export function buildShotPayloads(character:CharacterRecord,script:string,manife
       prompt:`${character.name}: ${scene}`,
       durationSeconds:duration(scene),
       settings:{
-        audioPolicy:manifest.audioPolicies.includes("mute")?"mute":manifest.audioPolicies[0],
+        audioPolicy:h3GeneratedAudio(manifest)?"replace":manifest.audioPolicies.includes("mute")?"mute":manifest.audioPolicies[0],
         elementInputs:bindings,
         generation:{capabilityId:manifest.id,version:manifest.version,routeId:"local" as const,controls},
       },

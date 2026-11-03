@@ -1,0 +1,478 @@
+{
+  "schemaVersion": 2,
+  "id": "h3-effects",
+  "version": "0.2.0",
+  "title": "Effect clips",
+  "category": "video",
+  "description": "Pick an effect, add a photo of a person and get a short vertical clip of them breathing fire, summoning a storm and more. Runs MiniMax H3 with its official effect embeddings locally when the model and nodes are installed.",
+  "inputs": [
+    {
+      "id": "character_image",
+      "label": "Photo",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "50",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Clip",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Add to the effect",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "6",
+        "field": "prompt"
+      }
+    },
+    {
+      "id": "width",
+      "label": "Width",
+      "type": "integer",
+      "min": 256,
+      "max": 1920,
+      "step": 32,
+      "default": 480,
+      "binding": {
+        "node": "sh:w",
+        "field": "value"
+      }
+    },
+    {
+      "id": "height",
+      "label": "Height",
+      "type": "integer",
+      "min": 256,
+      "max": 1920,
+      "step": 32,
+      "default": 832,
+      "binding": {
+        "node": "sh:h",
+        "field": "value"
+      }
+    },
+    {
+      "id": "length",
+      "label": "Length (frames at 24 fps)",
+      "type": "select",
+      "options": [
+        124,
+        175,
+        243
+      ],
+      "default": 124,
+      "binding": {
+        "node": "6",
+        "field": "length"
+      }
+    },
+    {
+      "id": "sharpen",
+      "label": "Sharpen 2x (same take, twice the size)",
+      "type": "boolean",
+      "default": false,
+      "binding": {
+        "node": "sh:on",
+        "field": "value"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 20261031,
+      "binding": {
+        "node": "8",
+        "field": "noise_seed"
+      }
+    }
+  ],
+  "presets": [
+    {
+      "id": "fire_breath",
+      "title": "Fire breath",
+      "values": {
+        "prompt": "embedding:minimaxh3_fire_breath The person in the picture takes a deep breath and breathes a huge stream of fire toward the camera."
+      },
+      "thumb": "/examples/effects/fire_breath.webp"
+    },
+    {
+      "id": "bullet_time",
+      "title": "Bullet time",
+      "values": {
+        "prompt": "embedding:minimaxh3_bullet_time The person in the picture leaps into the air; time freezes mid-jump and the camera circles around them in bullet time."
+      },
+      "thumb": "/examples/effects/bullet_time.webp"
+    },
+    {
+      "id": "blooming_flowers",
+      "title": "Blooming flowers",
+      "values": {
+        "prompt": "embedding:minimaxh3_blooming_flowers Flowers bloom and grow all around the person in the picture until they are surrounded by blossoms."
+      },
+      "thumb": "/examples/effects/blooming_flowers.webp"
+    },
+    {
+      "id": "four_seasons",
+      "title": "Four seasons",
+      "values": {
+        "prompt": "embedding:minimaxh3_four_seasons The seasons change around the person in the picture: spring blossoms, summer sun, autumn leaves and winter snow."
+      },
+      "thumb": "/examples/effects/four_seasons.webp"
+    },
+    {
+      "id": "kiss_camera",
+      "title": "Kiss to camera",
+      "values": {
+        "prompt": "embedding:minimaxh3_kiss_camera The person in the picture leans toward the camera, smiles and blows a kiss."
+      },
+      "thumb": "/examples/effects/kiss_camera.webp"
+    },
+    {
+      "id": "storm_magic",
+      "title": "Storm magic",
+      "values": {
+        "prompt": "embedding:minimaxh3_storm_magic The person in the picture calls down a storm; lightning crackles and wind whips around them."
+      },
+      "thumb": "/examples/effects/storm_magic.webp"
+    },
+    {
+      "id": "truman_show",
+      "title": "Film set reveal",
+      "values": {
+        "prompt": "embedding:minimaxh3_truman_show The person in the picture walks forward and touches the sky, which turns out to be a painted wall of a giant film set."
+      },
+      "thumb": "/examples/effects/truman_show.webp"
+    }
+  ],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "h3-effects",
+      "requirements": [
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Install a ComfyUI version providing UNETLoader (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install a ComfyUI version providing CLIPLoader (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install a ComfyUI version providing VAELoader (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:MiniMaxH3ReferenceToVideo",
+          "kind": "node",
+          "name": "MiniMaxH3ReferenceToVideo",
+          "instructions": "Install a ComfyUI version providing MiniMaxH3ReferenceToVideo (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:RandomNoise",
+          "kind": "node",
+          "name": "RandomNoise",
+          "instructions": "Install a ComfyUI version providing RandomNoise (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:KSamplerSelect",
+          "kind": "node",
+          "name": "KSamplerSelect",
+          "instructions": "Install a ComfyUI version providing KSamplerSelect (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:BasicScheduler",
+          "kind": "node",
+          "name": "BasicScheduler",
+          "instructions": "Install a ComfyUI version providing BasicScheduler (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:BasicGuider",
+          "kind": "node",
+          "name": "BasicGuider",
+          "instructions": "Install a ComfyUI version providing BasicGuider (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:SamplerCustomAdvanced",
+          "kind": "node",
+          "name": "SamplerCustomAdvanced",
+          "instructions": "Install a ComfyUI version providing SamplerCustomAdvanced (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install a ComfyUI version providing VAEDecode (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:VAEDecodeAudio",
+          "kind": "node",
+          "name": "VAEDecodeAudio",
+          "instructions": "Install a ComfyUI version providing VAEDecodeAudio (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Install a ComfyUI version providing CreateVideo (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install a ComfyUI version providing SaveVideo (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install a ComfyUI version providing LoadImage (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:MiniMaxH3SigmaShift",
+          "kind": "node",
+          "name": "MiniMaxH3SigmaShift",
+          "instructions": "Install a ComfyUI version providing MiniMaxH3SigmaShift (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:LoraLoaderModelOnly",
+          "kind": "node",
+          "name": "LoraLoaderModelOnly",
+          "instructions": "Install a ComfyUI version providing LoraLoaderModelOnly (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:Ref2VAVSAGatePatch",
+          "kind": "node",
+          "name": "Ref2VAVSAGatePatch",
+          "instructions": "Install Kablex/ComfyUI-Ref2VA-VSA (Apache-2.0) and PyTorch built for CUDA 13."
+        },
+        {
+          "id": "model:h3-ref2va",
+          "kind": "model",
+          "name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "bytes": 20970379616,
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install minimax_h3_ref2va_pruned_int8_convrot.safetensors into ComfyUI models/diffusion_models."
+        },
+        {
+          "id": "model:h3-text",
+          "kind": "model",
+          "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+          "location": "text_encoders",
+          "bytes": 15687142551,
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors into ComfyUI models/text_encoders."
+        },
+        {
+          "id": "model:h3-video-vae",
+          "kind": "model",
+          "name": "minimax_h3_video_vae_fp16.safetensors",
+          "location": "vae",
+          "bytes": 5207808496,
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install minimax_h3_video_vae_fp16.safetensors into ComfyUI models/vae."
+        },
+        {
+          "id": "model:h3-audio-vae",
+          "kind": "model",
+          "name": "minimax_h3_audio_vae_fp32.safetensors",
+          "location": "vae",
+          "bytes": 605254808,
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install minimax_h3_audio_vae_fp32.safetensors into ComfyUI models/vae."
+        },
+        {
+          "id": "model:h3-ref2v-turbo4",
+          "kind": "model",
+          "name": "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors",
+          "location": "loras",
+          "bytes": 1956193000,
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors into ComfyUI models/loras."
+        },
+        {
+          "id": "model:fasth3-vsa-gate",
+          "kind": "model",
+          "name": "fasth3_vsa_gate.safetensors",
+          "location": "loras",
+          "bytes": 3853522616,
+          "source": "https://huggingface.co/barelymining/ComfyUI-MiniMax-H3-FastVideo",
+          "instructions": "Install fasth3_vsa_gate.safetensors into ComfyUI models/loras."
+        },
+        {
+          "id": "model:h3-effect-fire_breath",
+          "kind": "model",
+          "name": "minimaxh3_fire_breath.safetensors",
+          "location": "embeddings",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
+          "instructions": "Install minimaxh3_fire_breath.safetensors into ComfyUI models/embeddings."
+        },
+        {
+          "id": "model:h3-effect-bullet_time",
+          "kind": "model",
+          "name": "minimaxh3_bullet_time.safetensors",
+          "location": "embeddings",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
+          "instructions": "Install minimaxh3_bullet_time.safetensors into ComfyUI models/embeddings."
+        },
+        {
+          "id": "model:h3-effect-blooming_flowers",
+          "kind": "model",
+          "name": "minimaxh3_blooming_flowers.safetensors",
+          "location": "embeddings",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
+          "instructions": "Install minimaxh3_blooming_flowers.safetensors into ComfyUI models/embeddings."
+        },
+        {
+          "id": "model:h3-effect-four_seasons",
+          "kind": "model",
+          "name": "minimaxh3_four_seasons.safetensors",
+          "location": "embeddings",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
+          "instructions": "Install minimaxh3_four_seasons.safetensors into ComfyUI models/embeddings."
+        },
+        {
+          "id": "model:h3-effect-kiss_camera",
+          "kind": "model",
+          "name": "minimaxh3_kiss_camera.safetensors",
+          "location": "embeddings",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
+          "instructions": "Install minimaxh3_kiss_camera.safetensors into ComfyUI models/embeddings."
+        },
+        {
+          "id": "model:h3-effect-storm_magic",
+          "kind": "model",
+          "name": "minimaxh3_storm_magic.safetensors",
+          "location": "embeddings",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
+          "instructions": "Install minimaxh3_storm_magic.safetensors into ComfyUI models/embeddings."
+        },
+        {
+          "id": "model:h3-effect-truman_show",
+          "kind": "model",
+          "name": "minimaxh3_truman_show.safetensors",
+          "location": "embeddings",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
+          "instructions": "Install minimaxh3_truman_show.safetensors into ComfyUI models/embeddings."
+        },
+        {
+          "id": "node:LatentUpscaleModelLoader",
+          "kind": "node",
+          "name": "LatentUpscaleModelLoader",
+          "instructions": "ComfyUI core node (the MiniMax H3 latent upscaler needs ComfyUI after 2026-10-28, PR 17412)."
+        },
+        {
+          "id": "node:MiniMaxH3LatentUpscaleWithModel",
+          "kind": "node",
+          "name": "MiniMaxH3LatentUpscaleWithModel",
+          "instructions": "ComfyUI core node (the MiniMax H3 latent upscaler needs ComfyUI after 2026-10-28, PR 17412)."
+        },
+        {
+          "id": "node:ManualSigmas",
+          "kind": "node",
+          "name": "ManualSigmas",
+          "instructions": "ComfyUI core node (the MiniMax H3 latent upscaler needs ComfyUI after 2026-10-28, PR 17412)."
+        },
+        {
+          "id": "node:ComfyMathExpression",
+          "kind": "node",
+          "name": "ComfyMathExpression",
+          "instructions": "ComfyUI core node (the MiniMax H3 latent upscaler needs ComfyUI after 2026-10-28, PR 17412)."
+        },
+        {
+          "id": "node:PrimitiveBoolean",
+          "kind": "node",
+          "name": "PrimitiveBoolean",
+          "instructions": "ComfyUI core node (the MiniMax H3 latent upscaler needs ComfyUI after 2026-10-28, PR 17412)."
+        },
+        {
+          "id": "node:PrimitiveInt",
+          "kind": "node",
+          "name": "PrimitiveInt",
+          "instructions": "ComfyUI core node (the MiniMax H3 latent upscaler needs ComfyUI after 2026-10-28, PR 17412)."
+        },
+        {
+          "id": "node:ComfySwitchNode",
+          "kind": "node",
+          "name": "ComfySwitchNode",
+          "instructions": "ComfyUI core node (the MiniMax H3 latent upscaler needs ComfyUI after 2026-10-28, PR 17412)."
+        },
+        {
+          "id": "model:h3-latent-upscaler",
+          "kind": "model",
+          "name": "minimax_h3_latent_upscaler_3d_conv_v1_fp16.safetensors",
+          "location": "latent_upscale_models",
+          "bytes": 690592672,
+          "source": "https://huggingface.co/LBH-123-AI/Minimax_h3_latent_Upscaler",
+          "instructions": "Install minimax_h3_latent_upscaler_3d_conv_v1_fp16.safetensors into ComfyUI models/latent_upscale_models."
+        }
+      ],
+      "evidence": [
+        "2026-10-31: all 10 official minimaxh3_* effect embeddings rendered through the app API on the H3 worker (Ref2VA, 832x480, 124 frames, portrait-woman-studio.jpg, one action prompt each, 65-75 s per clip). Looked at 4 frames each: fire breath, bullet time (jump and freeze; the camera orbit does not show), blooming flowers, four seasons, kiss to camera, storm magic and film set reveal show their effect without artefacts and are offered. Paint explosion, dark magic and spiral rise burn Chinese subtitles into the picture, also with an explicit no-text line, and are left out.",
+        "2026-10-31: run 4ab1802e through the app API at the app default (480x832 vertical, 124 frames) with the Fire breath card and portrait-man-front.jpg: 75 s, output 480x832, 124 frames with audio; he breathes a burst of fire, identity holds.",
+        "2026-10-31: Sharpen 2x stage added (MiniMax H3 latent upscaler, native ComfyUI node from PR 17412, then 3 refine steps from sigma 0.9035 with the turbo model and the same conditioning), the same stage as previs-to-video; a lazy switch runs it only when on."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Workflow and Ref2VAVSAGatePatch node: Kablex/ComfyUI-Ref2VA-VSA (Apache-2.0). Effect prompts written for CreativeField. ComfyUI core: GPL-3.0.",
+    "weights": [
+      {
+        "name": "MiniMax H3 Ref2VA, text encoder, VAEs, turbo LoRA and the minimaxh3_* effect embeddings",
+        "license": "MiniMax H3 model license as published with the weights; read it before any distribution or commercial use.",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "name": "MiniMax H3 latent upscaler v1",
+        "license": "Apache-2.0",
+        "source": "https://huggingface.co/LBH-123-AI/Minimax_h3_latent_Upscaler"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+      "observedAt": "2026-10-31",
+      "kind": "implementation"
+    }
+  ],
+  "credit": {
+    "name": "ComfyUI-Ref2VA-VSA",
+    "url": "https://github.com/Kablex/ComfyUI-Ref2VA-VSA/tree/323a0a5",
+    "license": "Apache-2.0; effects are Comfy-Org's MiniMax H3 embeddings",
+    "what": "The fast H3 workflow behind these effects"
+  },
+  "tickets": [],
+  "audioPolicies": [
+    "replace",
+    "mute"
+  ]
+}

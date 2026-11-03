@@ -242,8 +242,8 @@
         }
       ],
       "evidence": [
-        "Native prompt e9e3948f-0fe6-40e5-897e-07c6aada1813 succeeded on a cleared fictional jacket clip: 832x480,17frames,16FPS,mute;284732-byte combined MP4 SHA256 a905d3a1dbf58e36faaa9e13f01d83386f68f901ce5f1a25d25d88f6ab117066. Blue jacket and yellow backdrop visible; garment details changed. One fixture only.",
-        "Real isolated app qualification: tracked/approved point mask run 06002fc4-49c4-4c8c-8717-2f4fdab10b33 and background mask run 6bac98c9-1525-42e7-89b7-9c9fc309bb2e, then combined run 8e3c5ba4-e422-41a3-b16a-8febce732ccd survived service reconstruction. Native remote c6b762d7-095b-4807-8570-597e55f8e3e4 produced one 288750-byte 832x480/17frame/16FPS mute video, SHA256 ed7794aa838b6d84f34890323fdf1014c258ded6975b56202b470d02c7b669b7. Independent mask admission/review and pre-upload checks; user interface uses Add edit in existing video editor. One cleared fixture, model detail/edge limitations remain."
+        "Native prompt [local run] succeeded on a cleared fictional jacket clip: 832x480,17frames,16FPS,mute;284732-byte combined MP4 SHA256 a905d3a1dbf58e36faaa9e13f01d83386f68f901ce5f1a25d25d88f6ab117066. Blue jacket and yellow backdrop visible; garment details changed. One fixture only.",
+        "Real isolated app qualification: tracked/approved point mask run [local run] and background mask run [local run], then combined run [local run] survived service reconstruction. Native remote [local run] produced one 288750-byte 832x480/17frame/16FPS mute video, SHA256 ed7794aa838b6d84f34890323fdf1014c258ded6975b56202b470d02c7b669b7. Independent mask admission/review and pre-upload checks; user interface uses Add edit in existing video editor. One cleared fixture, model detail/edge limitations remain."
       ]
     }
   ],

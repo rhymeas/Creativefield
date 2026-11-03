@@ -90,6 +90,14 @@ export const capabilityPurpose = (manifest: CapabilityManifestV2) => {
   if (/interpolat/i.test(manifest.title)) return "Adds in-between frames so motion looks smoother.";
   if (/upscal|esrgan/i.test(manifest.title)) return "Makes an existing video or image sharper and larger.";
   if (/segment|mask/i.test(manifest.title) && capabilitySurface(manifest) === "image") return "Finds and isolates an object or region in an image.";
+  if (/remove background/i.test(manifest.title)) return "Cuts the subject out and leaves a transparent background.";
+  if (/hide faces/i.test(manifest.title)) return "Covers faces in a picture with a pixel mosaic.";
+  if (/match colors/i.test(manifest.title)) return "Gives a picture the color mood of a second picture.";
+  if (/trim clip/i.test(manifest.title)) return "Cuts a clip down to the part you want.";
+  if (/join two clips/i.test(manifest.title)) return "Puts one clip after another.";
+  if (/zoom and pan/i.test(manifest.title)) return "Turns a photo into a clip with a slow zoom and pan.";
+  if (/remove video background/i.test(manifest.title)) return "Cuts the subject out of every frame of a clip.";
+  if (/3d scene/i.test(manifest.title)) return "Turns one photo into a 3D scene you can look around in.";
   return surfacePurpose(capabilitySurface(manifest));
 };
 

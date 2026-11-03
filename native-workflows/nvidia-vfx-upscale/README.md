@@ -18,7 +18,7 @@ frame rate.
 
 The node pack is Apache-2.0. Its `nvidia-vfx` runtime is an NVIDIA proprietary
 wheel installed separately and not redistributed. Follow the exact steps and
-GPU requirements in [docs/NVIDIA-VFX.md](../../docs/NVIDIA-VFX.md), then
+GPU requirements in docs/NVIDIA-VFX.md, then
 restart ComfyUI.
 
 ComfyUI was not running on `127.0.0.1:8188` during this setup, so the local

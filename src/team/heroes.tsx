@@ -8,6 +8,9 @@ const LINES:Record<string,{title:string;text:string}>={
   replace:{title:"Put anyone in any video",text:"Swap a person for your character and keep every move, the light and the place."},
   swap:{title:"Swap anything in a video",text:"Name a thing, show what it becomes, and the rest of the clip stays as it is."},
   motion:{title:"Turn one video into many",text:"Take the motion and recast it with your characters, places and products."},
+  remix:{title:"Make more from one picture",text:"Choose a picture, describe each variation, and generate them together."},
+  ad:{title:"Create your product shot",text:"Add a product image, describe the scene and animate a result."},
+  effects:{title:"Bring your photo to life",text:"Choose an effect, add a photo and create a short video."},
   restyle:{title:"Give any video a new look",text:"Same moves and timing, a whole new style."},
   edit:{title:"Change anything with one sentence",text:"Drop a clip, say what should change, and only that part changes."},
   picture:{title:"Make a picture from a few words",text:"Describe it, pick a look, and get a picture. Turn objects to new angles or change the light."},
@@ -19,8 +22,9 @@ const LINES:Record<string,{title:string;text:string}>={
   scenes:{title:"From a character to a scene",text:"Write the shot, make the frames, then bring them to life."},
   voice:{title:"Type the words, get a voice",text:"Speech and moving lips from plain text, on your computer."},
   film:{title:"Write the shots, get one film",text:"Make each shot on its own, then join them into one video."},
+  keyframes:{title:"Bring keyframes to life",text:"Choose the moments, describe each transition, and make one animation."},
   trim:{title:"Cut and extend a clip",text:"Trim a take, or let the model continue where it stops."},
-  create:{title:"Make a video from an idea",text:"Write what should happen, add a picture or a clip if you have one, and press Generate."},
+  create:{title:"Make a video from an idea",text:"Write what should happen, add a picture if you have one, and press Generate."},
 };
 export type HeroKind=keyof typeof LINES;
 export function ToolHero({kind,workflowId,latest}:{kind:HeroKind;workflowId?:string;/** The newest finished clip, used when the tool has no reel of its own. */latest?:string}){

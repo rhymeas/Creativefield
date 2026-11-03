@@ -15,6 +15,7 @@ import {elementInputsSchema} from "./element-inputs";
 import {deleteLibraryAsset} from "./asset-deletion";
 import {inspectGlb} from "../src/team/three-d/glb-document";
 import {deleteRun} from "./runs";
+import {probeVideo} from "./media";
 
 const base = "/api/v1/workspaces/:workspaceId";
 const ws = z.object({ workspaceId: z.uuid() });
@@ -80,17 +81,29 @@ export async function resourceRoutes(app: FastifyInstance, pool: Pool, store: Di
     const query = z.object({ projectId: z.uuid().optional(),kind:z.enum(["image","video","audio","mask","layer","reference","model3d"]).optional(),includeDocumentBitmaps:z.enum(["true","false"]).default("false").transform(v=>v==="true"), cursor:z.string().max(512).optional(), limit: z.coerce.number().int().min(1).max(200).default(100) }).strict().parse(request.query);
     let cursor:[string,string]|undefined;
     if(query.cursor)try {cursor=z.tuple([z.iso.datetime(),z.uuid()]).parse(JSON.parse(Buffer.from(query.cursor,"base64url").toString("utf8")));}catch{throw new HttpError(400,"Invalid asset cursor");}
-    const rows=(await pool.query(`SELECT ${assetColumns},to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_time FROM assets WHERE workspace_id=$1 AND ($2::uuid IS NULL OR project_id=$2) AND ($3::timestamptz IS NULL OR (created_at,id)<($3::timestamptz,$4::uuid)) AND ($6::text IS NULL OR media_type=$6) AND ($7::boolean OR metadata->>'editorDocumentBitmap' IS DISTINCT FROM 'true') AND NOT (metadata ? 'posePreviewFrame' OR metadata ? 'posePreview') ORDER BY created_at DESC,id DESC LIMIT $5`, [workspaceId,query.projectId ?? null,cursor?.[0]??null,cursor?.[1]??null,query.limit+1,query.kind??null,query.includeDocumentBitmaps])).rows;
+    const rows=(await pool.query(`SELECT ${assetColumns},to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_time FROM assets WHERE workspace_id=$1 AND metadata->>'libraryHidden' IS DISTINCT FROM 'true' AND ($2::uuid IS NULL OR project_id=$2) AND ($3::timestamptz IS NULL OR (created_at,id)<($3::timestamptz,$4::uuid)) AND ($6::text IS NULL OR media_type=$6) AND ($7::boolean OR metadata->>'editorDocumentBitmap' IS DISTINCT FROM 'true') AND NOT (metadata ? 'posePreviewFrame' OR metadata ? 'posePreview') ORDER BY created_at DESC,id DESC LIMIT $5`, [workspaceId,query.projectId ?? null,cursor?.[0]??null,cursor?.[1]??null,query.limit+1,query.kind??null,query.includeDocumentBitmaps])).rows;
     const more=rows.length>query.limit,items=rows.slice(0,query.limit),last=items.at(-1);
     const nextCursor=more&&last?Buffer.from(JSON.stringify([last.cursor_time,last.id])).toString("base64url"):null;
     for(const row of items)delete row.cursor_time;
     const pendingDeletion=user.role!=="viewer"?(await pool.query("SELECT asset_id AS id,name FROM asset_deletions WHERE workspace_id=$1 AND ($2::uuid IS NULL OR project_id=$2) AND completed_at IS NULL ORDER BY created_at,asset_id LIMIT 1",[workspaceId,query.projectId??null])).rows[0]:undefined;
     return {items,nextCursor,...(pendingDeletion?{pendingDeletion}:{})};
   });
+  app.post(`${base}/assets/lookup`,async request=>{
+    const {workspaceId}=ws.parse(request.params);await member(pool,request,workspaceId);
+    const body=z.object({projectId:z.uuid(),ids:z.array(z.uuid()).max(200)}).strict().parse(request.body);
+    if(!body.ids.length)return {items:[]};
+    const items=(await pool.query(`SELECT ${assetColumns} FROM assets WHERE workspace_id=$1 AND project_id=$2 AND id=ANY($3::uuid[]) AND metadata->>'libraryHidden' IS DISTINCT FROM 'true'`,[workspaceId,body.projectId,body.ids])).rows;
+    return {items};
+  });
   app.get(`${base}/assets/:id`,async request=>{
     const {workspaceId,id}=item.parse(request.params);await member(pool,request,workspaceId);
+    const query=z.object({probeVideo:z.enum(["1"]).optional()}).parse(request.query);
     const asset=(await pool.query(`SELECT ${assetColumns} FROM assets WHERE workspace_id=$1 AND id=$2`,[workspaceId,id])).rows[0];
     if(!asset)throw new HttpError(404,"Asset not found");
+    if(query.probeVideo&&asset.media_type==="video"&&!asset.metadata?.durationSeconds){
+      const source=(await pool.query("SELECT storage_key FROM assets WHERE workspace_id=$1 AND id=$2",[workspaceId,id])).rows[0];
+      if(source)try{const video=await probeVideo(await store.file(workspaceId,source.storage_key));asset.metadata={...asset.metadata,durationSeconds:video.durationSeconds};}catch{/* Keep older uploads usable when the file or probe is unavailable. */}
+    }
     const relations=(await pool.query("SELECT related_asset_id AS asset_id,role,ordinal,metadata FROM asset_relations WHERE workspace_id=$1 AND asset_id=$2 ORDER BY role,ordinal",[workspaceId,id])).rows.map(relation=>({...relation,metadata:sanitizedRelationMetadata(relation.metadata)}));
     return {...asset,relations,provenance:sanitizedImageProvenance(asset.metadata)};
   });
@@ -112,6 +125,12 @@ export async function resourceRoutes(app: FastifyInstance, pool: Pool, store: Di
     try {
       if (file.file.truncated) throw new HttpError(413,"Upload exceeds configured limit");
       let metadata:Record<string,unknown>=query.purpose?{editorDocumentBitmap:true}:{};
+      // Duration lets workspaces warn before automatically trimming an upload.
+      // Probing is best-effort: unavailable ffprobe must not prevent an upload.
+      if(mediaType==="video"){
+        try{const video=await probeVideo(await store.file(workspaceId,saved.key));metadata.durationSeconds=video.durationSeconds;}
+        catch{ /* Preparation checks the actual media before submission. */ }
+      }
       if(mediaType==="model3d"){if(saved.bytes>64*1024*1024)throw new HttpError(413,"GLB models must be smaller than 64 MB.");try{inspectGlb(await readFile(await store.file(workspaceId,saved.key)));metadata={format:"glb",version:2,bytes:saved.bytes};}catch(error){throw new HttpError(422,(error as Error).message);}}
       if(file.mimetype==="image/png"&&["image","mask","layer"].includes(mediaType)){
         if(saved.bytes>DEFAULT_PNG_VALIDATION_LIMITS.maxBytes)throw new HttpError(413,"The PNG file exceeds the allowed byte size");

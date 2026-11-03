@@ -1,7 +1,8 @@
 import { useEffect,useRef,useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { Button, Canvas, DataRow, Dialog, EmptyState, InfoButton, LinkButton, Meta, Notice, SectionHeader, SegmentedTabs, StatusText, TextField, UploadSlot, Working } from "../../ds";
+import { Button, Canvas, Collapsible, IconButton, Steps, DataRow, Dialog, EmptyState, InfoButton, LinkButton, Meta, Notice, SearchField, SectionHeader, SegmentedTabs, StatusText, TextField, UploadSlot, Working } from "../../ds";
 import type { Worker, Workspace } from "../api";
+import type {CapabilityManifestV2} from "../../capabilities/types";
 import {request,workspacePath} from "../api";
 import {plainProblem} from "../problems";
 import "./comfy-nodes.css";
@@ -39,10 +40,20 @@ export const editorSource = (url: string, options: { version: number; tool?: Thr
 const featureOf = (slug: string) => (slug.startsWith("feature-") ? slug.slice("feature-".length) : null);
 const READINESS_LABEL: Record<Readiness["state"], string> = { ready: "Ready", partial: "Partial: model files missing", missing: "Missing: node classes not installed" };
 
+/** The starters are existing local workflows, not extra copies of their graphs. */
+export function nodeStarters(catalogue:CapabilityManifestV2[],query:string){
+  const text=query.trim().toLocaleLowerCase();
+  return catalogue.filter(item=>/^(flux2-klein|qwen-image-21|fibo2|h3-|minimax-h3|openjutsu-h3|previs-to-video)/.test(item.id)&&item.coverage.local==="implemented"&&(!text||`${item.title} ${item.description} ${item.id}`.toLocaleLowerCase().includes(text))).sort((a,b)=>a.title.localeCompare(b.title));
+}
+
 /** The official editor uses a separate origin so extension scripts cannot read app APIs. */
-export function ComfyNodes({ workspace, workers, tool, canEdit = false, serverOffline = false, canStartLocal = false, onChanged, onWorkerSettings }: { workspace: Workspace; workers: Worker[]; tool?: ThreeDTool; canEdit?: boolean; serverOffline?: boolean; canStartLocal?: boolean; onChanged?: () => void | Promise<void>; /** Where a person registers or checks a worker. Every offline state leads here, so it is required. */ onWorkerSettings: () => void }) {
-  const worker = workers.find(candidate => candidate.enabled);
+export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = false, serverOffline = false, canStartLocal = false, onChanged, onWorkerSettings }: { workspace: Workspace; workers: Worker[]; catalogue?:CapabilityManifestV2[]; tool?: ThreeDTool; canEdit?: boolean; serverOffline?: boolean; canStartLocal?: boolean; onChanged?: () => void | Promise<void>; /** Where a person registers or checks a worker. Every offline state leads here, so it is required. */ onWorkerSettings: () => void }) {
+  // The editor proxy prefers an online local worker; don't let an earlier offline
+  // entry hide the editor when another enabled worker is available.
+  const worker = workers.find(candidate => candidate.enabled && candidate.inventory?.online === true)
+    ?? workers.find(candidate => candidate.enabled);
   const [version, setVersion] = useState(0);
+  const [starterQuery,setStarterQuery]=useState("");
   const [workerAction,setWorkerAction]=useState<"start"|"probe"|"">("");
   const [launchRequested,setLaunchRequested]=useState(false);
   const [workerError,setWorkerError]=useState("");
@@ -239,16 +250,15 @@ export function ComfyNodes({ workspace, workers, tool, canEdit = false, serverOf
     <Canvas workspace
       toolbarStart={tool ? undefined : <SectionHeader large title="Node editor" />}
       toolbarEnd={<>
-        <Button variant="secondary" onClick={() => { setLoaded(false); setVersion(value => value + 1); }}><RefreshCw size={12} />Reload</Button>
-        {src&&<LinkButton variant="secondary" href={src}>Open in new tab</LinkButton>}
+        <IconButton label="Reload the editor" onClick={() => { setLoaded(false); setVersion(value => value + 1); }}><RefreshCw size={14} /></IconButton>
+        {src&&<LinkButton variant="secondary" href={src} target="_blank" rel="noopener noreferrer">Open in a new tab</LinkButton>}
       </>}
     >
       {feature&&canEdit&&<div className="cf-nodes__shelf">
         <div className="cf-nodes__shelf-head">
-          <SectionHeader title={`Editing ${feature}`} />
-          <Button disabled={!!shelfBusy} onClick={() => void applyFeature(feature)}>Apply edits</Button>
+          <SectionHeader title={`Edit the ${feature} app`} />
         </div>
-        <Meta>{`Change the graph below, then save it with Ctrl+S under the name “ComfyField - ${feature}”. Apply edits checks it and keeps it as a draft until you choose to use it.`}</Meta>
+        <Steps items={[{ title: "Change the graph", text: "in the editor below" }, { title: "Save it", text: `Press Ctrl+S and keep the name “CreativeField - ${feature}”` }, { title: "Apply", text: "We check it and keep it as a draft", action: <Button disabled={!!shelfBusy} onClick={() => void applyFeature(feature)}>Apply edits</Button> }]} />
         {featureResult&&!featureResult.applied&&<Notice inline priority={30} title="These edits cannot be used yet">{(featureResult.errors??[]).join(" ")} Fix the graph, then press Apply edits again.</Notice>}
         {featureResult?.applied&&<>
           <StatusText tone="ok">{`Draft ${featureResult.version} saved · ${featureResult.changes.changed.length} changed, ${featureResult.changes.added.length} added, ${featureResult.changes.removed.length} removed`}</StatusText>
@@ -264,14 +274,17 @@ export function ComfyNodes({ workspace, workers, tool, canEdit = false, serverOf
       </div>}
       {showShelf&&<div className="cf-nodes__shelf">
         <div className="cf-nodes__shelf-head">
-          <SectionHeader title="Saved workflows" />
-          {canEdit && <Button variant="secondary" onClick={() => { setShelfOpen(true); setShelfError(""); setShelfNotice(""); }}>Import saved workflow</Button>}
+          <div className="cf-nodes__shelf-title">
+            <SectionHeader title="Your workflows" />
+            <Meta>A workflow becomes an app when you publish it: it then appears in Video or Image. Drafts are saved but not yet an app.</Meta>
+          </div>
+          {canEdit && <Button variant="secondary" onClick={() => { setShelfOpen(true); setShelfError(""); setShelfNotice(""); }}>Import a workflow</Button>}
         </div>
         {shelfError && !shelfOpen && <Notice priority={30} title="Saved workflows didn't load" actions={<Button variant="secondary" onClick={() => { setShelfOpen(true); setShelfError(""); }}>Open the import dialog</Button>} details={shelfError}>The saved list could not be read. Opening the import dialog checks the worker's saved workflows again.</Notice>}
         {shelfNotice && <StatusText tone="ok">{shelfNotice}</StatusText>}
-        {saved.length ? <div className="cf-nodes__saved">{saved.map(item => <div className="cf-nodes__saved-item" key={item.id}>
-          <Meta>{item.label}</Meta>
-          <StatusText tone={item.published_revision_id ? "ok" : "idle"}>{item.published ? "Published" : item.published_revision_id ? "Published · newer draft" : "Draft"}</StatusText>
+        {saved.length ? <Collapsible title={`${saved.length} saved workflow${saved.length === 1 ? "" : "s"} · ${saved.filter(item => item.published || item.published_revision_id).length} published`}><div className="cf-nodes__saved">{saved.map(item => <div className="ds-card cf-nodes__saved-item" key={item.id}>
+          <span className="cf-nodes__saved-name">{item.label}</span>
+          <StatusText tone={item.published_revision_id ? "ok" : "idle"}>{item.published ? "Published as an app" : item.published_revision_id ? "Published · newer draft" : "Draft"}</StatusText>
           <InfoButton title={item.label}>
             <Meta parts={[`Revision ${item.version}`, item.source_name]} />
             {canEdit && (featureOf(item.slug)
@@ -286,7 +299,14 @@ export function ComfyNodes({ workspace, workers, tool, canEdit = false, serverOf
             : (!item.published
                 ? <Button variant="secondary" disabled={!!shelfBusy} onClick={() => void publish(item, false)}>{item.published_revision_id ? "Publish draft" : "Publish"}</Button>
                 : <Button variant="ghost" disabled={!!shelfBusy} onClick={() => void publish(item, true)}>Unpublish</Button>))}
-        </div>)}</div> : <Meta>Import a saved workflow to use it in Image or Video.</Meta>}
+        </div>)}</div></Collapsible> : <Meta>Import a saved workflow to use it in Image or Video.</Meta>}
+      </div>}
+      {showShelf&&!feature&&!run&&nodeStarters(catalogue,"").length>0&&<div className="cf-nodes__shelf">
+        <Collapsible title="Start from a workflow">
+          <SearchField label="Search workflows" placeholder="Search workflows" value={starterQuery} onChange={setStarterQuery}/>
+          {nodeStarters(catalogue,starterQuery).map(item=><DataRow key={item.id} title={item.title} meta={<Meta>{item.description}</Meta>} actions={<LinkButton variant="secondary" href={`#nodes/feature/${item.id}`}>Open in nodes</LinkButton>}/>)}
+          {!nodeStarters(catalogue,starterQuery).length&&<Meta>No matching workflows.</Meta>}
+        </Collapsible>
       </div>}
       <div className="cf-nodes__stage">
         {!loaded && (
@@ -306,16 +326,17 @@ export function ComfyNodes({ workspace, workers, tool, canEdit = false, serverOf
     </Canvas>
     <Dialog
       open={shelfOpen}
-      title="Import a ComfyUI workflow"
+      title="Turn a workflow into an app"
       onClose={() => setShelfOpen(false)}
       footer={<>
         <Button variant="secondary" onClick={() => setShelfOpen(false)}>Cancel</Button>
-        {sourceBody&&<Button variant="secondary" disabled={!!shelfBusy} onClick={() => void previewSource()}>{mode==="comfy"?"Preview mapping":"Check workflow"}</Button>}
-        {preview&&label.trim()&&<Button disabled={!!shelfBusy} onClick={() => void importSource()}>Import draft</Button>}
+        {sourceBody&&<Button variant="secondary" disabled={!!shelfBusy} onClick={() => void previewSource()}>Check the workflow</Button>}
+        {preview&&label.trim()&&<Button disabled={!!shelfBusy} onClick={() => void importSource()}>Save as draft app</Button>}
       </>}
     >
       <div className="cf-nodes__import">
         {!canEdit ? <Meta>Only workspace creators can import workflows.</Meta> : <>
+        <Steps items={[{ title: "Choose", text: "a workflow from ComfyUI, ComfyHub or a file" }, { title: "Check", text: "we find its inputs and what it needs" }, { title: "Save", text: "it becomes a draft app; publish it from the list" }]} />
         <SegmentedTabs block label="Workflow source" value={mode} onChange={value => { setMode(value as ImportMode); setPreview(null); setCheck(null); setShelfError(""); }} items={[{ id: "comfy", label: "Saved in ComfyUI" }, { id: "hub", label: "ComfyHub" }, { id: "file", label: "File" }]} />
         {mode==="comfy"&&(sources.length ? <div className="cf-nodes__sources">{sources.map(name => <Button key={name} variant={name === sourceName ? "primary" : "secondary"} onClick={() => { setSourceName(name); setLabel(name.replace(/\.json$/i,"")); setPreview(null); setShelfError(""); }}>{name.replace(/\.json$/i, "")}</Button>)}</div> : <Meta>No saved ComfyUI workflows found on this worker.</Meta>)}
         {mode==="hub"&&<TextField label="Workflow address" value={hubUrl} onChange={value => { setHubUrl(value); setPreview(null); setCheck(null); }} placeholder="https://comfy.org/workflows/download/…" hint="A comfy.org workflow download link or a Comfy-Org GitHub file. Only this file is fetched; nothing is installed." />}
@@ -330,13 +351,16 @@ export function ComfyNodes({ workspace, workers, tool, canEdit = false, serverOf
         </div>}
         {preview&&<TextField label="Workflow name" value={label} onChange={value => setLabel(value)} hint="Used in the Video or Image menu. The slug is generated once and stays stable." />}
         {preview && <div className="cf-nodes__mapping">
-          <Meta parts={[`${preview.source.nodes} API nodes`, `${preview.outputs.length} output`, preview.outputs[0]?.nodeType, ...preview.controls.map(control => control.control)]} />
-          <Meta parts={[`Inputs: ${preview.inputs.map(input => input.port).join(", ") || "none"}`, `Dependencies: ${preview.dependencies.length}`]} />
+          <SectionHeader title="The app will show" />
+          <DataRow title="Inputs" meta={<Meta>{preview.inputs.map(input => input.port).join(", ") || "none, it runs from its own values"}</Meta>} />
+          <DataRow title="Controls" meta={<Meta>{preview.controls.map(control => control.control).join(", ") || "none"}</Meta>} />
+          <DataRow title="Result" meta={<Meta>{`${preview.outputs.length} output${preview.outputs[0]?.nodeType ? ` · ${preview.outputs[0].nodeType}` : ""}`}</Meta>} />
+          <DataRow title="Needs" meta={<Meta>{`${preview.dependencies.length} model or node file${preview.dependencies.length === 1 ? "" : "s"} · ${preview.source.nodes} nodes in the graph`}</Meta>} />
           {!!preview.fixed?.length&&<Meta>{`Kept at the workflow's own values because several nodes use them: ${preview.fixed.map(entry => entry.control).join(", ")}`}</Meta>}
         </div>}
         {check&&!check.mapping&&check.errors.length>0&&<Notice inline priority={20} title="This workflow cannot be imported yet">{check.errors.slice(0,4).map(error => [error.class, error.reason].filter(Boolean).join(": ")).join(" · ")}</Notice>}
         {shelfError && <Notice inline priority={20} title="Import stopped" details={shelfError}>Nothing was saved. Correct the source above, then check it again.</Notice>}
-        {!!preview && <Meta>The generated manifest and graph were validated. Importing saves a draft; publishing is a separate action. Missing models stay missing until you install them.</Meta>}
+        {!!preview && <Meta>The generated manifest and graph were validated. Saving makes a draft app. Publishing is a separate step in “Your workflows”. Missing models stay missing until you install them.</Meta>}
         </>}
       </div>
     </Dialog>

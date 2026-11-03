@@ -25,7 +25,10 @@
       "required": true
     }
   ],
-  "fpsPrepare": { "kind": "source_16fps_v1", "sourceInput": "source_video" },
+  "fpsPrepare": {
+    "kind": "source_16fps_v1",
+    "sourceInput": "source_video"
+  },
   "controls": [
     {
       "id": "prompt",
@@ -137,22 +140,102 @@
       "implementation": "implemented",
       "workflowId": "vace-canny-restyle",
       "requirements": [
-        { "id": "node:UNETLoader", "kind": "node", "name": "UNETLoader", "instructions": "Install a ComfyUI version providing UNETLoader." },
-        { "id": "node:CLIPLoader", "kind": "node", "name": "CLIPLoader", "instructions": "Install a ComfyUI version providing CLIPLoader." },
-        { "id": "node:VAELoader", "kind": "node", "name": "VAELoader", "instructions": "Install a ComfyUI version providing VAELoader." },
-        { "id": "node:LoadVideo", "kind": "node", "name": "LoadVideo", "instructions": "Install a ComfyUI version providing LoadVideo." },
-        { "id": "node:GetVideoComponents", "kind": "node", "name": "GetVideoComponents", "instructions": "Install a ComfyUI version providing GetVideoComponents." },
-        { "id": "node:Canny", "kind": "node", "name": "Canny", "instructions": "Install a ComfyUI version providing the core Canny node." },
-        { "id": "node:GetImageSize", "kind": "node", "name": "GetImageSize", "instructions": "Install a ComfyUI version providing GetImageSize." },
-        { "id": "node:ImageFromBatch", "kind": "node", "name": "ImageFromBatch", "instructions": "Install a ComfyUI version providing ImageFromBatch." },
-        { "id": "node:ResizeImageMaskNode", "kind": "node", "name": "ResizeImageMaskNode", "instructions": "Install a ComfyUI version providing ResizeImageMaskNode." },
-        { "id": "node:CLIPTextEncode", "kind": "node", "name": "CLIPTextEncode", "instructions": "Install a ComfyUI version providing CLIPTextEncode." },
-        { "id": "node:WanVaceToVideo", "kind": "node", "name": "WanVaceToVideo", "instructions": "Install a ComfyUI version providing WanVaceToVideo." },
-        { "id": "node:ModelSamplingSD3", "kind": "node", "name": "ModelSamplingSD3", "instructions": "Install a ComfyUI version providing ModelSamplingSD3." },
-        { "id": "node:KSampler", "kind": "node", "name": "KSampler", "instructions": "Install a ComfyUI version providing KSampler." },
-        { "id": "node:VAEDecode", "kind": "node", "name": "VAEDecode", "instructions": "Install a ComfyUI version providing VAEDecode." },
-        { "id": "node:CreateVideo", "kind": "node", "name": "CreateVideo", "instructions": "Install a ComfyUI version providing CreateVideo." },
-        { "id": "node:SaveVideo", "kind": "node", "name": "SaveVideo", "instructions": "Install a ComfyUI version providing SaveVideo." },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Install a ComfyUI version providing UNETLoader."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install a ComfyUI version providing CLIPLoader."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install a ComfyUI version providing VAELoader."
+        },
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Install a ComfyUI version providing LoadVideo."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Install a ComfyUI version providing GetVideoComponents."
+        },
+        {
+          "id": "node:Canny",
+          "kind": "node",
+          "name": "Canny",
+          "instructions": "Install a ComfyUI version providing the core Canny node."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Install a ComfyUI version providing GetImageSize."
+        },
+        {
+          "id": "node:ImageFromBatch",
+          "kind": "node",
+          "name": "ImageFromBatch",
+          "instructions": "Install a ComfyUI version providing ImageFromBatch."
+        },
+        {
+          "id": "node:ResizeImageMaskNode",
+          "kind": "node",
+          "name": "ResizeImageMaskNode",
+          "instructions": "Install a ComfyUI version providing ResizeImageMaskNode."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Install a ComfyUI version providing CLIPTextEncode."
+        },
+        {
+          "id": "node:WanVaceToVideo",
+          "kind": "node",
+          "name": "WanVaceToVideo",
+          "instructions": "Install a ComfyUI version providing WanVaceToVideo."
+        },
+        {
+          "id": "node:ModelSamplingSD3",
+          "kind": "node",
+          "name": "ModelSamplingSD3",
+          "instructions": "Install a ComfyUI version providing ModelSamplingSD3."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Install a ComfyUI version providing KSampler."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install a ComfyUI version providing VAEDecode."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Install a ComfyUI version providing CreateVideo."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install a ComfyUI version providing SaveVideo."
+        },
         {
           "id": "model:vace13b",
           "kind": "model",
@@ -180,9 +263,9 @@
         }
       ],
       "evidence": [
-        "Graph execution qualification 2026-10-18 on ComfyUI 0.37.0 / RTX 4090: the exact template graph ran a 160x96, 16 FPS, 17-frame testsrc2 source to a 21,865-byte H.264 MP4 (SHA-256 7641ccb72e2b83f88b90df72097ddf0e520cc509eabe918e81aee6ddb4849124) in 207.8 s (prompt 4f3b50a8-7ace-4964-bf07-8841038d7d43), preserving 160x96, 16 FPS and 17 frames. This proves graph execution and output structure. Perceptual restyle quality, facial/identity preservation, temporal consistency and offline behavior remain unqualified and are not proven.",
-        "Fresh local graph execution 2026-10-22, prompt cc5a80b9-60ae-4b57-85b0-4f0018f11167: cleared fictional jacket fixture produced 79185-byte H.264 MP4,832x480,16 FPS,17 frames,1.0625s,SHA-256 2005ae4b7f9805868c9ddb02ae1c1b57a78b39b7cd871f76fd5052365a4b7b47. This records output structure and a recoloring example only. Seams,pockets and lettering changed; preservation,occlusion and broad temporal quality are unqualified.",
-        "Person-kept restyle 0.3.0 (2026-10-26): the first fitted source frame now reaches WanVaceToVideo.reference_image (ImageFromBatch length 1 on the fitted frames), the two prepended reference frames are dropped before CreateVideo (ImageFromBatch batch_index 2, source length), and the prompt carries the keep-the-subject clause. The graph was compiled by the app's compileLocal and queued straight to the local ComfyUI 0.37.0 on 8188 (prompt bdf556c0-155f-45b5-bb27-32df322d3ea0), 95 s, on the reported input asset c3648408-c471-405c-ba5d-24fd35e12cb3 (512x928, 24 fps, 49 frames) with prompt \"imagine this gentleman standing in his grandpa livingroom\", seed 543, strength 1. Output vace-canny-restyle_00018_.mp4: 480x864, 24 fps, 49 frames, 2.0417 s, 235660 bytes, H.264 yuv420p, SHA-256 209f0114232e8d8bc804a656a73ac74ea412d99e9afa1f75ce1b9b66250cacfd. The same man, blue jacket, grey trousers and boots and the same raised hand at frame 24 as the source, in a new living room, with no extra person. Before this change the same input and prompt (run 69632ddc-c99f-4980-99e0-01d8c1327566) returned a different man in a checked shirt plus an extra child. Control runs: the reference image alone also kept the man (prompt b48aa4a7-961c-4fb9-a6bb-91a204df3df7, SHA-256 43eab4a0bf36348d28a082021a591444af9cd8da403d6e77851bec9122c05632); the clause alone on the old graph still returned a different man (prompt f3c10d22-6cfa-4e85-a9a8-c8c69b624c5b, SHA-256 f310666d307da24d7193f32934a8445d42ec47718b64bf517e86bbce88f9c83f). So the reference carries identity and the clause is a written guard, not the measured lever. One run per variant on one clip: identity, wardrobe and pose hold here, and broader robustness, other framings and long clips stay unqualified."
+        "Graph execution qualification 2026-10-18 on ComfyUI 0.37.0 / RTX 4090: the exact template graph ran a 160x96, 16 FPS, 17-frame testsrc2 source to a 21,865-byte H.264 MP4 (SHA-256 7641ccb72e2b83f88b90df72097ddf0e520cc509eabe918e81aee6ddb4849124) in 207.8 s (prompt [local run]), preserving 160x96, 16 FPS and 17 frames. This proves graph execution and output structure. Perceptual restyle quality, facial/identity preservation, temporal consistency and offline behavior remain unqualified and are not proven.",
+        "Fresh local graph execution 2026-10-22, prompt [local run]: cleared fictional jacket fixture produced 79185-byte H.264 MP4,832x480,16 FPS,17 frames,1.0625s,SHA-256 2005ae4b7f9805868c9ddb02ae1c1b57a78b39b7cd871f76fd5052365a4b7b47. This records output structure and a recoloring example only. Seams,pockets and lettering changed; preservation,occlusion and broad temporal quality are unqualified.",
+        "Person-kept restyle 0.3.0 (2026-10-26): the first fitted source frame now reaches WanVaceToVideo.reference_image (ImageFromBatch length 1 on the fitted frames), the two prepended reference frames are dropped before CreateVideo (ImageFromBatch batch_index 2, source length), and the prompt carries the keep-the-subject clause. The graph was compiled by the app's compileLocal and queued straight to the local ComfyUI 0.37.0 on 8188 (prompt [local run]), 95 s, on the reported input asset [local run] (512x928, 24 fps, 49 frames) with prompt \"imagine this gentleman standing in his grandpa livingroom\", seed 543, strength 1. Output vace-canny-restyle_00018_.mp4: 480x864, 24 fps, 49 frames, 2.0417 s, 235660 bytes, H.264 yuv420p, SHA-256 209f0114232e8d8bc804a656a73ac74ea412d99e9afa1f75ce1b9b66250cacfd. The same man, blue jacket, grey trousers and boots and the same raised hand at frame 24 as the source, in a new living room, with no extra person. Before this change the same input and prompt (run [local run]) returned a different man in a checked shirt plus an extra child. Control runs: the reference image alone also kept the man (prompt [local run], SHA-256 43eab4a0bf36348d28a082021a591444af9cd8da403d6e77851bec9122c05632); the clause alone on the old graph still returned a different man (prompt [local run], SHA-256 f310666d307da24d7193f32934a8445d42ec47718b64bf517e86bbce88f9c83f). So the reference carries identity and the clause is a written guard, not the measured lever. One run per variant on one clip: identity, wardrobe and pose hold here, and broader robustness, other framings and long clips stay unqualified."
       ]
     }
   ],

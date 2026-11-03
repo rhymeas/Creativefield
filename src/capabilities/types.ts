@@ -89,7 +89,7 @@ export type ElementAssetSnapshotV1 = {
 export type Control = {
   id: string; label: string; type: "string" | "number" | "integer" | "boolean" | "select";
   default?: unknown; min?: number; max?: number; step?: number; options?: Array<string | number>;
-  binding?: Binding; apiField?: string; disabledReason?: string; meaning?: "parameter" | "prompt_hint";
+  binding?: Binding; /** Further fields that always receive the same value (one size shared by several scale nodes). */ alsoBindings?: Binding[]; apiField?: string; disabledReason?: string; meaning?: "parameter" | "prompt_hint";
 };
 export type Requirement = { id: string; kind: "node" | "model" | "credential" | "software"; name: string; location?: string; version?: string; source?: string; sourceRevision?: string; bytes?: number; instructions: string };
 export type RouteDefinition = {
@@ -100,13 +100,16 @@ export type RouteDefinition = {
 export type CapabilityManifestV2 = {
   schemaVersion: 2; id: string; version: string; title: string; category: string; description: string;
   inputs: Port[]; outputs: Port[]; controls: Control[];
-  presets: Array<{ id: string; title: string; values: Record<string, unknown> }>;
+  /** `thumb` is an optional preview picture from this site (a path starting with /examples/). */
+  presets: Array<{ id: string; title: string; values: Record<string, unknown>; thumb?: string }>;
   routes: RouteDefinition[];
   coverage: { local: Implementation; hosted: Implementation };
   licenses: { software: string; weights: Array<{ name: string; license: string; source?: string }> };
   sources: Array<{ url: string; observedAt: string; kind: "research" | "implementation" }>;
+  /** Where an imported workflow or idea comes from; shown with a link in the workspace info dialog. `url` is https only. */
+  credit?: { name: string; url: string; license: string; what: string };
   tickets: string[];
-  timing?: { fps: number; minSeconds: number; maxSeconds: number; sourceTimed: boolean; frameMapping?: "wan_frames_round_4n1" | "wan_seconds_floor_4n1" };
+  timing?: { fps: number; minSeconds: number; maxSeconds: number; sourceTimed: boolean; frameMapping?: "wan_frames_round_4n1" | "wan_seconds_floor_4n1" | "h3_seconds_17n5" };
   resolutions?: Record<string, { width: number; height: number }>;
   audioPolicies: Array<"preserve" | "replace" | "mix" | "mute">;
   nativeScale?: number;

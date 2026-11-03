@@ -23,6 +23,24 @@ export function resolveEditMode(intent:EditIntent,prompt:string,hasSelection:boo
 }
 export type Rect = { x: number; y: number; w: number; h: number };
 
+export function requestsObjectRemoval(prompt:string):boolean {
+  const text=prompt.trim();
+  if(/\b(?:do not|don't|never|nicht|nicht\s+mehr)\s+(?:remove|delete|erase|entfernen|entferne|löschen|lösche)\b/i.test(text))return false;
+  return /\b(?:remove|delete|erase|entfernen|entferne|löschen|lösche)\b/i.test(text);
+}
+
+/** Size changes need space around the original silhouette. */
+export function requestsObjectResize(prompt:string):boolean {
+  return /(?:\b(?:smaller|bigger|larger|shrink|enlarge|verkleinern|kleiner)\b|größer|vergrößern)/i.test(prompt);
+}
+
+/** A bare removal instruction refers to the current selection, not the whole image. */
+export function selectionInstruction(prompt:string,hasSelection:boolean):string {
+  return hasSelection && /^(?:remove|delete|erase|entfernen|löschen|entferne|lösche)[.!\s]*$/i.test(prompt.trim())
+    ? "Remove the selected object completely and reconstruct the background naturally, matching the surrounding scene."
+    : prompt;
+}
+
 export const AI_LABELS: Record<AiMode, string> = { modify: "Modify", harmonize: "Harmonize", fill: "Generative fill" };
 export const AI_BUSY: Record<AiMode, string> = { modify: "Modifying…", harmonize: "Harmonizing…", fill: "Filling…" };
 
@@ -41,7 +59,7 @@ export function aiInstruction(mode: AiMode, prompt: string): string {
   if (mode === "fill") return `${p}. Blend it naturally into the surrounding image with matching light, perspective and texture.`;
   /* A request to swap a subject must not be answered with the same subject, so say that the original look goes. */
   const swap = /\b(?:different|another|new|other)\s+(?:character|person|face|man|woman)\b|\b(?:replace|swap)\s+(?:the\s+)?(?:character|person|face|man|woman)\b/i.test(p) ? " Do not keep the original face, hairstyle, identity or appearance of the changed subject; the result must look clearly like someone or something else." : "";
-  return `${p}. Make the change clearly visible, and keep everything that is not mentioned unchanged.${season}${swap}`;
+  return `${p}. Apply the requested change fully. If the request replaces or transforms a subject or object, show the intended result rather than a blend with traits that contradict the request. Keep unrelated parts unchanged.${season}${swap}`;
 }
 
 /** Grow a rectangle by a share of its longer side (context for the model), clamped to the picture, in whole pixels. */
@@ -60,4 +78,17 @@ export function coverSource(iw: number, ih: number, target: Rect): Rect {
   const sw = target.w / scale;
   const sh = target.h / scale;
   return { x: (iw - sw) / 2, y: (ih - sh) / 2, w: sw, h: sh };
+}
+
+/** Invert ComfyUI's integer, centered input crop for Fibo's output. */
+export function fiboOutputPlacement(region: Rect, outputWidth: number, outputHeight: number): Rect {
+  // Python's round uses ties-to-even; common_upscale crops equally on both sides.
+  const roundEven = (n: number) => {
+    const floor = Math.floor(n), fraction = n - floor;
+    return fraction === 0.5 ? floor + floor % 2 : Math.round(n);
+  };
+  const oldAspect = region.w / region.h, newAspect = outputWidth / outputHeight;
+  const x = oldAspect > newAspect ? roundEven((region.w - region.h * newAspect) / 2) : 0;
+  const y = oldAspect < newAspect ? roundEven((region.h - region.w / newAspect) / 2) : 0;
+  return { x: region.x + x, y: region.y + y, w: region.w - 2 * x, h: region.h - 2 * y };
 }

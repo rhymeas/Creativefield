@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "qwen-image-21-angles",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "title": "Qwen Image 2.1 45° angle shots",
   "category": "image",
   "description": "A genuine camera-angle reshot of one reference image using the Qwen Image 2.1 Multiple-Angles v2 LoRA. The model receives an explicit <mva> azimuth/elevation instruction and the source image; it does not promise a 3D orbit. Every angle is a separate run with its own Slate.",
@@ -49,42 +49,42 @@
     {
       "id": "front-left-quarter",
       "title": "Front-left 45°",
-      "values": { "prompt": "<mva> front-left quarter view, eye-level shot. Keep the subject identity, wardrobe, scene and visual style." }
+      "values": { "prompt": "<mva> front-left quarter view, eye-level shot. Preserve the subject identity, pose, wardrobe, objects, lighting and background. Keep every visible background color, material and scene element consistent with the reference; do not recolor, restyle or replace the background." }
     },
     {
       "id": "left-side",
       "title": "Left 90°",
-      "values": { "prompt": "<mva> left side view, eye-level shot. Keep the subject identity, wardrobe, scene and visual style." }
+      "values": { "prompt": "<mva> left side view, eye-level shot. Preserve the subject identity, pose, wardrobe, objects, lighting and background. Keep every visible background color, material and scene element consistent with the reference; do not recolor, restyle or replace the background." }
     },
     {
       "id": "back-left-quarter",
       "title": "Back-left 135°",
-      "values": { "prompt": "<mva> back-left quarter view, eye-level shot. Keep the subject identity, wardrobe, scene and visual style." }
+      "values": { "prompt": "<mva> back-left quarter view, eye-level shot. Preserve the subject identity, pose, wardrobe, objects, lighting and background. Keep every visible background color, material and scene element consistent with the reference; do not recolor, restyle or replace the background." }
     },
     {
       "id": "back",
       "title": "Back 180°",
-      "values": { "prompt": "<mva> back view, eye-level shot. Keep the subject identity, wardrobe, scene and visual style." }
+      "values": { "prompt": "<mva> back view, eye-level shot. Preserve the subject identity, pose, wardrobe, objects, lighting and background. Keep every visible background color, material and scene element consistent with the reference; do not recolor, restyle or replace the background." }
     },
     {
       "id": "back-right-quarter",
       "title": "Back-right 225°",
-      "values": { "prompt": "<mva> back-right quarter view, eye-level shot. Keep the subject identity, wardrobe, scene and visual style." }
+      "values": { "prompt": "<mva> back-right quarter view, eye-level shot. Preserve the subject identity, pose, wardrobe, objects, lighting and background. Keep every visible background color, material and scene element consistent with the reference; do not recolor, restyle or replace the background." }
     },
     {
       "id": "right-side",
       "title": "Right 270°",
-      "values": { "prompt": "<mva> right side view, eye-level shot. Keep the subject identity, wardrobe, scene and visual style." }
+      "values": { "prompt": "<mva> right side view, eye-level shot. Preserve the subject identity, pose, wardrobe, objects, lighting and background. Keep every visible background color, material and scene element consistent with the reference; do not recolor, restyle or replace the background." }
     },
     {
       "id": "front-right-quarter",
       "title": "Front-right 315°",
-      "values": { "prompt": "<mva> front-right quarter view, eye-level shot. Keep the subject identity, wardrobe, scene and visual style." }
+      "values": { "prompt": "<mva> front-right quarter view, eye-level shot. Preserve the subject identity, pose, wardrobe, objects, lighting and background. Keep every visible background color, material and scene element consistent with the reference; do not recolor, restyle or replace the background." }
     },
     {
       "id": "high-angle",
       "title": "High angle",
-      "values": { "prompt": "<mva> front-right quarter view, high-angle shot. Keep the subject identity, wardrobe, scene and visual style." }
+      "values": { "prompt": "<mva> front-right quarter view, high-angle shot. Preserve the subject identity, pose, wardrobe, objects, lighting and background. Keep every visible background color, material and scene element consistent with the reference; do not recolor, restyle or replace the background." }
     }
   ],
   "routes": [

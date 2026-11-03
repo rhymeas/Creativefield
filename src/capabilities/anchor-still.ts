@@ -6,15 +6,15 @@ import type {CapabilityBundle, Invocation} from "./types";
 /* The anchor still is the frame the clip starts with, edited once: each person is replaced by the
    picture uploaded for them, and the frame's pose, position, scale, light and background stay.
    The reviewed template reads the frame from the clip (or from a prepared still), then feeds the
-   frame and the pictures to Flux 2 Klein as three reference latents in that order. The server has
+   frame and the pictures to Fibo 2.0 as three reference images in that order. The server has
    no contract for "one of two source inputs" or for dropping a second person, so this module
    rewires the compiled graph: exactly one source feeds the chosen frame, and a run with one
    picture leaves the second picture's branch out instead of loading a file that is not there. */
 
 const VIDEO="1", VIDEO_FRAMES="2", FRAME="3", STILL="4";
 const SECOND_CHARACTER="6";
-const SECOND_ENCODE="15", SECOND_POSITIVE="18", SECOND_NEGATIVE="21";
-const POSITIVE_END="17", NEGATIVE_END="20", GUIDER="22";
+/** The Fibo 2.0 encoder reads the frame, the first picture and the second picture on these sockets. */
+const SECOND_SOCKET="images.image_3";
 const PROMPT="11";
 
 /** What the still asks for when the pictures are the only description of the new people. The
@@ -48,12 +48,11 @@ export function compileAnchorStill(bundle: CapabilityBundle, invocation: Invocat
     delete graph[STILL];
   }
   if (!twoPeople) {
-    for (const node of [SECOND_CHARACTER, SECOND_ENCODE, SECOND_POSITIVE, SECOND_NEGATIVE]) delete graph[node];
-    graph[GUIDER].inputs.positive = [POSITIVE_END, 0];
-    graph[GUIDER].inputs.negative = [NEGATIVE_END, 0];
+    delete graph[SECOND_CHARACTER];
+    delete graph[PROMPT].inputs[SECOND_SOCKET];
   }
   const words = typeof invocation.controls.prompt === "string" ? invocation.controls.prompt : "";
-  graph[PROMPT].inputs.text = anchorStillPrompt(twoPeople, words);
+  graph[PROMPT].inputs.prompt = anchorStillPrompt(twoPeople, words);
   assertLocalGraphPolicy(graph);
   return graph;
 }

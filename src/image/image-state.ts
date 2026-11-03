@@ -2,6 +2,7 @@ import type { CapabilityManifestV2, Control, Port, Readiness } from "../capabili
 import { assetMatchesPort } from "../capabilities/assets";
 import type { CharacterRecord } from "../team/api";
 import type { ElementInputBinding } from "../team/state";
+import {characterEditBindings} from "./editor/character-references";
 
 export type ImageDraft = {
   controls: Record<string, string | number | boolean>;
@@ -26,6 +27,32 @@ export function characterReferenceBinding(record: CharacterRecord, port: Port, p
   return { elementId: record.elementId, assetId: first.assetId };
 }
 
+/** Add the whole saved reference pack only when it fits without replacing a draft input. */
+export function addCharacterReferences(manifest:CapabilityManifestV2,draft:ImageDraft,record:CharacterRecord,projectId:string):ImageDraft {
+  const references=Object.values(characterEditBindings(record,manifest,projectId));
+  const source=manifest.inputs.find(port=>port.id==="source_image"&&port.type==="image");
+  if(!source)throw new Error("The selected workflow cannot use a source image.");
+  const inputs={...draft.inputs};
+  let referencesForSlots=references;
+  if(!inputs[source.id]&&!draft.elementInputs?.[source.id]){
+    const first=record.referencePack.references.find(reference=>reference.assetId===references[0].assetId);
+    if(!first||!assetMatchesPort({media_type:first.assetMediaType,content_type:first.assetContentType},source))throw new Error("The character picture is incompatible with the source image.");
+    inputs[source.id]=first.assetId;
+    referencesForSlots=references.slice(1);
+    /* A guided edit may require a reference even when the source is the only view. */
+    if(references.length===1&&manifest.inputs.some(port=>isCharacterPort(port)&&port.required))referencesForSlots=references;
+  }
+  const existing=new Set([...Object.entries(draft.inputs??{}).filter(([id])=>id.startsWith("reference_image")).map(([,value])=>value),...Object.values(draft.elementInputs??{}).map(value=>value.assetId)]);
+  const missing=referencesForSlots.filter(reference=>!existing.has(reference.assetId));
+  const ports=manifest.inputs.filter(port=>isCharacterPort(port)&&!draft.inputs?.[port.id]&&!draft.elementInputs?.[port.id]);
+  if(missing.length>ports.length)throw new Error("Not enough empty reference slots. Remove a reference in Image first.");
+  const elementInputs={...draft.elementInputs};
+  for(const [index,reference] of missing.entries()){
+    elementInputs[ports[index].id]=reference;
+  }
+  return {...draft,inputs,elementInputs};
+}
+
 const SUPPORTED_IMAGE_CONTROLS = new Set([
   "prompt",
   "negative_prompt",
@@ -46,6 +73,12 @@ export function defaultImageDraft(manifest: CapabilityManifestV2): ImageDraft {
         .map((control) => [control.id, control.default as string | number | boolean]),
     ),
   };
+}
+
+/** Carry the person's prompt and selected pictures into the chosen edit workflow. */
+export function imageDraftWithReferences(manifest:CapabilityManifestV2,previous:ImageDraft,inputs:Record<string,string>):ImageDraft {
+  const next=defaultImageDraft(manifest);
+  return {...next,controls:{...next.controls,prompt:String(previous.controls.prompt??"")},inputs:{...(next.inputs??{}),...inputs}};
 }
 
 /** Image Studio only renders controls that the selected executable workflow binds. */
@@ -85,6 +118,12 @@ export function imageDraftIssues(manifest: CapabilityManifestV2, draft: ImageDra
   return [...new Set(issues)];
 }
 
+/** Fibo's prompt enhancer sees only the source, so references need the direct prompt branch. */
+export function bypassFiboPromptEnhancer(manifest:CapabilityManifestV2,draft:ImageDraft):boolean {
+  return manifest.id==="fibo2-edit"&&manifest.controls.some(control=>control.id==="improve_prompt")&&
+    (/@Image\s+[1-4]\b/i.test(String(draft.controls.prompt??""))||["reference_image","reference_image_2","reference_image_3"].some(port=>!!(draft.inputs?.[port]||draft.elementInputs?.[port])));
+}
+
 /** The run Image create posts: the draft's project pictures and the saved character on a reference port. */
 export function imageRunBody(
   target: { projectId: string; workerId: string; idempotencyKey: string; routeId: string },
@@ -100,8 +139,11 @@ export function imageRunBody(
     routeId: target.routeId,
     inputs: draft.inputs ?? {},
     elementInputs: draft.elementInputs ?? {},
-    controls: draft.controls,
-    ...(draft.presetId ? { presetId: draft.presetId } : {}),
+    // Resolve explicit visual references only for the ordered Fibo image ports.
+    // Other words and prompts without mentions are sent unchanged.
+    controls: manifest.id==="fibo2-edit"
+      ? {...draft.controls,...(bypassFiboPromptEnhancer(manifest,draft)?{improve_prompt:false}:{}),...(typeof draft.controls.prompt==="string"?{prompt:draft.controls.prompt.replace(/@Image\s+([1-4])\b/gi,(match,index)=>{const ports=["source_image","reference_image","reference_image_2","reference_image_3"],port=ports[Number(index)-1];return draft.inputs?.[port]||draft.elementInputs?.[port]?`image ${index}`:match;})}:{})}
+      : draft.controls,
     audioPolicy: "mute" as const,
   };
 }

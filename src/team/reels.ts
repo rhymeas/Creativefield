@@ -4,7 +4,7 @@
 /** Feature cards, by the workflow they run. Restyle and Effects share the VACE family: the reference
     route is the restyle card, the canny presets are the effects looks. */
 const REELS = {
-  "scail2-character-replace": "/reels/mj-00.mp4",
+  "scail2-character-replace": "/reels/feature-replace.mp4",
   "wan-animate2-distilled": "/reels/mj-07.mp4",
   "wan21-vace-masked-edit": "/reels/feature-swap.mp4",
   "wan21-vace-masked-edit-reference": "/reels/feature-swap.mp4",
@@ -23,6 +23,12 @@ const REELS = {
 
 /** The placeholder clips that take turns behind heroes (Midjourney set). */
 export const POOL_VIDEOS = Array.from({ length: 8 }, (_, i) => `/reels/mj-0${i}.mp4`);
+
+/** All bundled video examples are available in the Library and media picker. */
+export const LIBRARY_EXAMPLE_VIDEOS = [...POOL_VIDEOS,...[
+  "feature-effects", "feature-motion", "feature-replace", "feature-restyle", "feature-swap",
+  "wan22-flf-14b", "wan22-i2v-14b", "wan22-i2v-5b", "wan22-t2v-5b",
+].map(name=>`/reels/${name}.mp4`)];
 
 /** The one loop behind a whole section's surfaces. */
 const SECTION_REELS: Record<string, string> = {

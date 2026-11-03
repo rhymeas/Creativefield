@@ -1,0 +1,9 @@
+# Video sound candidate
+
+Adapted from the [ControlFoley text-and-video example](https://github.com/YJX-Research/comfyui-controlfoley-official/blob/c918ad7/example_workflows/04_tv2a_text_video.json), Apache-2.0. This candidate is not registered or runnable from CreativeField yet. The custom node and its CUDA-only model are not installed on the tested workers.
+
+The source is loaded with ComfyUI's `LoadVideo` so the app can bind an uploaded asset. The original video frames and frame rate are combined with generated audio by core nodes; generation receives the same video and the user's prompt. Automatic source fetching is disabled. Node 1's `file` and node 3's `prompt` are intended bindings; they must be populated by the server, not left as these placeholders.
+
+Before exposing this graph: review and pin the upstream custom-node implementation and model dependencies, install them in an isolated environment, establish model license and storage requirements, add node policy and runtime readiness checks, validate video duration and output synchronization, integrate the Audio workspace, and run a real video-plus-prompt test. The existing running ComfyUI installations have not been changed.
+
+The custom-node code and upstream source are Apache-2.0; the separately downloaded ControlFoley weights are CC BY-NC 4.0. Other dependency models have their own licenses. The upstream node documents CUDA-only inference and automatic downloads of missing weights; do not assume `auto_fetch_source: false` disables weight downloads. See the [official node license and limitations](https://github.com/YJX-Research/comfyui-controlfoley-official#-license-and-third-party-assets). The candidate uses the installed ComfyUI SaveVideo dynamic input `format.codec` for MP4/H.264; node-level execution and audio synchronization have not been verified.

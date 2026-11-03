@@ -6,9 +6,9 @@
 //   COMFY_URL=http://host:8188 npm run validate:workflows
 //
 // With no ComfyUI reachable only the structure is checked, and the report says so.
-// Exit code 1 when any workflow has a problem the server would reject.
+// Exit code 1 when a problem is found; 2 while native prompt validation is unavailable.
 import { loadServerCatalogue } from "../server/catalogue";
-import { summariseIssues, validateGraph } from "../src/workflow/validate-graph";
+import { partitionOutputIssues, summariseIssues, validateGraph } from "../src/workflow/validate-graph";
 import type { ObjectInfo } from "../src/workflow/ui-to-api";
 
 const base = (process.env.COMFY_URL ?? "http://127.0.0.1:8188").replace(/\/$/, "");
@@ -34,8 +34,10 @@ for (const { manifest, template } of catalogue) {
   /* A replace pack's stored template is a fragment: the native compiler adds the relay windows
      and their links at run time, so a link to a node that is not stored is expected there. */
   const compiled = manifest.replaceContract !== undefined;
-  const issues = validateGraph(template, info, skip).filter(issue => !(compiled && issue.kind === "bad_link"));
-  if (!issues.length) { console.log(`  ${compiled ? "partial" : "ok     "}   ${manifest.id}${compiled ? "  (compiled at run time, links not checked)" : ""}`); continue; }
+  const allIssues = validateGraph(template, info, skip).filter(issue => !(compiled && issue.kind === "bad_link"));
+  const {active: issues, disconnected} = compiled ? {active: allIssues, disconnected: []} : partitionOutputIssues(template, info, allIssues);
+  for (const issue of disconnected) console.log(`  warning   ${manifest.id}: disconnected ${issue.nodeClass}#${issue.node}: ${issue.detail}`);
+  if (!issues.length) { console.log(`  partial   ${manifest.id}${compiled ? "  (compiled at run time, links not checked)" : !info ? "  (node and model checks skipped)" : "  (node definitions checked; prompt not validated)"}`); continue; }
   const { nodes, options, other } = summariseIssues(issues);
   const hard = nodes.length > 0 || other.length > 0;
   if (hard) failed++;
@@ -44,5 +46,5 @@ for (const { manifest, template } of catalogue) {
   if (options.length) console.log(`             not offered: ${options.slice(0, 6).join("; ")}${options.length > 6 ? ` (+${options.length - 6})` : ""}`);
   for (const issue of other.slice(0, 6)) console.log(`             ${issue.kind} ${issue.nodeClass}#${issue.node}: ${issue.detail}`);
 }
-console.log(`\n${checked} workflows with a template, ${failed} with a problem the server would reject.\n`);
-process.exit(failed ? 1 : 0);
+console.log(`\n${checked} workflows with a template, ${failed} with a detected structural or node problem. ComfyUI prompt validation was not performed.\n`);
+process.exit(failed ? 1 : 2);

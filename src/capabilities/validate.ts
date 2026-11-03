@@ -1,6 +1,6 @@
 import type { CapabilityBundle, SourceLinkedMaskSnapshot } from "./types";
 import { assertRoutePolicy } from "./policy";
-import {assertSecondsDurationGraph,hasQualifiedDurationMapping} from "./timing";
+import {assertH3SecondsGraph,assertSecondsDurationGraph,hasQualifiedDurationMapping} from "./timing";
 import { validateImageArtifacts } from "./image-artifacts";
 import {validatePosePreviewContract} from "./pose-preview";
 import { validateImageInputContract } from "./image-input-contract";
@@ -67,12 +67,18 @@ export function validateCapability(bundle: CapabilityBundle): string[] {
     else if(m.timing.frameMapping==="wan_seconds_floor_4n1"){
       try{if(!bundle.template)throw new Error("Missing timing graph");assertSecondsDurationGraph(bundle.template,m.controls.find(c=>c.id==="length")!.binding!,m.timing.fps);}catch(e){errors.push(String(e));}
     }
+    else if(m.timing.frameMapping==="h3_seconds_17n5"){
+      try{if(!bundle.template)throw new Error("Missing timing graph");assertH3SecondsGraph(bundle.template,m.controls.find(c=>c.id==="length")!.binding!,m.timing.fps);}catch(e){errors.push(String(e));}
+    }
   }
   for (const item of [...m.inputs, ...m.controls]) {
     if (!item.id || ids.has(item.id)) errors.push(`Duplicate or empty input/control: ${item.id}`);
     ids.add(item.id);
     if (item.binding && (!bundle.template?.[item.binding.node] || !(item.binding.field in bundle.template[item.binding.node].inputs))) errors.push(`Invalid binding: ${item.id}`);
+    for (const also of (item as { alsoBindings?: Array<{ node: string; field: string }> }).alsoBindings ?? []) if (!bundle.template?.[also.node] || !(also.field in bundle.template[also.node].inputs)) errors.push(`Invalid binding: ${item.id}`);
   }
+  for (const preset of m.presets) if (preset.thumb !== undefined && (typeof preset.thumb !== "string" || !preset.thumb.startsWith("/examples/") || preset.thumb.includes(".."))) errors.push(`Invalid preset picture: ${preset.id}`);
+  if (m.credit && (!m.credit.name || !m.credit.url.startsWith("https://") || !m.credit.license || !m.credit.what)) errors.push("Invalid credit: name, https url, license and what are required");
   const routes = new Set<string>();
   for(const port of m.inputs.filter(port=>port.omitWhenMissing)){
     try{optionalReferenceLink(bundle.template??{},port);}catch(error){errors.push((error as Error).message);}

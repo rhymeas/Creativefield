@@ -44,7 +44,8 @@ export async function stitchVideoExtension(store:DiskStore,workspaceId:string,so
     const args=["-hide_banner","-loglevel","error","-nostdin","-y","-protocol_whitelist","file,pipe","-i",source];
     const preserveAudio=plan.output.audioPolicy==="preserve";
     if(preserveAudio&&!plan.source.hasAudio)throw new VideoStitchError("Plan cannot preserve audio from a silent source");
-    let filter=`[0:v:0]trim=start_frame=${plan.trim.startFrame}:end_frame=${plan.trim.endFrameExclusive},setpts=PTS-STARTPTS,fps=16,setsar=1,format=yuv420p[src]`,map="[src]",audioMap:string|null=null;
+    const rate=plan.output.frameRate,outputFps=rate.numerator/rate.denominator;
+    let filter=`[0:v:0]trim=start_frame=${plan.trim.startFrame}:end_frame=${plan.trim.endFrameExclusive},setpts=PTS-STARTPTS,fps=${rate.numerator}/${rate.denominator},setsar=1,format=yuv420p[src]`,map="[src]",audioMap:string|null=null;
     if(plan.continuation){
       if(!continuationKey)throw new VideoStitchError("Forward extension requires a verified continuation artifact");
       const continuation=await store.file(workspaceId,continuationKey),facts=await inspectNormalizedVideo(continuation,signal),expected=plan.continuation.generationFrames;
@@ -53,15 +54,15 @@ export async function stitchVideoExtension(store:DiskStore,workspaceId:string,so
       filter+=`;[1:v:0]trim=start_frame=${plan.continuation.overlapFrames}:end_frame=${plan.continuation.overlapFrames+plan.continuation.requestedFrames},setpts=PTS-STARTPTS,fps=16,setsar=1,format=yuv420p[cont];[src][cont]concat=n=2:v=1:a=0[out]`;map="[out]";
     }
     if(preserveAudio){
-      const sourceFps=plan.source.frameRate.numerator/plan.source.frameRate.denominator,start=plan.trim.startFrame/sourceFps,end=plan.trim.endFrameExclusive/sourceFps,duration=plan.output.frames/16;
+      const sourceFps=plan.source.frameRate.numerator/plan.source.frameRate.denominator,start=plan.trim.startFrame/sourceFps,end=plan.trim.endFrameExclusive/sourceFps,duration=plan.output.frames/outputFps;
       filter+=`;[0:a:0]atrim=start=${start.toFixed(4)}:end=${end.toFixed(4)},asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,apad,atrim=duration=${duration.toFixed(4)},asetpts=N/SR/TB[a]`;audioMap="[a]";
     }
     args.push("-filter_complex_threads","1","-filter_complex",filter,"-map",map);
     if(audioMap)args.push("-map",audioMap,"-c:a","aac","-b:a","128k","-ar","48000","-ac","2");else args.push("-an");
     args.push("-c:v","libx264","-threads","2","-preset","veryfast","-crf","20","-pix_fmt","yuv420p","-map_metadata","-1","-movflags","+faststart","-frames:v",String(plan.output.frames),"-fs",String(store.maxBytes+1),target);
     try{await execute(process.env.FFMPEG_PATH??"ffmpeg",args,{windowsHide:true,timeout:120000,maxBuffer:2*1024*1024,signal});}catch(error){if(signal.aborted)throw new VideoStitchError("Video trim or stitch was canceled or timed out");throw new VideoStitchError("FFmpeg could not produce the planned video artifact");}
-    const facts=await inspectNormalizedVideo(target,signal),expectedSeconds=plan.output.frames/16;
-    if(facts.width!==plan.source.width||facts.height!==plan.source.height||facts.frameRate.numerator/facts.frameRate.denominator!==16||facts.frameCount!==plan.output.frames||facts.hasAudio!==preserveAudio)throw new VideoStitchError("Published video failed exact frame, geometry or audio verification");
+    const facts=await inspectNormalizedVideo(target,signal),expectedSeconds=plan.output.frames/outputFps;
+    if(facts.width!==plan.source.width||facts.height!==plan.source.height||facts.frameRate.numerator*rate.denominator!==rate.numerator*facts.frameRate.denominator||facts.frameCount!==plan.output.frames||facts.hasAudio!==preserveAudio)throw new VideoStitchError("Published video failed exact frame, geometry or audio verification");
     if(preserveAudio&&(facts.audioSeconds===null||Math.abs(facts.audioSeconds-expectedSeconds)>0.12))throw new VideoStitchError("Published video failed exact audio timing verification");
     saved=await store.put(workspaceId,createReadStream(target),attempt.candidateId);
     return {...saved,metadata:{validationVersion:1,planDigest:plan.planDigest,operation:plan.operation,sourceSha256:plan.source.sha256,sourceRange:plan.trim,continuation:plan.continuation,output:{...plan.output,...facts},artifactSha256:saved.sha256}};

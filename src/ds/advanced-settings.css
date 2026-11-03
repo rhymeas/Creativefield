@@ -1,0 +1,14 @@
+/* Compact advanced controls: small values share rows; descriptions and text areas retain space. */
+.ds-advanced-dialog { width:min(540px,100%); }
+.ds-advanced-dialog .ds-dialog__body { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-content:start; gap:var(--gap-stack); }
+.ds-advanced-dialog .ds-dialog__body > :is(.cf-form,.cf-advanced-grid) { display:contents; }
+.ds-advanced-dialog .ds-dialog__body :is(.ds-field,.ds-row,.ds-parambutton) { min-width:0; }
+.ds-advanced-dialog .ds-field__box { padding-inline:min(var(--pad-field),48px); }
+.ds-advanced-dialog .ds-dialog__body > :is(.ds-meta,.cf-advanced-grid__full),
+.ds-advanced-dialog .ds-dialog__body > :has(textarea),
+.ds-advanced-dialog .ds-dialog__body > :is(.cf-form,.cf-advanced-grid) > :is(.ds-meta,.cf-advanced-grid__full),
+.ds-advanced-dialog .ds-dialog__body > :is(.cf-form,.cf-advanced-grid) > :has(textarea) { grid-column:1 / -1; }
+/* Switches sit in the same box as the rows beside them, so the two columns line up (no bare checkboxes between boxed fields). */
+.ds-advanced-dialog .ds-check { min-height:var(--row-h); padding:var(--pad-row); padding-inline:min(var(--pad-field),48px); background:var(--surface-control); }
+.ds-advanced-dialog .ds-row { padding-inline:min(var(--pad-field),48px); }
+@media (max-width:420px) { .ds-advanced-dialog .ds-dialog__body { grid-template-columns:minmax(0,1fr); } }

@@ -3,14 +3,17 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { createHash } from "node:crypto";
 import { openAsBlob } from "node:fs";
+import {withVideoAudio} from "./silent-video-audio";
 import { readFile } from "node:fs/promises";
 import { Readable } from "node:stream";
 import { WebSocket } from "ws";
 import {jobFeedRoutes} from "./job-feed";
+import {onThisComputer,laneDecision,localQueueState,gpuLaneEnabled,modelFamily,familyChanged,GPU_BUSY_STATES,GPU_BUSY_STALE_MINUTES} from "./gpu-lane";
 import sharp from "sharp";
 import type { CapabilityBundle,Invocation } from "../src/capabilities/types";
 import type { ApiGraph } from "../src/workflow/build";
 import { compileLocal } from "../src/capabilities/compile";
+import {compileAnchorStill} from "../src/capabilities/anchor-still";
 import {compileScailChunks,planScailChunks,SCAIL_CHUNK_FRAMES,scailChunkParts} from "../src/capabilities/replace";
 import {stageForNode} from "./develop";
 import {chainKeyPrefix,chainPart,type JobPart} from "./progress";
@@ -157,7 +160,7 @@ export function declaredOutputFiles(graph:Record<string,{class_type:string}>,ent
   if(mediaType==="image")return imageOutputFiles(graph,entry);
   if(mediaType==="audio")return Object.entries(graph).filter(([,node])=>/^SaveAudio/.test(node.class_type)).map(([id])=>firstOutputFile(entry.outputs[id])).filter((file):file is OutputFile=>!!file);
   if(mediaType==="model3d")return Object.entries(graph).filter(([,node])=>node.class_type==="SaveGLB").map(([id])=>firstOutputFile(entry.outputs[id])).filter((file):file is OutputFile=>!!file);
-  return Object.entries(graph).filter(([,node])=>node.class_type==="SaveVideo").map(([id])=>firstOutputFile(entry.outputs[id])).filter((file):file is OutputFile=>!!file);
+  return Object.entries(graph).filter(([,node])=>node.class_type==="SaveVideo"||node.class_type==="SaveWEBM"||node.class_type==="MiniMaxH3ChainAssemble").map(([id])=>firstOutputFile(entry.outputs[id])).filter((file):file is OutputFile=>!!file);
 }
 
 export function pendingMaskMetadata(sourceLinked:unknown){
@@ -243,6 +246,7 @@ const REPLACE_WINDOW_NODE="213:114";
  *  Chunking stays off until a real two-pass render passed the seam check: off, a long clip plans
  *  exactly one chunk and posts the same single 81-frame pass as before chunking existed. */
 export function compileRunGraph(bundle:CapabilityBundle,invocation:Invocation,inputs:Record<string,string>,sourceFrames?:number):ApiGraph{
+  if(bundle.manifest.id==="replace-anchor-still")return compileAnchorStill(bundle,{...invocation,inputs});
   const graph=compileLocal(bundle,{...invocation,inputs});
   const contract=bundle.manifest.replaceContract;
   if(!contract)return graph;
@@ -430,6 +434,7 @@ export class ExecutionService {
                     if(!this.memoryWaiting.has(run.id)){this.memoryWaiting.add(run.id);await this.event(run.workspace_id,run.id,"pending",{waiting:"memory",detail:`Waiting for free memory (below ${Math.round(MIN_FREE_RAM_SHARE*100)} %)`}).catch(()=>{});}
                     continue;
                   }
+                  if(gpuLaneEnabled()&&onThisComputer(worker)&&!(await this.gpuLaneOpen(run,worker)))continue;
                   this.memoryWaiting.delete(run.id);this.memoryNotes.delete(run.id);
                   this.memoryReliefAttempted.delete(worker.id);
                   await this.submit(run,worker);
@@ -441,6 +446,43 @@ export class ExecutionService {
         } finally { lock.release(); }
       }
       await this.unloadIdleModels();
+  }
+  /** Address of the ComfyUI on this computer that used the graphics card last (see gpu-lane.ts). */
+  private gpuOwner:string|null=null;
+  private gpuWaiting=new Set<string>();
+  /** Model family each local ComfyUI ran last (see modelFamily in gpu-lane.ts). */
+  private gpuFamily=new Map<string,string>();
+  /** One run at a time on this computer's graphics card; the other local ComfyUIs unload before a new one takes it. */
+  private async gpuLaneOpen(run:any,worker:any):Promise<boolean>{
+    const local=(await this.pool.query("SELECT * FROM workers WHERE enabled=true")).rows.filter(onThisComputer);
+    // Keyed by ComfyUI address: one ComfyUI can be a worker in several workspaces.
+    const origins=[...new Set(local.map((w:any)=>w.origin as string))];
+    const busyIds=new Set((await this.pool.query("SELECT DISTINCT worker_id FROM runs WHERE state = ANY($1) AND updated_at > now() - make_interval(mins => $2)",[[...GPU_BUSY_STATES],GPU_BUSY_STALE_MINUTES])).rows.map((r:any)=>r.worker_id as string));
+    const busy=[...new Set(local.filter((w:any)=>busyIds.has(w.id)).map((w:any)=>w.origin as string))];
+    const decision=laneDecision(worker.origin,origins,busy,this.gpuOwner);
+    // Other local clients may submit straight to ComfyUI without creating a run
+    // in our database. Do not unload or compete with those queued/running jobs.
+    const otherWorkers=origins.filter(origin=>origin!==worker.origin).map(origin=>local.find((w:any)=>w.origin===origin));
+    const externalQueues=decision.go?await Promise.all(otherWorkers.map(other=>localQueueState(()=>this.fetch(other,"/queue")))):[];
+    if(!decision.go||externalQueues.includes('busy')){
+      if(!this.gpuWaiting.has(run.id)){this.gpuWaiting.add(run.id);await this.event(run.workspace_id,run.id,"pending",{waiting:"gpu",detail:"Waiting for the graphics card: another job is running on this computer"}).catch(()=>{});}
+      return false;
+    }
+    for(const origin of decision.free){
+      const other=local.find((w:any)=>w.origin===origin);
+      try{await this.fetch(other,"/free",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({unload_models:true,free_memory:true})});}catch{/* offline: holds nothing */}
+    }
+    // Model-family loader: a different family on the same ComfyUI unloads the last one first.
+    const bundle=this.catalogue.find(b=>b.manifest.id===run.capability_id);
+    if(bundle){
+      const family=modelFamily(bundle.manifest);
+      if(familyChanged(this.gpuFamily.get(worker.origin),family)&&!decision.free.includes(worker.origin)){
+        try{await this.fetch(worker,"/free",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({unload_models:true,free_memory:true})});}catch{/* offline: holds nothing */}
+      }
+      this.gpuFamily.set(worker.origin,family);
+    }
+    this.gpuWaiting.delete(run.id);this.gpuOwner=worker.origin;
+    return true;
   }
   private lastIdleCheck=0;
   /** Every 30 s: workers with an empty queue for 5 minutes get their models unloaded through ComfyUI's /free. */
@@ -464,14 +506,23 @@ export class ExecutionService {
     if(!acceptedUploadPath(worker,filename,await uploaded.json() as {name?:string;subfolder?:string}))throw new Error("Worker returned an unexpected upload path");
     return filename;
   }
-  private async uploadInputs(run:any,worker:any,assets:any[],motion?:{role:string;storageKey:string;filename:string}):Promise<Record<string,string>>{
+  private async uploadInputs(run:any,worker:any,assets:any[],motion?:{role:string;storageKey:string;filename:string},addSilentAudio=false):Promise<Record<string,string>>{
     const inputs:Record<string,string>={};
     for(const asset of assets){
       const isMotion=motion?.role===asset.role;
       const filename=isMotion?motion!.filename:`comfyfield-${run.id}-${asset.id}.${extension(asset.content_type)}`;
       if(Object.values(inputs).includes(filename)){inputs[asset.role]=filename;continue;}
-      const data=await openAsBlob(await this.store.file(run.workspace_id,isMotion?motion!.storageKey:asset.storage_key),{type:isMotion?"video/mp4":asset.content_type});
-      inputs[asset.role]=await this.uploadInput(worker,filename,data,asset.role);
+      const source=await this.store.file(run.workspace_id,isMotion?motion!.storageKey:asset.storage_key);
+      if(addSilentAudio&&asset.role==="source_video"){
+        inputs[asset.role]=await withVideoAudio(source,async file=>{
+          const prepared=file!==source;
+          const uploadName=prepared?filename.replace(/\.[^.]+$/, ".mkv"):filename;
+          return this.uploadInput(worker,uploadName,await openAsBlob(file,{type:prepared?"video/x-matroska":asset.content_type}),asset.role);
+        });
+      }else{
+        const data=await openAsBlob(source,{type:isMotion?"video/mp4":asset.content_type});
+        inputs[asset.role]=await this.uploadInput(worker,filename,data,asset.role);
+      }
     }
     return inputs;
   }
@@ -590,7 +641,7 @@ export class ExecutionService {
       if(current.state==="cancel_requested") { await this.finish(run,"canceled");return; }
       await this.pool.query("UPDATE runs SET graph=$1,updated_at=now() WHERE workspace_id=$2 AND id=$3",[JSON.stringify(graph),run.workspace_id,run.id]);
       remoteAttempted=true;
-      const response=await this.fetch(worker,"/prompt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:graph,client_id:run.id,extra_data:{preview_method:"latent2rgb",comfyfield:{runId:run.id,workspaceId:run.workspace_id}}})});
+      const response=await this.fetch(worker,"/prompt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:graph,client_id:run.id,extra_data:{preview_method:bundle.manifest.id==="openjutsu-h3-swap"?"none":"latent2rgb",comfyfield:{runId:run.id,workspaceId:run.workspace_id}}})});
       if(response.status===400) { await this.finish(run,"failed","Worker rejected the workflow inputs");return; }
       const result=await response.json() as {prompt_id?:string};
       if(!response.ok||!result.prompt_id)throw new Error("Submission outcome unknown");
@@ -636,7 +687,7 @@ export class ExecutionService {
          only accepts the names the server made, and the stored graph keeps those names. */
       const cloud=worker.kind==="cloud";
       const named=Object.fromEntries(assets.map(asset=>[asset.role,`comfyfield-${run.id}-${asset.id}.${extension(asset.content_type)}`]));
-      const inputs=cloud?named:await this.uploadInputs(run,worker,assets);
+      const inputs=cloud?named:await this.uploadInputs(run,worker,assets,undefined,bundle.manifest.id==="h3-object-swap");
       const graph=compileRunGraph(bundle,run.invocation,inputs,sourceFrames);
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
       if(current.state==="cancel_requested"){await this.finish(run,"canceled");return;}
@@ -1234,9 +1285,9 @@ export async function executionRoutes(app:FastifyInstance,pool:Pool,store:DiskSt
     });
   });
   app.get(`${base}/runs`,async request=>{const {workspaceId}=ws.parse(request.params);await member(pool,request,workspaceId);const query=z.object({projectId:z.uuid().optional()}).strict().parse(request.query);const rows=(await pool.query(`SELECT ${publicColumns} FROM runs WHERE workspace_id=$1 AND ($2::uuid IS NULL OR project_id=$2) ORDER BY created_at DESC LIMIT 200`,[workspaceId,query.projectId??null])).rows;
-    const ids=[...new Set(rows.map(row=>row.output_ids?.[0]).filter((id):id is string=>typeof id==="string"&&/^[a-f0-9-]{36}$/i.test(id)))];
-    const types=new Map((ids.length?(await pool.query("SELECT id,content_type FROM assets WHERE workspace_id=$1 AND id=ANY($2::uuid[])",[workspaceId,ids])).rows:[]).map(asset=>[asset.id,asset.content_type]));
-    return rows.map(row=>({...row,remote_id:row.worker_id?row.remote_id:null,output_content_type:types.get(row.output_ids?.[0])??null}));});
+    const ids=[...new Set(rows.flatMap(row=>Array.isArray(row.output_ids)?row.output_ids:[]).filter((id):id is string=>typeof id==="string"&&/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(id)))];
+    const types=new Map((ids.length?(await pool.query("SELECT id,content_type FROM assets WHERE workspace_id=$1 AND id=ANY($2::uuid[]) AND metadata->>'libraryHidden' IS DISTINCT FROM 'true'",[workspaceId,ids])).rows:[]).map(asset=>[asset.id,asset.content_type]));
+    return rows.map(row=>{const output_ids=(Array.isArray(row.output_ids)?row.output_ids:[]).filter((id:unknown)=>typeof id==="string"&&types.has(id.toLowerCase()));return {...row,output_ids,remote_id:row.worker_id?row.remote_id:null,output_content_type:types.get(output_ids[0]?.toLowerCase())??null};});});
   app.get(`${base}/runs/:id`,async request=>{const {workspaceId,id}=item.parse(request.params);await member(pool,request,workspaceId);const row=(await pool.query(`SELECT ${publicColumns},invocation FROM runs WHERE workspace_id=$1 AND id=$2`,[workspaceId,id])).rows[0];if(!row)throw new HttpError(404,"Run not found");if(!row.worker_id)row.remote_id=null;return row;});
   app.get(`${base}/runs/:id/provenance`,async request=>{
     const {workspaceId,id}=item.parse(request.params);await member(pool,request,workspaceId);

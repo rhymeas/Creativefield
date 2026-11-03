@@ -25,7 +25,7 @@ async function sourcePlan(pool:Pool,store:DiskStore,workspaceId:string,body:z.in
   try{
     const envelope=await inspectVideoSource(await store.file(workspaceId,source.storage_key),{sourceAssetId:source.id,projectId:source.project_id});
     if(envelope.sha256!==source.sha256||envelope.bytes!==Number(source.bytes))throw new Error("stored metadata mismatch");
-    return planVideoExtension({contractVersion:1,projectId:body.projectId,sourceAssetId:body.sourceAssetId,startFrame:body.startFrame,endFrameExclusive:body.endFrameExclusive,extensionFrames:body.extensionFrames,overlapFrames:body.overlapFrames,audioPolicy:body.audioPolicy},envelope);
+    return planVideoExtension({contractVersion:1,projectId:body.projectId,sourceAssetId:body.sourceAssetId,startFrame:body.startFrame,endFrameExclusive:body.endFrameExclusive,extensionFrames:body.extensionFrames,overlapFrames:body.overlapFrames,audioPolicy:body.audioPolicy,...(body.preserveFrameRate===undefined?{}:{preserveFrameRate:body.preserveFrameRate})},envelope);
   }catch(error){if(error instanceof HttpError)throw error;if(error instanceof VideoExtensionToolUnavailableError)throw new HttpError(422,error.message);if(error instanceof VideoExtensionMediaError)throw new HttpError(422,error.message);throw new HttpError(422,"Source video is missing, changed or outside the supported frame contract");}
 }
 

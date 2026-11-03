@@ -258,79 +258,31 @@
       "channel": "red"
     }
   },
-  "75:61": {
-    "class_type": "KSamplerSelect",
+  "75:64": {
+    "class_type": "KSampler",
     "inputs": {
-      "sampler_name": "euler"
-    },
-    "_meta": {
-      "title": "KSamplerSelect"
-    }
-  },
-  "75:62": {
-    "class_type": "Flux2Scheduler",
-    "inputs": {
+      "seed": 20261019,
       "steps": 4,
-      "width": [
-        "75:99",
-        0
-      ],
-      "height": [
-        "75:99",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "Flux2Scheduler"
-    }
-  },
-  "75:63": {
-    "class_type": "CFGGuider",
-    "inputs": {
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
       "model": [
         "75:70",
         0
       ],
       "positive": [
-        "75:124",
+        "75:74",
         0
       ],
       "negative": [
-        "75:125",
-        0
-      ],
-      "cfg": 1
-    },
-    "_meta": {
-      "title": "CFGGuider"
-    }
-  },
-  "75:64": {
-    "class_type": "SamplerCustomAdvanced",
-    "inputs": {
-      "noise": [
-        "75:73",
-        0
-      ],
-      "guider": [
-        "75:63",
-        0
-      ],
-      "sampler": [
-        "75:61",
-        0
-      ],
-      "sigmas": [
-        "75:62",
-        0
+        "75:74",
+        1
       ],
       "latent_image": [
-        "75:66",
-        0
+        "75:74",
+        2
       ]
-    },
-    "_meta": {
-      "title": "SamplerCustomAdvanced"
     }
   },
   "75:65": {
@@ -349,42 +301,12 @@
       "title": "VAEDecode"
     }
   },
-  "75:66": {
-    "class_type": "EmptyFlux2LatentImage",
-    "inputs": {
-      "width": [
-        "75:99",
-        0
-      ],
-      "height": [
-        "75:99",
-        1
-      ],
-      "batch_size": 1
-    },
-    "_meta": {
-      "title": "EmptyFlux2LatentImage"
-    }
-  },
-  "75:70": {
-    "class_type": "UNETLoader",
-    "inputs": {
-      "unet_name": "flux-2-klein-4b-fp8.safetensors",
-      "weight_dtype": "default"
-    },
-    "_meta": {
-      "title": "UNETLoader"
-    }
-  },
   "75:71": {
     "class_type": "CLIPLoader",
     "inputs": {
-      "clip_name": "qwen_3_4b.safetensors",
-      "type": "flux2",
+      "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+      "type": "fibo2",
       "device": "default"
-    },
-    "_meta": {
-      "title": "CLIPLoader"
     }
   },
   "75:72": {
@@ -396,135 +318,28 @@
       "title": "VAELoader"
     }
   },
-  "75:73": {
-    "class_type": "RandomNoise",
-    "inputs": {
-      "noise_seed": 20261019
-    },
-    "_meta": {
-      "title": "RandomNoise"
-    }
-  },
   "75:74": {
-    "class_type": "CLIPTextEncode",
+    "class_type": "TextEncodeFibo2",
     "inputs": {
-      "text": "Put the person from the second picture onto the masked man. Same face, hair and clothes. Keep his pose and gesture, the orange wall, the microphone and the light.",
+      "prompt": "Put the person from the second picture onto the masked man. Same face, hair and clothes. Keep his pose and gesture, the orange wall, the microphone and the light.",
+      "negative_prompt": "",
+      "width": 0,
+      "height": 0,
+      "batch_size": 1,
       "clip": [
         "75:71",
         0
-      ]
-    },
-    "_meta": {
-      "title": "CLIP Text Encode (Positive Prompt)"
-    }
-  },
-  "75:82": {
-    "class_type": "ConditioningZeroOut",
-    "inputs": {
-      "conditioning": [
-        "75:74",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "ConditioningZeroOut"
-    }
-  },
-  "75:99": {
-    "class_type": "GetImageSize",
-    "inputs": {
-      "image": [
-        "482",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "GetImageSize"
-    }
-  },
-  "75:121": {
-    "class_type": "ReferenceLatent",
-    "inputs": {
-      "conditioning": [
-        "75:82",
-        0
-      ],
-      "latent": [
-        "75:122",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "ReferenceLatent"
-    }
-  },
-  "75:122": {
-    "class_type": "VAEEncode",
-    "inputs": {
-      "pixels": [
-        "482",
-        1
       ],
       "vae": [
         "75:72",
         0
-      ]
-    },
-    "_meta": {
-      "title": "VAEEncode"
-    }
-  },
-  "75:123": {
-    "class_type": "ReferenceLatent",
-    "inputs": {
-      "conditioning": [
-        "75:74",
-        0
       ],
-      "latent": [
-        "75:122",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "ReferenceLatent"
-    }
-  },
-  "75:127": {
-    "class_type": "VAEEncode",
-    "inputs": {
-      "pixels": [
+      "images.image_1": [
+        "482",
+        1
+      ],
+      "images.image_2": [
         "12",
-        0
-      ],
-      "vae": [
-        "75:72",
-        0
-      ]
-    }
-  },
-  "75:124": {
-    "class_type": "ReferenceLatent",
-    "inputs": {
-      "conditioning": [
-        "75:123",
-        0
-      ],
-      "latent": [
-        "75:127",
-        0
-      ]
-    }
-  },
-  "75:125": {
-    "class_type": "ReferenceLatent",
-    "inputs": {
-      "conditioning": [
-        "75:121",
-        0
-      ],
-      "latent": [
-        "75:127",
         0
       ]
     }
@@ -1357,6 +1172,13 @@
         "maskSliceBack",
         0
       ]
+    }
+  },
+  "75:70": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "fibo2_edit_turbo_int8_convrot.safetensors",
+      "weight_dtype": "default"
     }
   }
 }

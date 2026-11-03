@@ -3,6 +3,7 @@ import {hasQualifiedDurationMapping} from "../capabilities/timing";
 import {assetMatchesPort} from "../capabilities/assets";
 import type {Asset,ReusableElement,Worker} from "./api";
 import {defaultDraft,draftErrors,workerReadiness,type ElementInputBinding} from "./state";
+import {isSelectedVideoCreate} from "../capabilities/tasks";
 
 export type Shot={key:string;prompt:string;durationSeconds:number|string;settings:{title?:string;audioPolicy:"mute"|"preserve"|"replace"|"mix";elementInputs:Record<string,ElementInputBinding>;cameraHint?:string;capabilityId?:string;generation?:{capabilityId:string;version:string;routeId:"local";controls:Record<string,string|number|boolean>}};assets:Array<{role:string;assetId:string}>};
 export type ShotPayload=Omit<Shot,"key"|"durationSeconds">&{durationSeconds:number;planKey?:string};
@@ -16,6 +17,12 @@ export type AssemblyReadiness={state:string;missing:string[];instructions:string
 export const defaultAssembly:Assembly={width:1280,height:720,fps:24,audioPolicy:"mute"};
 export const outputSizes=[{id:"landscape",label:"16:9 · 1280 × 720",width:1280,height:720},{id:"portrait",label:"9:16 · 720 × 1280",width:720,height:1280},{id:"square",label:"1:1 · 1024 × 1024",width:1024,height:1024}];
 export function eligible(m:CapabilityManifestV2){return m.coverage.local==="implemented"&&["t2v","i2v","flf2v"].includes(m.category)&&hasQualifiedDurationMapping(m);}
+/** Existing shots retain their original workflows; new choices use the approved video models. */
+export function storyboardCreationModels(manifests:CapabilityManifestV2[]){return manifests.filter(m=>eligible(m)&&isSelectedVideoCreate(m.id));}
+export function storyboardModelProblem(shot:Shot):string|undefined{
+  const id=shot.settings.generation?.capabilityId;
+  return id&&!isSelectedVideoCreate(id)?"Choose a MiniMax H3 model before rendering this shot.":undefined;
+}
 /** Same rule assembly applies (server/assembly.ts), so a join that cannot be built is refused before generation. */
 export function transitionProblem(shots:Array<{durationSeconds:number|string}>,transition?:Assembly["transition"]):string|undefined{
   const fade=transition?.kind==="crossfade"?transition.seconds:0;
@@ -49,7 +56,7 @@ export function saveOutcome(intent:SaveIntent,board:Board):"saved"|"retry"|"conf
 }
 export function storedDraft(value:unknown):value is BoardDraft{
   const d=value as BoardDraft;if(d&&Array.isArray(d.shots))for(const shot of d.shots)if(shot?.settings&&shot.settings.elementInputs===undefined)shot.settings.elementInputs={};
-  return !!d&&Number.isInteger(d.revision)&&d.revision>0&&Array.isArray(d.shots)&&d.shots.length<=100&&typeof d.workerId==="string"&&!!d.assembly&&["mute","preserve"].includes(d.assembly.audioPolicy)&&[24,25,30,60].includes(d.assembly.fps)&&[d.assembly.width,d.assembly.height].every(n=>Number.isInteger(n)&&n>=64&&n<=1920&&n%2===0)&&d.shots.every(s=>s&&typeof s.key==="string"&&typeof s.prompt==="string"&&["number","string"].includes(typeof s.durationSeconds)&&s.settings&&(s.settings.title===undefined||(typeof s.settings.title==="string"&&s.settings.title.length<=500))&&["mute","preserve","replace","mix"].includes(s.settings.audioPolicy)&&!!s.settings.elementInputs&&typeof s.settings.elementInputs==="object"&&Object.values(s.settings.elementInputs).every(binding=>binding&&typeof binding.elementId==="string"&&typeof binding.assetId==="string")&&(!s.settings.generation||(typeof s.settings.generation.capabilityId==="string"&&typeof s.settings.generation.version==="string"&&s.settings.generation.routeId==="local"&&!!s.settings.generation.controls&&typeof s.settings.generation.controls==="object"))&&Array.isArray(s.assets)&&s.assets.every(a=>typeof a.role==="string"&&typeof a.assetId==="string"));
+  return !!d&&Number.isInteger(d.revision)&&d.revision>0&&Array.isArray(d.shots)&&d.shots.length<=100&&typeof d.workerId==="string"&&!!d.assembly&&["mute","preserve"].includes(d.assembly.audioPolicy)&&[16,24,25,30,60].includes(d.assembly.fps)&&[d.assembly.width,d.assembly.height].every(n=>Number.isInteger(n)&&n>=64&&n<=1920&&n%2===0)&&d.shots.every(s=>s&&typeof s.key==="string"&&typeof s.prompt==="string"&&["number","string"].includes(typeof s.durationSeconds)&&s.settings&&(s.settings.title===undefined||(typeof s.settings.title==="string"&&s.settings.title.length<=500))&&["mute","preserve","replace","mix"].includes(s.settings.audioPolicy)&&!!s.settings.elementInputs&&typeof s.settings.elementInputs==="object"&&Object.values(s.settings.elementInputs).every(binding=>binding&&typeof binding.elementId==="string"&&typeof binding.assetId==="string")&&(!s.settings.generation||(typeof s.settings.generation.capabilityId==="string"&&typeof s.settings.generation.version==="string"&&s.settings.generation.routeId==="local"&&!!s.settings.generation.controls&&typeof s.settings.generation.controls==="object"))&&Array.isArray(s.assets)&&s.assets.every(a=>typeof a.role==="string"&&typeof a.assetId==="string"));
 }
 export function shotErrors(s:Shot,catalogue:CapabilityManifestV2[],assets:Asset[],elements:ReusableElement[]=[]):string[]{
   if(s.settings.title!==undefined&&(typeof s.settings.title!=="string"||s.settings.title.length>500))return ["Use a shot title of up to 500 characters."];

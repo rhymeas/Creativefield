@@ -1,0 +1,63 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "input.png"
+    },
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "2": {
+    "class_type": "UpscaleModelLoader",
+    "inputs": {
+      "model_name": "RealESRGAN_x4plus.pth"
+    },
+    "_meta": {
+      "title": "Load Upscale Model"
+    }
+  },
+  "3": {
+    "class_type": "ImageUpscaleWithModel",
+    "inputs": {
+      "upscale_model": [
+        "2",
+        0
+      ],
+      "image": [
+        "1",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Image (using Model)"
+    }
+  },
+  "4": {
+    "class_type": "ImageScaleBy",
+    "inputs": {
+      "image": [
+        "3",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "scale_by": 1
+    },
+    "_meta": {
+      "title": "Resize after model (scale)"
+    }
+  },
+  "5": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "4",
+        0
+      ],
+      "filename_prefix": "ComfyField/upscale-image-esrgan"
+    },
+    "_meta": {
+      "title": "Save Image"
+    }
+  }
+}

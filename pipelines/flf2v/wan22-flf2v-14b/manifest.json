@@ -41,5 +41,16 @@
       { "folder": "text_encoders", "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors" },
       { "folder": "vae", "file": "wan_2.1_vae.safetensors" }
     ]
-  }
+  },
+  "licenses": {
+    "software": "Adapted from Comfy-Org/workflow_templates video_wan2_2_14B_flf2v (MIT; notice preserved in third-party-licenses/workflow-templates.txt). The 4-step LoRA branch is enabled and the 20-step branch bypassed as documented in this pack's README. ComfyUI core is GPL-3.0. Integration changes follow this repository's GPL-3.0-only license.",
+    "weights": []
+  },
+  "sources": [
+    {
+      "url": "https://github.com/Comfy-Org/workflow_templates/blob/main/templates/video_wan2_2_14B_flf2v.json",
+      "observedAt": "2026-10-16",
+      "kind": "implementation"
+    }
+  ]
 }

@@ -1,0 +1,50 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "generated.png"
+    },
+    "_meta": {
+      "title": "Image to recolor"
+    }
+  },
+  "2": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "palette_swatch.png"
+    },
+    "_meta": {
+      "title": "Palette swatch (image2)"
+    }
+  },
+  "3": {
+    "class_type": "ColorTransfer",
+    "inputs": {
+      "image_target": [
+        "1",
+        0
+      ],
+      "image_ref": [
+        "2",
+        0
+      ],
+      "method": "mkl_lab",
+      "source_stats": "per_frame",
+      "strength": 0.8
+    },
+    "_meta": {}
+  },
+  "4": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "3",
+        0
+      ],
+      "filename_prefix": "ComfyField/palette-transfer-image"
+    },
+    "_meta": {
+      "title": "Save image"
+    }
+  }
+}

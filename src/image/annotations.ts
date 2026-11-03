@@ -9,7 +9,7 @@ export type ImageAnnotation=z.infer<typeof imageAnnotationsSchema>[number];
 export const annotationStorageKey=(workspace:string,asset:string)=>`comfyfield.annotations.${workspace}.${asset}`;
 export function annotationInstruction(boxes:ImageAnnotation[],prompt="") {
   const valid=imageAnnotationsSchema.parse(boxes);
-  return `${prompt.trim()}\nImage 1 is the clean original. Image 2 is a guide showing numbered boxes. Apply ALL numbered edits to image 1 in one result. Change only their indicated regions; keep the image size, composition and everything outside these regions unchanged. Do not include guide boxes, numbers or labels in the result. Coordinates are normalized from the top-left.\n${JSON.stringify(valid.map((box,index)=>({region:index+1,...box})))}`.trim();
+  return `${prompt.trim()}\nImage 1 is the clean original. Image 2 is a guide showing numbered boxes. Treat every numbered instruction below as a required edit, not as text to draw. Apply ALL numbered edits to image 1 in one result, matching each instruction to its numbered box in image 2. Change only their indicated regions; keep the image size, composition and everything outside these regions unchanged. Do not include guide boxes, numbers or labels in the result.\n${valid.map((box,index)=>`Region ${index+1}: ${box.instruction}`).join("\n")}\nCoordinates are normalized from the top-left.\n${JSON.stringify(valid.map((box,index)=>({region:index+1,...box})))}`.trim();
 }
 /** The guide is a separate reference. Never paint annotations onto the source. */
 export function annotationGuide(source:HTMLCanvasElement,boxes:ImageAnnotation[]) {

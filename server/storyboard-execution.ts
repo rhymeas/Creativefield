@@ -11,6 +11,8 @@ import {canonical,prepareInvocation,enqueuePreparedRun,cancelRun,scalarControls,
 import {storyboardStillRoutes,approvedStoryboardStill} from "./storyboard-stills";
 import {storyboardTiming} from "./storyboard-timing";
 import {filmName} from "../src/team/media-names";
+import {keyframeShotTiming} from "./keyframe-storyboard";
+import {modelPromptReferences,usesH3Prompt} from "../src/team/prompt-reference";
 
 export const generationSchema=z.object({capabilityId:z.string().max(120),version:z.string().max(40),routeId:z.literal("local"),controls:scalarControls.default({})}).strict();
 const base="/api/v1/workspaces/:workspaceId",ws=z.object({workspaceId:z.uuid()}),item=ws.extend({id:z.uuid()});
@@ -68,7 +70,7 @@ export class StoryboardService{
       }
       if(r.state!=="assembling")await setState(client,r,"assembling");
       const clips=[];
-      for(const s of shots){const asset=(await client.query("SELECT storage_key FROM assets WHERE workspace_id=$1 AND id=$2",[r.workspace_id,s.output_asset_id])).rows[0];clips.push({key:asset.storage_key,frames:s.snapshot.frames});}
+      for(const s of shots){const asset=(await client.query("SELECT storage_key FROM assets WHERE workspace_id=$1 AND id=$2",[r.workspace_id,s.output_asset_id])).rows[0];clips.push({key:asset.storage_key,frames:s.snapshot.frames,...(s.snapshot.assemblyStartFrame?{startFrame:s.snapshot.assemblyStartFrame}:{})});}
       return {render:r,clips};
     });
     if(!ready||this.stopped)return;
@@ -116,8 +118,9 @@ export async function storyboardExecutionRoutes(app:FastifyInstance,pool:Pool,st
       const readiness=await assemblyReadiness();if(readiness.state!=="ready")throw new HttpError(422,readiness.state==="install_required"?`Assembly installation required: ${readiness.missing.join(", ")}. ${readiness.instructions}`:`Assembly check incomplete. ${readiness.instructions}`);
       const shots=(await client.query("SELECT * FROM shots WHERE workspace_id=$1 AND storyboard_id=$2 ORDER BY ordinal",[workspaceId,id])).rows;
       if(!shots.length||shots.length>32||shots.reduce((n,s)=>n+Number(s.duration_seconds),0)>300)throw new HttpError(422,"Choose 1–32 shots totaling no more than 300 seconds");
+      if(body.assembly.keyframeBoundaries&&(shots.length>3||body.assembly.transition?.kind==='crossfade'||body.approvedStillTakes))throw new HttpError(422,'Keyframe animation needs up to three linked segments without a cross-fade or approved-still override.');
       if(body.approvedStillTakes&&(Object.keys(body.approvedStillTakes).length!==shots.length||shots.some(s=>!body.approvedStillTakes![s.plan_key])))throw new HttpError(422,"Approve one current still for every shot before animating");
-      const prepared=[];
+      const prepared=[];let previousEnd:string|undefined;
       for(const shot of shots){
         const selected=generationSchema.safeParse(shot.settings.generation);
         if(!selected.success)throw new HttpError(422,`Shot ${shot.ordinal+1} needs an explicit local generation workflow`);
@@ -144,8 +147,14 @@ export async function storyboardExecutionRoutes(app:FastifyInstance,pool:Pool,st
           assets.push({role:"start_image",asset_id:still.approved_asset_id});
           approval={takeId:still.id,assetId:still.approved_asset_id,approvedBy:still.approved_by,approvedAt:still.approved_at,producerRunId:still.child_run_id};
         }
-        const timing=storyboardTiming(b.manifest,Number(shot.duration_seconds),body.assembly.fps);
-        const run=await prepareInvocation(client,catalogue,workspaceId,{projectId:board.project_id,workerId:body.workerId,idempotencyKey:body.idempotencyKey,capabilityId:g.capabilityId,version:g.version,routeId:g.routeId,inputs,elementInputs,controls:{...g.controls,prompt:shot.prompt,length:timing.controlSeconds},audioPolicy:shot.settings.audioPolicy??"mute"});
+        const ordinaryTiming=storyboardTiming(b.manifest,Number(shot.duration_seconds),body.assembly.fps);
+        if(body.assembly.keyframeBoundaries&&(elementInputs.start_image||elementInputs.end_image))throw new HttpError(422,'Keyframe images must be direct project images.');
+        const keyframeTiming:ReturnType<typeof keyframeShotTiming>|undefined=body.assembly.keyframeBoundaries?keyframeShotTiming(b.manifest,Number(shot.duration_seconds),body.assembly.fps,prepared.length,inputs,shot.prompt,previousEnd):undefined;
+        if(keyframeTiming)previousEnd=inputs.end_image;
+        const timing:ReturnType<typeof storyboardTiming>&Partial<ReturnType<typeof keyframeShotTiming>>=keyframeTiming?{...ordinaryTiming,...keyframeTiming}:ordinaryTiming;
+        const imageCount=b.manifest.inputs.filter(p=>p.type==="image"&&(inputs[p.id]||elementInputs[p.id])).length;
+        const modelPrompt=modelPromptReferences(shot.prompt,usesH3Prompt(b.manifest)?"h3":"plain",imageCount);
+        const run=await prepareInvocation(client,catalogue,workspaceId,{projectId:board.project_id,workerId:body.workerId,idempotencyKey:body.idempotencyKey,capabilityId:g.capabilityId,version:g.version,routeId:g.routeId,inputs,elementInputs,controls:{...g.controls,prompt:modelPrompt,length:timing.controlSeconds},audioPolicy:shot.settings.audioPolicy??"mute"});
         prepared.push({run,snapshot:{sourceShotId:shot.id,planKey:shot.plan_key,...(approval?{approvedStill:approval}:{}),prompt:shot.prompt,durationSeconds:Number(shot.duration_seconds),...timing,assets,settings:shot.settings}});
       }
       const renderId=newId();

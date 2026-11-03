@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 2,
+  "id": "bg-remove-birefnet",
+  "version": "0.1.0",
+  "title": "Remove background",
+  "category": "image",
+  "description": "Cut the subject out of a picture and get a PNG with a transparent background. Runs BiRefNet through ComfyUI's own background-removal nodes; nothing leaves your computer.",
+  "inputs": [
+    {
+      "id": "source_image",
+      "label": "Picture",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "17",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "image",
+      "label": "Cut-out (PNG with transparency)",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "bg-remove-birefnet",
+      "requirements": [
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install a ComfyUI version providing LoadImage."
+        },
+        {
+          "id": "node:SaveImage",
+          "kind": "node",
+          "name": "SaveImage",
+          "instructions": "Install a ComfyUI version providing SaveImage."
+        },
+        {
+          "id": "node:RemoveBackground",
+          "kind": "node",
+          "name": "RemoveBackground",
+          "instructions": "Install a ComfyUI version providing RemoveBackground."
+        },
+        {
+          "id": "node:LoadBackgroundRemovalModel",
+          "kind": "node",
+          "name": "LoadBackgroundRemovalModel",
+          "instructions": "Install a ComfyUI version providing LoadBackgroundRemovalModel."
+        },
+        {
+          "id": "node:InvertMask",
+          "kind": "node",
+          "name": "InvertMask",
+          "instructions": "Install a ComfyUI version providing InvertMask."
+        },
+        {
+          "id": "node:JoinImageWithAlpha",
+          "kind": "node",
+          "name": "JoinImageWithAlpha",
+          "instructions": "Install a ComfyUI version providing JoinImageWithAlpha."
+        },
+        {
+          "id": "model:birefnet",
+          "kind": "model",
+          "name": "birefnet.safetensors",
+          "location": "background_removal",
+          "version": "sha256:9ab37426bf4de0567af6b5d21b16151357149139362e6e8992021b8ce356a154",
+          "source": "https://huggingface.co/ZhengPeng7/BiRefNet",
+          "instructions": "Install BiRefNet into ComfyUI models/background_removal and verify its SHA-256 (444,473,596 bytes)."
+        }
+      ],
+      "evidence": [
+        "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/bg-remove-birefnet.json (MIT, commit c307034); only SaveImage/SaveGLB output prefixes were set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
+        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, so no GPU was used), workflow hash 71d7687c2dd1, 34 s. Input: Pexels fixture product-mug-white.jpg at 768 px. Result: 768x1152 RGBA PNG, 84% transparent and 16% opaque; looked at on a flat blue background, the outline of the mug is clean. One simple subject only: hair, glass and busy backgrounds are not tested. Receipt: scripts/utility-packs-e2e.mjs."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Graph from workingprototype/Fuobe (MIT, commit c307034) built on ComfyUI core nodes: GPL-3.0. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "BiRefNet",
+        "license": "MIT per the BiRefNet repository, not independently verified here; read the model card before any distribution or commercial use.",
+        "source": "https://huggingface.co/ZhengPeng7/BiRefNet"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/bg-remove-birefnet.json",
+      "observedAt": "2026-10-30",
+      "kind": "implementation"
+    }
+  ],
+  "credit": {
+    "name": "Fuobe",
+    "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/bg-remove-birefnet.json",
+    "license": "MIT",
+    "what": "The workflow behind this app"
+  },
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

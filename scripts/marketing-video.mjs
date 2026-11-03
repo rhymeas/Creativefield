@@ -1,23 +1,21 @@
-// Builds the 30 s teaser from real, already rendered clips and the app itself. No model run, nothing downloaded.
-// Usage: node scripts/marketing-video.mjs   -> .comfyfield/qa/marketing/comfyfield-teaser.mp4
-// Sources: .comfyfield/qa/transform/*.mp4 (cleared QA clips), .comfyfield/qa/marketing/ (camera clips, app screens).
+// Build a teaser from user-supplied clips. Set COMFYFIELD_TEASER_CONFIG to JSON
+// containing outputDir, fontFile and segments [{kind: card|image|pair|video,
+// file? or files?, seconds, title, note}]. Relative paths use the config folder.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-const out = path.resolve(".comfyfield/qa/marketing"), qa = path.resolve(".comfyfield/qa/transform");
-const BS = String.fromCharCode(92), font = `C${BS}:/Windows/Fonts/arialbd.ttf`, W = 1280, H = 720;
-const esc = (p) => p.split(BS).join("/").replace(":", `${BS}:`);
-const segments = [
-  { kind: "card", seconds: 3, title: "ComfyField", note: "ComfyUI, made simple. Runs on your computer." },
-  { kind: "image", file: path.join(out, "app-create.png"), seconds: 4, title: "Pick a picture. Pick a move.", note: "Make a video from a photo, in one panel" },
-  { kind: "pair", files: [path.join(out, "camrun-panleft.mp4"), path.join(out, "camrun-zoomin.mp4")], seconds: 3, title: "Camera moves that are really followed", note: "Pan left  ·  Zoom in  ·  on a fixed camera path, measured on the clip" },
-  { kind: "video", file: path.join(qa, "ui-restyle-noir.mp4"), seconds: 4, title: "New look", note: "The same video as noir, motion kept" },
-  { kind: "video", file: path.join(qa, "object-swap-multi.mp4"), seconds: 4, title: "Swap a thing", note: "Mark it, describe it. The rest stays" },
-  { kind: "video", file: path.join(qa, "motion-transfer.mp4"), seconds: 4, title: "Copy moves", note: "A performance drives your character" },
-  { kind: "video", file: path.join(qa, "ui-swap-profile.mp4"), seconds: 4, title: "Replace character", note: "A face from a photo, onto someone in a video" },
-  { kind: "card", seconds: 4, title: "Every clip here ran on this computer", note: "Open source  ·  GPL-3.0  ·  built on ComfyUI" },
-];
+if (!process.env.COMFYFIELD_TEASER_CONFIG) throw new Error('Set COMFYFIELD_TEASER_CONFIG to a teaser JSON configuration');
+const configPath = path.resolve(process.env.COMFYFIELD_TEASER_CONFIG);
+const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+if (!config.outputDir || !config.fontFile || !Array.isArray(config.segments)) throw new Error('Teaser config requires outputDir, fontFile and segments');
+const configDir = path.dirname(configPath);
+const out = path.resolve(configDir, config.outputDir);
+fs.mkdirSync(out, {recursive: true});
+const BS = String.fromCharCode(92), W = 1280, H = 720;
+const esc = (p) => p.split(BS).join('/').replace(':', BS + ':');
+const font = esc(path.resolve(configDir, config.fontFile));
+const segments = config.segments.map(s => ({...s, ...(s.file ? {file: path.resolve(configDir, s.file)} : {}), ...(s.files ? {files: s.files.map(f => path.resolve(configDir, f))} : {})}));
 const text = (i, s) => { const f = path.join(out, `teaser-text-${i}.txt`); fs.writeFileSync(f, `${s.title}\n${s.note}`, "utf8"); return esc(f); };
 const caption = (i, s) => `drawtext=fontfile='${font}':textfile='${text(i, s)}':fontcolor=white:fontsize=34:line_spacing=12:x=48:y=h-130:box=1:boxcolor=0x000000B0:boxborderw=22`;
 /* A blurred copy fills the frame, the picture sits sharp on top: portrait and square clips fit a 16:9 screen. */

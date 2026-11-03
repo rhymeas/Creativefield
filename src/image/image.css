@@ -28,3 +28,20 @@
   object-fit: contain;
   margin-inline: auto;
 }
+
+.cf-image-input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.cf-image-input-grid .cf-image-input,
+.cf-image-input-grid .ds-upload { min-width: 0; }
+
+.cf-image-input-grid .ds-upload--filled img,
+.cf-image-input-grid .ds-upload--filled video { aspect-ratio: 1 / 1; }
+
+.cf-image-input .ds-btn { margin-top: var(--space-1); }
+.cf-image-input { position:relative; }
+.cf-image-input-grid .ds-toolbar { margin-top: var(--space-1); flex-wrap: wrap; }
+.cf-image-studio .ds-resulttile__actions { max-width: calc(100% - 16px); flex-wrap: wrap; justify-content: flex-end; }

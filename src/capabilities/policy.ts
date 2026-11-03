@@ -5,6 +5,10 @@ import type { RouteDefinition } from "./types";
 // and use OS/network isolation before claiming a route has no network access.
 export const APPROVED_PROVIDERS = new Set(["comfy-local", "comfy-cloud", "comfy-partner", "comfy-router", "bfl", "byteplus", "wan", "kling", "minimax", "ltx", "google-veo", "beeble"]);
 export const APPROVED_LOCAL_CLASSES = new Set([
+  // ComfyUI core comfy_extras/nodes_audio.py: allocates a silent audio tensor only.
+  "EmptyAudio",
+  // ComfyUI core nodes_compositing.py: splits a tensor into RGB and alpha only.
+  "SplitImageWithAlpha",
   // Official Wan/VACE/SCAIL2/Animate2/Dancer/InfiniteTalk/Fun/S2V/HuMo/ATI/WanMove templates (comfyui_workflow_templates_json): ComfyUI core only
   // (nodes.py, comfy_extras nodes_wan, nodes_wandancer, nodes_wanmove, nodes_loop, nodes_toolkit, nodes_string, ...). Source reviewed 2026-10-29: no network,
   // process or eval access. Painter and RecordAudio only read the input folder. StartLoop/EndLoop run the iteration count the template sets.
@@ -48,7 +52,7 @@ export const APPROVED_LOCAL_CLASSES = new Set([
   // Flux 2 Klein 4B local pack only (native-workflows/flux2-klein-t2i).
   "CFGGuider", "EmptyFlux2LatentImage", "Flux2Scheduler", "RandomNoise", "SamplerCustomAdvanced",
   // Flux 2 Klein image edit local pack only (native-workflows/flux2-klein-edit).
-  "VAEEncode", "ConditioningZeroOut", "ReferenceLatent", "ImageScaleToTotalPixels",
+  "VAEEncode", "ConditioningZeroOut", "ReferenceLatent", "ImageScaleToTotalPixels", "ResizeAndPadImage",
   // Reviewed local-only preservation graph. Upstream source stays external;
   // these nodes process tensors/text and do not expose arbitrary API execution.
   "InpaintCrop", "InpaintStitch", "KleinEditComposite", "PreviewAny",
@@ -62,6 +66,34 @@ export const APPROVED_LOCAL_CLASSES = new Set([
   // SAM 3.1 text-prompted segmentation packs only (native-workflows/sam3-image-segment,
   // native-workflows/sam31-video-mask).
   "SAM3_Detect", "SAM3_VideoTrack", "SAM3_TrackToMask",
+  // Imported community utility graphs (workingprototype/Fuobe, MIT): ComfyUI core comfy_extras nodes, tensor-only.
+  // Source of nodes_compositing, nodes_moge and ResizeImagesByLongerEdge (nodes_dataset) read for network, process and
+  // eval access on ComfyUI 0.37.0 (73c9bad) on 2026-10-30: none. ResizeImagesByLongerEdge is deprecated upstream.
+  // Same review for nodes_video (ConcatenateVideo, Video Slice, SaveWEBM: PyAV and the output folder only) and ImageCrop.
+  "ConcatenateVideo", "ImageCrop", "SaveWEBM", "Video Slice", "JoinImageWithAlpha", "LoadMoGeModel", "MoGeInference", "MoGePointMapToMesh", "MoGeRender", "ResizeImagesByLongerEdge",
+  // OpenJutsu character swap (Comfy-Org/comfy-openjutsu graph): MiniMax H3 core nodes of ComfyUI 0.43 (nodes_minimax_h3,
+  // nodes_model_advanced, nodes_multigpu) and Akatz Labs h3_character_swap at 0670e4f with Comfy's patch. Source read
+  // 2026-10-31: no network access; subprocess only fixed ffmpeg/ffprobe argument lists into ComfyUI folders; numpy loads
+  // with allow_pickle=False. Runs on the separate ComfyUI 0.43 worker, never the 0.37 one.
+  "MiniMaxH3SigmaShift", "ModelAttentionBackend", "SelectCLIPDevice", "SAM3_VideoTrack", "H3CharacterSwapPrepareVideo", "H3CharacterSwapSelectSubject",
+  "H3CharacterSwapRecoverMasks", "H3CharacterSwapExpandMask", "H3CharacterSwapModels", "H3CharacterSwapSettings", "H3CharacterSwapShot",
+  "H3CharacterSwapWindowPlan", "H3CharacterSwapController", "H3CharacterSwapAssemble",
+  // MiniMax H3 video (Kablex/ComfyUI-Ref2VA-VSA, Apache-2.0): core H3 reference-to-video, BasicGuider and VAEDecodeAudio, plus the
+  // Ref2VAVSAGatePatch node (read 2026-10-31: torch and comfy-kitchen only, gate file via ComfyUI's safe loader).
+  "MiniMaxH3ReferenceToVideo", "BasicGuider", "VAEDecodeAudio", "Ref2VAVSAGatePatch",
+  // ComfyUI core 0.43 nodes of the official FLUX 3 Klein workflows (comfy_extras: bounding boxes, flux, string, edit_model; nodes.py).
+  "CreateBoundingBoxes", "Flux3LayoutPrompt", "StringTrim", "StringContains", "ModelSamplingFlux", "StringFormat", "ReferenceMultiLatent", "RepeatLatentBatch",
+  // ComfyUI core 0.43 Fibo 2.0 text encoder (comfy_extras/nodes_fibo2.py) of the official Fibo 2.0 edit template.
+  "TextEncodeFibo2",
+  // ComfyUI core nodes of the MiniMax H3 latent upscaler (PR 17412, comfy_extras/nodes_minimax_h3.py, nodes_hunyuan.py) and manual sigmas.
+  "LatentUpscaleModelLoader", "MiniMaxH3LatentUpscaleWithModel", "ManualSigmas",
+  // ComfyUI core 0.43 nodes of the official MiniMax H3 t2v/i2v and SeedVR2 video templates (comfy_extras/nodes_minimax_h3.py, nodes_seedvr.py; nodes.py).
+  "MiniMaxH3ImageToVideo", "VAEEncodeTiled", "VAEDecodeTiled", "SeedVR2Preprocess", "SeedVR2PostProcessing", "SeedVR2Conditioning", "SeedVR2TemporalChunk", "SeedVR2TemporalMerge",
+  // D3voz/openjutsu object swap (h3-object-swap). Partial review 2026-10-31: comfyui-h3-oneclick-swap, PromptBuilder, KJNodes, VHS read;
+  "ImageScaleToMaxDimension", "TextGenerate", "VHS_LoadVideo", "H3ObjectSwapPlan", "MiniMaxH3GenerationProfile", "MiniMaxH3ChainPlanModern",
+  "MiniMaxH3SourceTimeline", "MiniMaxH3ChainLoopStart", "MiniMaxH3ChainCurrent", "H3SourceSlice", "H3PeopleMask", "H3GreyMannequins", "GrowMaskWithBlur",
+  "H3ClipShots", "H3FillShots", "MiniMaxH3ContexMaskGridPreview", "MiniMaxH3FantasticVideoEditLatent", "MiniMaxH3ContexMaskedTarget", "MiniMaxH3ChainContext",
+  "MiniMaxH3LoopTrim", "MiniMaxH3ChainSegmentSave", "MiniMaxH3ChainReview", "MiniMaxH3ChainLoopEnd", "MiniMaxH3ChainAssemble",
   // Local single-speaker audio-driven animation; canonical bounded WAV inputs.
   "LoadAudio", "TrimAudioDuration", "AudioEncoderLoader", "AudioEncoderEncode", "ModelPatchLoader", "WanInfiniteTalkToVideo",
 ]);
@@ -98,13 +130,33 @@ export function assertLocalGraphPolicy(graph: ApiGraph): void {
   if (!Object.keys(graph).length) throw new Error("Workflow is empty");
   for (const [id, node] of Object.entries(graph)) {
     if (!node || forbiddenProvider(node.class_type) || !APPROVED_LOCAL_CLASSES.has(node.class_type)) {
-      throw new Error(`Unreviewed or forbidden node at ${id}`);
+      const name = typeof node?.class_type === "string" && /^[A-Za-z0-9_.-]{1,128}$/.test(node.class_type) ? ` (${node.class_type})` : "";
+      throw new Error(`Unreviewed or forbidden node at ${id}${name}`);
     }
     // Local reviewed templates never need URLs. Prompt text containing a brand name
     // is permitted; execution addresses are not. Metadata is not inspected here.
     for (const [field, value] of Object.entries(node.inputs)) {
       if (typeof value === "string" && /^https?:\/\//i.test(value)) throw new Error(`Remote input in local graph: ${id}.${field}`);
     }
+    if (node.class_type === "StringFormat") assertPlainFormat(id, node.inputs.f_string);
+  }
+}
+
+/** StringFormat is Python's str.format: a format text may only name values ({a}, {b!r}, {b:>8}), never reach
+ *  into them ({a.__class__}, {a[0]}) or nest fields ({a:{b}}), and must be a literal so no link can feed one in.
+ *  Scanned the way Python reads it: {{ and }} are escapes only outside a field. */
+export function assertPlainFormat(id: string, f_string: unknown): void {
+  if (typeof f_string !== "string") throw new Error(`StringFormat needs a literal format at ${id}`);
+  const refuse = () => { throw new Error(`StringFormat may only name values at ${id}`); };
+  for (let i = 0; i < f_string.length; i++) {
+    const c = f_string[i];
+    if (c === "}") { if (f_string[i + 1] === "}") { i++; continue; } refuse(); }
+    if (c !== "{") continue;
+    if (f_string[i + 1] === "{") { i++; continue; }
+    const end = f_string.indexOf("}", i + 1);
+    if (end < 0) refuse();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*(![rsa])?(:[^{}]*)?$/.test(f_string.slice(i + 1, end))) refuse();
+    i = end;
   }
 }
 

@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState,type ReactNode} from "react";
 import {Meta,SliderField,Toolbar} from "./components";
+import "./compare-wipe-interaction.css";
 
 /** A grayscale mask is tinted with the current DS accent, never baked into media. */
 export function MaskOverlay({src,label="Effective edit mask",contour=true,onError}:{src:string;label?:string;contour?:boolean;onError?:()=>void}){
@@ -41,11 +42,13 @@ export function DriftOverlay({src,onError}:{src:string;onError?:()=>void}){
 export function CompareWipe({before,after,beforeLabel="Original",afterLabel="Preserved",overlay}:{before:string;after:string;beforeLabel?:string;afterLabel?:string;overlay?:ReactNode}){
   const [position,setPosition]=useState(50);
   const [aspect,setAspect]=useState(1);
+  const stage=useRef<HTMLDivElement>(null);
+  const update=(clientX:number)=>{const box=stage.current?.getBoundingClientRect();if(box?.width)setPosition(Math.max(0,Math.min(100,Math.round((clientX-box.left)/box.width*100))));};
   return <div className="ds-comparewipe">
-    <div className="ds-comparewipe__stage" style={{["--compare-aspect" as string]:aspect}}>
+    <div ref={stage} className="ds-comparewipe__stage" style={{["--compare-aspect" as string]:aspect}}>
       <img src={before} alt={beforeLabel} onLoad={event=>setAspect(event.currentTarget.naturalWidth/event.currentTarget.naturalHeight||1)}/>
       <img className="ds-comparewipe__after" src={after} alt={afterLabel} style={{clipPath:`inset(0 0 0 ${position}%)`}}/>
-      <span className="ds-comparewipe__divider" aria-hidden style={{left:`${position}%`}}/>
+      <button type="button" className="ds-comparewipe__handle" aria-label="Drag comparison divider" aria-valuemin={0} aria-valuemax={100} aria-valuenow={position} role="slider" style={{left:`${position}%`}} onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);update(event.clientX);}} onPointerMove={event=>{if(event.currentTarget.hasPointerCapture(event.pointerId))update(event.clientX);}} onPointerUp={event=>{if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onKeyDown={event=>{if(event.key==="ArrowLeft"||event.key==="ArrowRight"){event.preventDefault();setPosition(value=>Math.max(0,Math.min(100,value+(event.key==="ArrowRight"?1:-1))));}}}><span className="ds-comparewipe__divider" aria-hidden /></button>
       {overlay}
     </div>
     <Toolbar><Meta>{beforeLabel}</Meta><Meta>{afterLabel}</Meta></Toolbar>

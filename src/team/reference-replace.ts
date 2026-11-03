@@ -10,7 +10,7 @@ export const REPLACE_CAPABILITY = capability("scail2-character-replace");
 export const PREPARE_CAPABILITY = capability("flux2-klein-edit");
 /** Dressing from a picture: the only local edit that takes a second image, so the clothes or product
  *  picture is a real reference instead of more prompt words. */
-export const DRESS_CAPABILITY = capability("qwen-image-21-edit");
+export const DRESS_CAPABILITY = capability("fibo2-edit");
 
 /** A step's input is a chosen asset or the output of an earlier step. */
 export type StepInput = { asset: string } | { step: string };
@@ -88,6 +88,13 @@ export function realWords(value: string | undefined): string | undefined {
 export function requireReferenceLooks(labels:string[],looks:Record<string,string>):void {
   const missing=labels.filter(label=>!realWords(looks[label]));
   if(missing.length)throw new Error(`Could not read ${missing.join(", ")}. No replacement was started. Check the local image-reading model and try again.`);
+}
+
+export const REFERENCE_LOOK_FALLBACK="Automatic image descriptions were unavailable. The run still uses the visual references directly.";
+/** Reading a picture is an optional prompt enhancement. Its bytes remain the authoritative model input. */
+export function referenceLooksOrFallback(labels:string[],looks:Record<string,string>){
+  try{requireReferenceLooks(labels,looks);return {looks,note:""};}
+  catch{return {looks:{},note:REFERENCE_LOOK_FALLBACK};}
 }
 
 const preparePrompt = (p: PlannedPerson) =>
@@ -200,7 +207,7 @@ export function buildReplaceSteps(plan: ReferencePlan, people: PlannedPerson[], 
       controls: {
         person: String(p.index),
         prompt: described ?? [
-          `Only the ${where}'s face becomes ${p.face}; everyone else keeps their face, clothes and position.`,
+          `Replace the ${where} with the character shown in the reference image. Match the reference person's face, hair, skin tone and clothing while preserving their movement. Keep every other person unchanged.`,
           p.outfit && `The ${where} wears ${p.outfit}.`,
           scene,
           "Keep the source video's full frame, camera, background, other people and motion.",

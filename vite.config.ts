@@ -25,7 +25,20 @@ return {
   server: {
     host:"127.0.0.1",
     proxy: {
-      "/api":{target:process.env.TEAM_API_URL??"http://127.0.0.1:8787",changeOrigin:false},
+      "/api":{
+        target:process.env.TEAM_API_URL??"http://127.0.0.1:8787",
+        changeOrigin:false,
+        configure(proxy) {
+          proxy.on("proxyReq", (req, incoming) => {
+            // Preserve the API's origin guard while allowing requests made from
+            // the Vite page itself. Never rewrite an external page's origin.
+            const origin = incoming.headers.origin;
+            if (origin && origin === `http://${incoming.headers.host}`) {
+              req.setHeader("Origin", new URL(process.env.TEAM_API_URL ?? "http://127.0.0.1:8787").origin);
+            }
+          });
+        },
+      },
       ...(!teamMode?{"/comfy": {
         target: comfyUrl,
         changeOrigin: true,

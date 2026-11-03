@@ -22,10 +22,10 @@ export function cropViewport(doc:Doc,rect:CropRect):Doc{
     layers:doc.layers.map(l=>({...l,x:l.x-rect.x,y:l.y-rect.y,...(l.mask?{mask:shift(effectiveLayerMaskKey(doc,l)!),maskAnchor:undefined}:{})}))};
 }
 /** Resize the cropped document uniformly while keeping layer editability and document masks. */
-export function scaleViewport(doc:Doc,percent:number):Doc{
+export function scaleViewport(doc:Doc,percent:number,maxSide=2048):Doc{
   if(!Number.isFinite(percent)||percent<10||percent>800)throw new Error("Scale must be between 10% and 800%.");
   const factor=percent/100,width=Math.round(doc.width*factor),height=Math.round(doc.height*factor);
-  if(width<1||height<1||width>2048||height>2048||width*height>67108864)throw new Error("Scaled canvas must be no larger than 2048 px per side.");
+  if(width<1||height<1||width>maxSide||height>maxSide||width*height>67108864)throw new Error(`Scaled canvas must be no larger than ${maxSide} px per side.`);
   const scaled=new Map<string,string>();
   const scaleMask=(key:string|null|undefined):string|null|undefined=>{
     if(!key)return undefined;

@@ -19,7 +19,7 @@ Preflight decodes timestamps and mask pixels with bounded FFprobe/FFmpeg process
 ## Tracked masks and decoded-pixel limit (21 October 2026)
 
 A separate SAM3.1 mask with a verified creator review was used in actual run
-2ea3e620-fa27-4eb0-a40e-48be96808ad1. Tracking is not performed inside this VACE
+[local run]. Tracking is not performed inside this VACE
 graph. The graph composites black mask areas from the source before SaveVideo;
 the encoded export is not pixel-identical outside the mask. On this 17-frame
 fixture, 341853/2420858 black-mask pixels exceeded a maximum-channel RGB8 delta

@@ -9,7 +9,7 @@ export function durationMapping(m: CapabilityManifestV2): FrameMapping {
   if(!timing || timing.sourceTimed || !Number.isFinite(timing.fps) || timing.fps<=0 || !length?.binding || length.disabledReason) return undefined;
   const declared=timing.frameMapping;
   if(length.binding.transform==="seconds_to_wan_frames") return !declared || declared==="wan_frames_round_4n1" ? "wan_frames_round_4n1" : undefined;
-  return !length.binding.transform && declared==="wan_seconds_floor_4n1" ? declared : undefined;
+  return !length.binding.transform && (declared==="wan_seconds_floor_4n1"||declared==="h3_seconds_17n5") ? declared : undefined;
 }
 
 export const hasQualifiedDurationMapping = (m: CapabilityManifestV2) => durationMapping(m)!==undefined;
@@ -19,9 +19,30 @@ export function expectedGenerationFrames(m: CapabilityManifestV2, seconds: numbe
   if(!mapping) throw new Error("No qualified frame-duration binding");
   const fps=m.timing!.fps;
   if(mapping==="wan_frames_round_4n1") return secondsToWanFrames(seconds,fps);
+  if(mapping==="h3_seconds_17n5") return h3Frames(seconds,fps);
   const requested=Math.floor(seconds*fps+1);
   // WanImageToVideo allocates floor((length-1)/4)+1 latent frames; Wan VAE decodes 4*t-3.
   return 4*Math.floor((requested-1)/4)+1;
+}
+
+/** The official MiniMax H3 templates: max(5, round(a*fps)) + (5 - (that % 17)) % 17, with Python's modulo.
+ *  H3 decodes 5 + 17k frames, so a length rounds up to the next such count. */
+export function h3Frames(seconds: number, fps: number): number {
+  const f=Math.max(5,Math.round(seconds*fps));
+  return f+(((5-f%17)%17)+17)%17;
+}
+
+/** Fail closed: the length control must feed the official H3 seconds expression and an H3 video node. */
+export function assertH3SecondsGraph(graph: ApiGraph, binding: Binding, fps: number): void {
+  const fail=():never=>{throw new Error("Invalid H3 timing binding: not the official seconds expression");};
+  if(binding.transform||binding.field!=="value"||graph[binding.node]?.class_type!=="PrimitiveFloat")fail();
+  const want=`max(5,round(a*${fps}))+(5-(max(5,round(a*${fps}))%17))%17`;
+  const exprs=Object.entries(graph).filter(([,n])=>n.class_type==="ComfyMathExpression"&&Array.isArray(n.inputs["values.a"])&&(n.inputs["values.a"] as unknown[])[0]===binding.node);
+  if(exprs.length!==1||String(exprs[0][1].inputs.expression).replace(/\s/g,"")!==want)fail();
+  const users=Object.values(graph).filter(n=>(n.class_type==="MiniMaxH3ImageToVideo"||n.class_type==="MiniMaxH3ReferenceToVideo")&&Array.isArray(n.inputs.length)&&(n.inputs.length as unknown[])[0]===exprs[0][0]);
+  if(users.length!==1)fail();
+  const videos=Object.values(graph).filter(n=>n.class_type==="CreateVideo");
+  if(videos.length!==1||videos[0].inputs.fps!==fps)fail();
 }
 
 export function secondsForSourceFrames(m: CapabilityManifestV2, required: number): number {

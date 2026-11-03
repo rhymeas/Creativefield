@@ -1,13 +1,13 @@
 import {useEffect,useState} from "react";
 import type {ReactNode} from "react";
 import {Block,Button,EmptyState,Hero,RotatingVideo,PresetCard,PresetGrid,SearchField,SectionHeader,Toolbar } from "../ds";
-import {Box,Brush,Clapperboard,Film,Footprints,ImagePlus,Maximize2,MessageCircle,Palette,RotateCw,Shapes,UserRound,UserRoundPen} from "lucide-react";
+import {Box,Brush,Camera,Clapperboard,Film,Flame,Footprints,ImagePlus,Maximize2,MessageCircle,Palette,RotateCw,Shapes,UserRound,UserRoundPen} from "lucide-react";
 import {POOL_VIDEOS} from "./reels";
 import {LOAD_TURN} from "./reload-turn";
 import {START_GROUPS,matchTasks,startTasks,type StartNeed,type StartTask,type StartTaskId} from "./start-tasks";
 
 const ICONS:Record<StartTaskId,ReactNode>={
-  "swap-person":<UserRoundPen size={20}/>,"copy-moves":<Footprints size={20}/>,"new-look":<Palette size={20}/>,"swap-thing":<Shapes size={20}/>,
+  remix:<Palette size={20}/>,ad:<Camera size={20}/>,block:<Camera size={20}/>,"effect-clips":<Flame size={20}/>,"swap-person":<UserRoundPen size={20}/>,"copy-moves":<Footprints size={20}/>,"new-look":<Palette size={20}/>,"swap-thing":<Shapes size={20}/>,
   sharpen:<Maximize2 size={20}/>,video:<Film size={20}/>,film:<Clapperboard size={20}/>,picture:<ImagePlus size={20}/>,"fix-picture":<Brush size={20}/>,angles:<RotateCw size={20}/>,
   character:<UserRound size={20}/>,talk:<MessageCircle size={20}/>,model3d:<Box size={20}/>,
 };
@@ -20,9 +20,9 @@ export function StartScreen({ready,onOpen}:{ready:Partial<Record<StartNeed,boole
   const [examples,setExamples]=useState<Record<string,string>>({}),[pool,setPool]=useState<string[]>([]);
   useEffect(()=>{let current=true;fetch("/examples/pool.json").then(r=>r.ok?r.json():{images:[]}).then((p:{images?:string[]})=>{if(current&&Array.isArray(p?.images))setPool(p.images.map((f:string)=>`/examples/${f}`));}).catch(()=>{});return()=>{current=false;};},[]);
   useEffect(()=>{let current=true;fetch("/examples/index.json").then(r=>r.ok?r.json():{}).then(map=>{if(current&&map&&typeof map==="object")setExamples(map as Record<string,string>);}).catch(()=>{});return()=>{current=false;};},[]);
-  const shown=matchTasks(startTasks(ready),query);
+  const all=startTasks(ready),led=all.find(t=>t.featured),shown=matchTasks(query.trim()?all:all.filter(t=>!t.featured),query);
   return <div className="cf-start">
-    <Hero stage accent="Free." title="Create. Free. On your computer." text="Edit photos in FotoField, make video, images and 3D. Open source, powered by ComfyUI, nothing leaves your machine." media={<RotatingVideo srcs={[POOL_VIDEOS[LOAD_TURN%POOL_VIDEOS.length]]}/>}/>
+    <Hero stage accent="Free." title="Create. Free. On your computer." text="Edit photos in FotoField, make video, images and 3D. Open source and powered by ComfyUI. Cloud routes send media to their provider." media={<RotatingVideo srcs={[POOL_VIDEOS[LOAD_TURN%POOL_VIDEOS.length]]}/>} aside={led&&<PresetCard size="tool" featured badge="FotoField" label={led.label} hint={led.text} thumb={examples[led.id]?`/examples/${examples[led.id]}`:led.thumb} onSelect={()=>{if(onOpen)onOpen(led);else location.hash=led.href.slice(1);}}/>}/>
     <Toolbar end={<SearchField label="Search tools" value={query} onChange={setQuery} placeholder="Search tools"/>}>
       <SectionHeader title="All tools" large/>
     </Toolbar>

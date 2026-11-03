@@ -316,6 +316,16 @@ export function addAdjustLayer(doc: Doc, kind: AdjustKind = "brightness", clip =
   return addLayer(doc, { ...base(a.name, "adjust", "", doc.width, doc.height, doc, 1), ...a.patch, clip });
 }
 
+/** Restore an adjustment layer to the preset it was created with. */
+export function resetAdjustment(layer: Layer): Partial<Layer> {
+  const patch: Partial<Layer> = { brightness: 100, contrast: 100, saturation: 100 };
+  if (layer.hue !== undefined) patch.hue = 0;
+  if (layer.grayscale !== undefined) patch.grayscale = 100;
+  if (layer.invert !== undefined) patch.invert = 100;
+  if (layer.sepia !== undefined) patch.sepia = 60;
+  return patch;
+}
+
 export function groupLayer(doc: Doc, id: string): Doc {
   const l = doc.layers.find((x) => x.id === id);
   if (!l || l.group) return doc;

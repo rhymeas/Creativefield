@@ -29,6 +29,17 @@ export function angleBatchPendingPresets(batch:AngleBatch,manifest:CapabilityMan
   if(batch.capabilityVersion!==manifest.version)return batch.pendingPreset&&!batch.runIds[batch.pendingPreset]?[batch.pendingPreset]:[];
   return batch.presetIds.filter(id=>!batch.runIds[id]);
 }
+/** Only show unsent planned slots while the batch is actively being submitted. */
+export function angleBatchSubmittingCount(batch:AngleBatch|null,manifest:CapabilityManifestV2,busy:boolean):number{
+  return busy&&batch?angleBatchPendingPresets(batch,manifest).length:0;
+}
+/** Add newly selected directions without changing the frozen source, prompt, accepted runs, or request keys. */
+export function extendAngleBatch(batch:AngleBatch,selected:string[],manifest:CapabilityManifestV2):AngleBatch{
+  if(batch.capabilityId!==manifest.id||batch.capabilityVersion!==manifest.version)throw new Error("Start a new angle batch for the current recipe.");
+  const presetIds=[...batch.presetIds,...selected.filter(id=>!batch.presetIds.includes(id))];
+  if(presetIds.length>8||presetIds.some(id=>!manifest.presets.some(preset=>preset.id===id)))throw new Error("Choose between one and eight supported angles.");
+  return {...batch,presetIds};
+}
 export function angleRunRequest(batch:AngleBatch,presetId:string){
   if(!batch.presetIds.includes(presetId))throw new Error("Angle is not part of this saved batch.");
   return {projectId:batch.projectId,workerId:batch.workerId,idempotencyKey:`angles-${batch.id}-${presetId}`,capabilityId:batch.capabilityId,version:batch.capabilityVersion,routeId:"local",inputs:batch.draft.inputs??{},controls:batch.draft.controls,presetId,audioPolicy:"mute"};

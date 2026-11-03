@@ -1,7 +1,7 @@
 import type {CapabilityManifestV2,Port} from "../capabilities/types";
 
 /** A model whose end image is optional: the first/last-frame graph only runs when an end image is given. */
-export const END_FRAME_PAIRS:Readonly<Record<string,string>>={"wan22-i2v-14b":"wan22-flf2v-14b"};
+export const END_FRAME_PAIRS:Readonly<Record<string,string>>={"wan22-i2v-14b":"wan22-flf2v-14b","h3-i2v":"h3-flf2v"};
 const PAIRED=new Set(Object.values(END_FRAME_PAIRS));
 /** The paired model has no place of its own in the model list: it is the same model with an end image. */
 export const isEndFrameVariant=(id:string)=>PAIRED.has(id);

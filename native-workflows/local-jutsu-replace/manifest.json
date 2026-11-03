@@ -1,21 +1,73 @@
 {
   "schemaVersion": 2,
   "id": "local-jutsu-replace",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "title": "Local jutsu character replace",
   "category": "motion",
   "description": "Replaces one tracked person in a clip with the character from a picture, the Openjutsu way, on locally installed models: SAM 3.1 marks the person, a local image edit model puts the character into the clip's first frame, Wan Animate 2 carries that first frame through the clip from the clip's own skeleton, and the render is composited back over the source by the same mask so the scene, the camera and everyone else stay. One window of 81 frames (3.4 s at 24 fps); a longer clip is refused. Person 1 is the leftmost person.",
   "inputs": [
-    { "id": "source_video", "label": "Video", "type": "video", "required": true, "binding": { "node": "1", "field": "file" } },
-    { "id": "character_image", "label": "Character", "type": "image", "required": true, "binding": { "node": "12", "field": "image" } }
+    {
+      "id": "source_video",
+      "label": "Video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "1",
+        "field": "file"
+      }
+    },
+    {
+      "id": "character_image",
+      "label": "Character",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "12",
+        "field": "image"
+      }
+    }
   ],
   "outputs": [
-    { "id": "video", "label": "Video", "type": "video", "required": true }
+    {
+      "id": "video",
+      "label": "Video",
+      "type": "video",
+      "required": true
+    }
   ],
   "controls": [
-    { "id": "prompt", "label": "Describe the scene", "type": "string", "default": "", "binding": { "node": "605", "field": "value" } },
-    { "id": "pose_prompt", "label": "Describe the movement", "type": "string", "default": "", "binding": { "node": "604", "field": "value" } },
-    { "id": "seed", "label": "Seed", "type": "integer", "min": 0, "max": 2147483647, "default": 1, "binding": { "node": "261:19", "field": "noise_seed" } }
+    {
+      "id": "prompt",
+      "label": "Describe the scene",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "605",
+        "field": "value"
+      }
+    },
+    {
+      "id": "pose_prompt",
+      "label": "Describe the movement",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "604",
+        "field": "value"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 1,
+      "binding": {
+        "node": "261:19",
+        "field": "noise_seed"
+      }
+    }
   ],
   "presets": [],
   "routes": [
@@ -27,40 +79,342 @@
       "implementation": "implemented",
       "workflowId": "local-jutsu-replace",
       "requirements": [
-        { "id": "node:SAM3_VideoTrack", "kind": "node", "name": "SAM3_VideoTrack", "instructions": "Update ComfyUI to a version with native SAM 3 nodes." },
-        { "id": "node:SAM3_TrackToMask", "kind": "node", "name": "SAM3_TrackToMask", "instructions": "Update ComfyUI to a version with native SAM 3 nodes." },
-        { "id": "node:SDPoseKeypointExtractor", "kind": "node", "name": "SDPoseKeypointExtractor", "instructions": "Install a ComfyUI version that ships the SDPose nodes." },
-        { "id": "node:SDPoseDrawKeypoints", "kind": "node", "name": "SDPoseDrawKeypoints", "instructions": "Install a ComfyUI version that ships the SDPose nodes." },
-        { "id": "node:InpaintCrop", "kind": "node", "name": "InpaintCrop", "instructions": "Install the ComfyUI inpaint crop and stitch nodes." },
-        { "id": "node:InpaintStitch", "kind": "node", "name": "InpaintStitch", "instructions": "Install the ComfyUI inpaint crop and stitch nodes." },
-        { "id": "node:KleinEditComposite", "kind": "node", "name": "KleinEditComposite", "instructions": "Install the ComfyUI Flux 2 Klein edit nodes." },
-        { "id": "node:WanAnimate2ToVideo", "kind": "node", "name": "WanAnimate2ToVideo", "instructions": "Update ComfyUI to a version with native Wan Animate 2 nodes." },
-        { "id": "model:wan-animate2", "kind": "model", "name": "wan_animate_2_distill_int8_convrot.safetensors", "location": "diffusion_models", "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged", "instructions": "Install the Wan Animate 2 distilled int8 model." },
-        { "id": "model:flux2-klein", "kind": "model", "name": "flux-2-klein-4b-fp8.safetensors", "location": "diffusion_models", "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein", "instructions": "Install the Flux 2 Klein 4B model used for the first-frame anchor." },
-        { "id": "model:sam31", "kind": "model", "name": "sam3.1_multiplex_fp16.safetensors", "location": "checkpoints", "source": "https://huggingface.co/Comfy-Org/sam3.1", "instructions": "Install SAM 3.1 (SAM License)." },
-        { "id": "model:sdpose", "kind": "model", "name": "sdpose_wholebody_fp16.safetensors", "location": "checkpoints", "source": "https://huggingface.co/Comfy-Org/SDPose", "instructions": "Install the SDPose whole-body checkpoint." }
+        {
+          "id": "node:SAM3_VideoTrack",
+          "kind": "node",
+          "name": "SAM3_VideoTrack",
+          "instructions": "Update ComfyUI to a version with native SAM 3 nodes."
+        },
+        {
+          "id": "node:SAM3_TrackToMask",
+          "kind": "node",
+          "name": "SAM3_TrackToMask",
+          "instructions": "Update ComfyUI to a version with native SAM 3 nodes."
+        },
+        {
+          "id": "node:SDPoseKeypointExtractor",
+          "kind": "node",
+          "name": "SDPoseKeypointExtractor",
+          "instructions": "Install a ComfyUI version that ships the SDPose nodes."
+        },
+        {
+          "id": "node:SDPoseDrawKeypoints",
+          "kind": "node",
+          "name": "SDPoseDrawKeypoints",
+          "instructions": "Install a ComfyUI version that ships the SDPose nodes."
+        },
+        {
+          "id": "node:InpaintCrop",
+          "kind": "node",
+          "name": "InpaintCrop",
+          "instructions": "Install the ComfyUI inpaint crop and stitch nodes."
+        },
+        {
+          "id": "node:InpaintStitch",
+          "kind": "node",
+          "name": "InpaintStitch",
+          "instructions": "Install the ComfyUI inpaint crop and stitch nodes."
+        },
+        {
+          "id": "node:KleinEditComposite",
+          "kind": "node",
+          "name": "KleinEditComposite",
+          "instructions": "Install the ComfyUI Flux 2 Klein edit nodes."
+        },
+        {
+          "id": "node:WanAnimate2ToVideo",
+          "kind": "node",
+          "name": "WanAnimate2ToVideo",
+          "instructions": "Update ComfyUI to a version with native Wan Animate 2 nodes."
+        },
+        {
+          "id": "model:wan-animate2",
+          "kind": "model",
+          "name": "wan_animate_2_distill_int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged",
+          "instructions": "Install the Wan Animate 2 distilled int8 model."
+        },
+        {
+          "id": "model:sam31",
+          "kind": "model",
+          "name": "sam3.1_multiplex_fp16.safetensors",
+          "location": "checkpoints",
+          "source": "https://huggingface.co/Comfy-Org/sam3.1",
+          "instructions": "Install SAM 3.1 (SAM License)."
+        },
+        {
+          "id": "model:sdpose",
+          "kind": "model",
+          "name": "sdpose_wholebody_fp16.safetensors",
+          "location": "checkpoints",
+          "source": "https://huggingface.co/Comfy-Org/SDPose",
+          "instructions": "Install the SDPose whole-body checkpoint."
+        },
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:CheckpointLoaderSimple",
+          "kind": "node",
+          "name": "CheckpointLoaderSimple",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:ImageFromBatch",
+          "kind": "node",
+          "name": "ImageFromBatch",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:BatchImagesNode",
+          "kind": "node",
+          "name": "BatchImagesNode",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:ImageToMask",
+          "kind": "node",
+          "name": "ImageToMask",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:PrimitiveStringMultiline",
+          "kind": "node",
+          "name": "PrimitiveStringMultiline",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:MaskToImage",
+          "kind": "node",
+          "name": "MaskToImage",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:TextEncodeFibo2",
+          "kind": "node",
+          "name": "TextEncodeFibo2",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:CLIPVisionLoader",
+          "kind": "node",
+          "name": "CLIPVisionLoader",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:ContextWindowsManual",
+          "kind": "node",
+          "name": "ContextWindowsManual",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:ComfySwitchNode",
+          "kind": "node",
+          "name": "ComfySwitchNode",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:CLIPVisionEncode",
+          "kind": "node",
+          "name": "CLIPVisionEncode",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:ResizeImageMaskNode",
+          "kind": "node",
+          "name": "ResizeImageMaskNode",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:BasicScheduler",
+          "kind": "node",
+          "name": "BasicScheduler",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:ModelSamplingSD3",
+          "kind": "node",
+          "name": "ModelSamplingSD3",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:KSamplerSelect",
+          "kind": "node",
+          "name": "KSamplerSelect",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:WanAnimate2Cache",
+          "kind": "node",
+          "name": "WanAnimate2Cache",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:SamplerCustom",
+          "kind": "node",
+          "name": "SamplerCustom",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:TrimVideoLatent",
+          "kind": "node",
+          "name": "TrimVideoLatent",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:PrimitiveBoolean",
+          "kind": "node",
+          "name": "PrimitiveBoolean",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:ImageCompositeMasked",
+          "kind": "node",
+          "name": "ImageCompositeMasked",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "model:fibo2-edit-turbo-int8",
+          "kind": "model",
+          "name": "fibo2_edit_turbo_int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "bytes": 8410000000,
+          "source": "https://huggingface.co/Comfy-Org/Fibo-2.0",
+          "instructions": "Install fibo2_edit_turbo_int8_convrot.safetensors into ComfyUI models/diffusion_models."
+        },
+        {
+          "id": "model:qwen3vl-4b-int8",
+          "kind": "model",
+          "name": "qwen3vl_4b_int8_convrot.safetensors",
+          "location": "text_encoders",
+          "bytes": 4858560000,
+          "source": "https://huggingface.co/Comfy-Org/Fibo-2.0",
+          "instructions": "Install qwen3vl_4b_int8_convrot.safetensors into ComfyUI models/text_encoders."
+        }
       ],
       "evidence": [
-        "2026-10-26 (0.1.0): built from the local models that were already installed, after SCAIL-2 runs kept returning the clip without the reference. Same clip and picture as docs/REPLACE-MODEL-COMPARE.md (asset 806b049c, picture A). The anchor is the clip's first frame with the picture edited onto the masked person by Flux 2 Klein in a masked inpaint crop; Wan Animate 2 then animates that anchor from the clip's SDPose skeleton, and the render is composited back over the source through the same SAM 3.1 person mask. The packed graph ran as shipped (prompt 0cc56da2, 81 frames of the user clip in 447 s at 23.4 GB). Identity is closer to the picture than SCAIL-2's face and hair. The second relay window does not run in this build: a two-member BatchImagesNode gives the final crop no frames, and the 157-frame attempt sat in the first sampler for ninety minutes, so the pack declares maxWindows 1 and refuses a longer clip. Numbers, frames and the honest reading are in docs/LOCAL-JUTSU.md."
+        "2026-10-26 (0.1.0): built from the local models that were already installed, after SCAIL-2 runs kept returning the clip without the reference. Same clip and picture as docs/REPLACE-MODEL-COMPARE.md (asset 806b049c, picture A). The anchor is the clip's first frame with the picture edited onto the masked person by Flux 2 Klein in a masked inpaint crop; Wan Animate 2 then animates that anchor from the clip's SDPose skeleton, and the render is composited back over the source through the same SAM 3.1 person mask. The packed graph ran as shipped (prompt 0cc56da2, 81 frames of the user clip in 447 s at 23.4 GB). Identity is closer to the picture than SCAIL-2's face and hair. The second relay window does not run in this build: a two-member BatchImagesNode gives the final crop no frames, and the 157-frame attempt sat in the first sampler for ninety minutes, so the pack declares maxWindows 1 and refuses a longer clip. Numbers, frames and the honest reading are in docs/LOCAL-JUTSU.md.",
+        "2026-10-31: the FLUX 2 Klein reference edit (2 pictures) was replaced by the core nodes of the official Comfy-Org template image_fibo2_edit_turbo_pe.json (Fibo 2.0 Edit Turbo int8, 4 steps); the pictures keep their order on TextEncodeFibo2's image sockets and every other node is unchanged. User decision: no FLUX 2 or Qwen for editing."
       ]
     }
   ],
-  "coverage": { "local": "implemented", "hosted": "missing" },
+  "coverage": {
+    "local": "implemented",
+    "hosted": "missing"
+  },
   "licenses": {
     "software": "ComfyUI core: GPL-3.0. Integration license follows this repository.",
     "weights": [
-      { "name": "Wan 2.2 Animate 2 distilled", "license": "Apache-2.0", "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged" },
-      { "name": "FLUX.2 Klein 4B", "license": "Apache-2.0", "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein" },
-      { "name": "SAM 3.1", "license": "SAM License (Meta)", "source": "https://huggingface.co/facebook/sam3" },
-      { "name": "SDPose whole body", "license": "Apache-2.0", "source": "https://huggingface.co/Comfy-Org/SDPose" }
+      {
+        "name": "Wan 2.2 Animate 2 distilled",
+        "license": "Apache-2.0",
+        "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged"
+      },
+      {
+        "name": "SAM 3.1",
+        "license": "SAM License (Meta)",
+        "source": "https://huggingface.co/facebook/sam3"
+      },
+      {
+        "name": "SDPose whole body",
+        "license": "Apache-2.0",
+        "source": "https://huggingface.co/Comfy-Org/SDPose"
+      },
+      {
+        "name": "Fibo 2.0 Edit Turbo int8 and Qwen3-VL 4B encoder",
+        "license": "Fibo 2.0 weights: CC BY-NC 4.0 (non-commercial use only).",
+        "source": "https://huggingface.co/Comfy-Org/Fibo-2.0"
+      }
     ]
   },
   "sources": [
-    { "url": "https://github.com/Comfy-Org/ComfyUI_frontend/pull/20965", "observedAt": "2026-10-26", "kind": "research" },
-    { "url": "https://comfy.org/workflows/", "observedAt": "2026-10-26", "kind": "implementation" }
+    {
+      "url": "https://github.com/Comfy-Org/ComfyUI_frontend/pull/20965",
+      "observedAt": "2026-10-26",
+      "kind": "research"
+    },
+    {
+      "url": "https://comfy.org/workflows/",
+      "observedAt": "2026-10-26",
+      "kind": "implementation"
+    }
   ],
-  "tickets": ["EDT-01"],
-  "audioPolicies": ["mute"],
+  "tickets": [
+    "EDT-01"
+  ],
+  "audioPolicies": [
+    "mute"
+  ],
   "replaceContract": {
     "kind": "jutsu_relay_v1",
     "sourceInput": "source_video",
@@ -68,4 +422,3 @@
     "maxWindows": 1
   }
 }
-

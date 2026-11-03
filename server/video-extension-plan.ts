@@ -20,6 +20,7 @@ export const videoExtensionIntentSchema=z.object({
   startFrame:z.number().int().min(0),endFrameExclusive:z.number().int().positive(),
   extensionFrames:z.number().int().min(0).max(80).default(0),overlapFrames:z.number().int().min(0).max(80).default(0),
   audioPolicy:z.enum(["mute","preserve"]).default("mute"),
+  preserveFrameRate:z.boolean().optional(),
 }).strict();
 export type VideoExtensionIntent=z.infer<typeof videoExtensionIntentSchema>;
 
@@ -27,7 +28,7 @@ export type VideoExtensionPlan={
   contractVersion:1;operation:"trim"|"forward_extend";source:VideoSourceEnvelope;
   trim:{startFrame:number;endFrameExclusive:number;frames:number};
   continuation:null|{contextStartFrame:number;contextEndFrameExclusive:number;overlapFrames:number;requestedFrames:number;generationFrames:number;discardTailFrames:number};
-  output:{frameRate:{numerator:16;denominator:1};frames:number;durationTicks:number;timeBase:{numerator:1;denominator:16};audioPolicy:"mute"|"preserve";
+  output:{frameRate:{numerator:number;denominator:number};frames:number;durationTicks:number;timeBase:{numerator:number;denominator:number};audioPolicy:"mute"|"preserve";
     audio:null|{sourceStartFrame:number;sourceEndFrameExclusive:number;continuation:"silent"|null;sampleRate:48000;channels:2}};
   planDigest:string;
 };
@@ -59,6 +60,7 @@ export function planVideoExtension(rawIntent:unknown,rawEnvelope:unknown):VideoE
   if(intent.audioPolicy==="preserve"&&!source.hasAudio)throw new Error("Source video has no audio stream to preserve");
   const frames=intent.endFrameExclusive-intent.startFrame;
   if(intent.extensionFrames===0&&intent.overlapFrames!==0)throw new Error("Trim-only plans cannot declare continuation overlap");
+  if(intent.extensionFrames>0&&intent.preserveFrameRate)throw new Error("Preserving frame rate is only available for trim.");
   if(intent.extensionFrames>0){
     if(source.frameRate.numerator/source.frameRate.denominator!==16)throw new Error("Forward extension requires a 16 FPS source; trim accepts constant 8 to 60 FPS sources");
     if(source.frameCount>MAX_CONTINUATION_SOURCE_FRAMES)throw new Error("Trim the source to at most161 frames before forward extension; the native loader decodes the whole source.");
@@ -68,6 +70,8 @@ export function planVideoExtension(rawIntent:unknown,rawEnvelope:unknown):VideoE
   }
   const generationFrames=intent.extensionFrames?wanGenerationFrames(intent.extensionFrames+intent.overlapFrames):0;
   if(generationFrames>81)throw new Error("Forward extension requires at most 81 VACE generation frames including overlap");
+  const rate=intent.preserveFrameRate?source.frameRate:{numerator:16,denominator:1};
+  const resultFrames=(intent.preserveFrameRate?frames:outputFrames(frames,source))+intent.extensionFrames;
   const withoutDigest:Omit<VideoExtensionPlan,"planDigest">={
     contractVersion:1,operation:intent.extensionFrames?"forward_extend":"trim",source,
     trim:{startFrame:intent.startFrame,endFrameExclusive:intent.endFrameExclusive,frames},
@@ -76,7 +80,7 @@ export function planVideoExtension(rawIntent:unknown,rawEnvelope:unknown):VideoE
       overlapFrames:intent.overlapFrames,requestedFrames:intent.extensionFrames,generationFrames,
       discardTailFrames:generationFrames-intent.overlapFrames-intent.extensionFrames,
     }:null,
-    output:{frameRate:{numerator:16,denominator:1},frames:outputFrames(frames,source)+intent.extensionFrames,durationTicks:outputFrames(frames,source)+intent.extensionFrames,timeBase:{numerator:1,denominator:16},audioPolicy:intent.audioPolicy,
+    output:{frameRate:rate,frames:resultFrames,durationTicks:resultFrames,timeBase:{numerator:rate.denominator,denominator:rate.numerator},audioPolicy:intent.audioPolicy,
       audio:intent.audioPolicy==="preserve"?{sourceStartFrame:intent.startFrame,sourceEndFrameExclusive:intent.endFrameExclusive,continuation:intent.extensionFrames?"silent":null,sampleRate:48000,channels:2}:null},
   };
   return {...withoutDigest,planDigest:sha256Text(canonicalVideoPlan(withoutDigest))};

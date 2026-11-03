@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 2,
+  "id": "scene-mesh-moge",
+  "version": "0.1.0",
+  "title": "Photo to 3D scene",
+  "category": "3d",
+  "description": "Turn one photo into a textured 3D scene mesh (GLB) with MoGe-2, and a depth picture of it. This is the whole scene seen from the photo's viewpoint, not an all-round object like Image to 3D.",
+  "inputs": [
+    {
+      "id": "start_image",
+      "label": "Photo",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "1",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "model",
+      "label": "3D scene (GLB)",
+      "type": "model3d",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "mesh_detail",
+      "label": "Mesh simplification (1 = full)",
+      "type": "integer",
+      "min": 1,
+      "max": 8,
+      "default": 1,
+      "binding": {
+        "node": "8",
+        "field": "decimation"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "scene-mesh-moge",
+      "requirements": [
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install a ComfyUI version providing LoadImage."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Install a ComfyUI version providing GetImageSize."
+        },
+        {
+          "id": "node:ComfyMathExpression",
+          "kind": "node",
+          "name": "ComfyMathExpression",
+          "instructions": "Install a ComfyUI version providing ComfyMathExpression."
+        },
+        {
+          "id": "node:ResizeImagesByLongerEdge",
+          "kind": "node",
+          "name": "ResizeImagesByLongerEdge",
+          "instructions": "Install a ComfyUI version providing ResizeImagesByLongerEdge."
+        },
+        {
+          "id": "node:ComfySwitchNode",
+          "kind": "node",
+          "name": "ComfySwitchNode",
+          "instructions": "Install a ComfyUI version providing ComfySwitchNode."
+        },
+        {
+          "id": "node:LoadMoGeModel",
+          "kind": "node",
+          "name": "LoadMoGeModel",
+          "instructions": "Install a ComfyUI version providing LoadMoGeModel."
+        },
+        {
+          "id": "node:MoGeInference",
+          "kind": "node",
+          "name": "MoGeInference",
+          "instructions": "Install a ComfyUI version providing MoGeInference."
+        },
+        {
+          "id": "node:MoGePointMapToMesh",
+          "kind": "node",
+          "name": "MoGePointMapToMesh",
+          "instructions": "Install a ComfyUI version providing MoGePointMapToMesh."
+        },
+        {
+          "id": "node:SaveGLB",
+          "kind": "node",
+          "name": "SaveGLB",
+          "instructions": "Install a ComfyUI version providing SaveGLB."
+        },
+        {
+          "id": "node:MoGeRender",
+          "kind": "node",
+          "name": "MoGeRender",
+          "instructions": "Install a ComfyUI version providing MoGeRender."
+        },
+        {
+          "id": "node:SaveImage",
+          "kind": "node",
+          "name": "SaveImage",
+          "instructions": "Install a ComfyUI version providing SaveImage."
+        },
+        {
+          "id": "model:moge-2-vitl-normal-fp16",
+          "kind": "model",
+          "name": "moge_2_vitl_normal_fp16.safetensors",
+          "location": "geometry_estimation",
+          "version": "sha256:cb1a692d03235671e959e81360d7b4d9f44aefadb1f852d6ca6aa17799d5e31f",
+          "source": "https://huggingface.co/Ruicheng/moge-2-vitl-normal",
+          "instructions": "Install MoGe-2 ViT-L normal FP16 into ComfyUI models/geometry_estimation and verify its SHA-256 (661,859,924 bytes)."
+        }
+      ],
+      "evidence": [
+        "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/scene-mesh-moge.json (MIT, commit c307034); only SaveImage/SaveGLB output prefixes were set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
+        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, so no GPU was used), workflow hash 47eff42f3364, 43 s. Input: Pexels scene-living-room.jpg at 768 px, simplification 2. Result: a valid GLB (6.6 MB, glTF 2.0) with one textured mesh of 141,513 vertices and 276,654 triangles. The mesh was not looked at in a viewer, and the second (depth picture) output of the graph is not exposed. Receipt: scripts/utility-packs-e2e.mjs."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Graph from workingprototype/Fuobe (MIT, commit c307034) built on ComfyUI core nodes: GPL-3.0. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "MoGe-2 ViT-L normal FP16",
+        "license": "Not verified here: read the license on the MoGe-2 model card before any distribution or commercial use.",
+        "source": "https://huggingface.co/Ruicheng/moge-2-vitl-normal"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/scene-mesh-moge.json",
+      "observedAt": "2026-10-30",
+      "kind": "implementation"
+    }
+  ],
+  "credit": {
+    "name": "Fuobe",
+    "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/scene-mesh-moge.json",
+    "license": "MIT",
+    "what": "The workflow behind this app"
+  },
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

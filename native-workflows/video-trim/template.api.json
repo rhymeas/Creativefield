@@ -1,0 +1,42 @@
+{
+  "1": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "input.mp4"
+    },
+    "_meta": {
+      "title": "LoadVideo"
+    }
+  },
+  "2": {
+    "class_type": "Video Slice",
+    "inputs": {
+      "video": [
+        "1",
+        0
+      ],
+      "start_time": 0,
+      "duration": 5,
+      "strict_duration": false
+    },
+    "_meta": {
+      "title": "Video Slice"
+    }
+  },
+  "3": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "2",
+        0
+      ],
+      "filename_prefix": "ComfyField/video-trim",
+      "format": "auto",
+      "format.codec": "auto",
+      "codec": "auto"
+    },
+    "_meta": {
+      "title": "SaveVideo"
+    }
+  }
+}

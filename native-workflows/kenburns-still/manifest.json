@@ -1,0 +1,307 @@
+{
+  "schemaVersion": 2,
+  "id": "kenburns-still",
+  "version": "0.1.0",
+  "title": "Zoom and pan a photo",
+  "category": "video",
+  "description": "Turn one photo into a clip with a slow zoom and pan (the Ken Burns move). No model: the move is calculated, so the picture itself never changes. The clip has no sound.",
+  "inputs": [
+    {
+      "id": "start_image",
+      "label": "Photo",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "1",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Clip",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "duration",
+      "label": "Length (seconds)",
+      "type": "number",
+      "min": 1,
+      "max": 20,
+      "step": 0.5,
+      "default": 5,
+      "binding": {
+        "node": "6",
+        "field": "value"
+      }
+    },
+    {
+      "id": "fps",
+      "label": "Frames per second",
+      "type": "select",
+      "options": [
+        24,
+        25,
+        30
+      ],
+      "default": 30,
+      "binding": {
+        "node": "7",
+        "field": "value"
+      }
+    },
+    {
+      "id": "width",
+      "label": "Width",
+      "type": "integer",
+      "min": 256,
+      "max": 1920,
+      "step": 2,
+      "default": 1280,
+      "binding": {
+        "node": "4",
+        "field": "value"
+      }
+    },
+    {
+      "id": "height",
+      "label": "Height",
+      "type": "integer",
+      "min": 256,
+      "max": 1080,
+      "step": 2,
+      "default": 720,
+      "binding": {
+        "node": "5",
+        "field": "value"
+      }
+    },
+    {
+      "id": "zoom_start",
+      "label": "Zoom at start (1 = whole photo)",
+      "type": "number",
+      "min": 1,
+      "max": 3,
+      "step": 0.05,
+      "default": 1,
+      "binding": {
+        "node": "9",
+        "field": "value"
+      }
+    },
+    {
+      "id": "zoom_end",
+      "label": "Zoom at end",
+      "type": "number",
+      "min": 1,
+      "max": 3,
+      "step": 0.05,
+      "default": 1.25,
+      "binding": {
+        "node": "10",
+        "field": "value"
+      }
+    },
+    {
+      "id": "start_x",
+      "label": "Start position, left to right (0-1)",
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "default": 0.5,
+      "binding": {
+        "node": "11",
+        "field": "value"
+      }
+    },
+    {
+      "id": "start_y",
+      "label": "Start position, top to bottom (0-1)",
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "default": 0.5,
+      "binding": {
+        "node": "12",
+        "field": "value"
+      }
+    },
+    {
+      "id": "end_x",
+      "label": "End position, left to right (0-1)",
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "default": 0.6,
+      "binding": {
+        "node": "13",
+        "field": "value"
+      }
+    },
+    {
+      "id": "end_y",
+      "label": "End position, top to bottom (0-1)",
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "default": 0.45,
+      "binding": {
+        "node": "14",
+        "field": "value"
+      }
+    },
+    {
+      "id": "ease",
+      "label": "Smooth start and stop (0-1)",
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "default": 1,
+      "binding": {
+        "node": "19",
+        "field": "value"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "kenburns-still",
+      "requirements": [
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install a ComfyUI version providing LoadImage."
+        },
+        {
+          "id": "node:ImageScaleBy",
+          "kind": "node",
+          "name": "ImageScaleBy",
+          "instructions": "Install a ComfyUI version providing ImageScaleBy."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Install a ComfyUI version providing GetImageSize."
+        },
+        {
+          "id": "node:PrimitiveInt",
+          "kind": "node",
+          "name": "PrimitiveInt",
+          "instructions": "Install a ComfyUI version providing PrimitiveInt."
+        },
+        {
+          "id": "node:PrimitiveFloat",
+          "kind": "node",
+          "name": "PrimitiveFloat",
+          "instructions": "Install a ComfyUI version providing PrimitiveFloat."
+        },
+        {
+          "id": "node:ComfyMathExpression",
+          "kind": "node",
+          "name": "ComfyMathExpression",
+          "instructions": "Install a ComfyUI version providing ComfyMathExpression."
+        },
+        {
+          "id": "node:StartLoop",
+          "kind": "node",
+          "name": "StartLoop",
+          "instructions": "Install a ComfyUI version providing StartLoop."
+        },
+        {
+          "id": "node:ImageCrop",
+          "kind": "node",
+          "name": "ImageCrop",
+          "instructions": "Install a ComfyUI version providing ImageCrop."
+        },
+        {
+          "id": "node:ImageScale",
+          "kind": "node",
+          "name": "ImageScale",
+          "instructions": "Install a ComfyUI version providing ImageScale."
+        },
+        {
+          "id": "node:EndLoop",
+          "kind": "node",
+          "name": "EndLoop",
+          "instructions": "Install a ComfyUI version providing EndLoop."
+        },
+        {
+          "id": "node:RebatchImages",
+          "kind": "node",
+          "name": "RebatchImages",
+          "instructions": "Install a ComfyUI version providing RebatchImages."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Install a ComfyUI version providing CreateVideo."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install a ComfyUI version providing SaveVideo."
+        },
+        {
+          "id": "node:ConcatenateVideo",
+          "kind": "node",
+          "name": "ConcatenateVideo",
+          "instructions": "Install a ComfyUI version providing ConcatenateVideo."
+        }
+      ],
+      "evidence": [
+        "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/kenburns-still.json (MIT, commit c307034); only the output file prefix was set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
+        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, no GPU), workflow hash 16c1fe2a6830, 110 s. Input: Pexels scene-city-street.jpg, 3 s, 24 fps, 640x360, zoom 1 to 1.5, end position 0.7/0.4. Result: 640x360, 3.00 s, first and last frame clearly different (zoomed in and panned right; looked at). One photo only. Receipt: scripts/utility-packs-e2e.mjs."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Graph from workingprototype/Fuobe (MIT, commit c307034) built on ComfyUI core nodes: GPL-3.0. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "No model weights",
+        "license": "This pack runs ComfyUI core nodes only and loads no model.",
+        "source": "https://github.com/comfyanonymous/ComfyUI"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/kenburns-still.json",
+      "observedAt": "2026-10-30",
+      "kind": "implementation"
+    }
+  ],
+  "credit": {
+    "name": "Fuobe",
+    "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/kenburns-still.json",
+    "license": "MIT",
+    "what": "The workflow behind this app"
+  },
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

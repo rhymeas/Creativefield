@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 2,
+  "id": "palette-transfer-image",
+  "version": "0.1.0",
+  "title": "Match colors",
+  "category": "image",
+  "description": "Give a picture the color mood of a second picture. A plain color transfer: no model is used.",
+  "inputs": [
+    {
+      "id": "source_image",
+      "label": "Picture to recolor",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "1",
+        "field": "image"
+      }
+    },
+    {
+      "id": "palette_image",
+      "label": "Picture with the colors you want",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "2",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "image",
+      "label": "Recolored picture",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "strength",
+      "label": "Strength",
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "default": 0.8,
+      "binding": {
+        "node": "3",
+        "field": "strength"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "palette-transfer-image",
+      "requirements": [
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install a ComfyUI version providing LoadImage."
+        },
+        {
+          "id": "node:ColorTransfer",
+          "kind": "node",
+          "name": "ColorTransfer",
+          "instructions": "Install a ComfyUI version providing ColorTransfer."
+        },
+        {
+          "id": "node:SaveImage",
+          "kind": "node",
+          "name": "SaveImage",
+          "instructions": "Install a ComfyUI version providing SaveImage."
+        }
+      ],
+      "evidence": [
+        "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/palette-transfer-image.json (MIT, commit c307034); only SaveImage/SaveGLB output prefixes were set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
+        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, so no GPU was used), workflow hash 470cb576b399, 4 s. Input: Pexels portrait-man-front.jpg recolored to the colors of scene-city-street.jpg, Strength 1. Result: mean RGB moved from 124,114,110 to 105,116,123 (reference 100,115,122); the picture takes on the blue cast and the purple hair turns navy. One pair only. Receipt: scripts/utility-packs-e2e.mjs."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Graph from workingprototype/Fuobe (MIT, commit c307034) built on ComfyUI core nodes: GPL-3.0. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "No model weights",
+        "license": "This pack runs ComfyUI core nodes only and loads no model.",
+        "source": "https://github.com/comfyanonymous/ComfyUI"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/palette-transfer-image.json",
+      "observedAt": "2026-10-30",
+      "kind": "implementation"
+    }
+  ],
+  "credit": {
+    "name": "Fuobe",
+    "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/palette-transfer-image.json",
+    "license": "MIT",
+    "what": "The workflow behind this app"
+  },
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

@@ -1,6 +1,11 @@
 import type {CapabilityManifestV2} from "../capabilities/types";
 import {nativeCameraPose} from "./camera-controls";
 
+/** H3 has no native camera path: express a requested movement in its text prompt. */
+export function supportsH3PromptCamera(manifest:CapabilityManifestV2){
+  return ["h3-t2v","h3-i2v","h3-flf2v"].includes(manifest.id)&&manifest.controls.some(control=>control.id==="prompt"&&!!control.binding);
+}
+
 /** The model whose camera moves are only a sentence in the prompt, and the one that moves the camera for real. */
 export const CAMERA_ROUTE_PAIRS:Readonly<Record<string,string>>={"wan22-i2v-14b":"camera"};
 

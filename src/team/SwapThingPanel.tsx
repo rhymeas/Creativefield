@@ -1,10 +1,12 @@
 import {WorkflowDescription} from "./workflow-info";
 import {useEffect,useRef,useState,type ReactNode} from "react";
 import {Button,GenerateButton,Meta,ModelCard,Notice,PromptField,TextField,UploadSlot} from "../ds";
-import {assetUrl,composerAssets,workspacePath,type Asset,type Call,type Project,type Workspace} from "./api";
+import {assetUrl,composerAssets,mergeAssets,workspacePath,type Asset,type AssetPage,type Call,type Project,type Workspace} from "./api";
 import {LibraryChoice} from "./LibraryChoice";
 import {TeamMediaInput} from "./TeamMediaInput";
+import {TrimToFit} from "./TrimToFit";
 import {reelForManifest} from "./reels";
+import {resolveImageReference} from "../image/image-reference";
 import {buildSwapSteps,swapClipProblem,swapEditStep,swapThingProblem,EDIT_CAPABILITY,type SwapThingInput} from "./swap-thing";
 import {cancelSwapRun,runSwapAttempt,type TrackedStep} from "./swap-run";
 import {beginChain,chainKey,clearChain,failedStep,readChain,saveChain,saveStep,type ChainRecord,type SavedInput} from "./replace-chain";
@@ -22,14 +24,17 @@ export function progressLabel(label:string):string{
 /** Swap a thing: a video, the name of what to change, an optional picture of what it becomes, an optional sentence.
  * Nobody draws, uploads or reviews a mask: the app finds it in the background and goes straight on to the change.
  * A chain this tab saved before a reload comes back with its form, its found mask and its attempt number. */
-export function SwapThingPanel({workspace,project,workerId,call,canEdit,onChanged,top,promptOnly,initialVideo}:{workspace:Workspace;project:Project;workerId:string;call:Call;canEdit:boolean;onChanged:()=>void;top?:ReactNode;/** Edit a video with one sentence: what to find and what it becomes are read from the prompt. */promptOnly?:boolean;/** A clip dropped on another screen. */initialVideo?:string}){
+export function SwapThingPanel({workspace,project,workerId,call,canEdit,onChanged,top,promptOnly,initialVideo,modelTitle}:{workspace:Workspace;project:Project;workerId:string;call:Call;canEdit:boolean;onChanged:()=>void;top?:ReactNode;/** Edit a video with one sentence: what to find and what it becomes are read from the prompt. */promptOnly?:boolean;/** A clip dropped on another screen. */initialVideo?:string;modelTitle?:string}){
   const storage=typeof sessionStorage==="undefined"?null:sessionStorage,key=chainKey(promptOnly?"edit":"swap",workspace.id,project.id);
   const [chain,setChain]=useState<ChainRecord|null>(()=>{const kept=readChain(storage,key);return initialVideo&&kept?.input.video!==initialVideo?null:kept;});
   const [assets,setAssets]=useState<Asset[]>([]),[video,setVideo]=useState(()=>initialVideo??chain?.input.video??""),[reference,setReference]=useState(()=>chain?.input.reference??""),[target,setTarget]=useState(()=>chain?.input.target??""),[prompt,setPrompt]=useState(()=>chain?.input.prompt??"");
   const [busy,setBusy]=useState(""),[error,setError]=useState(""),[failed,setFailed]=useState(false),[,setDoing]=useState(""),[runId,setRunId]=useState<string|null>(null),[cancelling,setCancelling]=useState(false);
+  const [trimming,setTrimming]=useState(false),[assetCursor,setAssetCursor]=useState<string|null>(null),[loadingAssets,setLoadingAssets]=useState(false),[assetPageError,setAssetPageError]=useState("");
+  const assetEpoch=useRef(0),loadingAssetsRef=useRef(false);
   const attempt=useRef(chain?.attempt??0),cancelled=useRef(false),alive=useRef(true);
   useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
-  useEffect(()=>{void composerAssets(call,workspace.id,project.id,[]).then(page=>{if(alive.current)setAssets(page.items);}).catch(()=>{});},[call,workspace.id,project.id]);
+  useEffect(()=>{const epoch=++assetEpoch.current;setAssetCursor(null);setAssetPageError("");void composerAssets(call,workspace.id,project.id,[video,reference].filter(Boolean)).then(page=>{if(epoch===assetEpoch.current){setAssets(page.items);setAssetCursor(page.nextCursor);}}).catch(e=>{if(epoch===assetEpoch.current)setError((e as Error).message);});return()=>{assetEpoch.current++;};},[call,workspace.id,project.id]);
+  async function moreAssets(){if(!assetCursor||loadingAssetsRef.current)return;const epoch=assetEpoch.current;loadingAssetsRef.current=true;setLoadingAssets(true);setAssetPageError("");try{const page=await call<AssetPage>(workspacePath(workspace.id,`assets?projectId=${encodeURIComponent(project.id)}&cursor=${encodeURIComponent(assetCursor)}`));if(epoch===assetEpoch.current){setAssets(old=>mergeAssets(old,page.items));setAssetCursor(page.nextCursor);}}catch{if(epoch===assetEpoch.current)setAssetPageError("Could not load more files. Try again.");}finally{loadingAssetsRef.current=false;if(alive.current)setLoadingAssets(false);}}
   async function upload(file:File,kind:"image"|"video"){
     const form=new FormData();form.append("file",file);
     const asset=await call<Asset>(workspacePath(workspace.id,`assets?projectId=${encodeURIComponent(project.id)}&kind=${kind}`),"POST",form);
@@ -47,7 +52,13 @@ export function SwapThingPanel({workspace,project,workerId,call,canEdit,onChange
 
   /** Find the thing with the run loop, then stop and show the mask. Every press is a new attempt, so Try again
    * queues new runs; a press after a reload reaches the run it already queued. Cancel stops the run that is working. */
+  /* A saved attempt whose inputs changed reaches the server with its old request key and is refused
+     ("Idempotency key was already used for a different request"): drop it and start a fresh attempt once. */
   const generate=()=>guard("run",async()=>{
+    try{await startAttempt(chain);}
+    catch(e){if(!/Idempotency key was already used/.test((e as Error).message))throw e;edited();attempt.current+=1;await startAttempt(null);}
+  },"mask");
+  async function startAttempt(chain:ChainRecord|null){
     cancelled.current=false;setFailed(false);setCancelling(false);
     // A mask this chain already found is not found again: it is shown for review.
     if(chain?.outputs.mask){const asset=await call<Asset>(workspacePath(workspace.id,`assets/${encodeURIComponent(chain.outputs.mask)}`));await runChange(asset);return;}
@@ -77,7 +88,7 @@ export function SwapThingPanel({workspace,project,workerId,call,canEdit,onChange
       if(cancelled.current)return;if(alive.current)setFailed(true);throw e;
     }
     if(found)await runChange(found);
-  },"mask");
+  }
 
   /** The mask is found in the background and used at once: change only its area, with that exact mask. */
   async function runChange(approved:Asset){
@@ -102,15 +113,16 @@ export function SwapThingPanel({workspace,project,workerId,call,canEdit,onChange
   const reason=!canEdit?"Sign in to make videos.":(promptOnly?(!video?"Add your video.":!prompt.trim()?"Say what to change.":undefined):swapThingProblem({video,target,reference,prompt}));
   const locked=!!busy||!canEdit;
   return <div className="cf-form"><WorkflowDescription title="Video editing"><Meta>Choose a source clip and describe the change. Mask preparation and source normalization are part of the selected local editing route.</Meta></WorkflowDescription>
+    <ModelCard title={promptOnly?(modelTitle??"Video edit"):"Swap a thing"} subtitle="Local ComfyUI" video={reelForManifest(EDIT_CAPABILITY.id)}/>
     {top}
-    {!promptOnly&&<ModelCard title="Swap a thing" subtitle="Local" video={reelForManifest(EDIT_CAPABILITY.id)}/>}
     <>
-      <TeamMediaInput label="Your video" type="video" hint={CLIP_HINT} file={null} selected={source} options={assets.filter(a=>a.media_type==="video")} disabled={locked} canUpload={canEdit}
-        onFile={file=>{if(file)void guard("upload",async()=>{setVideo(await upload(file,"video"));edited();});}} onSelect={id=>{setVideo(id);edited();}} onUpload={()=>{}} workspace={workspace.id}/>
+      <TeamMediaInput projectId={project.id} onLoadMore={assetCursor?()=>void moreAssets():undefined} loadingMore={loadingAssets} loadMoreError={assetPageError} label="Your video" type="video" hint={CLIP_HINT} file={null} selected={source} options={assets.filter(a=>a.media_type==="video")} disabled={locked} canUpload={canEdit}
+        onFile={file=>{if(file)void guard("upload",async()=>{setVideo(await upload(file,"video"));edited();});}} onSelect={id=>{setVideo(id);edited();}} onUpload={()=>{}} onTrim={()=>setTrimming(true)} workspace={workspace.id}/>
+      {video&&<TrimToFit workspace={workspace} project={project} call={call} assetId={video} minSeconds={1} maxSeconds={5} open={trimming} onClose={()=>setTrimming(false)} onTrimmed={id=>{void guard("trim",async()=>{const asset=await call<Asset>(workspacePath(workspace.id,`assets/${encodeURIComponent(id)}`));if(!alive.current)return;setAssets(old=>[asset,...old.filter(a=>a.id!==asset.id)]);setVideo(id);edited();onChanged();});}}/>}
       {!promptOnly&&<TextField label="What to change" value={target} disabled={locked} onChange={value=>{setTarget(value);edited();}} placeholder="the red car"/>}
       <UploadSlot label={promptOnly?"Add elements or references":"New thing"} hint={promptOnly?"Optional. Call it @Image 1 in the prompt":"Optional"} accept="image/png,image/jpeg,image/webp" kinds={["image"]} preview={reference?assetUrl(workspace.id,reference):null} previewKind="image" removeLabel="Remove picture" disabled={locked}
-        onFile={file=>{if(!file){setReference("");edited();}else void guard("upload",async()=>{setReference(await upload(file,"image"));edited();});}}/>
-      {!reference&&assets.some(a=>a.media_type==="image")&&<LibraryChoice value="" disabled={locked} options={assets.filter(a=>a.media_type==="image").map(a=>({value:a.id,label:a.name,preview:{src:assetUrl(workspace.id,a.id)}}))} onChange={id=>{setReference(id);edited();}}/>}
+        onAsset={id=>void guard("select",async()=>{const asset=await resolveImageReference(id,assets,workspace.id,project.id,call);if(!alive.current)return;setAssets(old=>[asset,...old.filter(item=>item.id!==asset.id)]);setReference(asset.id);edited();})} onFile={file=>{if(!file){setReference("");edited();}else void guard("upload",async()=>{setReference(await upload(file,"image"));edited();});}}/>
+      {!reference&&(!!assetCursor||assets.some(a=>a.media_type==="image"))&&<LibraryChoice onLoadMore={assetCursor?()=>void moreAssets():undefined} loadingMore={loadingAssets} loadMoreError={assetPageError} value="" disabled={locked} options={assets.filter(a=>a.media_type==="image").map(a=>({value:a.id,label:a.name,preview:{src:assetUrl(workspace.id,a.id)}}))} onChange={id=>{setReference(id);edited();}}/>}
       <PromptField label="Prompt" value={prompt} disabled={locked} onChange={value=>{setPrompt(value);edited();}} placeholder={promptOnly?"Describe what to change, for example: make his jacket red.":"Optional. What it becomes."}/>
       {error&&<Notice title="The change didn't start" actions={<Button variant="secondary" disabled={!!busy||!!reason} onClick={()=>void generate()}>Try again</Button>} details={error}>Nothing was sent twice: trying again reuses the same request and pictures.</Notice>}
       {chain&&chain.stepIndex>0&&<Meta>Picks up where your last run stopped.</Meta>}

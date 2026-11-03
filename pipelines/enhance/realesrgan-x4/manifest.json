@@ -22,5 +22,16 @@
     "models": [
       { "folder": "upscale_models", "file": "RealESRGAN_x4plus.pth" }
     ]
-  }
+  },
+  "licenses": {
+    "software": "Project-authored graph under this repository's GPL-3.0-only license, built from ComfyUI nodes. The separately installed Real-ESRGAN model is not redistributed by this source tree.",
+    "weights": []
+  },
+  "sources": [
+    {
+      "url": "README.md",
+      "observedAt": "2026-10-16",
+      "kind": "authorship"
+    }
+  ]
 }

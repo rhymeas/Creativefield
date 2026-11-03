@@ -1,3 +1,4 @@
+import { assertPublicHost, publicTryout } from "./public-host";
 import type {Pool} from "pg";
 import type {CapabilityBundle,WorkerInventory} from "../src/capabilities/types";
 import type {ProbedInventory} from "../src/capabilities/readiness";
@@ -104,10 +105,13 @@ export async function probeWorker(pool:Pool,catalogue:CapabilityBundle[],worker:
      already read (the monitor selects *), a first failure keeps that inventory and the worker
      only reads offline once two probes in a row have failed. */
   const cloud=worker.kind==="cloud";
+  /* A public try-out checks the address again right before it is contacted: a refused address reads as offline. */
+  const blocked=publicTryout()?await assertPublicHost(new URL(worker.origin).hostname).then(()=>false,()=>true):false;
   const previous=worker.inventory as (ProbedCloudInventory&{probeFailures?:number})|undefined;
   const previousFailures=Number(previous?.probeFailures??0);
   const inventory:ProbedCloudInventory={online:false,nodes:[],models:[],credentials:[],objectInfoChecked:false,checkedModelFolders:[],inventoryIssues:[],...(cloud?{modelInventory:"cloud" as const}:{})};
   try {
+    if(blocked)throw new Error("This address is not allowed on a public try-out.");
     const response=await fetch(`${worker.origin}${worker.api_prefix}/object_info`,{signal:AbortSignal.timeout(15000),redirect:"error",...(cloud?{headers:cloudHeaders()}:{})});
     if(!response.ok)throw new Error("request_failed");const info:unknown=await response.json();
     if(!info||typeof info!=="object"||Array.isArray(info))throw new Error("invalid_response");

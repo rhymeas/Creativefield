@@ -25,7 +25,10 @@
       "required": true
     }
   ],
-  "fpsPrepare": { "kind": "source_16fps_v1", "sourceInput": "source_video" },
+  "fpsPrepare": {
+    "kind": "source_16fps_v1",
+    "sourceInput": "source_video"
+  },
   "controls": [
     {
       "id": "prompt",
@@ -247,7 +250,7 @@
         }
       ],
       "evidence": [
-        "Benchmark 2026-10-24, run 10c45fdb-967b-4519-9113-e732c017c893: the local FP8 14B weights staged 16,538 MB and completed 480x848/17 frames, but the output is high-frequency colour noise with no recognisable subject. The 1.3B control on the same clip, prompt and seed (run 2930d2bc-c396-4ac5-88be-0e59281b2848) produced a coherent watercolour restyle. The 14B route is therefore experimental and hidden from the picker."
+        "Benchmark 2026-10-24, run [local run]: the local FP8 14B weights staged 16,538 MB and completed 480x848/17 frames, but the output is high-frequency colour noise with no recognisable subject. The 1.3B control on the same clip, prompt and seed (run [local run]) produced a coherent watercolour restyle. The 14B route is therefore experimental and hidden from the picker."
       ]
     }
   ],

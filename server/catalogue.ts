@@ -7,7 +7,7 @@ import type { ApiGraph } from "../src/workflow/build";
 import type { EnhanceManifest, Manifest } from "../src/workflow/manifest";
 
 /** Where the packs are read from. The defaults are the folders in this repository. */
-type CatalogueRoots = { pipelines?: URL; native?: URL; log?: (message: string) => void };
+type CatalogueRoots = { pipelines?: URL; native?: URL; log?: (message: string) => void; onInvalidNative?: (id:string,reason:string)=>void };
 
 const exists = (url: URL) => access(url).then(() => true, () => false);
 const readJson = async (url: URL) => JSON.parse(await readFile(url, "utf8"));
@@ -58,26 +58,44 @@ export async function loadServerCatalogue(options: CatalogueRoots = {}) {
     }
   }
   const catalogue = buildCatalogue(providers);
+  const nativeBundles=new Set<unknown>();
   const nativeRoot = asFolder(options.native ?? new URL("../native-workflows/", import.meta.url));
   for(const folder of (await readdir(nativeRoot,{withFileTypes:true})).filter(x=>x.isDirectory())){
-    const native = await nativePack(folder.name, new URL(`${folder.name}/`, nativeRoot), log);
+    let native:Awaited<ReturnType<typeof nativePack>>;
+    try{native=await nativePack(folder.name, new URL(`${folder.name}/`, nativeRoot), log);}
+    catch(error){if(!options.onInvalidNative)throw error;options.onInvalidNative(folder.name,(error as Error).message);continue;}
     if (!native) continue;
+    if(!native.manifest||typeof native.manifest.id!=="string"||!native.manifest.id.trim()){
+      const message=`Invalid capability identity in native-workflows/${folder.name}`;
+      if(!options.onInvalidNative)throw new Error(message);
+      options.onInvalidNative(folder.name,message);continue;
+    }
     const existing=catalogue.findIndex(bundle=>bundle.manifest.id===native.manifest.id);
-    if(existing<0)catalogue.push(native);
+    if(existing<0){catalogue.push(native);nativeBundles.add(native);}
     else {
       const placeholder=catalogue[existing];
-      if(placeholder.template||placeholder.manifest.routes.some(route=>route.implementation!=="planned"))throw new Error(`Duplicate capability ${native.manifest.id}`);
+      if(placeholder.template||placeholder.manifest.routes.some(route=>route.implementation!=="planned")){
+        const message=`Duplicate capability ${native.manifest.id}`;
+        if(!options.onInvalidNative)throw new Error(message);
+        options.onInvalidNative(native.manifest.id,message);continue;
+      }
       catalogue[existing]=native;
+      nativeBundles.add(native);
     }
   }
   catalogue.push(...Array.from({length:6},(_,i)=>posePreviewWorkflow(i+1)));
   catalogue.push(...routerBundles);
   const seen=new Set<string>();
+  const invalid=new Set<unknown>();
   for (const bundle of catalogue) {
     if(seen.has(bundle.manifest.id))throw new Error(`Duplicate capability ${bundle.manifest.id}`);
     seen.add(bundle.manifest.id);
     const errors = validateCapability(bundle);
-    if (errors.length) throw new Error(`Invalid capability ${bundle.manifest.id}: ${errors.join("; ")}`);
+    if (errors.length) {
+      const message=`Invalid capability ${bundle.manifest.id}: ${errors.join("; ")}`;
+      if(!options.onInvalidNative||!nativeBundles.has(bundle))throw new Error(message);
+      options.onInvalidNative(bundle.manifest.id,message);invalid.add(bundle);
+    }
   }
-  return catalogue;
+  return catalogue.filter(bundle=>!invalid.has(bundle));
 }

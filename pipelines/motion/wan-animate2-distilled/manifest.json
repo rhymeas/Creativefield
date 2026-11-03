@@ -39,5 +39,16 @@
       { "folder": "clip_vision", "file": "clip_vision_h.safetensors" },
       { "folder": "vae", "file": "wan_2.1_vae.safetensors" }
     ]
-  }
+  },
+  "licenses": {
+    "software": "Adapted from Comfy-Org/workflow_templates video_wan_animate2_distilled (MIT; notice preserved in third-party-licenses/workflow-templates.txt). The local changes are enumerated in this pack's README. ComfyUI core is GPL-3.0. Integration changes follow this repository's GPL-3.0-only license.",
+    "weights": []
+  },
+  "sources": [
+    {
+      "url": "https://github.com/Comfy-Org/workflow_templates/blob/main/templates/video_wan_animate2_distilled.json",
+      "observedAt": "2026-10-16",
+      "kind": "implementation"
+    }
+  ]
 }

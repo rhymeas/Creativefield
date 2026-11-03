@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useState,type ReactNode} from "react";
 import {ChevronRight} from "lucide-react";
-import {ChoiceDialog,Dialog,EmptyState,Meta,ModelCard,Pill,Row,SearchField,Thumb,ThumbGrid,type ChoiceOption,type OptionStatus} from "../ds";
+import {Button,ChoiceDialog,Dialog,EmptyState,Meta,ModelCard,Pill,Row,SearchField,Thumb,ThumbGrid,type ChoiceOption,type OptionStatus} from "../ds";
 import {friendlyMediaName} from "./media-names";
 import "./pick.css";
 
@@ -8,7 +8,7 @@ export type TeamChoiceOption={value:string;label:string;note?:string;disabled?:b
 /** Existing studio triggers and selection surfaces; never a browser-native select. `prefix` writes the quiet label before the value; turn it off when the value is the whole action. `size` is the pill height (`lg` for a full label like "Choose from library"). */
 /** A choice as the design system's box: its own symbol, or its small picture. */
 const toChoice=(o:TeamChoiceOption):ChoiceOption=>({value:o.value,label:o.label,note:o.note,status:o.status,detail:o.detail,disabled:o.disabled,icon:o.icon??(o.preview?(o.preview.video?<video src={o.preview.src} muted playsInline preload="metadata"/>:<img src={o.preview.src} alt="" loading="lazy"/>):undefined)});
-export function TeamChoice({label,display,value,options,onChange,disabled=false,variant="row",size="md",prefix=true,subtitle,video,openSignal=0}:{label:string;display:string;value:string;options:TeamChoiceOption[];onChange:(value:string)=>void;disabled?:boolean;variant?:"row"|"model"|"pill";size?:"md"|"lg";prefix?:boolean;subtitle?:string;video?:string;openSignal?:number}){
+export function TeamChoice({label,display,value,options,onChange,disabled=false,variant="row",size="md",prefix=true,subtitle,video,openSignal=0,onLoadMore,loadingMore=false,loadMoreError}:{label:string;display:string;value:string;options:TeamChoiceOption[];onChange:(value:string)=>void;disabled?:boolean;variant?:"row"|"model"|"pill";size?:"md"|"lg";prefix?:boolean;subtitle?:string;video?:string;openSignal?:number;onLoadMore?:()=>void;loadingMore?:boolean;loadMoreError?:string}){
   const [open,setOpen]=useState(false),close=useCallback(()=>setOpen(false),[]);
   useEffect(()=>{if(disabled)setOpen(false);},[disabled]);
   useEffect(()=>{if(openSignal>0&&!disabled)setOpen(true);},[openSignal,disabled]);
@@ -25,9 +25,11 @@ export function TeamChoice({label,display,value,options,onChange,disabled=false,
           {shown.length?<ThumbGrid label={label}>{shown.map(o=><div key={o.value} className="cf-pick" onMouseEnter={e=>void e.currentTarget.querySelector("video")?.play().catch(()=>{})} onMouseLeave={e=>{const v=e.currentTarget.querySelector("video");if(v){v.pause();v.currentTime=0;}}}>
             <Thumb src={o.preview!.src} video={o.preview!.video} label={friendlyMediaName(o.label)} selected={o.value===value} disabled={o.disabled} onSelect={()=>choose(o)} info={<>{o.label}{o.note&&<><br/>{o.note}</>}</>}/>
             <Meta>{friendlyMediaName(o.label)}</Meta>
-          </div>)}</ThumbGrid>:<EmptyState title="Nothing matches" text="Try another word."/>}
-        </div>:<EmptyState title="No choices available" text="Add a compatible resource to this workspace first."/>}
+          </div>)}</ThumbGrid>:<EmptyState title="Nothing matches" text={onLoadMore?"Try another word or load more files.":"Try another word."}/>}
+        </div>:<EmptyState title="No choices available" text={onLoadMore?"Load more files to find compatible resources.":"Add a compatible resource to this workspace first."}/>}
+        {loadMoreError&&<div role="status"><Meta>{loadMoreError}</Meta></div>}
+        {onLoadMore&&<Button variant="secondary" disabled={loadingMore} onClick={onLoadMore}>{loadingMore?"Loading…":loadMoreError?"Try again":"Load more"}</Button>}
       </Dialog>
-      :<ChoiceDialog open={open&&!disabled} title={label} value={value} options={options.map(toChoice)} onPick={picked=>{const option=options.find(o=>o.value===picked);if(option)choose(option);}} onClose={close}/>}
+      :<ChoiceDialog open={open&&!disabled} title={label} value={value} options={options.map(toChoice)} onPick={picked=>{const option=options.find(o=>o.value===picked);if(option)choose(option);}} onClose={close} footer={onLoadMore?<>{loadMoreError&&<div role="status"><Meta>{loadMoreError}</Meta></div>}<Button variant="secondary" disabled={loadingMore} onClick={onLoadMore}>{loadingMore?"Loading…":loadMoreError?"Try again":"Load more"}</Button></>:undefined}/>}
   </>;
 }

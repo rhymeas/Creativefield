@@ -1,0 +1,4 @@
+.ds-media-input__box { position:relative; }
+.ds-media-input__paste { position:absolute; z-index:3; bottom:var(--space-2); left:var(--space-2); opacity:0; pointer-events:none; border:0; border-radius:var(--radius-md); background:var(--surface-control); color:var(--text-primary); padding:var(--space-2) var(--space-3); cursor:pointer; }
+.ds-media-input__box:is(:hover,:focus-within) .ds-media-input__paste { opacity:1; pointer-events:auto; }
+.ds-upload.ds-upload--filled .ds-upload__paste { top:auto; right:auto; bottom:var(--space-2); left:var(--space-2); }

@@ -18,3 +18,24 @@ export function compositeBrushStroke(target:HTMLCanvasElement,stroke:BrushStroke
 }
 
 export const brushEdgeBlur=(size:number,hardness:number)=>Math.max(0,size*.08*(1-Math.max(0,Math.min(100,hardness))/100));
+
+const alphaColor=(color:string,alpha:number)=>{
+  const hex=color.match(/^#([\da-f]{3}|[\da-f]{6})$/i)?.[1];
+  if(!hex)return color;
+  const full=hex.length===3?hex.split("").map(value=>value+value).join(""):hex;
+  const [r,g,b]=[0,2,4].map(offset=>Number.parseInt(full.slice(offset,offset+2),16));
+  return `rgba(${r},${g},${b},${alpha})`;
+};
+
+/** A zero-hardness dab: opaque in the middle, continuously fading to clear at its true radius. */
+export function paintSuperSoftRound(ctx:CanvasRenderingContext2D,x:number,y:number,size:number,color:string,hardness=0){
+  const radius=Math.max(.5,size/2),hard=Math.max(0,Math.min(100,hardness))/100;
+  const inner=Math.min(.82,hard*.72);
+  const gradient=ctx.createRadialGradient(x,y,0,x,y,radius);
+  gradient.addColorStop(0,alphaColor(color,1));
+  if(inner>0)gradient.addColorStop(inner,alphaColor(color,1));
+  gradient.addColorStop(inner+(1-inner)*.5,alphaColor(color,.32));
+  gradient.addColorStop(inner+(1-inner)*.78,alphaColor(color,.08));
+  gradient.addColorStop(1,alphaColor(color,0));
+  ctx.fillStyle=gradient;ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
+}

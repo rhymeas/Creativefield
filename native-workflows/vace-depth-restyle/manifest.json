@@ -11,18 +11,29 @@
       "label": "Source video",
       "type": "video",
       "required": true,
-      "binding": { "node": "4", "field": "file" }
+      "binding": {
+        "node": "4",
+        "field": "file"
+      }
     },
     {
       "id": "depth_video",
       "label": "Preprocessed depth video",
       "type": "video",
       "required": true,
-      "binding": { "node": "6", "field": "file" }
+      "binding": {
+        "node": "6",
+        "field": "file"
+      }
     }
   ],
   "outputs": [
-    { "id": "video", "label": "Restyled video", "type": "video", "required": true }
+    {
+      "id": "video",
+      "label": "Restyled video",
+      "type": "video",
+      "required": true
+    }
   ],
   "controls": [
     {
@@ -30,14 +41,20 @@
       "label": "Restyle prompt",
       "type": "string",
       "default": "",
-      "binding": { "node": "9", "field": "text" }
+      "binding": {
+        "node": "9",
+        "field": "text"
+      }
     },
     {
       "id": "negative",
       "label": "Negative prompt",
       "type": "string",
       "default": "blurry, distorted, unstable",
-      "binding": { "node": "10", "field": "text" }
+      "binding": {
+        "node": "10",
+        "field": "text"
+      }
     },
     {
       "id": "seed",
@@ -46,7 +63,10 @@
       "min": 0,
       "max": 2147483647,
       "default": 543,
-      "binding": { "node": "13", "field": "seed" }
+      "binding": {
+        "node": "13",
+        "field": "seed"
+      }
     },
     {
       "id": "strength",
@@ -55,7 +75,10 @@
       "min": 0,
       "max": 2,
       "default": 1,
-      "binding": { "node": "11", "field": "strength" }
+      "binding": {
+        "node": "11",
+        "field": "strength"
+      }
     }
   ],
   "presets": [],
@@ -68,19 +91,84 @@
       "implementation": "implemented",
       "workflowId": "vace-depth-restyle",
       "requirements": [
-        { "id": "node:UNETLoader", "kind": "node", "name": "UNETLoader", "instructions": "Install a ComfyUI version providing UNETLoader." },
-        { "id": "node:CLIPLoader", "kind": "node", "name": "CLIPLoader", "instructions": "Install a ComfyUI version providing CLIPLoader." },
-        { "id": "node:VAELoader", "kind": "node", "name": "VAELoader", "instructions": "Install a ComfyUI version providing VAELoader." },
-        { "id": "node:LoadVideo", "kind": "node", "name": "LoadVideo", "instructions": "Install a ComfyUI version providing LoadVideo." },
-        { "id": "node:GetVideoComponents", "kind": "node", "name": "GetVideoComponents", "instructions": "Install a ComfyUI version providing GetVideoComponents." },
-        { "id": "node:GetImageSize", "kind": "node", "name": "GetImageSize", "instructions": "Install a ComfyUI version providing GetImageSize." },
-        { "id": "node:CLIPTextEncode", "kind": "node", "name": "CLIPTextEncode", "instructions": "Install a ComfyUI version providing CLIPTextEncode." },
-        { "id": "node:WanVaceToVideo", "kind": "node", "name": "WanVaceToVideo", "instructions": "Install a ComfyUI version providing WanVaceToVideo." },
-        { "id": "node:ModelSamplingSD3", "kind": "node", "name": "ModelSamplingSD3", "instructions": "Install a ComfyUI version providing ModelSamplingSD3." },
-        { "id": "node:KSampler", "kind": "node", "name": "KSampler", "instructions": "Install a ComfyUI version providing KSampler." },
-        { "id": "node:VAEDecode", "kind": "node", "name": "VAEDecode", "instructions": "Install a ComfyUI version providing VAEDecode." },
-        { "id": "node:CreateVideo", "kind": "node", "name": "CreateVideo", "instructions": "Install a ComfyUI version providing CreateVideo." },
-        { "id": "node:SaveVideo", "kind": "node", "name": "SaveVideo", "instructions": "Install a ComfyUI version providing SaveVideo." },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Install a ComfyUI version providing UNETLoader."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install a ComfyUI version providing CLIPLoader."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install a ComfyUI version providing VAELoader."
+        },
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Install a ComfyUI version providing LoadVideo."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Install a ComfyUI version providing GetVideoComponents."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Install a ComfyUI version providing GetImageSize."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Install a ComfyUI version providing CLIPTextEncode."
+        },
+        {
+          "id": "node:WanVaceToVideo",
+          "kind": "node",
+          "name": "WanVaceToVideo",
+          "instructions": "Install a ComfyUI version providing WanVaceToVideo."
+        },
+        {
+          "id": "node:ModelSamplingSD3",
+          "kind": "node",
+          "name": "ModelSamplingSD3",
+          "instructions": "Install a ComfyUI version providing ModelSamplingSD3."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Install a ComfyUI version providing KSampler."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install a ComfyUI version providing VAEDecode."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Install a ComfyUI version providing CreateVideo."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install a ComfyUI version providing SaveVideo."
+        },
         {
           "id": "model:vace13b",
           "kind": "model",
@@ -108,12 +196,15 @@
         }
       ],
       "evidence": [
-        "Graph executed 2026-10-19 on ComfyUI 0.37.0 / RTX 4090: the exact template graph ran a 160x96, 16 FPS, 17-frame testsrc2 source with an aligned grayscale testsrc2 depth video to a 24,468-byte H.264 MP4 (SHA-256 df22aa5b986c7dd93bf5ba6a43a6a730ad9e4c8a0462c2433b31f94e479d91a6) in 9.0 s (prompt aa79567e-a8f4-4b76-beb3-719f9d7ae2b0), preserving 160x96, 16 FPS and 17 frames. This records output structure and hash evidence. The app now rejects mismatched dimensions, decoded frame count, timestamps and non-grayscale depth media before queueing. This establishes local graph execution and admission only; semantic depth alignment, effect quality, adherence, preservation, temporal consistency and platform behavior remain unqualified.",
-        "Fresh local graph execution 2026-10-22, prompt 526c79d6-ad05-4922-b6f9-4be01b66f562: cleared fictional jacket fixture produced 99794-byte H.264 MP4,832x480,16 FPS,17 frames,1.0625s,SHA-256 b7be43ba34d960e9014b63aa2e5f4b44a56f38ad49595820180aecdf818324a3. This records output structure and a recoloring example only. Seams,pockets and lettering changed; preservation,occlusion and broad temporal quality are unqualified."
+        "Graph executed 2026-10-19 on ComfyUI 0.37.0 / RTX 4090: the exact template graph ran a 160x96, 16 FPS, 17-frame testsrc2 source with an aligned grayscale testsrc2 depth video to a 24,468-byte H.264 MP4 (SHA-256 df22aa5b986c7dd93bf5ba6a43a6a730ad9e4c8a0462c2433b31f94e479d91a6) in 9.0 s (prompt [local run]), preserving 160x96, 16 FPS and 17 frames. This records output structure and hash evidence. The app now rejects mismatched dimensions, decoded frame count, timestamps and non-grayscale depth media before queueing. This establishes local graph execution and admission only; semantic depth alignment, effect quality, adherence, preservation, temporal consistency and platform behavior remain unqualified.",
+        "Fresh local graph execution 2026-10-22, prompt [local run]: cleared fictional jacket fixture produced 99794-byte H.264 MP4,832x480,16 FPS,17 frames,1.0625s,SHA-256 b7be43ba34d960e9014b63aa2e5f4b44a56f38ad49595820180aecdf818324a3. This records output structure and a recoloring example only. Seams,pockets and lettering changed; preservation,occlusion and broad temporal quality are unqualified."
       ]
     }
   ],
-  "coverage": { "local": "implemented", "hosted": "planned" },
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
   "licenses": {
     "software": "ComfyUI core: GPL-3.0; see upstream LICENSE. Workflow template files: MIT (Comfy-Org/workflow_templates). Integration license follows this repository.",
     "weights": [
@@ -141,6 +232,10 @@
       "kind": "research"
     }
   ],
-  "tickets": ["FIN-03"],
-  "audioPolicies": ["mute"]
+  "tickets": [
+    "FIN-03"
+  ],
+  "audioPolicies": [
+    "mute"
+  ]
 }

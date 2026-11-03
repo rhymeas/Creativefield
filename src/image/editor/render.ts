@@ -106,9 +106,10 @@ export function renderDoc(ctx: CanvasRenderingContext2D, doc: Doc, options: { ba
   ctx.restore();
 }
 
-/** The layer a clipped layer clips to: the nearest visible pixel layer below that is not clipped itself. */
-function clipBase(doc: Doc, index: number): Layer | undefined {
-  return doc.layers.slice(0, index).reverse().find((l) => l.kind !== "adjust" && !l.clip && isVisible(doc, l));
+/** A hidden base hides its clipping stack; it must not retarget a lower layer. */
+export function clipBase(doc: Doc, index: number): Layer | undefined {
+  const base = doc.layers.slice(0, index).reverse().find((layer) => layer.kind !== "adjust" && !layer.clip);
+  return base && isVisible(doc, base) ? base : undefined;
 }
 
 /** Draw one layer's pixels with its transform, tone filter and shadow (not opacity or blend). */

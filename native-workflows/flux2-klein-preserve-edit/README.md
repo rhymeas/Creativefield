@@ -33,13 +33,16 @@ compatibility or redistribution clearance is claimed for the combined dependency
 
 ## Actual data path
 
-Original PNG + same-size manual PNG mask → upstream InpaintCrop → existing
-Klein4B image edit → upstream InpaintStitch → upstream KleinEditComposite →
+Original PNG + same-size manual PNG mask → upstream InpaintCrop → Fibo 2 image
+edit → upstream InpaintStitch → upstream KleinEditComposite →
 final PNG, full-size candidate PNG, effective-mask PNG and PreviewAny text report.
 Original/mask inputs, outputs, lineage, report, declared dependency commits and
 pixel measurement are retained in the durable run/artifact records.
 
-The generated crop goes directly back to Stitch at the crop's own dimensions.
+Fibo's output width and height are explicitly set to the 768 × 768 forced crop
+size. Its automatic size can be larger than the crop, which makes InpaintStitch
+place the generated pixels at the wrong scale. The generated crop goes directly
+back to Stitch at the crop's own dimensions.
 An extra megapixel resize in the initial integration was removed after visual
 QA showed incorrect framing. No upstream node source was modified.
 
@@ -75,9 +78,9 @@ and temporary local worker; no project or product duplicate was created.
 
 | Fixture | Tested0.1.1 run | Protected pixels | Changed >2/255 | Maximum protected-channel delta |
 |---|---|---:|---:|---:|
-| Jacket red→blue | b894a82e-00c7-4c16-b30e-d76b3132d3eb |121868|0|1/255|
-| Mug red→blue | fb0ebf89-b8a6-4f82-9122-509d8b91109f |219788|0|1/255|
-| Plant→lamp |74b13f0b-71af-4088-885e-7d6fe0419139 |229058|0|1/255|
+| Jacket red→blue | [local run] |121868|0|1/255|
+| Mug red→blue | [local run] |219788|0|1/255|
+| Plant→lamp |[local run] |229058|0|1/255|
 
 The initial rectangle-mask cases had poor framing/incomplete object coverage;
 their immutable runs are retained. Corrected color-wand masks were used for the
@@ -103,4 +106,4 @@ Existing receipts resume existing jobs; unknown, failed and timed-out jobs are
 not automatically resubmitted. `--refine-mask` explicitly requests the corrected
 fixture mask and retains the previous attempt's identity. No model is downloaded.
 
-Final acceptance: version0.1.2 UI admission/cancel run2a333179-96a8-4224-ba8f-77ed4776e210 recorded Context64px and Feather0.2% from actual keyboard slider actions. Retake824d7cc8-e073-4e97-9917-c59dacfc2626 preserved the original inputs/seed, received a new ledger take, and was canceled through the real UI. Comparison height468px and its slider remained within900px-high viewports at1280/1440/2400. PNG download matched the published215058 bytes; saved JSON included the measured receipt. Keeping a candidate added a layer; Undo removed it. Full suite105 files/743 tests passed; the final changed-contract checks26/26 and TypeScript/build/browser checks passed.
+Final acceptance: version0.1.2 UI admission/cancel run[local run] recorded Context64px and Feather0.2% from actual keyboard slider actions. Retake[local run] preserved the original inputs/seed, received a new ledger take, and was canceled through the real UI. Comparison height468px and its slider remained within900px-high viewports at1280/1440/2400. PNG download matched the published215058 bytes; saved JSON included the measured receipt. Keeping a candidate added a layer; Undo removed it. Full suite105 files/743 tests passed; the final changed-contract checks26/26 and TypeScript/build/browser checks passed.

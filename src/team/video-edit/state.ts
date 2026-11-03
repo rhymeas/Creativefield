@@ -1,8 +1,8 @@
 import type {Asset} from "../api";
 
-export function videoModeFromHash(hash:string):"create"|"edit"|"trim"|"storyboard"|"effects"|"transform"|"replace"|null {
+export function videoModeFromHash(hash:string):"create"|"edit"|"trim"|"storyboard"|"keyframes"|"effects"|"transform"|"replace"|null {
   const [section,mode]=hash.replace(/^#/,"").split("/");
-  return section==="video"&&(mode==="create"||mode==="edit"||mode==="trim"||mode==="storyboard"||mode==="effects"||mode==="transform"||mode==="replace")?mode:null;
+  return section==="video"&&(mode==="create"||mode==="edit"||mode==="trim"||mode==="storyboard"||mode==="keyframes"||mode==="effects"||mode==="transform"||mode==="replace")?mode:null;
 }
 
 export type VideoEditDraft={videoAssetId:string;startFrame:string;endFrameExclusive:string;audioPolicy:"mute"|"preserve";extensionFrames?:string;overlapFrames?:string;prompt?:string};
@@ -10,13 +10,13 @@ export const defaultVideoEditDraft:VideoEditDraft={videoAssetId:"",startFrame:"0
 
 export type VideoSourceEnvelope={
   sourceAssetId:string;projectId:string;sha256:string;bytes:number;width:number;height:number;
-  frameRate:{numerator:16;denominator:1};frameCount:number;hasAudio:boolean;container:string;videoCodec:string;
+  frameRate:{numerator:number;denominator:number};frameCount:number;hasAudio:boolean;container:string;videoCodec:string;
 };
 export type VideoEditPlan={
   contractVersion:1;operation:"trim"|"forward_extend";source:VideoSourceEnvelope;
   trim:{startFrame:number;endFrameExclusive:number;frames:number};
   continuation:null|Record<string,unknown>;
-  output:{frameRate:{numerator:16;denominator:1};frames:number;durationTicks:number;timeBase:{numerator:1;denominator:16};audioPolicy:"mute"|"preserve";
+  output:{frameRate:{numerator:number;denominator:number};frames:number;durationTicks:number;timeBase:{numerator:number;denominator:number};audioPolicy:"mute"|"preserve";
     audio:null|{sourceStartFrame:number;sourceEndFrameExclusive:number;continuation:"silent"|null;sampleRate:48000;channels:2}};
   planDigest:string;
 };

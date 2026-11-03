@@ -1,0 +1,4 @@
+.ds-comparewipe__handle { position:absolute; top:0; bottom:0; width:2rem; padding:0; border:0; transform:translateX(-50%); background:transparent; cursor:ew-resize; touch-action:none; z-index:2; }
+.ds-comparewipe__handle .ds-comparewipe__divider { left:50%; }
+.ds-comparewipe__handle:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.ds-flashlight__stage[data-temperature="auto"] .ds-flashlight__glow { background:radial-gradient(circle, white 0%, transparent 70%); }

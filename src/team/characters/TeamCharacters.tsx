@@ -8,7 +8,7 @@ import {CharacterCreateDialog} from "./CharacterCreateDialog";
 import {CharacterDetail} from "./CharacterDetail";
 import {characterEmptyAction,characterPath,keepCharacterSelection} from "./state";
 
-export function TeamCharacters({workspace,project,call,authorized,canCreate,onCount,onMakeScenes}:{workspace:Workspace;project:Project;call:Call;authorized:boolean;canCreate:boolean;onCount?:(count:number)=>void;onMakeScenes?:(id:string)=>void}){
+export function TeamCharacters({workspace,project,call,authorized,canCreate,onCount,onMakeScenes,onMakeImages}:{workspace:Workspace;project:Project;call:Call;authorized:boolean;canCreate:boolean;onCount?:(count:number)=>void;onMakeScenes?:(id:string)=>void;onMakeImages?:(record:CharacterRecord)=>string|undefined}){
   const [records,setRecords]=useState<CharacterRecord[]>([]),[selectedId,setSelectedId]=useState(""),[selected,setSelected]=useState<CharacterRecord|null>(null),[assets,setAssets]=useState<AssetPage>({items:[],nextCursor:null});
   const [loading,setLoading]=useState(true),[detailLoading,setDetailLoading]=useState(false),[creating,setCreating]=useState(false),[error,setError]=useState("");
   const toast=useToast();
@@ -36,7 +36,7 @@ export function TeamCharacters({workspace,project,call,authorized,canCreate,onCo
     {error&&<Notice priority={80} title="Characters didn't load" actions={<Button variant="secondary" onClick={()=>void load()}>Check again</Button>} details={error}>Nothing was changed. Checking again reads the characters and their pictures again.</Notice>}
     <Split>
       <div className="cf-character-list"><Panel>{loading?<><Skeleton height={64}/><Skeleton height={64}/></>:records.length?<div className="cf-character-cards" aria-label="Characters">{records.map(record=>{const cover=record.referencePack.references[0];return <CastCard key={record.id} name={record.name} portrait={cover?assetUrl(workspace.id,cover.assetId):undefined} stats={<Meta parts={[`${record.referencePack.references.length} ${record.referencePack.references.length===1?"ref":"refs"}`,characterUsageCaption(record.usage)]}/>} selected={record.id===selectedId} draggable={canCreate&&authorized} onDragStart={event=>{event.dataTransfer.setData(CHARACTER_DRAG_TYPE,record.id);event.dataTransfer.setData("text/plain",`character:${record.id}`);event.dataTransfer.effectAllowed="copy";}} onActivate={()=>setSelectedId(record.id)}/>;})}</div>:null} {records.length>0&&createButton}</Panel></div>
-      {(loading||records.length>0)&&<CharacterDetail record={selected} loading={detailLoading} workspace={workspace} call={call} onRemove={()=>{setSelectedId("");setSelected(null);void load();}} onMakeScenes={onMakeScenes}/>}
+      {(loading||records.length>0)&&<CharacterDetail record={selected} loading={detailLoading} workspace={workspace} call={call} onRemove={()=>{setSelectedId("");setSelected(null);void load();}} onMakeScenes={onMakeScenes} onMakeImages={onMakeImages}/>}
     </Split>
     <CharacterCreateDialog open={creating} onClose={()=>setCreating(false)} onCreated={created} workspace={workspace} project={project} assets={images} call={call}/>
   </>;

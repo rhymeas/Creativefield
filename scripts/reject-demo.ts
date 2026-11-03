@@ -23,15 +23,15 @@ const graph = buildGraph(template, manifest, {
 
 try {
   const id = await client.submitPrompt(graph);
-  // Nothing was rejected, so this demo has queued a real (1 second) job. Cancel it right away.
+  // Nothing was rejected, so this demo has queued a real (1 second) job.
+  // Remove only that job if it is still queued; a global interrupt could stop another user's job.
   const base = (process.env.COMFY_URL ?? "http://127.0.0.1:8188").replace(/\/$/, "");
   await fetch(`${base}/api/queue`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ delete: [id] }),
   });
-  await client.interrupt();
-  console.log(`ComfyUI accepted the job (${id}), so nothing is missing and there is nothing to explain. The job was cancelled.`);
+  console.log(`ComfyUI accepted the job (${id}); removal from the queue was requested. If it already started, it may finish.`);
 } catch (e) {
   if (!(e instanceof PromptRejectedError)) throw e;
   const why = explainPromptError(e.rejection, manifest, template);

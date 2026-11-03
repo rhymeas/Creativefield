@@ -33,15 +33,34 @@ export async function refreshWorkerInventory(
 export const runLabel:Record<string,string>={pending:"Pending",submitting:"Submitting",submission_unknown:"Submission uncertain",queued:"Queued",running:"Running",succeeded:"Succeeded",failed:"Failed",cancel_requested:"Cancellation requested",canceled:"Cancelled"};
 export function activeRun(state:string){return ["pending","submitting","submission_unknown","queued","running","cancel_requested"].includes(state);}
 export type ElementInputBinding={elementId:string;assetId:string};
-export type Draft={controls:Record<string,string|number|boolean>;inputs:Record<string,string>;elementInputs:Record<string,ElementInputBinding>;audioPolicy:"preserve"|"replace"|"mix"|"mute";presetId?:string};
+export type Draft={controls:Record<string,string|number|boolean>;inputs:Record<string,string>;elementInputs:Record<string,ElementInputBinding>;audioPolicy:"preserve"|"replace"|"mix"|"mute";presetId?:string;cameraMove?:string};
+/** These H3 creation graphs decode generated audio; replace retains that output. */
+export function h3GeneratedAudio(m:CapabilityManifestV2){return ["h3-t2v","h3-i2v","h3-flf2v","h3-effects"].includes(m.id)&&m.audioPolicies.includes("replace");}
 export function defaultDraft(m:CapabilityManifestV2):Draft {
-  return {controls:Object.fromEntries(m.controls.filter(c=>!c.disabledReason&&c.default!==undefined).map(c=>[c.id,c.default])) as Draft["controls"],inputs:{},elementInputs:{},audioPolicy:m.voiceContract?"replace":m.audioPolicies.includes("preserve")?"preserve":"mute"};
+  return {controls:Object.fromEntries(m.controls.filter(c=>!c.disabledReason&&c.default!==undefined).map(c=>[c.id,c.default])) as Draft["controls"],inputs:{},elementInputs:{},audioPolicy:m.voiceContract||h3GeneratedAudio(m)?"replace":m.audioPolicies.includes("preserve")?"preserve":"mute"};
 }
+/** Restore only fields that still belong to this workflow before replacing an input. */
+export function restoreDraft(m:CapabilityManifestV2,saved:unknown):Draft {
+  const draft=defaultDraft(m);
+  if(!saved||typeof saved!=="object")return draft;
+  const data=saved as Partial<Draft>;
+  if(data.controls&&typeof data.controls==="object")for(const c of m.controls){const value=data.controls[c.id];if(!c.disabledReason&&value!==undefined&&["string","number","boolean"].includes(typeof value))draft.controls[c.id]=value;}
+  if(data.inputs&&typeof data.inputs==="object")for(const p of m.inputs){const value=data.inputs[p.id];if(typeof value==="string")draft.inputs[p.id]=value;}
+  if(data.elementInputs&&typeof data.elementInputs==="object")for(const p of m.inputs){const binding=data.elementInputs[p.id];if(binding&&typeof binding.elementId==="string"&&typeof binding.assetId==="string"&&!draft.inputs[p.id])draft.elementInputs[p.id]={elementId:binding.elementId,assetId:binding.assetId};}
+  if(data.audioPolicy&&m.audioPolicies.includes(data.audioPolicy))draft.audioPolicy=data.audioPolicy;
+  if(typeof data.presetId==="string"&&m.presets.some(preset=>preset.id===data.presetId))draft.presetId=data.presetId;
+  if(typeof data.cameraMove==="string")draft.cameraMove=data.cameraMove;
+  return draft;
+}
+
 /** The prompt is optional only where a picture or clip already carries the subject: the Create screen,
  *  where the words just add a movement or a mood. A masked edit or a voice take says what changes in
  *  words, an effect's words are the instruction, and motion transfer needs them to say what happens. */
 export function promptOptional(m:CapabilityManifestV2):boolean{
   if(m.mediaContract||m.voiceContract||m.category==="motion")return false;
+  // These prompts are the instruction itself, not an example: the object swap names the thing to change, and
+  // OpenJutsu's default tells H3 to put the picture's person into the clip. Sent empty, H3 returned the source unchanged.
+  if(m.id==="h3-object-swap"||m.id==="openjutsu-h3-swap"||m.id==="previs-to-video")return false;
   if(surfaceOf(m)!=="video-create")return false;
   return m.controls.some(c=>c.id==="prompt"&&!c.disabledReason)&&m.inputs.some(port=>port.required);
 }

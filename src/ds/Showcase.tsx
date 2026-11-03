@@ -17,6 +17,7 @@ import {TransformHandles} from "./TransformHandles";
 import {CompareWipe,MaskOverlay,DriftOverlay} from "./PrecisionCompare";
 import { ChevronLeft, ChevronRight, ArrowUp, Lock, Undo2, Download, Pencil, Maximize2, Camera, Plus, Search, Clock, Dices, LogOut, Settings, Video, History, Image, Info, MinusCircle, RectangleHorizontal, Sparkles, Brush, UserRound } from "lucide-react";
 import {
+  Steps,
   RotatingVideo,
   Avatar,
   Badge,
@@ -185,6 +186,11 @@ const SWATCHES = [
 
 const RADII = ["--radius-sm", "--radius-md", "--radius-lg", "--radius-xl", "--radius-2xl"];
 
+function AdvancedSettingsDemo(){
+  const [open,setOpen]=useState(false),[seed,setSeed]=useState('1234'),[steps,setSteps]=useState('20');
+  return <><Button onClick={()=>setOpen(true)}>Open compact advanced settings</Button><Dialog className="ds-advanced-dialog" open={open} title="Advanced" onClose={()=>setOpen(false)} footer={<Button onClick={()=>setOpen(false)}>Done</Button>}><TextField label="Seed" type="number" value={seed} onChange={setSeed}/><TextField label="Steps" type="number" value={steps} onChange={setSteps}/></Dialog></>;
+}
+
 /** Every dropdown in the app (a Row with options, the team's choice triggers) opens this dialog of boxes. */
 function ChoiceDialogDemo(){
   const [open,setOpen]=useState(false),[picked,setPicked]=useState("wan-14b");
@@ -236,6 +242,7 @@ export default function Showcase() {
   );
   const [dur, setDur] = useState(5);
   const [prompt, setPrompt] = useState("");
+  const [referencePrompt,setReferencePrompt]=useState("Replace the person with @Image 1.");
   const [dialog, setDialog] = useState(false);
   const [annotationOpen,setAnnotationOpen]=useState(false);
   const [confirmation, setConfirmation] = useState(false);
@@ -389,7 +396,7 @@ export default function Showcase() {
         <div style={{ display: "flex", gap: 28, alignItems: "flex-start", flexWrap: "wrap" }}>
           <div style={{ width: 318, background: "var(--surface-panel)", borderRadius: 22, padding: 10, display: "flex", flexDirection: "column", gap: 10 }}>
             <SegmentedTabs block label="Mode" value={seg} onChange={setSeg} items={[{ id: "history", label: "Motion transfer", icon: <History size={14} /> }, { id: "how", label: "Objects swap", icon: <Info size={14} /> }]} />
-            <UploadSlot label="Add reference video" hint="4–30 s" accept="video/*" kinds={["video"]} onFile={() => {}} />
+            <UploadSlot label="Add reference video" hint="4–30 s" accept="video/*" kinds={["video"]} onBrowse={() => {}} onFile={() => {}} />
             {/* The media field: the drop zone fills the column and the tall library pill below it is flat. */}
             <Pill quiet size="lg">Choose from library</Pill>
             <ToggleRow label="Prompt" checked={false} onChange={() => {}} />
@@ -540,12 +547,12 @@ export default function Showcase() {
       <Section title="Reference tray (up to 30), and a rule">
         <div style={{ maxWidth: 520, display: "flex", flexDirection: "column", gap: 12 }}>
           <ReferenceTray label="References" max={30} onAdd={() => setRefs((r) => [...r, `reference-${r.length + 1}.png`])}>
-            {refs.map((name) => (
-              <Thumb key={name} label={name} onSelect={() => {}} onRemove={() => setRefs((r) => r.filter((n) => n !== name))} />
+            {refs.map((name,index) => (
+              <Thumb key={name} label={`${name} · add @Image ${index+1} to prompt`} badge={`@Image ${index+1}`} onActivate={() => setReferencePrompt(old=>`${old.trim()} @Image ${index+1}`.trim())} onRemove={() => setRefs((r) => r.filter((n) => n !== name))} />
             ))}
           </ReferenceTray>
           <Rule />
-          <Meta>Prompt and model go below the rule</Meta>
+          <PromptField compact label="Prompt" placeholder="Describe the change" value={referencePrompt} onChange={setReferencePrompt} tokens={refs.map((_,index)=>`@Image ${index+1}`)}/>
         </div>
       </Section>
 
@@ -593,6 +600,7 @@ export default function Showcase() {
 
       <Section title="Relight light guide">
         <Flashlight
+          compact
           src="/reels/wan22-i2v-5b.png"
           direction="from the front-left"
           temperature="golden"
@@ -646,7 +654,7 @@ export default function Showcase() {
       </Section>
 
       <Section title="Kontaktbogen (batch export)">
-        <CameraAngleSheet source={{src:"/reels/wan22-i2v-5b.png"}} items={[{id:"high-left",label:"High left"},{id:"high",label:"High"},{id:"high-right",label:"High right"},{id:"left-45",label:"Left 45"},{id:"right-45",label:"Right 45"},{id:"low-left",label:"Low left"},{id:"low",label:"Low"},{id:"low-right",label:"Low right"}]} selected={selectedAngles} onChange={setSelectedAngles}/>
+        <CameraAngleSheet compact source={{src:"/reels/wan22-i2v-5b.png"}} items={[{id:"high-left",label:"High left"},{id:"high",label:"High"},{id:"high-right",label:"High right"},{id:"left-45",label:"Left 45"},{id:"right-45",label:"Right 45"},{id:"low-left",label:"Low left"},{id:"low",label:"Low"},{id:"low-right",label:"Low right"}]} selected={selectedAngles} onChange={setSelectedAngles}/>
         <ContactSheet
           items={[
             { src: "/reels/wan22-i2v-5b.png", label: "Approach" },
@@ -880,6 +888,19 @@ export default function Showcase() {
         <Hero stage accent="many" title="Turn one video into many" text="The loop fills the band, drifts slowly, and the clips take turns." media={<RotatingVideo srcs={["/reels/mj-02.mp4", "/reels/mj-01.mp4", "/reels/mj-03.mp4"]} />} />
       </Section>
 
+      <Section title="Steps">
+        <Steps items={[{ title: "Change the graph", text: "in the editor below" }, { title: "Save it", text: "Press Ctrl+S" }, { title: "Apply", text: "We check it and keep it as a draft", action: <Button variant="primary">Apply edits</Button> }]} />
+      </Section>
+
+      <Section title="Workflow source priority">
+        <Steps items={[
+          { title: "Find", text: "Search the official ComfyUI Hub and bundled templates first" },
+          { title: "Import", text: "Keep the source, manifest and API template together" },
+          { title: "Adapt", text: "Change only the required ComfyUI nodes, then save a modular app" },
+        ]} />
+        <Meta>Build a new graph only after a bounded search finds no suitable official workflow or template.</Meta>
+      </Section>
+
       <Section title="Control panel parts">
         <div style={{ width: 302, display: "grid", gap: 8 }}>
           <Block label="Ambient reel">
@@ -896,10 +917,11 @@ export default function Showcase() {
           <PromptField label="Prompt" placeholder="Describe your scene" value={prompt} onChange={setPrompt} tools={<ToolChip icon={<Image size={12} />}>Elements</ToolChip>} />
           <Row label="Model" display="Wan 2.1 I2V 14B" options={[{ value: "a", label: "Wan 2.1" }]} value="a" onChange={() => {}} />
           <ChoiceDialogDemo />
+          <AdvancedSettingsDemo />
           <Params>
+            {/* Rule 37: Size and Length, side by side above the Advanced row on every video and image tool. */}
+            <ParamButton title="Size" icon={<Maximize2 size={16} />} label="720p" value="b" onChange={() => {}} options={[{ value: "a", label: "480p" }, { value: "b", label: "720p" }, { value: "c", label: "900p" }]} />
             <ParamButton title="Duration" icon={<Clock size={16} />} label={`${dur}s`} value={dur} onChange={setDur} options={[3, 4, 5].map((v) => ({ value: v, label: `${v} seconds` }))} />
-            <ParamButton title="Ratio" icon={<RectangleHorizontal size={16} />} label="16:9" value="a" onChange={() => {}} options={[{ value: "a", label: "16:9" }]} />
-            <ParamButton title="Resolution" icon={<Sparkles size={16} />} label="480p" value="a" onChange={() => {}} options={[{ value: "a", label: "480p" }]} />
           </Params>
           <Row subtle label="Seed" icon={<Dices size={16} color="var(--text-secondary)" />} trailing={<Tag>Random</Tag>} options={[{ value: "r", label: "Random" }]} value="r" onChange={() => {}} />
         </div>

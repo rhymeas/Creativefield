@@ -48,3 +48,9 @@ export async function composerAssets(call:Call,workspace:string,project:string,s
   }));
   return {...page,items:mergeAssets(page.items,pinned.filter((a):a is Asset=>!!a))};
 }
+/** Load run outputs in batches, including files beyond the first Library page. */
+export async function composerResultAssets(call:Call,workspace:string,project:string,ids:string[]):Promise<Asset[]>{
+  const unique=[...new Set(ids)],batches:Array<Promise<{items:Asset[]}>>=[];
+  for(let i=0;i<unique.length;i+=200)batches.push(call<{items:Asset[]}>(workspacePath(workspace,'assets/lookup'),'POST',{projectId:project,ids:unique.slice(i,i+200)}));
+  return mergeAssets(...(await Promise.all(batches)).map(batch=>batch.items));
+}

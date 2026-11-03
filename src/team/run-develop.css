@@ -1,0 +1,2 @@
+.cf-run-develop { width: 100%; height: 100%; min-width: 0; }
+.cf-run-develop > .ds-resulttile[data-develop] { height: 100%; min-height: 250px; }

@@ -1,0 +1,10 @@
+{
+  "1": { "class_type": "CLIPTextEncode", "inputs": { "text": "", "clip": ["9", 0] } },
+  "2": { "class_type": "CLIPTextEncode", "inputs": { "text": "", "clip": ["9", 0] } },
+  "3": { "class_type": "KSampler", "inputs": { "seed": 0, "positive": ["1", 0], "negative": ["2", 0] } },
+  "4": { "class_type": "LoadImage", "inputs": { "image": "placeholder.png" } },
+  "5": { "class_type": "WanImageToVideo", "inputs": { "width": 832, "height": 480, "length": 81, "start_image": ["4", 0] } },
+  "6": { "class_type": "SaveVideo", "inputs": { "filename_prefix": "video/out", "video": ["7", 0] } },
+  "7": { "class_type": "VAEDecode", "inputs": { "samples": ["3", 0] } },
+  "9": { "class_type": "CLIPLoader", "inputs": { "clip_name": "umt5.safetensors" } }
+}

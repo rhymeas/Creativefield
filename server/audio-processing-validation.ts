@@ -44,6 +44,7 @@ export type MediaStream = {
   sampleRate?: number;
   width?: number;
   height?: number;
+  frameRate?: number;
   startTime?: number;
   duration?: number;
 };
@@ -58,6 +59,13 @@ export function streamsOfType(info: MediaInfo, type: "video" | "audio"): MediaSt
 }
 export function streamDuration(stream: MediaStream, info: MediaInfo): number {
   return stream.duration !== undefined && Number.isFinite(stream.duration) && stream.duration > 0 ? stream.duration : info.durationSeconds;
+}
+
+function parseFrameRate(value:unknown):number|undefined {
+  const match=typeof value==='string'&&/^(\d+)\/(\d+)$/.exec(value);
+  if(!match)return undefined;
+  const rate=Number(match[1])/Number(match[2]);
+  return Number.isFinite(rate)&&rate>0&&rate<=1000?rate:undefined;
 }
 
 const FORMAT_WHITELIST = {
@@ -83,6 +91,7 @@ export async function probeMedia(file: string, kind: keyof typeof FORMAT_WHITELI
     sampleRate: raw.sample_rate === undefined ? undefined : Number(raw.sample_rate),
     width: raw.width === undefined ? undefined : Number(raw.width),
     height: raw.height === undefined ? undefined : Number(raw.height),
+    frameRate: raw.codec_type==='video'?parseFrameRate(raw.avg_frame_rate):undefined,
     startTime: raw.start_time === undefined ? undefined : Number(raw.start_time),
     duration: raw.duration === undefined ? undefined : Number(raw.duration),
   }));

@@ -22,6 +22,7 @@
 .cf-workspace-picker { max-width:var(--panel-w); }
 .cf-workspace-picker .ds-pill { max-width:100%; }
 .cf-production { display:flex; align-items:flex-start; gap:calc(var(--gap-section) + var(--gap-inline)); min-width:0; }
+.cf-production__content { flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gap-block); }
 /* A production panel starts under the top bar, the workspace bar and the page's own padding, so its cap
    takes those three away: the body scrolls and the footer (the Generate button) stays inside the work
    area at every window height (rule 41). */
@@ -40,7 +41,6 @@
 .cf-asset>strong { overflow-wrap:anywhere; }
 .cf-settings-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--gap-stack); padding:var(--pad-row); }
 .cf-settings-row p { overflow-wrap:anywhere; }
-.cf-storyboard>.ds-panel { width:calc(var(--panel-w) * 1.2); max-height:calc(100dvh - var(--topbar-h) - var(--row-h) * 4); }
 .cf-storyboard-page { display:flex; flex-direction:column; gap:var(--gap-block); min-width:0; }
 .cf-character-thumb { width:100%; height:100%; object-fit:cover; }
 .cf-character-list { position:sticky; top:0; align-self:flex-start; }
@@ -74,7 +74,7 @@
 .cf-start { display:flex; flex-direction:column; gap:var(--gap-section); min-height:100%; }
 .cf-start__tools { flex:1; display:grid; align-content:start; gap:var(--gap-block); padding-block:var(--space-5); }
 /* All tools: the tool tiles stay narrower than the page frame, so the whole set reads as one quiet menu. */
-.cf-start .ds-presetgrid { grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(230px * var(--ui-scale))),calc(300px * var(--ui-scale)))); justify-content:start; align-items:stretch; grid-auto-flow:dense; gap:var(--gap-block); }
+.cf-start .ds-presetgrid { grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(230px * var(--ui-scale))),1fr)); justify-content:start; align-items:stretch; grid-auto-flow:dense; gap:var(--gap-block); }
 .cf-start .ds-preset__art { aspect-ratio:16/10; }
 /* The led tool is twice as wide and its picture fills the card; every picture is shown uncropped to its frame (cover), never as a small inset. */
 .cf-start .ds-preset--featured { grid-column:span 2; grid-row:span 2; }
@@ -85,6 +85,18 @@
 
 .cf-onboarding { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--gap-block); }
 
-.cf-team__pagehero { padding-bottom: var(--space-3); max-width: min(100%, calc(1000px * var(--ui-scale))); }
+.cf-team__pagehero { padding-bottom: var(--space-3); }
 .cf-split-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-3); }
-.cf-start .ds-hero--stage { max-width: min(100%, calc(1000px * var(--ui-scale))); }
+
+/* Block a shot: the layout and the finished shot sit side by side, each at a calm size. */
+.cf-block-shot__pair { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr)); gap:var(--gap-block); align-items:start; min-width:0; }
+.cf-block-shot__pair video { width:100%; max-height:60vh; object-fit:contain; }
+
+/* Developing previews occupy the entire history media tile. */
+.ds-media:has(> .ds-resulttile[data-develop]) > .ds-resulttile[data-develop] { position:absolute; inset:0; width:100%; height:100%; }
+.ds-media .ds-resulttile__preview { max-width:none; max-height:none; object-fit:cover; }
+
+/* Short advanced controls share a row where the dialog has room. */
+.cf-advanced-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%, 300px),1fr)); gap:var(--gap-stack); min-width:0; }
+.cf-advanced-grid > * { min-width:0; }
+.cf-advanced-grid__full { grid-column:1 / -1; }

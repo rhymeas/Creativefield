@@ -1,11 +1,11 @@
-import {useEffect,useRef,useState} from "react";
+import {useEffect,useRef,useState,type ReactNode} from "react";
 import {Button,Checkbox,LevelMeter,LinkButton,Meta,Notice,PanelSection,Teleprompter,PromptField,Toolbar} from "../../ds";
 import {assetUrl,workspacePath,type Call,type Project,type Workspace} from "../api";
 import "./microphone.css";
 import {LocalMicrophone} from "./microphone";
 
 type Take={id:string;asset_id:string;record:{durationSeconds:number;sampleRate:number;frames:number;script:string;consent:{microphone:boolean}}};
-export function MicrophonePanel({workspace,project,call,onSaved}:{workspace:Workspace;project:Project;call:Call;onSaved:(assetId:string)=>void}){
+export function MicrophonePanel({workspace,project,call,onSaved,secondaryAction}:{workspace:Workspace;project:Project;call:Call;onSaved:(assetId:string)=>void;secondaryAction?:ReactNode}){
   const capture=useRef<LocalMicrophone|null>(null),mounted=useRef(true),epoch=useRef(0),url=useRef("");
   const [consent,setConsent]=useState(false),[script,setScript]=useState(""),[frozenScript,setFrozenScript]=useState(""),[state,setState]=useState<"idle"|"requesting"|"recording"|"review"|"uploading">("idle"),[level,setLevel]=useState(0),[seconds,setSeconds]=useState(0),[preview,setPreview]=useState(""),[blob,setBlob]=useState<Blob|null>(null),[key,setKey]=useState(""),[saved,setSaved]=useState<Take|null>(null),[error,setError]=useState("");
   const [recent,setRecent]=useState<Take[]>([]);
@@ -34,13 +34,12 @@ export function MicrophonePanel({workspace,project,call,onSaved}:{workspace:Work
     try{const take=await call<Take>(workspacePath(workspace.id,`projects/${project.id}/microphone-takes?idempotencyKey=${key}&consent=true`),"POST",form);if(mounted.current){setSaved(take);setRecent(old=>[take,...old.filter(t=>t.id!==take.id)].slice(0,3));setState("review");onSaved(take.asset_id);}}
     catch(e){if(mounted.current){setError((e as Error).message);setState("review");}}
   }
-  return <PanelSection label="Table read">
-    <Meta>Record up to 60 seconds locally, review the take, then save it to this project. This records audio; speech synthesis and lip sync are unavailable.</Meta>
-    <PromptField label="Table-read text (optional)" placeholder="Lines to read while recording" value={script} disabled={active||state==="uploading"||!!blob} onChange={value=>setScript(value.slice(0,4000))}/>
+  return <PanelSection label="Record voice">
+    <PromptField label="Script (optional)" placeholder="Lines to read" value={script} disabled={active||state==="uploading"||!!blob} onChange={value=>setScript(value.slice(0,4000))}/>
     {(active||blob)&&<Teleprompter lines={(active||blob?frozenScript:script).split(/\n/).filter(Boolean)}/>}
-    <Checkbox checked={consent} disabled={!canEdit||active||state==="uploading"} onChange={setConsent}>I have permission to record this voice and save the take locally.</Checkbox>
+    <Checkbox checked={consent} disabled={!canEdit||active||state==="uploading"} onChange={setConsent}>I have permission to use this voice.</Checkbox>
     {active&&<><LevelMeter level={level}/><Meta>{state==="requesting"?"Waiting for microphone permission":`Recording · ${seconds.toFixed(1)} / 60 s`}</Meta></>}
-    <Toolbar>{active?<><Button variant="secondary" disabled={state==="requesting"} onClick={()=>stop(true)}>Stop recording</Button><Button variant="ghost" onClick={()=>stop(false)}>Cancel recording</Button></>:<Button variant="secondary" disabled={!canEdit||!consent||state==="uploading"} onClick={()=>void start()}>{blob?"Record another take":"Record microphone"}</Button>}</Toolbar>
+    <Toolbar>{active?<><Button variant="secondary" disabled={state==="requesting"} onClick={()=>stop(true)}>Stop recording</Button><Button variant="ghost" onClick={()=>stop(false)}>Cancel recording</Button></>:<><Button variant="secondary" disabled={!canEdit||!consent||state==="uploading"} onClick={()=>void start()}>{blob?"Record another take":"Record microphone"}</Button>{secondaryAction}</>}</Toolbar>
     {preview&&<><audio className="cf-microphone-audio" controls preload="metadata" src={preview}/><Meta>{seconds.toFixed(3)} seconds · mono PCM16 WAV · preview remains in this browser until saved</Meta><Toolbar><Button variant="secondary" disabled={!consent||!canEdit||state==="uploading"||!!saved} onClick={()=>void save()}>{saved?"Take saved":state==="uploading"?"Saving take":"Save audio take"}</Button><Button variant="ghost" disabled={state==="uploading"} onClick={()=>{clearPreview();setState("idle");setSaved(null);}}>Discard preview</Button></Toolbar></>}
     {saved&&<LinkButton variant="secondary" href={assetUrl(workspace.id,saved.asset_id,true)}>Download saved WAV</LinkButton>}
     {!active&&!blob&&recent.length>0&&<><Meta>Recent saved microphone takes</Meta>{recent.map(take=><div key={take.id}><audio className="cf-microphone-audio" controls preload="metadata" src={assetUrl(workspace.id,take.asset_id)}/><Meta>{take.record.durationSeconds.toFixed(3)} s · {take.record.sampleRate} Hz · consent recorded</Meta><Button variant="ghost" disabled={!canEdit||state==="uploading"} onClick={()=>onSaved(take.asset_id)}>Use this audio take</Button></div>)}</>}

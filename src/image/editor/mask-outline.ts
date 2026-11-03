@@ -23,6 +23,8 @@ export function maskEdges(data:Uint8ClampedArray,w:number,h:number,threshold=8):
   return edges;
 }
 const cache=new WeakMap<Bitmap,{revision:number;path:Path2D}>();
+export const OUTLINE_FRAME_MS=140;
+export const OUTLINE_PHASES=8;
 export function drawMaskOutline(ctx:CanvasRenderingContext2D,bitmap:Bitmap,revision:number,pixel:number,light:string,dark:string,phase=0){
   let entry=cache.get(bitmap);
   if(!entry||entry.revision!==revision){
@@ -31,5 +33,5 @@ export function drawMaskOutline(ctx:CanvasRenderingContext2D,bitmap:Bitmap,revis
     entry={revision,path};cache.set(bitmap,entry);
   }
   ctx.save();ctx.lineWidth=2*pixel;ctx.strokeStyle=dark;ctx.stroke(entry.path);
-  ctx.lineWidth=pixel;ctx.strokeStyle=light;ctx.setLineDash([3*pixel,3*pixel]);ctx.lineDashOffset=-phase*pixel;ctx.stroke(entry.path);ctx.restore();
+  ctx.lineWidth=pixel;ctx.strokeStyle=light;ctx.setLineDash([4*pixel,4*pixel]);ctx.lineDashOffset=-phase*pixel;ctx.stroke(entry.path);ctx.restore();
 }

@@ -1,9 +1,24 @@
 import {blankCanvas,getBitmap,sizeOf,type Bitmap} from "./bitmaps";
 import {addPaintLayer,isVisible,moveLayerToEdge,selectedLayer,type Doc} from "./doc";
 import {layerCanvas,renderDoc} from "./render";
-import {coverSource,type Rect} from "./ai";
+import {coverSource,fiboOutputPlacement,type Rect} from "./ai";
 
 export type ModifyMatte={canvas:HTMLCanvasElement;bounds:Rect};
+
+/** Include the old object and nearby background for a size change. */
+export function resizePatchMatte(width:number,height:number,bounds:Rect):ModifyMatte{
+  const canvas=blankCanvas(width,height),ctx=canvas.getContext("2d")!;
+  const feather=Math.max(1,Math.min(16,Math.floor(Math.min(bounds.w,bounds.h)*.08)));
+  ctx.fillStyle="white";ctx.fillRect(bounds.x,bounds.y,bounds.w,bounds.h);
+  ctx.globalCompositeOperation="destination-in";
+  for(const horizontal of [true,false]){
+    const length=horizontal?bounds.w:bounds.h;
+    const gradient=ctx.createLinearGradient(bounds.x,bounds.y,horizontal?bounds.x+bounds.w:bounds.x,horizontal?bounds.y:bounds.y+bounds.h);
+    gradient.addColorStop(0,"transparent");gradient.addColorStop(feather/length,"white");gradient.addColorStop(1-feather/length,"white");gradient.addColorStop(1,"transparent");
+    ctx.fillStyle=gradient;ctx.fillRect(bounds.x,bounds.y,bounds.w,bounds.h);
+  }
+  return {canvas,bounds};
+}
 
 /** An integration patch has room for corrected perspective and contact shadows.
  * Its boundary follows the surrounding composite alpha, not the old element silhouette. */
@@ -61,10 +76,15 @@ export function freezeModifyMatte(doc:Doc,scope:"layer"|"composite"="layer"):Mod
 }
 
 /** Model RGB is allowed to change; original holes, mask edges and placement are not. */
-export function cutoutModifiedResult(bitmap:Bitmap,region:Rect,matte:ModifyMatte):HTMLCanvasElement{
-  const full=blankCanvas(matte.canvas.width,matte.canvas.height),ctx=full.getContext("2d")!;
-  const size=sizeOf(bitmap),src=coverSource(size.w,size.h,region);
+export function drawModifiedResult(ctx:CanvasRenderingContext2D,bitmap:Bitmap,region:Rect,sourceAligned=false,fiboCrop=false):void{
+  const size=sizeOf(bitmap);
+  if(fiboCrop){const dst=fiboOutputPlacement(region,size.w,size.h);ctx.drawImage(bitmap,0,0,size.w,size.h,dst.x,dst.y,dst.w,dst.h);return;}
+  const src=sourceAligned?{x:0,y:0,w:size.w,h:size.h}:coverSource(size.w,size.h,region);
   ctx.drawImage(bitmap,src.x,src.y,src.w,src.h,region.x,region.y,region.w,region.h);
+}
+export function cutoutModifiedResult(bitmap:Bitmap,region:Rect,matte:ModifyMatte,sourceAligned=false,fiboCrop=false):HTMLCanvasElement{
+  const full=blankCanvas(matte.canvas.width,matte.canvas.height),ctx=full.getContext("2d")!;
+  drawModifiedResult(ctx,bitmap,region,sourceAligned,fiboCrop);
   ctx.globalCompositeOperation="destination-in";ctx.drawImage(matte.canvas,0,0);
   const b=matte.bounds,cropped=blankCanvas(b.w,b.h);
   cropped.getContext("2d")!.drawImage(full,b.x,b.y,b.w,b.h,0,0,b.w,b.h);

@@ -1,3 +1,4 @@
+import { allowedWorkerOrigins, assertPublicHost, publicTryout } from "./public-host";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import multipart from "@fastify/multipart";
@@ -45,6 +46,7 @@ import {loadWorkspaceCatalogue,workflowImportRoutes} from "./workflow-imports";
 import {audioProcessingRoutes} from "./audio-processing-routes";
 import {marketingRoutes} from "./marketing/routes";
 import {motionClipCheckRoutes} from "./motion-clip-check";
+import {blockShotRoutes} from "./stage/routes";
 import {replaceClipCheckRoutes} from "./replace-clip-check";
 import {cloudAccountFor} from "./cloud-account";
 import {ROUTER_MODELS} from '../src/capabilities/router-models';
@@ -179,6 +181,11 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
     if (!parsed.success) throw new HttpError(400, "Use a worker name and an independent HTTP(S) origin, for example http://127.0.0.1:8188");
     const input = parsed.data;
     let origin: string; try { origin = assertWorkerUrl(input.origin).origin; } catch { throw new HttpError(400, "Use an independent HTTP(S) worker origin without credentials or path"); }
+    if (publicTryout()) {
+      /* On a public try-out the server only talks to worker origins its operator named; the host check is a second line. */
+      if (!allowedWorkerOrigins().includes(origin)) throw new HttpError(403, "This try-out does not accept new workers. The operator connects one.");
+      try { await assertPublicHost(new URL(origin).hostname); } catch (error) { throw new HttpError(400, (error as Error).message); }
+    }
     if (input.kind === "cloud") {
       /* The cloud key is sent to this address, so it may only be Comfy Cloud itself. */
       if (origin !== "https://cloud.comfy.org" || input.apiPrefix !== "/api") throw new HttpError(400, "Comfy Cloud workers use https://cloud.comfy.org with the /api prefix");
@@ -339,6 +346,7 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
   const audioProcessing=await audioProcessingRoutes(app,pool,store);
   await workflowImportRoutes(app,pool);
   await motionClipCheckRoutes(app,pool,store);
+  await blockShotRoutes(app,pool,store);
   await replaceClipCheckRoutes(app,pool,store);
   app.get(`${base}/node-editor`,async request=>{
     const {workspaceId}=workspaceParam.parse(request.params);await member(pool,request,workspaceId,"creator");

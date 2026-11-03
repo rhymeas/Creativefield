@@ -3,10 +3,28 @@ import {effectiveLayerMask} from "./layer-mask";
    so undo simply points the document back at the old mask. */
 import { newId, type Doc, type Layer } from "./doc";
 import { blankCanvas, getBitmap, setBitmap, type Bitmap } from "./bitmaps";
-import { renderDoc } from "./render";
+import { layerCanvas, renderDoc } from "./render";
 import {contractEraseAlpha} from "./matting";
 
 export type SelectMode = "replace" | "add" | "subtract" | "intersect";
+
+/** White edits, black preserves; keep the exact document-to-crop coordinates. */
+export function cropSelectionMask(key:string,region:{x:number;y:number;w:number;h:number}):{canvas:HTMLCanvasElement;hasProtectedPixels:boolean}|null{
+  const white=tinted(key,"#fff");if(!white)return null;
+  const canvas=blankCanvas(region.w,region.h),ctx=canvas.getContext("2d")!;
+  ctx.fillStyle="#000";ctx.fillRect(0,0,region.w,region.h);
+  ctx.drawImage(white,region.x,region.y,region.w,region.h,0,0,region.w,region.h);
+  const data=ctx.getImageData(0,0,region.w,region.h).data;
+  for(let i=0;i<data.length;i+=4)if(data[i]!==255)return {canvas,hasProtectedPixels:true};
+  return {canvas,hasProtectedPixels:false};
+}
+
+/** Load a layer's transformed, masked transparency into the document selection. */
+export function selectLayerPixels(doc:Doc,layer:Layer,mode:SelectMode):string|null {
+  if(layer.kind==="adjust")return null;
+  const shape=layerCanvas(doc,layer);
+  return shape?combine(doc,shape,mode):null;
+}
 
 function register(canvas: HTMLCanvasElement): string {
   const key = newId("sel:");
@@ -261,6 +279,14 @@ export function featheredMask(doc: Doc, key: string, radius: number,insideOnly=f
   ctx.drawImage(mask, 0, 0);
   if(insideOnly){ctx.filter="none";ctx.globalCompositeOperation="destination-in";ctx.drawImage(mask,0,0);}
   return out;
+}
+
+/** Preserve the whole selected interior while tapering only into its surroundings. */
+export function featheredMaskOutside(doc:Doc,key:string,radius:number):HTMLCanvasElement|null{
+  const soft=featheredMask(doc,key,radius),mask=getBitmap(key);
+  if(!soft||!mask)return null;
+  const ctx=soft.getContext("2d")!;ctx.filter="none";ctx.drawImage(mask,0,0);
+  return soft;
 }
 
 /** Bake a layer's mask into its own pixels (Photoshop: Apply Layer Mask). Returns the new bitmap key. */

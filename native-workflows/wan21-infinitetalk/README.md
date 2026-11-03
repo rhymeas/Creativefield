@@ -1,6 +1,12 @@
 # Local single-speaker portrait animation
 
-This pack uses native Wan InfiniteTalk, one portrait, mono PCM16 WAV and the
+This modular app is a bounded adaptation of the official ComfyUI Hub workflow
+recorded in `manifest.json` (`video_wan2_1_infinitetalk-b95499a55c9f`). It was
+imported and adjusted through native ComfyUI nodes for ComfyField's explicit
+inputs, duration window and artifact contract; it was not rebuilt as a separate
+feature-only graph.
+
+The pack uses native Wan InfiniteTalk, one portrait, mono PCM16 WAV and the
 official Lightx2v I2V adapter. The voice contract freezes permission and inputs,
 validates the bounded audio source and uses one trim window for both conditioning
 and output audio. CFG1 avoids the doubled audio-conditioning batch; the negative

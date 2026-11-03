@@ -1,23 +1,26 @@
+import {insertReferenceMention} from "../team/prompt-reference";
+import {inferLightGuide,relightPrompt} from "./relight-prompt";
+import {resolveImageReference} from "./image-reference";
 import {ExampleTiles} from "../team/ExampleTiles";
+import {routeTask} from "../capabilities/tasks";
 import {TeamChoice,type TeamChoiceOption} from "../team/TeamChoice";
 import {ToolHero} from "../team/heroes";
-import {WorkflowDescription} from "../team/workflow-info";
-import { Fragment, useEffect, useId, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { Maximize2, Pencil } from "lucide-react";
+import {ProductionContent} from "../team/ProductionWorkspace";
+import {SourceCredit,WorkflowDescription} from "../team/workflow-info";
+import { useEffect, useId, useRef, useState, type RefObject, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { Maximize2, Pencil, Trash2 } from "lucide-react";
 import type { CapabilityManifestV2, Control, Readiness } from "../capabilities/types";
-import { Block, Canvas, GenerateButton, HintButton, HistoryItem, Meta, ModelCard, Notice, Page, Panel, PromptField, Collapsible, Button, ContactSheet, Dialog, Flashlight, IconButton, InfoButton, MediaViewer, ResultGrid, ResultTile, CameraAngleSheet, useToast, ShimmerText, Row, SectionHeader, Split, StatusText, TextField, Thumb, ThumbGrid, Toolbar, type ContactSheetItem, CompareWipe, CompareStrip, LinkButton } from "../ds";
+import { UploadSlot, Block, Canvas, ConfirmDialog, GenerateButton, HintButton, Meta, ModelCard, Notice, Panel, PanelSection, ParamButton, Params, PromptField, Button, ContactSheet, Dialog, Flashlight, IconButton, InfoButton, MediaViewer, ResultGrid, ResultTile, CameraAngleSheet, useToast, Row, SectionHeader, StatusText, TextField, Thumb, ThumbGrid, Toolbar, type ContactSheetItem, CompareWipe, LinkButton } from "../ds";
 import {AngleBatchPanel} from "./AngleBatchPanel";
-import {AngleSweepPanel} from "./AngleSweepPanel";
-import {TrueAnglesPanel} from "./TrueAnglesPanel";
+import {IdentityPhotoset} from "./IdentityPhotoset";
 import {useRunInputs} from "./use-run-inputs";
 import type {AngleBatchAction} from "./angle-batch-action";
-import {subjectRelightInstruction,subjectRelightKey,subjectRelightSchema} from "./subject-relight";
 import { assetUrl, workspacePath, type Call, type Asset, type Project, type Run, type Workspace, type CharacterRecord } from "../team/api";
 import { characterPath } from "../team/characters/state";
-import type { ElementInputBinding } from "../team/state";
-import { useDevelopPreview } from "../team/useDevelopPreview";
-import { developPresentation } from "../team/develop-state";
+import { activeRun, type ElementInputBinding } from "../team/state";
+import {RunDevelop} from "../team/RunDevelop";
 import {
+  bypassFiboPromptEnhancer,
   characterReferenceBinding,
   handleImageStudioShortcut,
   imageControls,
@@ -27,8 +30,11 @@ import {
   type ImageDraft,
 } from "./image-state";
 import "./image.css";
+import "../ds/reference-tag.css";
 
 export type ImageStudioProps = {
+  adStudio?: boolean;
+  remixStudio?: boolean;
   workspace: Workspace;
   project: Project;
   manifest: CapabilityManifestV2;
@@ -46,9 +52,8 @@ export type ImageStudioProps = {
   onUseInVideo?: (assetId:string)=>void;
   /** The image models to choose from; a click on the model card opens them. */
   modelOptions?: TeamChoiceOption[];
-  onModel?: (id:string)=>void;
-  batchContext?: {userId:string;workerId:string;call:Call;onChanged:()=>void};
-  subjectRelightAvailable?:boolean;
+  onModel?: (id:string,inputs?:Record<string,string>)=>void;
+  batchContext?: {userId:string;workerId:string;call:Call;onChanged:()=>void;photosetAllowed?:boolean};
 };
 
 const RUN_LABELS: Record<string, string> = {
@@ -63,15 +68,43 @@ const RUN_LABELS: Record<string, string> = {
   submission_unknown: "Checking submission",
 };
 
+/** Include angle jobs found by the batch panel before the shared run list refreshes. */
+export function mergeImageRuns(listed:Run[],known:Run[],capabilityId:string):Run[]{
+  const result=new Map(listed.filter(run=>run.capability_id===capabilityId).map(run=>[run.id,run]));
+  for(const run of known){
+    if(run.capability_id!==capabilityId)continue;
+    const existing=result.get(run.id);
+    if(!existing||run.updated_at>existing.updated_at)result.set(run.id,run);
+  }
+  return [...result.values()];
+}
+
+export function createStartTarget(fileCount:number,models:TeamChoiceOption[]):string|null{
+  // Several pictures need reference inputs, which only Fibo has; one picture takes the routed editor.
+  const target=fileCount>1?models.find(option=>option.value==="fibo2-edit")?.value:routeTask("image.edit",models.map(option=>({id:option.value})))?.pack.id;
+  return fileCount>0&&target?target:null;
+}
+
+export function createStartInputs(assetIds:string[]):Record<string,string>{
+  const ids=assetIds.slice(0,4);
+  if(!ids.length)return {};
+  return Object.fromEntries([
+    ["source_image",ids[0]],
+    ids[1]&&["reference_image",ids[1]],
+    ids[2]&&["reference_image_2",ids[2]],
+    ids[3]&&["reference_image_3",ids[3]],
+  ].filter((entry):entry is [string,string]=>!!entry));
+}
+
+export function toggleCreateReferenceSelection(selected:string[],assetId:string,max=4):string[]{
+  if(selected.includes(assetId))return selected.filter(id=>id!==assetId);
+  return selected.length<max?[...selected,assetId]:selected;
+}
+
 function runTone(state: string): "idle" | "active" | "ok" | "warn" {
   if (["queued", "submitting", "running", "submission_unknown"].includes(state)) return "active";
   if (state === "succeeded") return "ok";
   return state === "failed" ? "warn" : "idle";
-}
-
-function promptFor(run: Run): string {
-  const prompt = run.invocation?.controls?.prompt;
-  return typeof prompt === "string" ? prompt : "";
 }
 
 /** The same bindings without this port, so a port never keeps a character it no longer shows. */
@@ -86,7 +119,9 @@ function ControlField({
   value,
   disabled,
   onChange,
+  textareaRef,
 }: {
+  textareaRef?:RefObject<HTMLTextAreaElement>;
   control: Control;
   value: string | number | boolean | undefined;
   disabled: boolean;
@@ -95,6 +130,8 @@ function ControlField({
   if (control.id === "prompt" || control.type === "string") {
     return (
       <PromptField
+        textareaRef={control.id==="prompt"?textareaRef:undefined}
+        tokens={control.id==="prompt"?["@Image 1","@Image 2","@Image 3","@Image 4"]:undefined}
         compact={control.id !== "prompt"}
         disabled={disabled}
         label={control.label}
@@ -135,6 +172,8 @@ function ControlField({
 }
 
 export function ImageStudio({
+  adStudio = false,
+  remixStudio = false,
   workspace,
   project,
   manifest,
@@ -153,48 +192,99 @@ export function ImageStudio({
   onUseInVideo,
   modelOptions,
   onModel,
-  subjectRelightAvailable=false,
 }: ImageStudioProps) {
   const toast=useToast();
+  const promptArea=useRef<HTMLTextAreaElement>(null);
   const [advanced,setAdvanced]=useState(false);
   const [batchBusy,setBatchBusy]=useState(false);
   const [angleAction,setAngleAction]=useState<AngleBatchAction|null>(null);
+  const [angleKnownRuns,setAngleKnownRuns]=useState<Run[]>([]);
+  const [angleSubmittingCount,setAngleSubmittingCount]=useState(0);
+  const [createPickerOpen,setCreatePickerOpen]=useState(false);
+  const [createPickerSelection,setCreatePickerSelection]=useState<string[]>([]);
+  const currentDraft=useRef(draft); currentDraft.current=draft;
+  const requests=useRef<Record<string,number>>({});
+  const scope=useRef('');
+  const scopeKey=`${workspace.id}/${project.id}/${manifest.id}`;
+  if(scope.current!==scopeKey){scope.current=scopeKey;requests.current={};}
+  useEffect(()=>{scope.current=scopeKey;return ()=>{if(scope.current===scopeKey)scope.current='';};},[scopeKey]);
+  const beginRequest=(key:string)=>{const next=(requests.current[key]??0)+1;requests.current[key]=next;return next;};
+  const isCurrent=(key:string,request:number,originalScope:string)=>scope.current===originalScope&&requests.current[key]===request;
   const busy=externalBusy||batchBusy;
+  async function startFromAssets(assetIds:string[],additional:Asset[]=[]){
+    if(!onModel||!assetIds.length)return;
+    const target=createStartTarget(assetIds.length,modelOptions??[]);
+    if(!target){toast(assetIds.length>1?"The available image models cannot use multiple references.":"Image editing is unavailable right now.");return;}
+    const request=beginRequest('create'),originalScope=scope.current;
+    try{
+      await Promise.all(assetIds.map(id=>resolveImageReference(id,[...additional,...assets],workspace.id,project.id,batchContext?.call)));
+      if(!isCurrent('create',request,originalScope))return;
+      setCreatePickerOpen(false);setCreatePickerSelection([]);onModel(target,createStartInputs(assetIds));
+    }catch(error){if(isCurrent('create',request,originalScope))toast((error as Error).message);}
+  }
+  /* Text-to-image has no image input. One picture starts a simple edit; two to four
+     become a source plus real Qwen reference inputs when that model is available. */
+  async function startFromPictures(chosen:File[]){
+    if(!batchContext||!onModel)return;
+    const files=chosen.slice(0,4);
+    if(!files.length)return;
+    const target=createStartTarget(files.length,modelOptions??[]);
+    if(!target){toast(files.length>1?"The available image models cannot use multiple references.":"Image editing is unavailable right now.");return;}
+    setBatchBusy(true);
+    try{
+      const uploaded:Asset[]=[];
+      for(const file of files){
+        const form=new FormData();form.append("file",file);
+        uploaded.push(await batchContext.call<Asset>(workspacePath(workspace.id,`assets?projectId=${encodeURIComponent(project.id)}`),"POST",form));
+      }
+      batchContext.onChanged();await startFromAssets(uploaded.map(asset=>asset.id),uploaded);
+    }catch(e){toast((e as Error).message);}
+    finally{setBatchBusy(false);}
+  }
   const hintId = useId();
   const controls = imageControls(manifest);
+  const imageSizeControl=controls.find(control=>["resolution","megapixels"].includes(control.id)&&control.type==="select"&&!control.disabledReason);
   const imageInputs = manifest.inputs.filter((port) => port.type === "image");
+  // Show every occupied port and at most one next empty port, including restored drafts with gaps.
+  const lastImageInput = imageInputs.reduce((last,port,index)=>draft.inputs?.[port.id]||draft.elementInputs?.[port.id]?index:last,-1);
+  const visibleImageInputs = imageInputs.slice(0,Math.min(imageInputs.length,Math.max(1,lastImageInput+2)));
+  function mentionImage(index:number){const area=promptArea.current,prompt=String(draft.controls.prompt??""),inserted=insertReferenceMention(prompt,area?.selectionStart??prompt.length,area?.selectionEnd??prompt.length,`@Image ${index+1}`);onDraftChange({...draft,controls:{...draft.controls,prompt:inserted.value}});requestAnimationFrame(()=>{promptArea.current?.focus();promptArea.current?.setSelectionRange(inserted.caret,inserted.caret);});}
   const imageAssets = assets.filter((asset) => asset.media_type === "image");
   const issues = imageDraftIssues(manifest, draft);
   const status = imageGenerateStatus(readiness, issues, busy);
   const assetsById = new Map(assets.map((asset) => [asset.id, asset]));
-  const imageRuns = runs.filter((run) => run.capability_id === manifest.id);
+  const listedImageRuns = runs.filter((run) => run.capability_id === manifest.id);
+  const imageRuns = mergeImageRuns(listedImageRuns,angleKnownRuns,manifest.id);
+  const activeImageRuns=imageRuns.filter(run=>activeRun(run.state));
+  const activeImageGeneration=activeImageRuns.length>0;
   const latest = imageRuns[0];
   const runInputs = useRunInputs(workspace.id, imageRuns);
-  const older = imageRuns.slice(1);
-  const outputsOf = (run: Run) => run.output_ids.map((id) => assetsById.get(id)).filter((asset): asset is Asset => asset?.media_type === "image");
+  const outputsOf = (run: Run) => run.output_ids.map((id) => assetsById.get(id)).filter((asset): asset is Asset => asset?.media_type === "image" && asset.metadata?.libraryHidden !== true);
   const latestOutputs = latest ? outputsOf(latest) : [];
-  /* A cancelled or failed run with no picture leaves no dark placeholder behind: the examples take its place. */
-  const deadRun = !!latest && latestOutputs.length === 0 && ["canceled", "cancelled", "failed"].includes(latest.state);
-  const developState = useDevelopPreview(workspace.id, latest);
-  const develop = latest ? developPresentation(latest.state, developState,
-    `/api/v1${workspacePath(workspace.id, `runs/${encodeURIComponent(latest.id)}/preview`)}?v=${developState?.seq ?? 0}`) : undefined;
-  /** One run as a grid: as many tiles as images were asked for, in the run's own aspect ratio. */
+  /* Results are files, not run records: removed and empty outputs never become gray cards. */
+  const visibleRuns = imageRuns.filter((run) => outputsOf(run).length > 0);
+  /* Results and history are one gallery: newest runs first, every real image equal. */
+  const resultItems = visibleRuns.flatMap((run) => outputsOf(run).map((asset) => ({ run, asset })));
   const [viewing, setViewing] = useState<Asset | null>(null);
+  const [deleteAsset,setDeleteAsset]=useState<Asset|null>(null),[deleting,setDeleting]=useState(false),[deleteError,setDeleteError]=useState("");
   const [sheet, setSheet] = useState<{ run: Run; items: ContactSheetItem[]; caption: string } | null>(null);
-  const [canceling, setCanceling] = useState(false);
+  const [canceling, setCanceling] = useState("");
   const [cancelError, setCancelError] = useState("");
   const [details, setDetails] = useState<Run | null>(null);
-  async function cancelLatest() {
-    if (!latest || !onCancel || canceling || canCancelRun?.(latest) === false) return;
-    setCanceling(true); setCancelError("");
-    try { await onCancel(latest); }
+  async function cancelRun(run: Run) {
+    if (!onCancel || canceling || canCancelRun?.(run) === false || run.state === "cancel_requested") return;
+    setCanceling(run.id); setCancelError("");
+    try { await onCancel(run); }
     catch (error) { setCancelError((error as Error).message); }
-    finally { setCanceling(false); }
+    finally { setCanceling(""); }
   }
-  const [lightDirection, setLightDirection] = useState("from the front");
-  const [lightTemperature, setLightTemperature] = useState("golden");
+  const [guideDirection, setGuideDirection] = useState<string>();
+  const [guideTemperature, setGuideTemperature] = useState<string>();
+  const inferredLight=inferLightGuide(String(draft.controls.prompt??""));
+  const lightDirection=guideDirection??inferredLight.direction,lightTemperature=guideTemperature??inferredLight.temperature;
   const [characters, setCharacters] = useState<CharacterRecord[]>([]);
   const [pickerPort, setPickerPort] = useState("");
+  const [imagePickerPort, setImagePickerPort] = useState("");
   const referencePorts = manifest.inputs.filter(isCharacterPort);
   useEffect(() => {
     const request = batchContext?.call;
@@ -215,21 +305,51 @@ export function ImageStudio({
     });
   };
   const chooseCharacter = (portId: string, binding: ElementInputBinding) => {
-    const inputs = { ...draft.inputs };
+    beginRequest(portId);
+    const current=currentDraft.current,inputs = { ...current.inputs };
     delete inputs[portId];
-    onDraftChange({ ...draft, inputs, elementInputs: { ...draft.elementInputs, [portId]: binding } });
+    const next={ ...current, inputs, elementInputs: { ...current.elementInputs, [portId]: binding } };
+    currentDraft.current=next;onDraftChange(next);
     setPickerPort("");
+  };
+  const chooseImage = async (portId: string, assetId: string, known?:Asset) => {
+    const request=beginRequest(portId),originalScope=scope.current;
+    try{
+      await resolveImageReference(assetId,known?[known,...assets]:assets,workspace.id,project.id,batchContext?.call);
+      if(!isCurrent(portId,request,originalScope))return;
+      const current=currentDraft.current;
+      const next={ ...current, inputs: { ...current.inputs, [portId]: assetId }, elementInputs: withoutPort(current.elementInputs, portId) };
+      currentDraft.current=next;onDraftChange(next);
+      setImagePickerPort("");
+    }catch(error){if(isCurrent(portId,request,originalScope))toast((error as Error).message);}
+  };
+  const uploadImage = async (portId: string, file: File | null) => {
+    const request=beginRequest(portId),originalScope=scope.current;
+    if (!file) {
+      const current=currentDraft.current,inputs = { ...current.inputs }; delete inputs[portId];
+      const next={ ...current, inputs, elementInputs: withoutPort(current.elementInputs, portId) };
+      currentDraft.current=next;onDraftChange(next);
+      return;
+    }
+    if (!batchContext) { toast("Uploading is unavailable right now."); return; }
+    setBatchBusy(true);
+    try {
+      const form = new FormData(); form.append("file", file);
+      const asset = await batchContext.call<Asset>(workspacePath(workspace.id, `assets?projectId=${encodeURIComponent(project.id)}`), "POST", form);
+      batchContext.onChanged();
+      if(isCurrent(portId,request,originalScope))await chooseImage(portId, asset.id,asset);
+    } catch (error) { toast((error as Error).message); }
+    finally { setBatchBusy(false); }
   };
   const relight = manifest.id === "flux2-klein-relight";
   const [relightSheet, setRelightSheet] = useState(false);
   const anglesRoute = manifest.id === "flux2-klein-angles" || manifest.id === "qwen-image-21-angles";
   const angleBatchMode=anglesRoute&&!!batchContext;
-  const sweepRoute=manifest.id === "flux2-klein-angles"&&!!batchContext;
-  const geometryRoute=anglesRoute&&!!batchContext;
   const actionEnabled=angleBatchMode?!!angleAction?.enabled:status.enabled;
-  const actionBusy=angleBatchMode?!!angleAction?.busy:busy;
+  const actionBusy=busy||activeImageGeneration||(angleBatchMode&&!!angleAction?.busy);
   const actionHint=angleBatchMode?(!actionEnabled&&readiness.state!=="ready"?readiness.reasons[0]??"Choose a ready worker.":angleAction?.hint??"Choose a source image and select angles."):status.text;
   const lightTemperatures = [
+    { id: "auto", label: "From prompt" },
     { id: "candle", label: "Candle" },
     { id: "tungsten", label: "Tungsten" },
     { id: "golden", label: "Golden" },
@@ -254,45 +374,17 @@ export function ImageStudio({
       caption: outputs.length < asked ? `${outputs.length} of ${asked} images · ${state.toLowerCase()}` : `${outputs.length} image${outputs.length === 1 ? "" : "s"} · ${state.toLowerCase()}`,
     });
   };
-  const runGrid = (run: Run, live?: typeof develop) => {
-    const outputs = outputsOf(run);
-    const c = run.invocation?.controls ?? {};
-    const asked = Math.max(1, Number(c.batch_size ?? draft.controls.batch_size ?? 1) || 1);
-    const done = ["succeeded", "failed", "canceled"].includes(run.state);
-    const count = done ? Math.max(outputs.length, 1) : Math.max(asked, outputs.length);
-    const w = Number(c.width ?? draft.controls.width) || 0;
-    const h = Number(c.height ?? draft.controls.height) || 0;
-    const label = RUN_LABELS[run.state] ?? run.state;
-    return (
-      <ResultGrid count={count} aspect={w && h ? w / h : 0} label={`Images of run ${run.id}`}>
-        {Array.from({ length: count }, (_, i) => {
-          const asset = outputs[i];
-          return asset ? (
-            <ResultTile key={asset.id} onOpen={() => setViewing(asset)} actions={<>
-              <IconButton label="Open full view" onClick={() => setViewing(asset)}><Maximize2 size={14} /></IconButton>
-              <IconButton label="Edit this image" onClick={() => editAsset(asset)}><Pencil size={14} /></IconButton>
-              {onUseInVideo&&<Button variant="ghost" onClick={()=>onUseInVideo(asset.id)}>Use in video</Button>}
-            </>}><img src={assetUrl(workspace.id, asset.id)} alt={asset.name} /></ResultTile>
-          ) : (
-            <ResultTile key={`slot-${i}`} develop={live} status={done ? <StatusText tone="warn">{label}</StatusText> : <ShimmerText>{label}</ShimmerText>}
-              actions={onRetake && (run.state === "failed" || run.state === "canceled") ? <Button variant="secondary" disabled={busy} onClick={() => onRetake(run)}>Retake</Button> : undefined} />
-          );
-        })}
-      </ResultGrid>
-    );
-  };
   const title = manifest.title.split(" (")[0];
-  const activePreset = manifest.presets.find((preset) => preset.id === draft.presetId);
   const changeControl = (id: string, value: string | number | boolean) =>
     onDraftChange({ ...draft, controls: { ...draft.controls, [id]: value } });
   const generate = () => {
     if(angleBatchMode){if(angleAction?.enabled)angleAction.invoke();return;}
     if (!status.enabled) return;
-    if (!relight) { onGenerate(draft); return; }
-    const temperature = lightTemperatures.find((item) => item.id === lightTemperature)?.label ?? lightTemperature;
-    const note = `Light direction: ${lightDirection}. Light temperature: ${temperature}.`;
+    const cleanDraft = anglesRoute ? draft : { ...draft, presetId: undefined };
+    if (!relight) { onGenerate(cleanDraft); return; }
     const prompt = String(draft.controls.prompt ?? "").trim();
-    onGenerate({ ...draft, controls: { ...draft.controls, prompt: `${prompt}\n\n${note}`.trim() } });
+    const temperature=guideTemperature&&guideTemperature!=="auto"?lightTemperatures.find(item=>item.id===guideTemperature)?.label:undefined;
+    onGenerate({ ...cleanDraft, controls: { ...cleanDraft.controls, prompt: relightPrompt(prompt,guideDirection,temperature), improve_prompt: false } });
   };
   const onKeyDown = (event: ReactKeyboardEvent<HTMLFormElement>) => {
     handleImageStudioShortcut(event.nativeEvent, actionEnabled, generate);
@@ -300,13 +392,12 @@ export function ImageStudio({
 
   return (
     <form className="cf-image-studio" onSubmit={(event) => event.preventDefault()} onKeyDown={onKeyDown}>
-      <WorkflowDescription title={manifest.title}><Meta>{manifest.description}</Meta></WorkflowDescription>
-      <Page>
+      <WorkflowDescription title={manifest.title}><Meta>{manifest.description}</Meta><SourceCredit credit={manifest.credit}/></WorkflowDescription>
+      <div className="cf-production">
         {(cancelError || latest?.state === "failed") && <Notice priority={30} title={cancelError ? "Cancellation failed" : "Image generation failed"}
           actions={<>{latest?.state === "failed" && onRetake && <Button variant="secondary" disabled={busy} onClick={() => onRetake(latest)}>Retake</Button>}{latest && <Button variant="ghost" onClick={() => setDetails(latest)}>Details</Button>}</>}>
           {cancelError || latest?.error || "The worker did not produce an image. The original assets are unchanged."}
         </Notice>}
-        <Split>
           <Panel
             footer={
               <>
@@ -319,82 +410,79 @@ export function ImageStudio({
                   disabled={actionBusy}
                   aria-disabled={!actionBusy && !actionEnabled}
                   aria-describedby={!actionEnabled ? hintId : undefined}
-                  label={angleBatchMode?angleAction?.label??"Generate angles":"Generate image"}
+                  label={actionBusy?"Generating…":angleBatchMode?angleAction?.label??"Generate angles":"Generate image"}
                   onClick={generate}
                 />
-                {relight&&subjectRelightAvailable&&lightSource&&<Button variant="secondary" disabled={busy} onClick={()=>{
-                  const temperature=lightTemperatures.find(item=>item.id===lightTemperature)?.label??lightTemperature;
-                  try{const handoff=subjectRelightSchema.parse({version:1,workspaceId:workspace.id,projectId:project.id,assetId:lightSource.id,prompt:subjectRelightInstruction(manifest,draft,lightDirection,temperature)});sessionStorage.setItem(subjectRelightKey(workspace.id,project.id,lightSource.id),JSON.stringify(handoff));location.hash=`imageedit/${lightSource.id}/relight`;}catch{toast("The subject relight request could not be prepared. Check the instructions and browser storage, then try again.");}
-                }}>Relight subject</Button>}
               </>
             }
           >
             <Block label="Image workflow">
               {modelOptions&&modelOptions.length>1&&onModel?<TeamChoice variant="model" label="Model" display={title} subtitle={workerName ?? "Local ComfyUI"} value={manifest.id} options={modelOptions} onChange={onModel}/>:<ModelCard title={title} subtitle={workerName ?? "Local ComfyUI"} />}
               {workspace.role !== "viewer" && <LinkButton variant="ghost" href={`#nodes/feature/${manifest.id}`}>Edit in nodes</LinkButton>}
-              {imageInputs.map((port) => {
+              <div className={visibleImageInputs.length>1?"cf-image-input-grid":"cf-image-input-list"}>
+              {visibleImageInputs.map((port) => {
                 const selected = imageAssets.find((asset) => asset.id === draft.inputs?.[port.id]);
                 const bound = draft.elementInputs?.[port.id];
+                const imageAssetId = selected?.id ?? bound?.assetId;
                 const character = bound ? characters.find((record) => record.elementId === bound.elementId) : undefined;
                 const choices = isCharacterPort(port) ? characterChoices(port.id) : [];
                 return (
-                  <Fragment key={port.id}>
-                    <Row
-                      label={port.label}
-                      display={character?.name ?? selected?.name ?? "Choose from project"}
-                      value={draft.inputs?.[port.id] ?? ""}
-                      options={[{ value: "", label: "Choose from project" }, ...imageAssets.map((asset) => ({ value: asset.id, label: asset.name || asset.id }))]}
-                      onChange={(assetId) => onDraftChange({ ...draft, inputs: { ...draft.inputs, [port.id]: assetId }, elementInputs: withoutPort(draft.elementInputs, port.id) })}
+                  <div className="cf-image-input" key={port.id} onClickCapture={event=>{if(imageAssetId&&!busy&&event.target instanceof HTMLImageElement){event.preventDefault();event.stopPropagation();mentionImage(imageInputs.findIndex(input=>input.id===port.id));}}}>
+                    <UploadSlot
+                      label={character?.name ?? (selected ? port.label : `Add ${port.label.toLowerCase()}`)}
+                      hint={selected ? selected.name : "Drop a picture or choose from project"}
+                      accept="image/png,image/jpeg,image/webp"
+                      kinds={["image"]}
+                      preview={imageAssetId ? assetUrl(workspace.id, imageAssetId) : undefined}
+                      previewKind="image"
+                      tile={visibleImageInputs.length>1}
+                      removeLabel={`Remove ${port.label.toLowerCase()}`}
+                      onAsset={(assetId) => chooseImage(port.id, assetId)}
                       disabled={busy}
+                      onFile={(file) => void uploadImage(port.id, file)}
                     />
+                    {imageAssetId&&<Button variant="ghost" className="cf-image-reference-tag" disabled={busy} aria-label={`Insert @Image ${imageInputs.findIndex(input=>input.id===port.id)+1} into prompt`} title="Insert into prompt" onClick={()=>mentionImage(imageInputs.findIndex(input=>input.id===port.id))}>@Image {imageInputs.findIndex(input=>input.id===port.id)+1}</Button>}
+                    <Button variant="ghost" disabled={busy} onClick={()=>setImagePickerPort(port.id)}>Choose from library</Button>
                     {choices.length > 0 && <Toolbar>
                       <Button variant="secondary" disabled={busy} onClick={() => setPickerPort(port.id)}>{bound ? "Change character" : "Use saved character"}</Button>
                       {bound && <Button variant="ghost" disabled={busy} onClick={() => onDraftChange({ ...draft, elementInputs: withoutPort(draft.elementInputs, port.id) })}>Remove character</Button>}
                     </Toolbar>}
-                  </Fragment>
+                  </div>
                 );
               })}
+              </div>
               {imageInputs.length > 0 && imageAssets.length === 0 && <Meta>Generate or upload an image in this project first.</Meta>}
-              {anglesRoute ? (!angleBatchMode&&(
-                <Row label="Single angle" display={manifest.presets.find(preset=>preset.id===draft.presetId)?.title??"Choose an angle"} value={draft.presetId??""} options={manifest.presets.map(preset=>({value:preset.id,label:preset.title}))} disabled={busy} onChange={presetId=>onDraftChange({...draft,presetId})}/>
-              )) : manifest.presets.length > 0 && (
-                <>
-                  <Row
-                    label="Preset"
-                    display={activePreset?.title ?? "None"}
-                    value={draft.presetId ?? ""}
-                    options={[{ value: "", label: "None" }, ...manifest.presets.map((preset) => ({ value: preset.id, label: preset.title }))]}
-                    onChange={(presetId) => onDraftChange({ ...draft, presetId: presetId || undefined })}
-                    disabled={busy}
-                  />
-                  {typeof activePreset?.values.prompt === "string" && <Meta>{activePreset.values.prompt}</Meta>}
-                </>
-              )}
               {controls.filter(control=>control.id==="prompt").map((control) => (
-                <ControlField
-                  key={control.id}
-                  control={control}
-                  disabled={busy}
-                  value={draft.controls[control.id]}
-                  onChange={(value) => changeControl(control.id, value)}
-                />
+                <ControlField key={control.id} control={control} textareaRef={promptArea} disabled={busy} value={draft.controls[control.id]} onChange={(value) => changeControl(control.id, value)} />
               ))}
-              {imageInputs.length===0&&onModel&&modelOptions?.some(o=>o.value==="flux2-klein-edit")&&<Button variant="secondary" onClick={()=>onModel("flux2-klein-edit")}>Start from a picture or references</Button>}
-              {controls.some(control=>control.id!=="prompt")&&<Button variant="secondary" onClick={()=>setAdvanced(true)}>Advanced settings</Button>}
-              <Dialog open={advanced} title="Advanced" onClose={()=>setAdvanced(false)} footer={<Button variant="primary" onClick={()=>setAdvanced(false)}>Done</Button>}>
-                {controls.filter(control=>control.id!=="prompt").map(control=><ControlField key={control.id} control={control} disabled={busy} value={draft.controls[control.id]} onChange={value=>changeControl(control.id,value)}/>)}
+              {anglesRoute&&<PanelSection label="Angles">
+                {angleBatchMode
+                  ? <AngleBatchPanel manifest={manifest} draft={draft} workspace={workspace} project={project} {...batchContext!} runs={listedImageRuns} disabled={externalBusy||readiness.state!=="ready"} onBusy={setBatchBusy} onChanged={batchContext.onChanged} onAction={setAngleAction} onKnownRuns={setAngleKnownRuns} onSubmittingCount={setAngleSubmittingCount}/>
+                  : <CameraAngleSheet compact source={{src:lightSource?assetUrl(workspace.id,lightSource.id):undefined}} items={manifest.presets.map(preset=>({id:preset.id,label:preset.title}))} selected={draft.presetId?[draft.presetId]:[]} multiple={false} disabled={busy} onChange={ids=>onDraftChange({...draft,presetId:ids[0]})}/>
+                }
+              </PanelSection>}
+              {["fibo2-edit","qwen-image-21-edit"].includes(manifest.id)&&batchContext&&<IdentityPhotoset variant={remixStudio?"remix":"character"} key={`${workspace.id}:${project.id}:${manifest.id}:${batchContext.workerId}:${remixStudio?"remix":"character"}`} manifest={manifest} draft={draft} workspaceId={workspace.id} projectId={project.id} userId={batchContext.userId} workerId={batchContext.workerId} allowed={!!batchContext.photosetAllowed} disabled={externalBusy||readiness.state!=="ready"} call={batchContext.call} onChanged={batchContext.onChanged} onBusy={setBatchBusy}/>}
+              {relight&&<PanelSection label="Light">
+                <Flashlight compact src={lightSource ? assetUrl(workspace.id, lightSource.id) : undefined} alt={lightSource?.name ?? "Selected source image"} direction={lightDirection} temperature={lightTemperature} temperatures={lightTemperatures} onDirectionChange={setGuideDirection} onTemperatureChange={setGuideTemperature}/>
+                <Meta>Guide is approximate; the written prompt defines the scene and light.</Meta>
+              </PanelSection>}
+              {imageInputs.length===0&&onModel&&batchContext&&!!createStartTarget(1,modelOptions??[])&&<><UploadSlot label="Add a picture or up to 3 references" hint="Drop, paste or choose 1–4 files from this device" accept="image/png,image/jpeg,image/webp" kinds={["image"]} disabled={busy} multiple onAsset={assetId=>startFromAssets([assetId])} onFiles={files=>void startFromPictures(files)} onFile={file=>{if(file)void startFromPictures([file]);}}/><Button variant="ghost" disabled={busy} onClick={()=>setCreatePickerOpen(true)}>Choose from library</Button></>}
+              {!anglesRoute&&!relight&&imageSizeControl&&<Params><ParamButton<string|number> title="Size" icon={<Maximize2 size={16}/>} disabled={busy} label={String(draft.controls[imageSizeControl.id]??imageSizeControl.default??"Choose size")} value={(draft.controls[imageSizeControl.id]??imageSizeControl.default??"") as string|number} options={(imageSizeControl.options??[]).map(value=>({value,label:String(value)}))} onChange={value=>changeControl(imageSizeControl.id,value)}/></Params>}
+              {!anglesRoute&&!relight&&controls.some(control=>control.id!=="prompt"&&control.id!==imageSizeControl?.id)&&<Button variant="secondary" onClick={()=>setAdvanced(true)}>Advanced settings</Button>}
+              <Dialog className="ds-advanced-dialog" open={advanced} title="Advanced" onClose={()=>setAdvanced(false)} footer={<Button variant="primary" onClick={()=>setAdvanced(false)}>Done</Button>}>
+                {bypassFiboPromptEnhancer(manifest,draft)&&<Meta>Prompt enhancement is off while using references, so your instructions reach the image model directly.</Meta>}
+                {controls.filter(control=>control.id!=="prompt"&&control.id!==imageSizeControl?.id).map(control=><ControlField key={control.id} control={control} disabled={busy} value={draft.controls[control.id]} onChange={value=>changeControl(control.id,value)}/>)}
               </Dialog>
             </Block>
           </Panel>
-          <div className="cf-split-main">
-          <ToolHero kind={/angle/.test(manifest.id) ? "angles" : /relight/.test(manifest.id) ? "relight" : /edit|inpaint/.test(manifest.id) ? "imageedit" : "picture"} />
+          <ProductionContent>
+          <ToolHero kind={remixStudio ? "remix" : adStudio ? "ad" : /angle/.test(manifest.id) ? "angles" : /relight/.test(manifest.id) ? "relight" : /edit|inpaint/.test(manifest.id) ? "imageedit" : "picture"} />
           <Canvas
             toolbarStart={<SectionHeader title="Result" />}
             toolbarEnd={
               <>
-                <Meta>{title}</Meta>
                 {latest && onCancel && canCancelRun?.(latest) !== false && ["pending", "submitting", "submission_unknown", "queued", "running"].includes(latest.state) &&
-                  <Button variant="secondary" disabled={canceling} onClick={() => void cancelLatest()}>Cancel</Button>}
+                  <Button variant="secondary" disabled={!!canceling} onClick={() => void cancelRun(latest)}>Cancel</Button>}
                 {latest && <StatusText tone={runTone(latest.state)}>{RUN_LABELS[latest.state] ?? latest.state}</StatusText>}
                 {latest && latestOutputs.length > 0 && <Button variant="secondary" onClick={() => openSheet(latest)}>Contact sheet</Button>}
                 {latest && (
@@ -405,30 +493,6 @@ export function ImageStudio({
               </>
             }
           >
-            {anglesRoute&&<Block label={manifest.id==="qwen-image-21-angles"?"45° angle shots":"45° angle guides"}>
-              <Meta>Generative reshots from a new camera angle, not a 3D orbit.</Meta>
-              {angleBatchMode?<AngleBatchPanel manifest={manifest} draft={draft} workspace={workspace} project={project} {...batchContext!} runs={imageRuns} disabled={externalBusy||readiness.state!=="ready"} onBusy={setBatchBusy} onUseInVideo={onUseInVideo} onAction={setAngleAction}/>:<CameraAngleSheet source={{src:lightSource?assetUrl(workspace.id,lightSource.id):undefined}} items={manifest.presets.map(preset=>({id:preset.id,label:preset.title}))} selected={draft.presetId?[draft.presetId]:[]} multiple={false} disabled={busy} onChange={ids=>onDraftChange({...draft,presetId:ids[0]})}/>}
-            </Block>}
-            {sweepRoute&&<Block label="Nearby views · approximate">
-              <Meta>Lateral camera moves for nearby angles. This is parallax, not a 45° orbit; keep to the two frames closest to the original.</Meta>
-              <AngleSweepPanel workspace={workspace} project={project} userId={batchContext.userId} workerId={batchContext.workerId} call={batchContext.call} sourceAssetId={draft.inputs?.[manifest.inputs.find(port=>port.type==="image")?.id??""]} disabled={externalBusy||readiness.state!=="ready"} onChanged={batchContext.onChanged}/>
-            </Block>}
-            {geometryRoute&&<Block label="True angles · 3D geometry">
-              <TrueAnglesPanel workspace={workspace} project={project} userId={batchContext.userId} workerId={batchContext.workerId} call={batchContext.call} sourceAssetId={draft.inputs?.[manifest.inputs.find(port=>port.type==="image")?.id??""]} disabled={externalBusy||readiness.state!=="ready"} onChanged={batchContext.onChanged}/>
-            </Block>}
-            {relight && (
-              <Block label="Relight stage">
-                <Flashlight
-                  src={lightSource ? assetUrl(workspace.id, lightSource.id) : undefined}
-                  alt={lightSource?.name ?? "Selected source image"}
-                  direction={lightDirection}
-                  temperature={lightTemperature}
-                  temperatures={lightTemperatures}
-                  onDirectionChange={setLightDirection}
-                  onTemperatureChange={setLightTemperature}
-                />
-              </Block>
-            )}
             {relight && lightSource && (() => {
               // Relit takes of the chosen source, newest first; the run keeps its own inputs and preset.
               const sourcePort = imageInputs[0]?.id ?? "";
@@ -444,54 +508,23 @@ export function ImageStudio({
                 </Dialog>
               </Block>;
             })()}
-            {(() => {
-              // Swap check: the inputs this run really used, then its result. Only for routes with reference images.
-              const refs = imageInputs.filter((port) => port.id.startsWith("reference_image"));
-              const run = imageRuns.find((r) => r.state === "succeeded" && outputsOf(r)[0] && runInputs[r.id]);
-              if (!refs.length || !run) return null;
-              const used = runInputs[run.id]?.inputs ?? {};
-              const target = imageInputs.find((port) => !port.id.startsWith("reference_image"));
-              const items = [
-                ...(target && used[target.id] ? [{ src: assetUrl(workspace.id, used[target.id]), label: "Scene" }] : []),
-                ...refs.filter((port) => used[port.id]).map((port, i) => ({ src: assetUrl(workspace.id, used[port.id]), label: `Reference ${i + 1}` })),
-                { src: assetUrl(workspace.id, outputsOf(run)[0].id), label: run.take ? `Result · Take ${run.take}` : "Result" },
-              ];
-              return items.length > 2 ? <Block label="Swap check"><CompareStrip label="Swap check" items={items} /></Block> : null;
-            })()}
-            <Block label="Generated image">
-              {latest && !deadRun ? (
-                <>
-                  {runGrid(latest, develop)}
-                  {latest.error && <Meta>{latest.error}</Meta>}
-                </>
-              ) : (
-                <Meta>No image yet. Generate one, or start from the examples below.</Meta>
-              )}
-              {older.length > 0 && (
-                <Collapsible title={`History · ${older.length} run${older.length === 1 ? "" : "s"}`}>
-              {older.map((run) => {
-                const outputs = outputsOf(run);
-                return (
-                  <HistoryItem
-                    key={run.id}
-                    media={runGrid(run)}
-                    model={title}
-                    prompt={promptFor(run)}
-                    meta={<Meta parts={[manifest.id, run.capability_version, `Run ${run.id}`, run.transport === "sdk" ? `SDK proxy job ${run.remote_id ?? "unknown"}` : "Native ComfyUI", outputs[0]?.sha256 && `SHA-256 ${outputs[0].sha256}`]} />}
-                    details={<Meta parts={[outputs[0]?.content_type, outputs.length > 1 && `${outputs.length} images`]} />}
-                    actions={outputs.length > 0 ? <Button variant="secondary" onClick={() => openSheet(run)}>Contact sheet</Button> : undefined}
-                    date={new Date(run.created_at).toLocaleString()}
-                  />
-                );
-              })}
-                </Collapsible>
-              )}
-            </Block>
-            {latestOutputs.length === 0 && <ExampleTiles kind="image" />}
+            {(resultItems.length > 0 || activeImageRuns.length > 0 || angleSubmittingCount > 0) && <Block label="Generated images">
+              <ResultGrid count={resultItems.length+activeImageRuns.length+angleSubmittingCount} aspect={0} label="Generated images">
+                {Array.from({length:angleSubmittingCount},(_,index)=><ResultTile key={`submitting:${index}`} develop={{label:"Submitting",active:true}}/>)}
+                {activeImageRuns.map(run=><RunDevelop key={`active:${run.id}`} workspaceId={workspace.id} run={run} cancelling={canceling===run.id||run.state==="cancel_requested"} onCancel={onCancel&&canCancelRun?.(run)!==false&&run.state!=="cancel_requested"?()=>void cancelRun(run):undefined}/>)}
+                {resultItems.map(({run,asset}) => <ResultTile key={`${run.id}:${asset.id}`} dragAsset={{id:asset.id,url:assetUrl(workspace.id,asset.id),contentType:asset.content_type}} onOpen={() => setViewing(asset)} actions={<>
+                  {workspace.role!=="viewer"&&batchContext&&<IconButton label="Delete image" onClick={()=>{setDeleteError("");setDeleteAsset(asset);}}><Trash2 size={14}/></IconButton>}
+                  <IconButton label="Open full view" onClick={() => setViewing(asset)}><Maximize2 size={14} /></IconButton>
+                  <IconButton label="Edit this image" onClick={() => editAsset(asset)}><Pencil size={14} /></IconButton>
+                  {onUseInVideo&&<Button variant="ghost" onClick={()=>onUseInVideo(asset.id)}>Use in video</Button>}
+                </>}><img draggable={false} src={assetUrl(workspace.id,asset.id)} alt={asset.name}/></ResultTile>)}
+              </ResultGrid>
+            </Block>}
+            {visibleRuns.length === 0 && <ExampleTiles kind="image" />}
           </Canvas>
-          </div>
-        </Split>
-      </Page>
+          </ProductionContent>
+      </div>
+      <ConfirmDialog open={!!deleteAsset} title="Delete this image?" text="Remove this image from the library and results." confirmLabel="Delete image" busy={deleting} error={deleteError} onCancel={()=>{if(!deleting)setDeleteAsset(null);}} onConfirm={()=>{if(!deleteAsset||!batchContext||deleting)return;setDeleting(true);setDeleteError("");void batchContext.call(workspacePath(workspace.id,`assets/${encodeURIComponent(deleteAsset.id)}`),"DELETE").then(()=>{setDeleteAsset(null);batchContext.onChanged();}).catch(error=>setDeleteError((error as Error).message)).finally(()=>setDeleting(false));}}/>
       <MediaViewer open={!!viewing} src={viewing ? assetUrl(workspace.id, viewing.id) : ""} name={viewing?.name ?? ""} onClose={() => setViewing(null)} onActivate={() => viewing && editAsset(viewing)}
         />
       <Dialog wide open={!!sheet} title="Contact sheet" onClose={() => setSheet(null)} footer={<Button variant="secondary" onClick={() => setSheet(null)}>Close</Button>}>
@@ -514,6 +547,16 @@ export function ImageStudio({
             <Meta>{record.name}</Meta>
           </div>
         ))}</ThumbGrid>
+      </Dialog>
+      <Dialog open={!!imagePickerPort} title="Choose from library" onClose={() => setImagePickerPort("")} footer={<Button variant="secondary" onClick={() => setImagePickerPort("")}>Close</Button>}>
+        {imageAssets.length > 0 && <ThumbGrid label="Project images">
+          {imageAssets.map((asset) => <Thumb key={asset.id} src={assetUrl(workspace.id, asset.id)} label={asset.name} onSelect={() => chooseImage(imagePickerPort, asset.id)} />)}
+        </ThumbGrid>}
+        {!imageAssets.length&&<Meta>No project images yet. Upload one from the image field.</Meta>}
+      </Dialog>
+      <Dialog wide open={createPickerOpen} title="Add source and references" onClose={()=>{setCreatePickerOpen(false);setCreatePickerSelection([]);}} footer={<><Button variant="ghost" onClick={()=>{setCreatePickerOpen(false);setCreatePickerSelection([]);}}>Cancel</Button><Button variant="primary" disabled={!createPickerSelection.length||busy} onClick={()=>startFromAssets(createPickerSelection)}>{createPickerSelection.length?`Use ${createPickerSelection.length} image${createPickerSelection.length===1?"":"s"}`:"Select images"}</Button></>}>
+        <Meta>The first selected image is the starting point. The next three are references.</Meta>
+        {imageAssets.length?<ThumbGrid label="Library images">{imageAssets.map(asset=><Thumb key={asset.id} src={assetUrl(workspace.id,asset.id)} label={asset.name} selected={createPickerSelection.includes(asset.id)} disabled={createPickerSelection.length>=4&&!createPickerSelection.includes(asset.id)} onSelect={()=>setCreatePickerSelection(current=>toggleCreateReferenceSelection(current,asset.id))}/>)}</ThumbGrid>:<Meta>No project images yet. Upload images above.</Meta>}
       </Dialog>
     </form>
   );

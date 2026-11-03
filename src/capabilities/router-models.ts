@@ -25,18 +25,30 @@ export function routerInputProblem(m:RouterModel,assets:Record<string,{content_t
  let imageBytes=0;
  for(const [role,a] of Object.entries(assets)){
   if(a.content_type.startsWith('image/')){
+   if(m.kind==='h3-reference'){if(!['image/png','image/jpeg','image/webp','image/gif'].includes(a.content_type))return 'Add a readable reference image.';continue;}
    imageBytes+=Number(a.bytes);if(!['image/png','image/jpeg'].includes(a.content_type))return 'Use PNG or JPEG references for this cloud model.';
-   if(m.kind.startsWith('kling')||m.kind==='h3-reference'){const w=Number(a.metadata?.width),h=Number(a.metadata?.height),minimum=m.kind==='h3-reference'?256:300;if(!w||!h||Math.min(w,h)<minimum||w/h>2.5||h/w>2.5)return `${m.kind==='h3-reference'?'H3':'Kling'} references need at least ${minimum} pixels on each side and an aspect ratio between 1:2.5 and 2.5:1.`;}
+   if(m.kind.startsWith('kling')){const w=Number(a.metadata?.width),h=Number(a.metadata?.height),minimum=300;if(!w||!h||Math.min(w,h)<minimum||w/h>2.5||h/w>2.5)return `Kling references need at least ${minimum} pixels on each side and an aspect ratio between 1:2.5 and 2.5:1.`;}
   }else if(role==='source_video'){
    const meta=a.metadata??{},duration=Number(meta.durationSeconds),edge=Math.min(Number(meta.width),Number(meta.height)),[n,d=1]=String(meta.frameRate??'').split('/').map(Number),fps=n/d;
    if(m.kind==='h3-reference'){
-    if(!['video/mp4','video/quicktime'].includes(a.content_type)||Number(a.bytes)>100*1024*1024||!Number.isFinite(duration)||duration<2||duration>15||!Number.isFinite(edge)||edge<256||!Number.isFinite(fps)||fps<23.9||fps>60.5)return 'H3 needs a pre-trimmed MP4 or MOV: 2–15 seconds, 24–60 fps, at least 256 pixels on each side, up to 100 MB.';
+    // Normal uploads do not always carry probe metadata. The H3 preparation
+    // validates the actual bytes before any provider submission; missing metadata
+    // must not block a convertible file from reaching that preparation step.
+    if(!['video/mp4','video/quicktime','video/webm'].includes(a.content_type)||(meta.durationSeconds!==undefined&&(!Number.isFinite(duration)||duration<=0))||(meta.width!==undefined&&(!Number.isFinite(Number(meta.width))||Number(meta.width)<=0))||(meta.height!==undefined&&(!Number.isFinite(Number(meta.height))||Number(meta.height)<=0))||(meta.frameRate!==undefined&&(!Number.isFinite(fps)||fps<=0)))return 'H3 needs a readable video with at least one frame.';
     continue;
    }
    if(!['video/mp4','video/quicktime'].includes(a.content_type)||Number(a.bytes)>200*1024*1024||!Number.isFinite(duration)||duration<3||duration>10||!Number.isFinite(edge)||edge<720||edge>2160||!Number.isFinite(fps)||fps<24||fps>60)return 'Kling needs a measured MP4 or MOV: 3–10 seconds, 720p–2160p, 24–60 fps, up to 200 MB. Upload a compatible clip first.';
   }
  }
  if(imageBytes>10*1024*1024)return 'Use no more than 10 MB of reference images combined.';
+}
+/** Describe time changes before a reference clip is sent for preparation. */
+export function h3ReferenceDurationNote(value:unknown):string|undefined {
+ const duration=Number(value);
+ if(!Number.isFinite(duration)||duration<=0)return 'If this video is longer than 15 seconds, the first 15 seconds will be used. Trim it to choose another part.';
+ if(duration<2)return 'The final frame will be held to make this clip 2 seconds.';
+ if(duration>15)return 'The first 15 seconds will be used. Trim the video to choose another part.';
+ return undefined;
 }
 export function cloudFeature(route:string,videoMode:string,imageTab:string,changeChoice='person'):CloudFeature{
  if(route==='openjutsu')return 'openjutsu';

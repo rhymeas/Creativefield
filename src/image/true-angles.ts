@@ -8,7 +8,7 @@ export const MESH_CAPABILITIES = [
 ] as const;
 export type MeshCapabilityId = (typeof MESH_CAPABILITIES)[number]["id"];
 export const meshCapability = (id: string | undefined) => MESH_CAPABILITIES.find((m) => m.id === id) ?? MESH_CAPABILITIES[0];
-export const PAINT_CAPABILITY = capability("qwen-image-21-edit");
+export const PAINT_CAPABILITY = capability("fibo2-edit");
 
 /** The same eight slots as the angle sheet, now with exact azimuth/elevation in degrees. Positive azimuth turns the camera to the subject's left. */
 export const TRUE_VIEWS = [

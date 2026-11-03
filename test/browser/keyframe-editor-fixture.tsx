@@ -1,0 +1,11 @@
+import {createRoot} from 'react-dom/client';
+import {KeyframeStudio} from '../../src/team/KeyframeStudio';
+import {buildCatalogue} from '../../src/capabilities/catalogue';
+import {providers} from '../../src/pipelines/registry';
+import h3 from '../../native-workflows/h3-flf2v/manifest.json';
+import type {CapabilityManifestV2} from '../../src/capabilities/types';
+import type {Call,Project,User,Workspace} from '../../src/team/api';
+import '../../src/ds/tokens.css';
+import '../../src/ds/components.css';
+const call=(async()=>({items:[],nextCursor:null})) as Call;
+createRoot(document.getElementById('root')!).render(<KeyframeStudio user={{id:'keyframe-fixture'} as User} workspace={{id:'keyframe-fixture',role:'creator'} as Workspace} project={{id:'keyframe-fixture'} as Project} catalogue={[...buildCatalogue(providers).map(b=>b.manifest),h3 as unknown as CapabilityManifestV2]} workers={[]} call={call} authorized canEdit localEnabled onChanged={()=>{}}/>);

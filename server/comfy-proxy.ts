@@ -18,6 +18,7 @@ const NODE_HELP = new URL("./comfy-node-help.mjs", import.meta.url);
 const THREE_D = new URL("./comfy-3d.mjs", import.meta.url);
 const FEATURE = new URL("./comfy-feature.mjs", import.meta.url);
 const THEMES = new URL("./comfy-theme.css", import.meta.url);
+const LINKS = new URL("./comfy-links.mjs", import.meta.url);
 const TOKENS = new URL("../src/ds/tokens.css", import.meta.url);
 const WORKSPACE_PATH = /^\/comfy\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(\/.*)?$/i;
 
@@ -74,6 +75,8 @@ export async function comfyProxyRoutes(app: FastifyInstance, pool: Pool, publicO
 
   app.get("/comfyfield-node-help.js", async (_request, reply) =>
     reply.type("text/javascript; charset=utf-8").header("Cache-Control", "no-cache").send(await readFile(NODE_HELP, "utf8")));
+  app.get("/comfyfield-links.js", async (_request, reply) =>
+    reply.type("text/javascript; charset=utf-8").header("Cache-Control", "no-cache").send(await readFile(LINKS, "utf8")));
   app.get("/comfyfield-3d.js", async (_request, reply) =>
     reply.type("text/javascript; charset=utf-8").header("Cache-Control", "no-cache").send(await readFile(THREE_D, "utf8")));
   app.get("/comfyfield-feature.js", async (_request, reply) =>
@@ -121,7 +124,7 @@ export async function comfyProxyRoutes(app: FastifyInstance, pool: Pool, publicO
        ComfyField only, they are switched off: Precision is scoped to an attribute on <html>, and
        the other sheets are disabled as they load. ComfyUI opened directly keeps them. */
     const quietOtherThemes = 'var r=document.documentElement;function q(){if(r.hasAttribute("data-precision-ui"))r.removeAttribute("data-precision-ui");for(var i=0;i<document.styleSheets.length;i++){var s=document.styleSheets[i],n=s.ownerNode,k=((n&&n.id)||"")+(s.href||"");if(/niutonian|precision/i.test(k)&&!s.disabled)s.disabled=true}}q();new MutationObserver(q).observe(r,{attributes:true,attributeFilter:["data-precision-ui"]});new MutationObserver(q).observe(document.head,{childList:true});document.addEventListener("load",q,true);';
-    const inject = `<link rel="stylesheet" href="/comfyfield-theme.css"><script type="module" src="/comfyfield-node-help.js"></script><script type="module" src="/comfyfield-3d.js"></script><script type="module" src="/comfyfield-feature.js"></script><script type="module" src="/comfyfield-run.js"></script><script>document.documentElement.classList.add("dark-theme");document.documentElement.dataset.comfyfield="1";${quietOtherThemes}</script>`;
+    const inject = `<link rel="stylesheet" href="/comfyfield-theme.css"><script type="module" src="/comfyfield-node-help.js"></script><script type="module" src="/comfyfield-links.js"></script><script type="module" src="/comfyfield-3d.js"></script><script type="module" src="/comfyfield-feature.js"></script><script type="module" src="/comfyfield-run.js"></script><script>document.documentElement.classList.add("dark-theme");document.documentElement.dataset.comfyfield="1";${quietOtherThemes}</script>`;
     return reply.type("text/html; charset=utf-8").header("Cache-Control", "no-store")
       .header("X-Content-Type-Options", "nosniff")
       .header("Content-Security-Policy", `frame-ancestors 'self' ${appOrigin}; base-uri 'self'; object-src 'none'`)
@@ -195,6 +198,9 @@ export async function comfyProxyRoutes(app: FastifyInstance, pool: Pool, publicO
       await member(pool,request,workspaceId,"creator");
       return reply.redirect(`/comfy/${workspaceId}${request.raw.url}`);
   };
+  /* The media picker asks for thumbnails at an absolute /api/view; like the extension imports, they go to the workspace
+     the page came from (without this every thumbnail was a 404 and showed its file name). */
+  app.route({method:["GET","HEAD"],url:"/api/view",handler:redirectImport});
   for (const prefix of ["/extensions", "/scripts"]) {
     app.route({method:["GET","HEAD"],url:`${prefix}/*`,handler:redirectImport});
     app.route({method:["GET","HEAD"],url:prefix,handler:redirectImport});

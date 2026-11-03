@@ -5,7 +5,7 @@ import type { DiskStore } from "./storage";
 
 /** Caller must first authorize creator access to this workspace. No scheduler. */
 export async function deleteLibraryAsset(pool: Pool, store: DiskStore, workspaceId: string, id: string) {
-  let receipt: { storage_key: string; completed_at: Date | null };
+  let receipt: { storage_key: string; completed_at: Date | null; retained?: boolean };
   try {
     receipt = await transaction(pool, async client => {
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`asset-delete/${workspaceId}/${id}`]);
@@ -15,13 +15,19 @@ export async function deleteLibraryAsset(pool: Pool, store: DiskStore, workspace
         if (!prior) throw new HttpError(404, "Asset not found");
         return prior;
       }
-      // Legacy run outputs live in JSON rather than a foreign-key table.
-      const output = await client.query("SELECT id FROM runs WHERE workspace_id=$1 AND output_ids @> jsonb_build_array($2::uuid::text) LIMIT 1", [workspaceId, id]);
-      if (output.rowCount) throw new HttpError(409, "This file is still used by a run. Remove that reference before deleting it.");
+      // A result may be removed from its historical run without deleting the run.
+      await client.query("SAVEPOINT remove_asset");
+      await client.query("UPDATE runs SET output_ids=output_ids - ($2::uuid::text) WHERE workspace_id=$1 AND output_ids @> jsonb_build_array($2::uuid::text)", [workspaceId, id]);
+      try {
       await client.query("INSERT INTO asset_deletions(workspace_id,asset_id,project_id,name,storage_key) VALUES($1,$2,$3,$4,$5)", [workspaceId, id, asset.project_id, asset.name, asset.storage_key]);
-      // FK violations roll back both removal and receipt (inputs, shots, layers,
-      // derived assets, elements and other relational references stay protected).
       await client.query("DELETE FROM assets WHERE workspace_id=$1 AND id=$2", [workspaceId, id]);
+      } catch (error) {
+        if (!(typeof error === "object" && error !== null && "code" in error && error.code === "23503")) throw error;
+        // Keep bytes and every dependency intact when a project or run still needs them.
+        await client.query("ROLLBACK TO SAVEPOINT remove_asset");
+        await client.query("UPDATE assets SET metadata=jsonb_set(COALESCE(metadata,'{}'::jsonb),'{libraryHidden}','true'::jsonb) WHERE workspace_id=$1 AND id=$2", [workspaceId,id]);
+        return {storage_key:asset.storage_key,completed_at:null,retained:true};
+      }
       return { storage_key: asset.storage_key, completed_at: null };
     });
   } catch (error) {
@@ -29,7 +35,7 @@ export async function deleteLibraryAsset(pool: Pool, store: DiskStore, workspace
       throw new HttpError(409, "This file is still used by a project item. Remove that reference before deleting it.");
     throw error;
   }
-  if (!receipt.completed_at) {
+  if (!receipt.retained && !receipt.completed_at) {
     try { await store.remove(workspaceId, receipt.storage_key); }
     catch (error) {
       if (typeof error !== "object" || error === null || !("code" in error) || error.code !== "ENOENT")
@@ -37,5 +43,5 @@ export async function deleteLibraryAsset(pool: Pool, store: DiskStore, workspace
     }
     await pool.query("UPDATE asset_deletions SET completed_at=now() WHERE workspace_id=$1 AND asset_id=$2", [workspaceId, id]);
   }
-  return { removed: true };
+  return receipt.retained ? { removed: true, retained: true } : { removed: true };
 }

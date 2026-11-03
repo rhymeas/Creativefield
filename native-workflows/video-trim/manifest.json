@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 2,
+  "id": "video-trim",
+  "version": "0.1.0",
+  "title": "Trim clip",
+  "category": "enhance",
+  "description": "Cut a clip down to the part you want: pick where it starts and how long it runs.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Clip",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "1",
+        "field": "file"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Trimmed clip",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "start_time",
+      "label": "Start (seconds)",
+      "type": "number",
+      "min": 0,
+      "max": 3600,
+      "step": 0.1,
+      "default": 0,
+      "binding": {
+        "node": "2",
+        "field": "start_time"
+      }
+    },
+    {
+      "id": "duration",
+      "label": "Length (seconds)",
+      "type": "number",
+      "min": 0.1,
+      "max": 3600,
+      "step": 0.1,
+      "default": 5,
+      "binding": {
+        "node": "2",
+        "field": "duration"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "video-trim",
+      "requirements": [
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Install a ComfyUI version providing LoadVideo."
+        },
+        {
+          "id": "node:Video Slice",
+          "kind": "node",
+          "name": "Video Slice",
+          "instructions": "Install a ComfyUI version providing Video Slice."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install a ComfyUI version providing SaveVideo."
+        }
+      ],
+      "evidence": [
+        "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/video-trim.json (MIT, commit c307034); only the output file prefix was set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
+        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, no GPU), workflow hash a7f944a0dc91, 9 s. Input: Pexels clip-ocean-waves.mp4 as a 5 s, 480 px wide copy without sound; start 1, length 2. Result: 480x270, 2.00 s. Whether sound is kept was not tested (the test clip had none). Receipt: scripts/utility-packs-e2e.mjs."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Graph from workingprototype/Fuobe (MIT, commit c307034) built on ComfyUI core nodes: GPL-3.0. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "No model weights",
+        "license": "This pack runs ComfyUI core nodes only and loads no model.",
+        "source": "https://github.com/comfyanonymous/ComfyUI"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/video-trim.json",
+      "observedAt": "2026-10-30",
+      "kind": "implementation"
+    }
+  ],
+  "credit": {
+    "name": "Fuobe",
+    "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/video-trim.json",
+    "license": "MIT",
+    "what": "The workflow behind this app"
+  },
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

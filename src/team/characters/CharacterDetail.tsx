@@ -8,8 +8,9 @@ type AssetState={asset:Asset|null;loaded:boolean};
 /* A character is its name, its optional one-line description and its locked reference images.
    Identity generation does not exist, so this panel says what a character does today and offers the
    next step that runs: Scenes. Everything technical is folded away. */
-export function CharacterDetail({record,loading,workspace,call,onRemove,onMakeScenes}:{record:CharacterRecord|null;loading:boolean;workspace:Workspace;call:Call;onRemove?:(id:string)=>void;onMakeScenes?:(id:string)=>void}){
+export function CharacterDetail({record,loading,workspace,call,onRemove,onMakeScenes,onMakeImages}:{record:CharacterRecord|null;loading:boolean;workspace:Workspace;call:Call;onRemove?:(id:string)=>void;onMakeScenes?:(id:string)=>void;onMakeImages?:(record:CharacterRecord)=>string|undefined}){
   const [assets,setAssets]=useState<Record<string,AssetState>>({}),[removing,setRemoving]=useState(false),[removeError,setRemoveError]=useState("");
+  const [imageError,setImageError]=useState("");
   const remove=async()=>{
     if(!record||removing)return;
     setRemoving(true);setRemoveError("");
@@ -34,10 +35,12 @@ export function CharacterDetail({record,loading,workspace,call,onRemove,onMakeSc
     {/* Removing hides the character from the cast; its reference snapshots stay as the record of the
         shots it appeared in, which is why this says "Remove from cast" rather than "Delete". */}
     <Toolbar>
+      {onMakeImages&&<Button variant="secondary" onClick={()=>setImageError(onMakeImages(record)??"")}>Create character images</Button>}
       {onMakeScenes&&<Button variant="primary" onClick={()=>onMakeScenes(record.id)}>Make scenes</Button>}
       {onRemove&&<Button variant="secondary" disabled={removing} onClick={()=>void remove()}>{removing?"Removing…":"Remove from cast"}</Button>}
     </Toolbar>
     {removeError&&<Notice inline priority={60} title="Could not remove the character">{removeError}</Notice>}
+    {imageError&&<Notice inline priority={60} title="Could not open image creation">{imageError}</Notice>}
     <PanelSection label="Reference images" meta={<span title="A character's references are fixed when it is created and cannot be changed."><Meta parts={["Locked",String(count)]}/></span>}>
       <ThumbGrid label="Reference images">
         {record.referencePack.references.map(reference=>{const state=assets[reference.assetId],asset=state?.asset,name=asset?.name??`Reference ${reference.ordinal+1}`;return <Thumb key={reference.assetId} src={state?.loaded&&asset?assetUrl(workspace.id,reference.assetId):undefined} label={name} info={<><span>{name}</span><Meta>{asset?asset.project_id===null?"Shared image":"Project image":state?.loaded?"Unavailable":""}</Meta></>}/>;})}

@@ -1,0 +1,577 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "still.png"
+    },
+    "_meta": {
+      "title": "Still (image)"
+    }
+  },
+  "2": {
+    "class_type": "ImageScaleBy",
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "scale_by": 2
+    },
+    "_meta": {
+      "title": "Supersample the still (supersample): finer crop steps"
+    }
+  },
+  "3": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "2",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Source size"
+    }
+  },
+  "4": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 1280
+    },
+    "_meta": {
+      "title": "Output width (width)"
+    }
+  },
+  "5": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 720
+    },
+    "_meta": {
+      "title": "Output height (height)"
+    }
+  },
+  "6": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 5
+    },
+    "_meta": {
+      "title": "Seconds (duration)"
+    }
+  },
+  "7": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 30
+    },
+    "_meta": {
+      "title": "Frames per second (fps)"
+    }
+  },
+  "8": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "max(round(a * b), 2)",
+      "values.a": [
+        "6",
+        0
+      ],
+      "values.b": [
+        "7",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Frame count = duration x fps"
+    }
+  },
+  "9": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 1
+    },
+    "_meta": {
+      "title": "Zoom at the start (zoomStart; 1 = the widest crop)"
+    }
+  },
+  "10": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 1.25
+    },
+    "_meta": {
+      "title": "Zoom at the end (zoomEnd)"
+    }
+  },
+  "11": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 0.5
+    },
+    "_meta": {
+      "title": "Centre x at the start, 0-1 (panStartX)"
+    }
+  },
+  "12": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 0.5
+    },
+    "_meta": {
+      "title": "Centre y at the start, 0-1 (panStartY)"
+    }
+  },
+  "13": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 0.6
+    },
+    "_meta": {
+      "title": "Centre x at the end, 0-1 (panEndX)"
+    }
+  },
+  "14": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 0.45
+    },
+    "_meta": {
+      "title": "Centre y at the end, 0-1 (panEndY)"
+    }
+  },
+  "15": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "min(a, b * c / d)",
+      "values.a": [
+        "3",
+        0
+      ],
+      "values.b": [
+        "3",
+        1
+      ],
+      "values.c": [
+        "4",
+        0
+      ],
+      "values.d": [
+        "5",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Widest crop with the output's shape: width"
+    }
+  },
+  "16": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "min(b, a * d / c)",
+      "values.a": [
+        "3",
+        0
+      ],
+      "values.b": [
+        "3",
+        1
+      ],
+      "values.c": [
+        "4",
+        0
+      ],
+      "values.d": [
+        "5",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Widest crop with the output's shape: height"
+    }
+  },
+  "17": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 30
+    },
+    "_meta": {
+      "title": "Frames per encoded chunk (chunkFrames)"
+    }
+  },
+  "18": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "ceil(a / b)",
+      "values.a": [
+        "8",
+        1
+      ],
+      "values.b": [
+        "17",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Chunk count"
+    }
+  },
+  "19": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 1
+    },
+    "_meta": {
+      "title": "Easing (easeInOut): 1 = ease in-out, 0 = linear"
+    }
+  },
+  "20": {
+    "class_type": "StartLoop",
+    "inputs": {
+      "mode": "For",
+      "mode.start_iteration_index": [
+        "41",
+        1
+      ],
+      "mode.max_iteration": [
+        "42",
+        1
+      ],
+      "mode.step": 1,
+      "cache_iterations": false,
+      "parent_iteration": [
+        "40",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "One pass per frame of the chunk"
+    }
+  },
+  "21": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "(1 - c) * a / max(b - 1, 1) + c * (1 - cos(3.141592653589793 * a / max(b - 1, 1))) / 2",
+      "values.a": [
+        "20",
+        0
+      ],
+      "values.b": [
+        "8",
+        1
+      ],
+      "values.c": [
+        "19",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Progress 0..1 (linear, eased or a blend)"
+    }
+  },
+  "22": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a + (b - a) * c",
+      "values.a": [
+        "9",
+        0
+      ],
+      "values.b": [
+        "10",
+        0
+      ],
+      "values.c": [
+        "21",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Zoom of this frame"
+    }
+  },
+  "23": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a / b",
+      "values.a": [
+        "15",
+        0
+      ],
+      "values.b": [
+        "22",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Crop width"
+    }
+  },
+  "24": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a / b",
+      "values.a": [
+        "16",
+        0
+      ],
+      "values.b": [
+        "22",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Crop height"
+    }
+  },
+  "25": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "min(max((a + (b - a) * c) * d - e / 2, 0), d - e)",
+      "values.a": [
+        "11",
+        0
+      ],
+      "values.b": [
+        "13",
+        0
+      ],
+      "values.c": [
+        "21",
+        0
+      ],
+      "values.d": [
+        "3",
+        0
+      ],
+      "values.e": [
+        "23",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Crop left"
+    }
+  },
+  "26": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "min(max((a + (b - a) * c) * d - e / 2, 0), d - e)",
+      "values.a": [
+        "12",
+        0
+      ],
+      "values.b": [
+        "14",
+        0
+      ],
+      "values.c": [
+        "21",
+        0
+      ],
+      "values.d": [
+        "3",
+        1
+      ],
+      "values.e": [
+        "24",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Crop top"
+    }
+  },
+  "27": {
+    "class_type": "ImageCrop",
+    "inputs": {
+      "image": [
+        "2",
+        0
+      ],
+      "width": [
+        "23",
+        1
+      ],
+      "height": [
+        "24",
+        1
+      ],
+      "x": [
+        "25",
+        1
+      ],
+      "y": [
+        "26",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Crop this frame"
+    }
+  },
+  "28": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": [
+        "27",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "width": [
+        "4",
+        0
+      ],
+      "height": [
+        "5",
+        0
+      ],
+      "crop": "disabled"
+    },
+    "_meta": {
+      "title": "To the output size"
+    }
+  },
+  "29": {
+    "class_type": "EndLoop",
+    "inputs": {
+      "accumulate": true,
+      "output_value": [
+        "28",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "The chunk's frames"
+    }
+  },
+  "30": {
+    "class_type": "RebatchImages",
+    "inputs": {
+      "images": [
+        "29",
+        0
+      ],
+      "batch_size": 4096
+    },
+    "_meta": {
+      "title": "As one batch"
+    }
+  },
+  "31": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "30",
+        0
+      ],
+      "fps": [
+        "7",
+        0
+      ],
+      "bit_depth": "auto",
+      "color_space": "sRGB",
+      "codec": "h264"
+    },
+    "_meta": {
+      "title": "Encode the chunk now (its frames can leave memory)"
+    }
+  },
+  "32": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "44",
+        0
+      ],
+      "filename_prefix": "ComfyField/kenburns-still",
+      "format": "auto",
+      "format.codec": "auto",
+      "codec": "auto"
+    },
+    "_meta": {
+      "title": "Save video"
+    }
+  },
+  "40": {
+    "class_type": "StartLoop",
+    "inputs": {
+      "mode": "For",
+      "mode.start_iteration_index": 0,
+      "mode.max_iteration": [
+        "18",
+        1
+      ],
+      "mode.step": 1,
+      "cache_iterations": false
+    },
+    "_meta": {
+      "title": "One pass per chunk"
+    }
+  },
+  "41": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a * b",
+      "values.a": [
+        "40",
+        0
+      ],
+      "values.b": [
+        "17",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First frame of this chunk"
+    }
+  },
+  "42": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "min(a * b + b, c)",
+      "values.a": [
+        "40",
+        0
+      ],
+      "values.b": [
+        "17",
+        0
+      ],
+      "values.c": [
+        "8",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "End of this chunk (exclusive)"
+    }
+  },
+  "43": {
+    "class_type": "EndLoop",
+    "inputs": {
+      "accumulate": true,
+      "output_value": [
+        "31",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "The encoded chunks"
+    }
+  },
+  "44": {
+    "class_type": "ConcatenateVideo",
+    "inputs": {
+      "videos.video0": [
+        "43",
+        0
+      ],
+      "codec": "auto"
+    },
+    "_meta": {
+      "title": "Chunks in order"
+    }
+  }
+}

@@ -1,8 +1,11 @@
 import { selectProblems } from "./problems";
+import {EXAMPLE_DRAG,readExampleFile} from "./example-media";
 import { useModalFocus } from "./useModalFocus";
 import {linkMediaPlayback} from "./linked-playback";
+import "./media-input-paste.css";
 import {
   Children,
+  type CSSProperties,
   Fragment,
   isValidElement,
   createContext,
@@ -50,6 +53,8 @@ export function TopBar({
   const navRef=useRef<HTMLElement>(null);
   useEffect(()=>{navRef.current?.querySelector<HTMLElement>('[aria-current="page"]')?.scrollIntoView({block:"nearest",inline:"nearest"});},[current]);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  /* The wide menu opens under the menu entry that was clicked, not at the screen edge. */
+  const [menuLeft, setMenuLeft] = useState(12);
   useEffect(() => {
     if (!openMenu) return;
     const key = (e: KeyboardEvent) => e.key === "Escape" && setOpenMenu(null);
@@ -87,8 +92,8 @@ export function TopBar({
         )}
       </span>
     ) : it.menu ? (
-      <span key={it.href} className="ds-megawrap" data-megamenu>
-        <button type="button" className="ds-navlink" aria-haspopup="true" aria-expanded={openMenu === it.href} aria-current={it.href === current ? "page" : undefined} onClick={() => setOpenMenu((o) => (o === it.href ? null : it.href))}>
+      <span key={it.href} className="ds-megawrap" data-megamenu style={{ "--mega-left": `${menuLeft}px` } as CSSProperties}>
+        <button type="button" className="ds-navlink" aria-haspopup="true" aria-expanded={openMenu === it.href} aria-current={it.href === current ? "page" : undefined} onClick={(e) => { setMenuLeft(Math.round(e.currentTarget.getBoundingClientRect().left)); setOpenMenu((o) => (o === it.href ? null : it.href)); }}>
           {it.label}
           <ChevronDown size={12} aria-hidden />
         </button>
@@ -361,7 +366,7 @@ let pasteListening = false;
 export function acceptsFile(accept: string, file: { type: string; name: string }) {
   if (!accept.trim()) return true;
   return accept.split(",").map((a) => a.trim().toLowerCase()).some((a) =>
-    a.startsWith(".") ? file.name.toLowerCase().endsWith(a) : a.endsWith("/*") ? file.type.toLowerCase().startsWith(a.slice(0, -1)) : file.type.toLowerCase() === a,
+    a === "*/*" ? true : a.startsWith(".") ? file.name.toLowerCase().endsWith(a) : a.endsWith("/*") ? file.type.toLowerCase().startsWith(a.slice(0, -1)) : file.type.toLowerCase() === a,
   );
 }
 
@@ -386,13 +391,13 @@ function onDocumentPaste(e: ClipboardEvent) {
   const file = clipboardFile(e.clipboardData);
   if (!file) return;
   const open = Array.from(pasteTargets).filter((t) => !t.disabled() && acceptsFile(t.accept, file));
-  const target = open.find((t) => t.focused()) ?? open.find((t) => t.hovered()) ?? (open.length === 1 ? open[0] : undefined);
+  const target = open.find((t) => t.hovered()) ?? open.find((t) => t.focused()) ?? (open.length === 1 ? open[0] : undefined);
   if (!target) return;
   e.preventDefault();
   target.onFile(file);
 }
 
-function usePasteTarget(accept: string, disabled: boolean, onFile: (f: File) => void) {
+function usePasteTarget(accept: string, disabled: boolean, onFile: (f: File) => void, filledRef?: RefObject<HTMLElement>) {
   const ref = useRef<HTMLLabelElement>(null);
   const hovered = useRef(false);
   const latest = useRef({ accept, disabled, onFile });
@@ -401,7 +406,7 @@ function usePasteTarget(accept: string, disabled: boolean, onFile: (f: File) => 
     const target: PasteTarget = {
       get accept() { return latest.current.accept; },
       disabled: () => latest.current.disabled,
-      focused: () => !!ref.current && ref.current.contains(document.activeElement),
+      focused: () => !!(filledRef?.current ?? ref.current)?.contains(document.activeElement),
       hovered: () => hovered.current,
       onFile: (f) => latest.current.onFile(f),
     };
@@ -415,6 +420,44 @@ function usePasteTarget(accept: string, disabled: boolean, onFile: (f: File) => 
   return { ref, onPointerEnter: () => { hovered.current = true; }, onPointerLeave: () => { hovered.current = false; } };
 }
 
+/* Project media carries its existing asset id, content address and type while it is dragged. */
+export const ASSET_DRAG = "application/x-comfyfield-asset";
+export const ASSET_URL_DRAG = "application/x-comfyfield-asset-url";
+export const ASSET_TYPE_DRAG = "application/x-comfyfield-asset-type";
+export function referenceTrayDrop(data: Pick<DataTransfer, "getData" | "files">): {kind:"asset";value:string} | {kind:"example";value:string} | {kind:"files";files:File[]} | null {
+  const asset=data.getData(ASSET_DRAG);
+  if(asset)return {kind:"asset",value:asset};
+  const example=data.getData(EXAMPLE_DRAG);
+  if(example)return {kind:"example",value:example};
+  const files=Array.from(data.files??[]);
+  return files.length?{kind:"files",files}:null;
+}
+export function setAssetDrag(e: { dataTransfer: DataTransfer }, id: string, url: string, contentType?: string) {
+  e.dataTransfer.setData(ASSET_DRAG, id);
+  e.dataTransfer.setData(ASSET_URL_DRAG, url);
+  if (contentType) e.dataTransfer.setData(ASSET_TYPE_DRAG, contentType);
+  e.dataTransfer.effectAllowed = "copy";
+}
+function acceptsAsset(data: DataTransfer, accept: string) {
+  const contentType = data.getData(ASSET_TYPE_DRAG);
+  if (!contentType) return true;
+  return accept.split(",").map((kind) => kind.trim()).some((kind) => kind === "*/*" || kind === contentType || (kind.endsWith("/*") && contentType.startsWith(kind.slice(0, -1))) || (contentType.endsWith("/*") && kind.startsWith(contentType.slice(0, -1))));
+}
+async function fileFromAssetDrop(data: DataTransfer, accept: string): Promise<File | null> {
+  const url = data.getData(ASSET_URL_DRAG);
+  if (!url || !url.startsWith("/api/")) return null;
+  let file: File;
+  try {
+    const response = await fetch(url, { credentials: "same-origin" });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    const name = decodeURIComponent(response.headers.get("content-disposition")?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)/i)?.[1] ?? "library-item");
+    file = new File([blob], name, { type: blob.type });
+  } catch { return null; }
+  if (!acceptsFile(accept, file)) throw new Error("This media does not match the input. Choose a compatible file.");
+  return file;
+}
+
 export function UploadSlot({
   label,
   hint,
@@ -426,7 +469,11 @@ export function UploadSlot({
   previewKind = "image",
   disabled = false,
   removeLabel,
+  onBrowse,
   onFile,
+  onAsset,
+  onFiles,
+  multiple = false,
 }: {
   label: string;
   hint: string;
@@ -441,26 +488,107 @@ export function UploadSlot({
   tile?: boolean;
   disabled?: boolean;
   removeLabel?: string;
+  /** Open an in-app media picker when the slot is activated. Drops still call `onFile`. */
+  onBrowse?: () => void;
   onFile: (f: File | null) => void;
+  /** Bind an existing project asset without downloading and uploading it again. */
+  onAsset?: (assetId: string) => void;
+  /** Let a capable workflow accept several files in one pick or drop. */
+  onFiles?: (files: File[]) => void;
+  multiple?: boolean;
 }) {
   const [drag, setDrag] = useState(false);
+  const [exampleError, setExampleError] = useState("");
+  const [pasteError, setPasteError] = useState("");
+  const pasteRevision = useRef(0);
+  useEffect(() => { pasteRevision.current++; return () => { pasteRevision.current++; }; }, [preview, disabled, accept]);
+  const surface=useSurfacePreview();
   const icons = { image: <ImageIcon size={14} />, video: <Video size={14} />, audio: <Music2 size={14} /> };
-  const paste = usePasteTarget(accept, disabled || !!preview, (f) => onFile(f));
+  const paste = usePasteTarget(accept, disabled, (f) => { pasteRevision.current++; onFile(f); }, surface.ref);
+  async function pasteFromClipboard() {
+    const revision = ++pasteRevision.current;
+    setPasteError("");
+    try {
+      if (!navigator.clipboard?.read) throw new Error("Clipboard access is unavailable. Use Ctrl+V instead.");
+      const items = await navigator.clipboard.read();
+      for (const item of items) for (const type of item.types) {
+        const blob = await item.getType(type);
+        const file = new File([blob], `pasted-${Date.now()}.${type.split("/")[1]?.replace("jpeg", "jpg") || "bin"}`, {type});
+        if (acceptsFile(accept, file)) { if (revision === pasteRevision.current) onFile(file); return; }
+      }
+      throw new Error("No compatible media found in the clipboard.");
+    } catch (error) { if (revision === pasteRevision.current) setPasteError((error as Error).name === "NotAllowedError" ? "Clipboard access was denied. Use Ctrl+V instead." : (error as Error).message); }
+  }
+  const drop = (e: ReactDragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDrag(false);
+    if (disabled) return;
+    const revision = ++pasteRevision.current;
+    setExampleError("");
+    const example=e.dataTransfer.getData(EXAMPLE_DRAG);
+    if(example){setExampleError("");void readExampleFile(example,accept).then(file=>{if(revision===pasteRevision.current)onFile(file);}).catch(error=>{if(revision===pasteRevision.current)setExampleError((error as Error).message);});return;}
+    const files = Array.from(e.dataTransfer.files ?? []);
+    if (files.some(file => !acceptsFile(accept, file))) { setExampleError("This media does not match the input. Choose a compatible file."); return; }
+    if (files.length) setExampleError("");
+    if (multiple && files.length) { if (onFiles) onFiles(files); else onFile(files[0]); return; }
+    if (files[0]) { onFile(files[0]); return; }
+    const assetId = e.dataTransfer.getData(ASSET_DRAG);
+    if (assetId && onAsset && acceptsAsset(e.dataTransfer, accept)) { onAsset(assetId); return; }
+    void fileFromAssetDrop(e.dataTransfer, accept).then((dropped) => {if(dropped&&revision===pasteRevision.current)onFile(dropped);}).catch(error=>{if(revision===pasteRevision.current)setExampleError((error as Error).message);});
+  };
 
   if (preview) {
     return (
-      <div className={cx("ds-upload ds-upload--filled", compact && "ds-upload--compact", tile && "ds-upload--tile",previewKind==="audio"&&"ds-upload--audio")}>
+      <div ref={surface.ref} className={cx("ds-upload ds-upload--filled", compact && "ds-upload--compact", tile && "ds-upload--tile",previewKind==="audio"&&"ds-upload--audio")} data-drag={drag} onPointerEnter={paste.onPointerEnter} onPointerLeave={paste.onPointerLeave} onDragOver={(e)=>{if(!disabled){e.preventDefault();setDrag(true);}}} onDragLeave={()=>setDrag(false)} onDrop={drop}>
         {previewKind==="audio"?<audio src={preview} controls preload="metadata" aria-label={label}/>:previewKind === "video" ? (
           <video src={preview} muted loop autoPlay playsInline aria-label={label} />
         ) : (
           <img src={preview} alt={label} />
         )}
-        <span className="ds-upload__clear">
-          <GlassButton disabled={disabled} onClick={() => onFile(null)} aria-label={removeLabel??`Remove ${label.toLowerCase()}`}>
+        {tile?<><IconButton className="ds-upload__remove" disabled={disabled} onClick={()=>{pasteRevision.current++;onFile(null);}} label={removeLabel??`Remove ${label.toLowerCase()}`}><X size={14}/></IconButton><span className="ds-upload__tools"><IconButton label="Full view" onClick={surface.open}><Maximize2 size={14}/></IconButton>{surface.canEdit&&<IconButton label="Edit media" disabled={disabled} onClick={surface.edit}><Pencil size={14}/></IconButton>}</span></>:<span className="ds-upload__clear">
+          {onBrowse && <GlassButton disabled={disabled} onClick={()=>{pasteRevision.current++;onBrowse();}}>Change</GlassButton>}
+          <GlassButton disabled={disabled} onClick={() => {pasteRevision.current++;onFile(null);}} aria-label={removeLabel??`Remove ${label.toLowerCase()}`}>
             <X size={12} /> Remove
           </GlassButton>
-        </span>
+        </span>}
+        {!disabled && <button type="button" className="ds-upload__paste" aria-label={`Paste to ${label}`} onClick={(e)=>{e.preventDefault();e.stopPropagation();void pasteFromClipboard();}}>Paste</button>}
+        {(pasteError||exampleError) && <span role="status" className="ds-upload__clear">{pasteError||exampleError}</span>}
+        {surface.viewer}
       </div>
+    );
+  }
+
+  if (onBrowse) {
+    return (
+      <label
+        ref={paste.ref}
+        className={cx("ds-upload", compact && "ds-upload--compact", tile && "ds-upload--tile")}
+        data-drag={drag}
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled}
+        title="Drop, paste or choose a project image"
+        onClick={() => { if (!disabled) { pasteRevision.current++; onBrowse(); } }}
+        onKeyDown={(e) => {
+          if (!disabled && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); pasteRevision.current++; onBrowse(); }
+        }}
+        onPointerEnter={paste.onPointerEnter}
+        onPointerLeave={paste.onPointerLeave}
+        onDragOver={(e) => { if (!disabled) { e.preventDefault(); setDrag(true); } }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={drop}
+      >
+        <div>
+          <div className="ds-upload__icons">
+            {kinds.map((k) => <span key={k} className="ds-upload__icon">{icons[k]}</span>)}
+          </div>
+          <p className="ds-upload__label">{label}</p>
+          <p className="ds-upload__hint">{hint}</p>
+          {(pasteError||exampleError) && <p role="status">{pasteError||exampleError}</p>}
+        </div>
+        {!disabled && <button type="button" className="ds-upload__paste" aria-label="Paste from clipboard" onClick={(e)=>{e.preventDefault();e.stopPropagation();void pasteFromClipboard();}}>Paste</button>}
+      </label>
     );
   }
 
@@ -479,12 +607,7 @@ export function UploadSlot({
         setDrag(true);
       }}
       onDragLeave={() => setDrag(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setDrag(false);
-        if(disabled)return;
-        onFile(e.dataTransfer.files?.[0] ?? null);
-      }}
+      onDrop={drop}
     >
       <div>
         <div className="ds-upload__icons">
@@ -496,8 +619,15 @@ export function UploadSlot({
         </div>
         <p className="ds-upload__label">{label}</p>
         <p className="ds-upload__hint">{hint}</p>
+        {(pasteError||exampleError) && <p role="status">{pasteError||exampleError}</p>}
       </div>
-      <input disabled={disabled} type="file" accept={accept} onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
+      {!disabled && <button type="button" className="ds-upload__paste" aria-label="Paste from clipboard" onClick={(e)=>{e.preventDefault();e.stopPropagation();void pasteFromClipboard();}}>Paste</button>}
+      <input disabled={disabled} type="file" accept={accept} multiple={multiple} onChange={(e) => {
+        pasteRevision.current++;
+        const files=Array.from(e.target.files??[]);
+        if(multiple&&files.length){if(onFiles)onFiles(files);else onFile(files[0]);}
+        else onFile(files[0]??null);
+      }} />
     </label>
   );
 }
@@ -522,6 +652,8 @@ export function PromptField({
   tools,
   compact,
   labelOutside,
+  tokens,
+  textareaRef,
   disabled = false,
 }: {
   label: string;
@@ -531,10 +663,14 @@ export function PromptField({
   tools?: ReactNode;
   compact?: boolean;
   labelOutside?: boolean;
+  /** Exact prompt mentions rendered as quiet accent tokens without changing the textarea value. */
+  tokens?: readonly string[];
+  /** Lets a nearby reference tile insert a mention at the person's current caret. */
+  textareaRef?: RefObject<HTMLTextAreaElement>;
   disabled?: boolean;
 }) {
   const id = useId();
-  const area = useRef<HTMLTextAreaElement>(null);
+  const ownArea = useRef<HTMLTextAreaElement>(null),area=textareaRef??ownArea,highlight=useRef<HTMLDivElement>(null);
   const [overflow, setOverflow] = useState(false);
   const [expanded, setExpanded] = useState(false);
   useEffect(() => { if (disabled) setExpanded(false); }, [disabled]);
@@ -566,13 +702,24 @@ export function PromptField({
           </IconButton>
         )}
       </div>
-      <textarea disabled={disabled} ref={area} id={id} rows={1} value={value} placeholder={placeholder} onChange={(e) => { if (!disabled) onChange(e.target.value); }} />
+      <div className={cx("ds-prompt__editor",!!tokens?.length&&"ds-prompt__editor--tokens")}>
+        {tokens?.length?<div ref={highlight} className="ds-prompt__highlight" aria-hidden="true">{promptTokenParts(value,tokens)}</div>:null}
+        <textarea disabled={disabled} ref={area} id={id} rows={1} value={value} placeholder={placeholder} onScroll={event=>{if(highlight.current)highlight.current.scrollTop=event.currentTarget.scrollTop;}} onChange={(e) => { if (!disabled) onChange(e.target.value); }} />
+      </div>
       {tools && <div className="ds-prompt__tools">{tools}</div>}
       <Dialog open={expanded && !disabled} title={label} onClose={() => setExpanded(false)} footer={<Button variant="primary" onClick={() => setExpanded(false)}>Done</Button>}>
         <textarea disabled={disabled} className="ds-prompt__modal" autoFocus value={value} placeholder={placeholder} onChange={(e) => { if (!disabled) onChange(e.target.value); }} aria-label={label} />
       </Dialog>
     </div>
   );
+}
+
+function promptTokenParts(value:string,tokens:readonly string[]):ReactNode[] {
+  const choices=[...new Set(tokens.filter(Boolean))].sort((a,b)=>b.length-a.length);
+  if(!choices.length)return [value];
+  const escaped=choices.map(token=>token.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
+  const matcher=new RegExp(`(${escaped.join("|")})`,"gi"),canonical=new Map(choices.map(token=>[token.toLowerCase(),token]));
+  return value.split(matcher).map((part,index)=>canonical.has(part.toLowerCase())?<mark key={`${index}:${part}`}>{part}</mark>:<Fragment key={`${index}:${part}`}>{part}</Fragment>);
 }
 
 /* ClampText: long text shows a few lines; "Show all" opens the full text in a modal. */
@@ -642,7 +789,7 @@ function Menu<T extends string | number>({
   options,
   value,
   onPick,
-  placement = "top",
+  placement = "bottom",
   anchor,
   onDismiss,
 }: {
@@ -663,10 +810,12 @@ function Menu<T extends string | number>({
       // Resolve the scaled gutter from a computed length: the custom-property
       // text is calc(...), which parseFloat would truncate to its first px value.
       const gap=parseFloat(getComputedStyle(menu.current).rowGap)||0;
-      // The menu hugs its options: at least as wide as the button, at most --menu-max-w (css max-width).
-      const width=Math.min(Math.max(menu.current.offsetWidth,box.width),innerWidth-gap*2),height=menu.current.offsetHeight;
+      // The initial portal inherits a viewport-wide min-width. Measuring that
+      // width shifts the menu left before its real size is applied. Match the
+      // trigger directly instead, bounded only by the available viewport.
+      const width=Math.min(box.width,Math.max(0,innerWidth-gap*2)),height=menu.current.offsetHeight;
       const below=innerHeight-box.bottom-gap*2,above=box.top-gap*2,down=below>=height||below>=above;
-      setPosition({left:Math.max(gap,Math.min(box.left,innerWidth-width-gap)),top:down?box.bottom+gap:Math.max(gap,box.top-height-gap),width,minWidth:Math.min(box.width,innerWidth-gap*2),maxWidth:`min(${innerWidth-gap*2}px, var(--menu-max-w))`,maxHeight:Math.max(0,down?below:above)});
+      setPosition({left:Math.max(gap,Math.min(box.left,innerWidth-width-gap)),top:down?box.bottom+gap:Math.max(gap,box.top-height-gap),width,minWidth:width,maxWidth:`${Math.max(0,innerWidth-gap*2)}px`,maxHeight:Math.max(0,down?below:above)});
     };
     update();addEventListener('resize',update);addEventListener('scroll',update,true);return()=>{removeEventListener('resize',update);removeEventListener('scroll',update,true);};
   },[anchor]);
@@ -851,10 +1000,11 @@ export function LinkButton({ variant = "secondary", ...rest }: AnchorHTMLAttribu
 }
 
 /* MediaCard: one stored file in a grid (shared assets). Preview, name, facts, actions. */
-export function MediaCard({ media, title, meta, actions, info, quiet, onView, viewLabel = "View media" }: { media: ReactNode; title?: ReactNode; meta?: ReactNode; actions?: ReactNode; /** Facts about the file, behind a small "i" on the image. */ info?: ReactNode; /** Media only: no text under it, actions appear on hover. */ quiet?: boolean; /** Makes the preview a full-area view action. */ onView?: () => void; viewLabel?: string }) {
+export function MediaCard({ media, title, meta, actions, info, quiet, onView, viewLabel = "View media", dragAsset }: { /** Makes the card draggable onto any upload slot or reference tray. */ dragAsset?: { id: string; url: string; contentType?: string }; media: ReactNode; title?: ReactNode; meta?: ReactNode; actions?: ReactNode; info?: ReactNode; quiet?: boolean; onView?: () => void; viewLabel?: string }) {
   const preview=useSurfacePreview();
+  const mediaKind=isValidElement(media)&&typeof media.type==="string"?(media.type==="img"?"image":media.type):undefined;
   return (
-    <article className={cx("ds-mediacard", quiet && "ds-mediacard--quiet")}>
+    <article className={cx("ds-mediacard", quiet && "ds-mediacard--quiet")} draggable={!!dragAsset} onDragStart={dragAsset ? (e) => setAssetDrag(e, dragAsset.id, dragAsset.url, dragAsset.contentType??(mediaKind?`${mediaKind}/*`:undefined)) : undefined}>
       <div className="ds-mediacard__media" ref={preview.ref}>
         {isValidElement(media)&&media.type==="audio"?media:<button type="button" className="ds-mediacard__view" aria-label={viewLabel} onClick={onView??preview.open}>{media}</button>}
         {info && <InfoDot>{info}</InfoDot>}
@@ -1229,8 +1379,10 @@ export function Tooltip({content,children,className,focusable=false}:{content:Re
   return <span ref={ref} className={cx("ds-tooltip-anchor",className)} tabIndex={focusable?0:undefined} aria-describedby={position?id:undefined} onMouseEnter={show} onMouseLeave={()=>setPosition(null)} onFocus={show} onBlur={()=>setPosition(null)} onClick={event=>{event.stopPropagation();show();}} onKeyDown={event=>{if(event.key==="Escape")setPosition(null);}}>{children}{position&&createPortal(<div id={id} role="tooltip" className="ds-tooltip" style={position}>{content}</div>,document.body)}</span>;
 }
 
-export function Thumb({ src, label, info, selected, disabled, onSelect, onPreview, onRemove, video, audio, dragData }: {
-  src?: string; label: string; info?: ReactNode; selected?: boolean; disabled?: boolean; onSelect?: () => void;
+export function Thumb({ src, label, badge, info, selected, disabled, onSelect, onActivate, onPreview, onRemove, video, audio, dragData }: {
+  src?: string; label: string; badge?:ReactNode; info?: ReactNode; selected?: boolean; disabled?: boolean; onSelect?: () => void;
+  /** Primary tile click, for example inserting this reference into the prompt. */
+  onActivate?:()=>void;
   onPreview?:()=>void;
   /** Take this reference out of the tray. Shown as a hover action, like the other tile tools. */
   onRemove?:()=>void;
@@ -1242,6 +1394,7 @@ export function Thumb({ src, label, info, selected, disabled, onSelect, onPrevie
   dragData?: { type: string; value: string };
 }) {
   const preview=useSurfacePreview();
+  const canPreview=!!src&&!audio,openPreview=onPreview??preview.open,selecting=!!onSelect&&!onActivate&&!onPreview;
   const face = (
     <>
       {audio?<Music2 size={18}/>:src ? (video ? <video src={src} muted playsInline preload="metadata" /> : <img src={src} alt="" loading="lazy" />) : <ImageIcon size={18} />}
@@ -1250,9 +1403,9 @@ export function Thumb({ src, label, info, selected, disabled, onSelect, onPrevie
   );
   return (
     <div ref={preview.ref} className="ds-thumb" data-selected={selected || undefined}>
-      {onSelect ? (
-        <button type="button" className="ds-thumb__art" role={onPreview?undefined:"checkbox"} aria-checked={onPreview?undefined:!!selected} aria-current={onPreview&&selected?"true":undefined} aria-label={onPreview&&selected?`${label} (selected)`:label} title={label} disabled={disabled} onClick={onPreview??onSelect}
-          draggable={!!dragData} onDragStart={dragData ? (e) => { e.dataTransfer.setData(dragData.type, dragData.value); e.dataTransfer.effectAllowed = "copy"; } : undefined}>
+      {onSelect||onActivate ? (
+        <button type="button" className="ds-thumb__art" role={selecting?"checkbox":undefined} aria-checked={selecting?!!selected:undefined} aria-current={!selecting&&selected?"true":undefined} aria-label={!selecting&&selected?`${label} (selected)`:label} title={label} disabled={disabled} onClick={onActivate??onPreview??onSelect}
+          draggable={!!dragData} onDragStart={dragData ? (e) => { e.dataTransfer.setData(dragData.type, dragData.value); if (src) e.dataTransfer.setData(ASSET_URL_DRAG, src); e.dataTransfer.effectAllowed = "copy"; } : undefined}>
           {face}
         </button>
       ) : (
@@ -1260,32 +1413,42 @@ export function Thumb({ src, label, info, selected, disabled, onSelect, onPrevie
           {face}
         </span>
       )}
+      {badge&&<span className="ds-thumb__badge"><Badge tone="soft">{badge}</Badge></span>}
       {info && <InfoDot>{info}</InfoDot>}
-      {(onPreview||onRemove)&&<span className="ds-thumb__actions">{onRemove&&<IconButton label={`Remove ${label}`} onClick={onRemove}><X size={14}/></IconButton>}{onPreview&&<IconButton label="Full view" onClick={onPreview}><Maximize2 size={14}/></IconButton>}{onPreview&&preview.canEdit&&<IconButton label="Edit media" onClick={preview.edit}><Pencil size={14}/></IconButton>}</span>}
+      {onRemove&&<IconButton className="ds-thumb__remove" label={`Remove ${label}`} disabled={disabled} onClick={onRemove}><X size={14}/></IconButton>}
+      {canPreview&&<span className="ds-thumb__actions"><IconButton label="Full view" onClick={openPreview}><Maximize2 size={14}/></IconButton>{preview.canEdit&&<IconButton label="Edit media" disabled={disabled} onClick={preview.edit}><Pencil size={14}/></IconButton>}</span>}
       {preview.viewer}
     </div>
   );
 }
 
-/* ReferenceTray: many references into one run (people, products, clothes). The strip scrolls, the count says
-   how many of the cap are used, and the add tile is gone once the cap is reached. */
-export function ReferenceTray({ label, max, children, onAdd }: {
+/* ReferenceTray: the shared compact 2x2 reference pattern. Product workflows expose
+   at most four visible references, even if an upstream graph has more sockets. */
+export function ReferenceTray({ label, max, children, onAdd, onAssetDrop, onExampleDrop, onFilesDrop, disabled=false }: {
   label: string;
   /** The most references one run accepts. */
   max: number;
   children: ReactNode;
   onAdd: () => void;
+  /** Fill the next free reference directly from a project result or Library card. */
+  onAssetDrop?: (assetId: string) => void;
+  /** Fill the next free reference from a bundled content example. */
+  onExampleDrop?: (path: string) => void;
+  /** Fill free references in order from files dragged out of a local folder. */
+  onFilesDrop?: (files: File[]) => void;
+  disabled?: boolean;
 }) {
-  const count = gridItemCount(children);
+  const limit=Math.min(max,4),items=Children.toArray(children).slice(0,limit),count=items.length;
+  const acceptsDrop=(event:ReactDragEvent<HTMLDivElement>)=>!disabled&&((!!onAssetDrop&&event.dataTransfer.types.includes(ASSET_DRAG))|| (!!onExampleDrop&&event.dataTransfer.types.includes(EXAMPLE_DRAG))|| (!!onFilesDrop&&event.dataTransfer.types.includes("Files")));
   return (
-    <div className="ds-reftray" role="group" aria-label={label}>
+    <div className="ds-reftray" role="group" aria-label={label} onDragOver={event=>{if(acceptsDrop(event))event.preventDefault();}} onDrop={event=>{if(!acceptsDrop(event))return;const dropped=referenceTrayDrop(event.dataTransfer);if(!dropped)return;event.preventDefault();event.stopPropagation();if(dropped.kind==="asset")onAssetDrop?.(dropped.value);else if(dropped.kind==="example")onExampleDrop?.(dropped.value);else onFilesDrop?.(dropped.files);}}>
       <div className="ds-reftray__head">
         <span className="ds-reftray__label">{label}</span>
-        <Meta>{`${count} of ${max}`}</Meta>
+        <Meta>{`${count} of ${limit}`}</Meta>
       </div>
       <div className="ds-reftray__row">
-        {children}
-        {count < max && (
+        {items}
+        {count < limit && (
           <span className="ds-reftray__add">
             <AddButton onClick={onAdd}>Add</AddButton>
           </span>
@@ -1413,7 +1576,7 @@ export function Swatches({ label, colors, value, onChange }: { label: string; co
 }
 
 /* LayerRow: one layer in a stack. Select it, show or hide it, reorder it. */
-export function LayerRow({ name, thumb, mask, maskOff, maskActive, onMask, onMaskMenu, visible, selected, depth, linked, onSelect, onOpen, onToggle, dragging, dropTarget, onDragStart, onDragOver, onDrop, onDragEnd }: {
+export function LayerRow({ name, thumb, mask, maskOff, maskActive, onMask, onMaskMenu, visible, selected, depth, linked, onSelect, onOpen, onRename, onToggle, dragging, dropTarget, onDragStart, onDragOver, onDrop, onDragEnd }: {
   name: string;
   depth?: number;
   thumb?: ReactNode;
@@ -1431,6 +1594,8 @@ export function LayerRow({ name, thumb, mask, maskOff, maskActive, onMask, onMas
   onSelect: (e: React.MouseEvent) => void;
   /** Double-click: open the layer's settings (style or adjustment). */
   onOpen?: () => void;
+  /** Double-click to rename; Enter or leaving the field commits, Escape cancels. */
+  onRename?: (name: string) => void;
   onToggle: () => void;
   /** Drag anywhere on the row to reorder. A click without movement still selects. */
   dragging?: boolean;
@@ -1441,6 +1606,13 @@ export function LayerRow({ name, thumb, mask, maskOff, maskActive, onMask, onMas
   onDrop?: () => void;
   onDragEnd?: () => void;
 }) {
+  const [editingName,setEditingName]=useState(false);
+  const [draftName,setDraftName]=useState(name);
+  const cancelName=useRef(false);
+  function finishName(){
+    if(!cancelName.current){const next=draftName.trim();if(next&&next!==name)onRename?.(next);}
+    cancelName.current=false;setEditingName(false);
+  }
   return (
     <li
       className="ds-layerrow"
@@ -1449,7 +1621,7 @@ export function LayerRow({ name, thumb, mask, maskOff, maskActive, onMask, onMas
       data-hidden={!visible || undefined}
       data-dragging={dragging || undefined}
       data-drop-target={dropTarget || undefined}
-      draggable={Boolean(onDragStart) || undefined}
+      draggable={!editingName && Boolean(onDragStart) || undefined}
       onDragStart={onDragStart ? (e) => { e.dataTransfer.setData("text/plain", name); e.dataTransfer.effectAllowed = "move"; onDragStart(); } : undefined}
       onDragEnd={onDragEnd}
       onDragOver={onDragOver ? (e) => { e.preventDefault(); onDragOver(); } : undefined}
@@ -1458,11 +1630,11 @@ export function LayerRow({ name, thumb, mask, maskOff, maskActive, onMask, onMas
       <button type="button" className="ds-layerrow__eye" aria-label={visible ? `Hide ${name}` : `Show ${name}`} aria-pressed={visible} onClick={onToggle}>
         {visible ? <Eye size={14} /> : <EyeOff size={14} />}
       </button>
-      <button type="button" className="ds-layerrow__main" aria-pressed={selected} onClick={onSelect} onDoubleClick={onOpen}>
+      {editingName ? <div className="ds-layerrow__main"><span className="ds-layerrow__thumb">{thumb}</span><input autoFocus aria-label="Layer name" className="ds-layerrow__name cf-layer-rename" value={draftName} onChange={e=>setDraftName(e.target.value)} onFocus={e=>e.currentTarget.select()} onBlur={finishName} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();e.currentTarget.blur();}else if(e.key==="Escape"){cancelName.current=true;e.currentTarget.blur();}}}/></div> : <button type="button" className="ds-layerrow__main" aria-pressed={selected} onClick={onSelect} onDoubleClick={onRename?()=>{setDraftName(name);setEditingName(true);}:onOpen}>
         <span className="ds-layerrow__thumb">{thumb}</span>
         <span className="ds-layerrow__name">{name}</span>
         {linked && <Link2 size={14} className="ds-layerrow__link" aria-label="Linked" />}
-      </button>
+      </button>}
       {mask && (
         <button type="button" className="ds-layerrow__thumb ds-layerrow__mask" aria-label={`Mask of ${name}`} aria-pressed={maskActive} data-off={maskOff || undefined} data-active={maskActive || undefined}
           title="Click: edit the mask · Shift-click: mask on/off · Right-click: more" onClick={onMask} onContextMenu={(e) => { e.preventDefault(); onMaskMenu?.(e); }}>
@@ -1502,10 +1674,40 @@ export function ToolRail<T extends string>({ label, value, onChange, items }: { 
 
 /* Stage: the work surface of an editor. Checkerboard behind transparent pixels, picture centered and never stretched.
    An optional rail of tools sits to its left. */
+/* The tool rail floats over the work surface: a small grip at its top drags it anywhere inside, and it remembers where it was left. */
+const RAIL_KEY = "cf-floating-rail";
+function FloatingRail({ children }: { children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ dx: number; dy: number } | null>(null);
+  const [pos, setPos] = useState<{ x: number; y: number }>(() => {
+    try { const saved = JSON.parse(localStorage.getItem(RAIL_KEY) ?? "null"); if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) return saved; } catch { /* no saved place */ }
+    return { x: 16, y: 16 };
+  });
+  const clamp = (x: number, y: number) => {
+    const parent = box.current?.parentElement?.getBoundingClientRect(), self = box.current?.getBoundingClientRect();
+    if (!parent || !self) return { x, y };
+    return { x: Math.min(Math.max(0, x), Math.max(0, parent.width - self.width)), y: Math.min(Math.max(0, y), Math.max(0, parent.height - self.height)) };
+  };
+  return (
+    <div ref={box} className="ds-floatrail" style={{ left: pos.x, top: pos.y }}>
+      <div
+        className="ds-floatrail__grip"
+        role="separator"
+        aria-label="Move the toolbar"
+        title="Drag to move the toolbar"
+        onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y }; const parent = box.current?.parentElement?.getBoundingClientRect(); if (parent) drag.current = { dx: e.clientX - parent.left - pos.x, dy: e.clientY - parent.top - pos.y }; }}
+        onPointerMove={(e) => { if (!drag.current) return; const parent = box.current?.parentElement?.getBoundingClientRect(); if (!parent) return; setPos(clamp(e.clientX - parent.left - drag.current.dx, e.clientY - parent.top - drag.current.dy)); }}
+        onPointerUp={() => { drag.current = null; try { localStorage.setItem(RAIL_KEY, JSON.stringify(pos)); } catch { /* not saved */ } }}
+      />
+      {children}
+    </div>
+  );
+}
+
 export const Stage = forwardRef<HTMLDivElement, { children: ReactNode; rail?: ReactNode; /** A chip at the bottom of the surface (what the AI is doing). */ status?: ReactNode } & React.HTMLAttributes<HTMLDivElement>>(function Stage({ children, rail, status, ...surfaceProps }, ref) {
   return (
     <div className="ds-stagebox">
-      {rail}
+      {rail && <FloatingRail>{rail}</FloatingRail>}
       <div {...surfaceProps} className="ds-stage" ref={ref}>{children}{status && <div className="ds-stage__status">{status}</div>}</div>
     </div>
   );
@@ -1806,11 +2008,11 @@ export function ResultGrid({ count, aspect, label, children }: { count: number; 
 }
 
 /* ResultTile: one image in a ResultGrid, or its place while it is being made (pass a status instead of children). */
-export function ResultTile({ children, status, caption, actions, onOpen, develop }: { children?: ReactNode; status?: ReactNode; /** A small, user-facing label on the picture (Final, Shot 2). */ caption?: ReactNode; /** Icon actions in the corner, shown on hover (View, Edit). */ actions?: ReactNode; /** Double-click opens the picture. */ onOpen?: () => void; /** A real in-progress frame. active=false freezes a failed/cancelled preview. progress is 0..1, never invented. */ develop?: { src?: string; label: ReactNode; detail?: ReactNode; progress?: number; active?: boolean; /** Stops the job; shown as a small Cancel while it works. */ onCancel?: () => void; cancelling?: boolean } }) {
+export function ResultTile({ children, status, caption, actions, onOpen, develop, dragAsset }: { children?: ReactNode; status?: ReactNode; caption?: ReactNode; actions?: ReactNode; onOpen?: () => void; dragAsset?: { id: string; url: string; contentType?: string }; develop?: { src?: string; label: ReactNode; detail?: ReactNode; progress?: number; active?: boolean; onCancel?: () => void; cancelling?: boolean } }) {
   const preview=useSurfacePreview();
   const open=onOpen??preview.open;
   return (
-    <div ref={preview.ref} className="ds-resulttile" role="listitem" tabIndex={!develop&&children ? 0 : undefined} data-empty={(!develop && !children) || undefined} data-develop={develop ? "" : undefined} onClick={event=>{if(!develop&&!(event.target as Element).closest('button,a,input'))open();}}
+    <div ref={preview.ref} className="ds-resulttile" role="listitem" tabIndex={!develop&&children ? 0 : undefined} data-empty={(!develop && !children) || undefined} data-develop={develop ? "" : undefined} draggable={!!dragAsset} onDragStart={dragAsset?(e)=>setAssetDrag(e,dragAsset.id,dragAsset.url,dragAsset.contentType):undefined} onClick={event=>{if(!develop&&!(event.target as Element).closest('button,a,input'))open();}}
       onKeyDown={!develop&&children ? event => {
         if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
           event.preventDefault(); open();
@@ -1992,7 +2194,7 @@ export function ContactSheet({ items, title = "Contact sheet", fileName = "conta
 
 /* Flashlight: a browser-only light guide over a source image. It records where the
    light should come from and which temperature is picked; it never fakes a render. */
-export function Flashlight({ src, alt = "", direction, temperature, temperatures, onDirectionChange, onTemperatureChange, label = "Live light guide" }: {
+export function Flashlight({ src, alt = "", direction, temperature, temperatures, onDirectionChange, onTemperatureChange, label = "Live light guide", compact = false }: {
   src?: string;
   alt?: string;
   direction: string;
@@ -2001,21 +2203,23 @@ export function Flashlight({ src, alt = "", direction, temperature, temperatures
   onDirectionChange: (direction: string) => void;
   onTemperatureChange: (id: string) => void;
   label?: string;
+  compact?: boolean;
 }) {
   const [pos, setPos] = useState({ x: 0.5, y: 0.55 });
   const [dragging, setDragging] = useState(false);
+  const reportedDirection=useRef<string | null>(null);
+  useEffect(()=>{if(direction===reportedDirection.current)return;const text=direction.toLowerCase();setPos({x:text.includes("left")?.22:text.includes("right")?.78:.5,y: /bottom|below/.test(text)?.8:/top|above/.test(text)?.2:.5});},[direction]);
   const describe = (x: number, y: number) => {
     const side = x < 0.4 ? "left" : x > 0.6 ? "right" : "";
-    const depth = y < 0.36 ? "behind" : y > 0.64 ? "front" : "";
-    if (side && depth) return `from the ${depth}-${side}`;
-    if (side) return `from the ${side}`;
-    if (depth) return `from the ${depth}`;
+    const vertical = y < 0.36 ? "top" : y > 0.64 ? "bottom" : "";
+    if (side || vertical) return `from the ${[vertical,side].filter(Boolean).join(" ")}`;
     return "from the front";
   };
   const move = (x: number, y: number) => {
     const next = { x: Math.min(1, Math.max(0, x)), y: Math.min(1, Math.max(0, y)) };
     setPos(next);
-    onDirectionChange(describe(next.x, next.y));
+    reportedDirection.current=describe(next.x,next.y);
+    onDirectionChange(reportedDirection.current);
   };
   const point = (event: ReactPointerEvent<HTMLDivElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
@@ -2027,7 +2231,7 @@ export function Flashlight({ src, alt = "", direction, temperature, temperatures
     if (next) onTemperatureChange(next.id);
   };
   return (
-    <div className="ds-flashlight">
+    <div className="ds-flashlight" data-compact={compact || undefined}>
       <div
         className="ds-flashlight__stage"
         role="application"
@@ -2059,7 +2263,7 @@ export function Flashlight({ src, alt = "", direction, temperature, temperatures
       </div>
       <div className="ds-flashlight__readout">
         <Meta parts={[direction, temperatures.find((item) => item.id === temperature)?.label ?? temperature]} />
-        <Meta>Move the light · wheel or Page Up/Down changes temperature</Meta>
+        {!compact && <Meta>Move the light · wheel or Page Up/Down changes temperature</Meta>}
       </div>
     </div>
   );
@@ -2773,7 +2977,8 @@ type SaveCrop=(file:File)=>Promise<CropResult|void>|CropResult|void;
 /** One place a picture or clip can go from the full view; `run` fills that tool and opens it. */
 export type MediaToolChoice={id:string;label:string;note?:string;icon?:ReactNode;run:()=>Promise<void>|void};
 /** What the app can do with one picture or clip. A button is drawn only for what is present (rule 26). */
-export type MediaToolSet={animate?:()=>Promise<void>|void;openIn?:MediaToolChoice[];reference?:MediaToolChoice[];upscale?:()=>Promise<void>|void;downloadHref?:string};
+export type MediaGenerationInfo={model:string;prompt?:string;facts?:Array<{label:string;value:string}>;recreate?:()=>Promise<void>|void};
+export type MediaToolSet={animate?:()=>Promise<void>|void;openIn?:MediaToolChoice[];reference?:MediaToolChoice[];upscale?:()=>Promise<void>|void;downloadHref?:string;generation?:()=>Promise<MediaGenerationInfo|undefined>};
 type MediaToolMedia={src:string;name:string;mediaType:"image"|"video"};
 const mediaEditContext=createContext<{onEdit?:(source:MediaEditSource)=>Promise<void>|void;saveCrop?:SaveCrop;canAnnotate?:boolean;tools?:(media:MediaToolMedia)=>MediaToolSet|undefined}>({});
 export function MediaEditProvider({children,onEdit,saveCrop,canAnnotate=false,tools}:{children:ReactNode;onEdit?:(source:MediaEditSource)=>Promise<void>|void;saveCrop?:SaveCrop;canAnnotate?:boolean;tools?:(media:MediaToolMedia)=>MediaToolSet|undefined}){
@@ -2807,6 +3012,8 @@ export function MediaViewer({ open, src, name, onClose, actions, onActivate, med
   useEffect(()=>{const revision=++generation.current;setResult(null);setCrop(null);setAnnotationOpen(false);setBusy(false);setError("");start.current=null;return()=>{if(generation.current===revision)generation.current++;urls.current.forEach(url=>URL.revokeObjectURL(url));urls.current=[];};},[open,src]);
   const current=result??{src,name};
   const tools=open?editor.tools?.({src:current.src,name:current.name,mediaType}):undefined;
+  const [generationInfo,setGenerationInfo]=useState<MediaGenerationInfo|undefined>();
+  useEffect(()=>{let live=true;setGenerationInfo(undefined);if(open&&tools?.generation)void tools.generation().then(info=>{if(live)setGenerationInfo(info);}).catch(()=>{});return()=>{live=false;};},[open,current.src,mediaType]);
   const point=(event:ReactPointerEvent)=>{const r=image.current!.getBoundingClientRect();return {x:Math.max(0,Math.min(1,(event.clientX-r.left)/r.width)),y:Math.max(0,Math.min(1,(event.clientY-r.top)/r.height))};};
   async function applyCrop(){
     const img=image.current;if(!img||!crop||busy||!img.naturalWidth)return;
@@ -2852,6 +3059,7 @@ export function MediaViewer({ open, src, name, onClose, actions, onActivate, med
           {mediaType==="image"&&<Button disabled={busy} onClick={()=>setCrop({x:.05,y:.05,w:.9,h:.9})}><Crop size={14}/>Quick crop</Button>}
           {mediaType==="image"&&editor.onEdit&&editor.canAnnotate&&<Button disabled={busy} onClick={()=>setAnnotationOpen(true)}>Annotate</Button>}
           {mediaType==="image"&&editor.onEdit&&<Button disabled={busy} onClick={()=>void edit("modify")}><Sparkles size={14}/>Modify with AI</Button>}
+          {generationInfo&&<InfoButton title="Generation info"><p>Model: {generationInfo.model}</p>{generationInfo.prompt&&<p>Prompt: {generationInfo.prompt}</p>}{generationInfo.facts?.map(fact=><p key={fact.label}>{fact.label}: {fact.value}</p>)}</InfoButton>}
           {mediaType==="video"&&compare&&<Tooltip content={playbackHint||"Playback is linked by elapsed time over the shared duration. Unlink to inspect each clip independently."}><Button aria-pressed={linked} onClick={()=>setLinked(value=>!value)}><Link2 size={14}/>{linked?"Unlink playback":"Link playback"}</Button></Tooltip>}
           {result&&<LinkButton href={result.src} download={result.name}>Download crop</LinkButton>}
           {actions}
@@ -2864,6 +3072,7 @@ export function MediaViewer({ open, src, name, onClose, actions, onActivate, med
       </div>
       <aside className="ds-viewer__panel" aria-label="Actions for this media">
         <div className="ds-viewer__tools">
+          {generationInfo?.recreate&&<Button disabled={busy} onClick={()=>void go(generationInfo.recreate!)}><Repeat size={14}/>Recreate</Button>}
           {tools?.animate&&mediaType==="image"&&<Button variant="primary" disabled={busy} onClick={()=>void go(tools.animate!)}><Video size={14}/>Animate</Button>}
           {editor.onEdit&&<Button variant={tools?.animate&&mediaType==="image"?"secondary":"primary"} disabled={busy} onClick={()=>void edit("edit")}><Pencil size={14}/>Edit</Button>}
           {!!tools?.openIn?.length&&<Button disabled={busy} onClick={()=>setChooser("openIn")}><LayoutGrid size={14}/>Open in</Button>}
@@ -3274,10 +3483,10 @@ export function PresetGrid({ children, label }: { children: ReactNode; label: st
     </div>
   );
 }
-export function PresetCard({ label, hint, thumb, thumbs, icon, selected, size, featured, onSelect }: { /** Pictures shown one after another (a slow cross-fade) when there are several; `thumb` leads. */ thumbs?: string[]; /** The one card the product leads with: a thin brand-yellow ring. */ featured?: boolean; label: string; hint?: string; thumb?: string; icon?: ReactNode; selected?: boolean; /** The larger name and air of an All tools tile. */ size?: "tool"; onSelect: () => void }) {
+export function PresetCard({ label, hint, thumb, thumbs, icon, selected, size, featured, badge, onSelect }: { /** A short name set on the picture in a ring, for the one led tool. */ badge?: string; /** Pictures shown one after another (a slow cross-fade) when there are several; `thumb` leads. */ thumbs?: string[]; /** The one card the product leads with: a thin brand-yellow ring. */ featured?: boolean; label: string; hint?: string; thumb?: string; icon?: ReactNode; selected?: boolean; /** The larger name and air of an All tools tile. */ size?: "tool"; onSelect: () => void }) {
   return (
     <button type="button" role="radio" aria-checked={!!selected} className={cx("ds-preset", size === "tool" && "ds-preset--tool", featured && "ds-preset--featured")} onClick={onSelect}>
-      <span className="ds-preset__art">{thumb ? <RotatingPicture first={thumb} more={thumbs} /> : icon}</span>
+      <span className="ds-preset__art">{thumb ? <RotatingPicture first={thumb} more={thumbs} /> : icon}{badge && <span className="ds-preset__badge">{badge}</span>}</span>
       <span className="ds-preset__label" title={size === "tool" ? label : undefined}>{label}</span>
       {hint && <span className="ds-preset__hint">{hint}</span>}
     </button>
@@ -3294,6 +3503,21 @@ export function RotatingVideo({ srcs }: { srcs: string[] }) {
   const reduced = useReducedMotion();
   if (!srcs.length) return null;
   return <video className="ds-rotvid" src={srcs[0]} muted autoPlay={!reduced} loop playsInline preload="auto" aria-hidden />;
+}
+
+/* Steps: a short numbered path, each step one bold word and one plain line; the last may carry the action. */
+export function Steps({ items }: { items: Array<{ title: string; text: string; action?: ReactNode }> }) {
+  return (
+    <ol className="ds-steps">
+      {items.map((item) => (
+        <li key={item.title} className="ds-steps__item">
+          <strong>{item.title}</strong>
+          <span>{item.text}</span>
+          {item.action}
+        </li>
+      ))}
+    </ol>
+  );
 }
 
 /* EmptyState: nothing here yet. One title, one sentence, one action. Never an amber Notice. */
@@ -3382,9 +3606,9 @@ export function ListItem({
 /** The one way to pick one of several: a dialog of boxes (icon, name, one line, status), the picked one outlined.
  *  `Row` with options and the team's choice triggers both open this, so every dropdown looks the same. */
 export type ChoiceOption<T extends string | number = string> = { value: T; label: string; note?: string; icon?: ReactNode; status?: OptionStatus; /** Why this one cannot be used, shown in its box. */ detail?: ReactNode; disabled?: boolean };
-export function ChoiceDialog<T extends string | number>({ open, title, options, value, onPick, onClose }: { open: boolean; title: string; options: ChoiceOption<T>[]; value?: T; onPick: (value: T) => void; onClose: () => void }) {
+export function ChoiceDialog<T extends string | number>({ open, title, options, value, onPick, onClose, footer }: { open: boolean; title: string; options: ChoiceOption<T>[]; value?: T; onPick: (value: T) => void; onClose: () => void; footer?: ReactNode }) {
   return (
-    <Dialog open={open} title={title} onClose={onClose}>
+    <Dialog open={open} title={title} onClose={onClose} footer={footer} className="ds-dialog--choice">
       <ItemList label={title}>
         {options.map((option) => (
           <ListItem
@@ -3466,6 +3690,12 @@ export function HistoryItem({
   const panelId = useId();
   const [removing, setRemoving] = useState(false), [deleting, setDeleting] = useState(false), [deleteError, setDeleteError] = useState("");
   const preview=useSurfacePreview();
+  const mediaElement=isValidElement(media)?media:undefined;
+  const mediaProps=mediaElement?.props as {src?:unknown}|undefined;
+  const mediaSrc=typeof mediaProps?.src==="string"?mediaProps.src:"";
+  const mediaAssetMatch=mediaSrc.match(/\/assets\/([^/]+)\/content/);
+  const mediaKind=mediaElement?.type==="img"?"image":mediaElement?.type;
+  const mediaAsset=mediaAssetMatch?{id:decodeURIComponent(mediaAssetMatch[1]),url:mediaSrc,contentType:typeof mediaKind==="string"?`${mediaKind}/*`:undefined}:undefined;
 
   useEffect(() => {
     if (!open) return;
@@ -3475,7 +3705,7 @@ export function HistoryItem({
   }, [open]);
 
   return (
-    <article className="ds-hitem">
+    <article className="ds-hitem" draggable={!!mediaAsset} onDragStart={mediaAsset?(event)=>setAssetDrag(event,mediaAsset.id,mediaAsset.url,mediaAsset.contentType):undefined}>
       {onDelete&&<ConfirmDialog open={removing} title="Delete this result?" text="It is removed from this project for everyone." confirmLabel={deleting?"Deleting…":"Delete"} busy={deleting} error={deleteError} onCancel={()=>{setRemoving(false);setDeleteError("");}} onConfirm={()=>{setDeleting(true);setDeleteError("");void onDelete().then(()=>setRemoving(false)).catch((e:Error)=>setDeleteError(e.message)).finally(()=>setDeleting(false));}}/>}
       <div ref={preview.ref} className={cx("ds-media", portrait && "ds-media--portrait")} data-details-open={open} onClick={event=>{if(event.currentTarget.contains(event.target as Node)&&!(event.target as Element).closest("button,a,audio"))preview.open();}}>
         {media}
@@ -3638,9 +3868,10 @@ export function Notice({
         <Icon size={16} className="ds-problemrow__icon" aria-hidden />
         <div className="ds-problemrow__body">
           {title && <span className="ds-problemrow__title">{title}</span>}
-          {children && <span className="ds-problemrow__text">{children}</span>}
-          {details && <NoticeDetails text={details} />}
+          {!title && children && <span className="ds-problemrow__text">{children}</span>}
         </div>
+        {(children || details) && title && <ProblemDetails title={title} details={details}>{children}</ProblemDetails>}
+        {!title && details && <ProblemDetails title="Error details" details={details} />}
         {actions && <div className="ds-problemrow__actions">{actions}</div>}
       </div>,
       slot,
@@ -3657,6 +3888,11 @@ export function Notice({
       </div>
     </div>
   );
+}
+
+function ProblemDetails({title,details,children}:{title:string;details?:string;children?:ReactNode}) {
+  const [open,setOpen]=useState(false);
+  return <><Button variant="ghost" onClick={()=>setOpen(true)}>Details</Button><Dialog open={open} title={title} onClose={()=>setOpen(false)}>{children}{details && <CodeLine copyLabel="Copy details">{details}</CodeLine>}</Dialog></>;
 }
 
 /* The technical half of a problem: closed by default, copyable when a person asks for it (rule 39). */
@@ -3924,7 +4160,7 @@ export function CodeLine({ children, copyLabel = "Copy" }: { children: string; /
 
 /* Hero: the encouraging title over a results pane, with the tool's own clip on the right. Behind the clip, three
    soft accent glows drift slowly (the one place a glow is not an action, rule 55). Without media it is title and text only. */
-export function Hero({ title, text, media, stage, accent }: { title: string; text?: string; media?: ReactNode; /** The loop fills the whole band behind the words, slowly drifting; the title rises word by word. */ stage?: boolean; /** One word of the title drawn in the brand yellow. */ accent?: string }) {
+export function Hero({ title, text, media, stage, accent, aside }: { /** A card at the right end of a stage hero, above the loop. */ aside?: ReactNode; title: string; text?: string; media?: ReactNode; /** The loop fills the whole band behind the words, slowly drifting; the title rises word by word. */ stage?: boolean; /** One word of the title drawn in the brand yellow. */ accent?: string }) {
   const words = title.split(" ");
   const heading = stage ? words.map((word, i) => <span key={i} className={cx("ds-hero__word", accent && word === accent && "ds-hero__word--accent")} style={{ animationDelay: `${i * 90}ms` }}>{word}</span>) : title;
   if (stage) return (
@@ -3939,6 +4175,7 @@ export function Hero({ title, text, media, stage, accent }: { title: string; tex
         <h2 className="ds-hero__title">{heading}</h2>
         {text && <p className="ds-hero__text">{text}</p>}
       </div>
+      {aside && <div className="ds-hero__aside">{aside}</div>}
     </section>
   );
   return (

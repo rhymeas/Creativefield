@@ -13,9 +13,10 @@ const even=z.number().int().min(64).max(1920).refine(n=>n%2===0);
 /** Joins are hard cuts unless asked otherwise: a cross-fade costs a re-encode and shortens the film
  *  by the overlap, so it has to be a deliberate choice rather than a default change. */
 export const transitionSchema=z.object({kind:z.enum(["cut","crossfade"]),seconds:z.number().min(0.1).max(2)}).strict();
-export const assemblySchema=z.object({width:even,height:even,fps:z.union([z.literal(24),z.literal(25),z.literal(30),z.literal(60)]),audioPolicy:z.enum(["mute","preserve"]),transition:transitionSchema.optional()}).strict();
+export const assemblySchema=z.object({width:even,height:even,fps:z.union([z.literal(16),z.literal(24),z.literal(25),z.literal(30),z.literal(60)]),audioPolicy:z.enum(["mute","preserve"]),transition:transitionSchema.optional(),keyframeBoundaries:z.boolean().optional()}).strict();
 export type AssemblySettings=z.infer<typeof assemblySchema>;
-export type AssemblyClip={key:string;frames:number};
+/** startFrame is measured after conversion to the assembly frame rate. */
+export type AssemblyClip={key:string;frames:number;startFrame?:number};
 export class AssemblyError extends Error{}
 
 export async function assemblyReadiness(){
@@ -30,7 +31,7 @@ async function frameCount(file:string,signal:AbortSignal){
 /** Hard cuts with normalized, frame-counted segments. Accepts only resolved disk keys. */
 export async function assembleVideo(store:DiskStore,workspaceId:string,clips:AssemblyClip[],input:AssemblySettings,cancel:AbortSignal){
   const settings=assemblySchema.parse(input);
-  if(!clips.length||clips.length>32||clips.some(c=>!Number.isSafeInteger(c.frames)||c.frames<1)||clips.reduce((n,c)=>n+c.frames/settings.fps,0)>300)throw new AssemblyError("Unsupported storyboard timing");
+  if(!clips.length||clips.length>32||clips.some(c=>!Number.isSafeInteger(c.frames)||c.frames<1||!Number.isSafeInteger(c.startFrame??0)||(c.startFrame??0)<0)||clips.reduce((n,c)=>n+c.frames/settings.fps,0)>300)throw new AssemblyError("Unsupported storyboard timing");
   const signal=AbortSignal.any([cancel,AbortSignal.timeout(10*60*1000)]);
   const root=path.join(store.root,".assembly");await mkdir(root,{recursive:true});
   if((await lstat(root)).isSymbolicLink())throw new AssemblyError("Invalid assembly scratch directory");
@@ -41,14 +42,14 @@ export async function assembleVideo(store:DiskStore,workspaceId:string,clips:Ass
     let scratchBytes=0;
     for(const [index,clip] of clips.entries()){
       signal.throwIfAborted();
-      const source=await store.file(workspaceId,clip.key),info=await probeVideo(source),seconds=clip.frames/settings.fps;
-      if(info.durationSeconds+1/settings.fps<seconds)throw new AssemblyError(`Shot ${index+1} is shorter than its requested duration`);
+      const source=await store.file(workspaceId,clip.key),info=await probeVideo(source),seconds=clip.frames/settings.fps,start=clip.startFrame??0;
+      if(info.durationSeconds+1/settings.fps<(start+clip.frames)/settings.fps)throw new AssemblyError(`Shot ${index+1} is shorter than its requested duration`);
       const target=path.join(dir,`segment-${index}.mp4`),args=["-protocol_whitelist","file,pipe","-i",source];
-      const v=`[0:v:0]setpts=PTS-STARTPTS,fps=${settings.fps},scale=${settings.width}:${settings.height}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=${settings.width}:${settings.height}:(ow-iw)/2:(oh-ih)/2,setsar=1,format=yuv420p,trim=end_frame=${clip.frames},setpts=PTS-STARTPTS[v]`;
+      const v=`[0:v:0]setpts=PTS-STARTPTS,fps=${settings.fps},scale=${settings.width}:${settings.height}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=${settings.width}:${settings.height}:(ow-iw)/2:(oh-ih)/2,setsar=1,format=yuv420p,trim=start_frame=${start}:end_frame=${start+clip.frames},setpts=PTS-STARTPTS[v]`;
       let filter=v;
       if(settings.audioPolicy==="preserve"){
         if(!info.hasAudio)args.push("-f","lavfi","-i","anullsrc=r=48000:cl=stereo");
-        filter+=`;[${info.hasAudio?"0:a:0":"1:a:0"}]asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,apad,atrim=duration=${seconds},asetpts=N/SR/TB[a]`;
+        filter+=`;[${info.hasAudio?"0:a:0":"1:a:0"}]asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,apad,atrim=start=${start/settings.fps}:duration=${seconds},asetpts=N/SR/TB[a]`;
       }
       args.push("-filter_complex_threads","1","-filter_complex",filter,"-map","[v]");
       if(settings.audioPolicy==="preserve")args.push("-map","[a]","-c:a","aac","-ar","48000","-ac","2");else args.push("-an");

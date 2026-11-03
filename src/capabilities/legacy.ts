@@ -48,6 +48,9 @@ export function fromLegacy(manifest: Manifest | EnhanceManifest, template: ApiGr
   // its prompt nodes. Those are examples, not defaults for the next run: an
   // empty prompt makes the workspace ask for this character and this take.
   if(motion)for(const control of controls)if(control.id==="prompt"||control.id==="motion_prompt")control.default="";
+  // First/last-frame templates also contain a scene-specific example. Keep the
+  // negative conditioning but let the user describe their own transition.
+  if(pipeline==="flf2v")for(const control of controls)if(control.id==="prompt")control.default="";
   const nodes = [...new Set(Object.values(template).map(n => n.class_type))];
   const models = manifest.requires?.models ?? [];
   /* A pipeline pack that needs no local measurement of the clip runs on Comfy Cloud too: the same
@@ -77,7 +80,7 @@ export function fromLegacy(manifest: Manifest | EnhanceManifest, template: ApiGr
       ...(motion ? { motionContract: { kind: "wan_animate_motion_v1" as const, motionInput: "motion_video", artifactNode: "246", fps: 24 as const } } : {}),
       routes: [{ id: "local", execution: "local_comfy", provider: "comfy-local", upstreamProviders: [], implementation: "implemented", workflowId: manifest.id,
         requirements,
-        evidence: [motion ? "GPU-qualified 2026-10-18 on ComfyUI 0.37.0 / RTX 4090: exact template graph produced 81 frames at 480x848, 24 fps (prompt 74aff839-b45d-4518-aae4-950034a8f362, 205.8 s). Output is 480x848, not the nominal 482x854 resize request, because latent dimensions round to multiples of 16. Perceptual motion quality on real footage is not proven. Transform motion matrix 2026-10-24: four fictional characters (navy jacket, saved green-jacket Element, red dress, blonde in a 16:9 loft) performed the same 49-frame wave; identity, wardrobe and backgrounds held, with a small subject-scale drift on the two non-studio sets." : "Existing versioned local template; current runtime readiness must be checked separately."] }, ...cloud],
+        evidence: [motion ? "GPU-qualified 2026-10-18 on a local ComfyUI worker; results vary with the input and installed models." : "Existing versioned local template; current runtime readiness must be checked separately."] }, ...cloud],
       licenses: { software: "Review project and node licenses before distribution", weights: models.map(m => ({ name: m.file, license: "Requires verification" })) },
       sources: [], tickets: ["ARC-01", enhance ? "FIN-04" : pipeline === "motion" ? "EDT-04" : "VID-01"],
       ...(!enhance ? { resolutions: structuredClone(manifest.limits.resolutions), timing: { fps: manifest.limits.fps, minSeconds: manifest.limits.minDurationSec, maxSeconds: manifest.limits.maxDurationSec, sourceTimed: !manifest.inputs.length, ...manifest.timing } } : { nativeScale: manifest.nativeScale }),

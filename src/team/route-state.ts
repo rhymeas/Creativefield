@@ -38,7 +38,7 @@ export type RouteInput = {
 };
 
 /** Every hash this app opens a screen for. Anything else is a stale or mistyped link. */
-export const ROUTES = ["make", "projects", "video", "motion", "image", "imageedit", "characters", "influencer", "marketing", "audio", "3d", "nodes", "catalogue", "library", "openjutsu", "workflow"];
+export const ROUTES = ["make", "projects", "video", "motion", "image", "imageedit", "characters", "influencer", "marketing", "remix", "audio", "3d", "nodes", "catalogue", "library", "openjutsu", "workflow", "block"];
 
 /** The design system and node prototype are separate entry views. */
 export function rootViewFromHash(hash: string): "app" | "showcase" | "node-design" {
@@ -62,16 +62,20 @@ export function routeState(input: RouteInput): RouteState {
   const { section, mode = "create" } = input;
   if (!ROUTES.includes(section)) return unknown();
   const parts=input.hash?.replace(/^#/,"").split("/")??[];
-  if(section==="workflow"||(section==="video"&&parts[1]&&!['create','storyboard','transform','trim','replace','edit','effects'].includes(parts[1]))){
+  if(section==="workflow"||(section==="video"&&parts[1]&&!['create','storyboard','keyframes','transform','trim','replace','edit','effects'].includes(parts[1]))){
     if(!input.catalogueKnown)return CHECKING;
     if(!parts[1]||!input.workflowIds?.includes(parts[1]))return unknown();
   }
-  if(section==="video"&&parts[1]==="transform"&&parts[2]&&!['person','motion','restyle','swap'].includes(parts[2]))return unknown();
+  if(section==="video"&&parts[1]==="transform"&&parts[2]&&!['person','motion','restyle','swap','edit'].includes(parts[2]))return unknown();
   if(section==="image"&&parts[1]&&input.catalogueKnown&&!input.workflowIds?.includes(parts[1]))return unknown();
   if(section==="3d"&&parts[1]==="image"&&parts[2]&&parts[2]!=="auto"&&input.catalogueKnown&&!input.workflowIds?.includes(parts[2]))return unknown();
   switch (section) {
+    case "remix":
+      if (!input.catalogueKnown) return CHECKING;
+      return input.image ? {kind:"screen"} : notReady("Remix Studio is not ready here", "Fibo or Qwen image edit is needed to create variations.");
     case "marketing":
-      return {kind:"missing",title:"Marketing is unavailable",text:"This studio does not have an active screen here yet.",next:{label:"All tools",href:"#make"}};
+      if (!input.catalogueKnown) return CHECKING;
+      return input.image ? {kind:"screen"} : notReady("Ad Studio is not ready here", "An image editing workflow is needed for product images.");
     case "audio":
       if (!input.audioKnown) return CHECKING;
       if (!input.canCreate) return READ_ONLY;

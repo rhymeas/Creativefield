@@ -1,4 +1,4 @@
-import {useEffect,useRef,useState} from "react";
+import {useEffect,useRef,useState,type ReactNode} from "react";
 import {Button,Dialog,FrameStrip,GenerateButton,Meta,Notice,PanelSection,ResultGrid,ResultTile} from "../ds";
 import {assetUrl,workspacePath,type Call,type Run} from "./api";
 import {activeRun} from "./state";
@@ -6,7 +6,7 @@ import {videoProbeKey,videoProbeContext} from "./scene-anchor-state";
 import {REPLACE_VIDEO_PROBE_ID,SINGLE_VIDEO_PROBE_ID,SCENE_VIDEO_PROBE_ID,SCENE_VIDEO_PROBE_VERSION,REPLACE_VIDEO_PROBE_VERSION,VIDEO_PROBE_FRAMES,VIDEO_PROBE_INDICES} from "../capabilities/replace-video-probe";
 
 type Saved={context:string;requestKey:string;runId?:string;sourceId?:string;sourceVersion?:1};
-export function ReplaceVideoFrames({workspace,project,worker,video,references,prompt,personIndex=0,sceneImageId,disabled,call,onChanged,onBusy}:{workspace:string;project:string;worker:string;video:string;references:string[];prompt:string;personIndex?:number;sceneImageId?:string;disabled:boolean;call:Call;onChanged:()=>void;onBusy:(busy:boolean)=>void}){
+export function ReplaceVideoFrames({workspace,project,worker,video,references,prompt,personIndex=0,sceneImageId,disabled,call,onChanged,onBusy,afterCta}:{workspace:string;project:string;worker:string;video:string;references:string[];prompt:string;personIndex?:number;sceneImageId?:string;disabled:boolean;call:Call;onChanged:()=>void;onBusy:(busy:boolean)=>void;afterCta?:ReactNode}){
   const single=references.length===1;
   const context=videoProbeContext({video,references,prompt,worker,personIndex,sceneImageId}),key=videoProbeKey(workspace,project),saved=useRef<Saved|null>(null);
   if(!saved.current){try{const s=JSON.parse(sessionStorage.getItem(key)??"null");saved.current=s?.context===context?s:{context,requestKey:crypto.randomUUID()};}catch{saved.current={context,requestKey:crypto.randomUUID()};}}
@@ -49,5 +49,6 @@ export function ReplaceVideoFrames({workspace,project,worker,video,references,pr
     {run?.state==="canceled"&&<Meta>Frame test stopped.</Meta>}
     {(error||run?.state==="failed")&&<Notice priority={1} title="The frame test didn't finish" actions={<Button variant="secondary" disabled={busy||disabled} onClick={()=>void generate()}>Try again</Button>} details={error||run?.error||undefined}>{run?.state==="failed"?"The short test stopped before it produced frames. Your clip is unchanged; trying again runs the same test.":"The short frame test did not start. Trying again reuses the same request."}</Notice>}
     <GenerateButton label="Generate" busy={busy} disabled={busy||disabled} onClick={()=>void generate()}/>
+    {afterCta}
   </PanelSection>;
 }

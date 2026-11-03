@@ -55,286 +55,61 @@
       "title": "Frame at one megapixel"
     }
   },
-  "8": {
-    "class_type": "GetImageSize",
-    "inputs": {
-      "image": [
-        "7",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Frame size"
-    }
-  },
-  "9": {
-    "class_type": "EmptyFlux2LatentImage",
-    "inputs": {
-      "width": [
-        "8",
-        0
-      ],
-      "height": [
-        "8",
-        1
-      ],
-      "batch_size": 1
-    },
-    "_meta": {
-      "title": "Empty latent"
-    }
-  },
-  "10": {
-    "class_type": "Flux2Scheduler",
-    "inputs": {
-      "steps": 4,
-      "width": [
-        "8",
-        0
-      ],
-      "height": [
-        "8",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "Scheduler"
-    }
-  },
   "11": {
-    "class_type": "CLIPTextEncode",
+    "class_type": "TextEncodeFibo2",
     "inputs": {
-      "text": "",
+      "prompt": "",
+      "negative_prompt": "",
+      "width": 0,
+      "height": 0,
+      "batch_size": 1,
       "clip": [
         "71",
         0
-      ]
-    },
-    "_meta": {
-      "title": "Instruction"
-    }
-  },
-  "12": {
-    "class_type": "ConditioningZeroOut",
-    "inputs": {
-      "conditioning": [
-        "11",
+      ],
+      "vae": [
+        "72",
         0
-      ]
-    },
-    "_meta": {
-      "title": "Empty negative"
-    }
-  },
-  "13": {
-    "class_type": "VAEEncode",
-    "inputs": {
-      "pixels": [
+      ],
+      "images.image_1": [
         "7",
         0
       ],
-      "vae": [
-        "72",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Frame latent"
-    }
-  },
-  "14": {
-    "class_type": "VAEEncode",
-    "inputs": {
-      "pixels": [
+      "images.image_2": [
         "5",
         0
       ],
-      "vae": [
-        "72",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "First picture latent"
-    }
-  },
-  "15": {
-    "class_type": "VAEEncode",
-    "inputs": {
-      "pixels": [
+      "images.image_3": [
         "6",
         0
-      ],
-      "vae": [
-        "72",
-        0
       ]
-    },
-    "_meta": {
-      "title": "Second picture latent"
     }
   },
-  "16": {
-    "class_type": "ReferenceLatent",
+  "25": {
+    "class_type": "KSampler",
     "inputs": {
-      "conditioning": [
-        "11",
-        0
-      ],
-      "latent": [
-        "13",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Frame reference"
-    }
-  },
-  "17": {
-    "class_type": "ReferenceLatent",
-    "inputs": {
-      "conditioning": [
-        "16",
-        0
-      ],
-      "latent": [
-        "14",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "First picture reference"
-    }
-  },
-  "18": {
-    "class_type": "ReferenceLatent",
-    "inputs": {
-      "conditioning": [
-        "17",
-        0
-      ],
-      "latent": [
-        "15",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Second picture reference"
-    }
-  },
-  "19": {
-    "class_type": "ReferenceLatent",
-    "inputs": {
-      "conditioning": [
-        "12",
-        0
-      ],
-      "latent": [
-        "13",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Frame reference, negative"
-    }
-  },
-  "20": {
-    "class_type": "ReferenceLatent",
-    "inputs": {
-      "conditioning": [
-        "19",
-        0
-      ],
-      "latent": [
-        "14",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "First picture reference, negative"
-    }
-  },
-  "21": {
-    "class_type": "ReferenceLatent",
-    "inputs": {
-      "conditioning": [
-        "20",
-        0
-      ],
-      "latent": [
-        "15",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Second picture reference, negative"
-    }
-  },
-  "22": {
-    "class_type": "CFGGuider",
-    "inputs": {
+      "seed": 20261019,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
       "model": [
         "70",
         0
       ],
       "positive": [
-        "18",
+        "11",
         0
       ],
       "negative": [
-        "21",
-        0
-      ],
-      "cfg": 1
-    },
-    "_meta": {
-      "title": "Guider"
-    }
-  },
-  "23": {
-    "class_type": "KSamplerSelect",
-    "inputs": {
-      "sampler_name": "euler"
-    },
-    "_meta": {
-      "title": "Sampler"
-    }
-  },
-  "24": {
-    "class_type": "RandomNoise",
-    "inputs": {
-      "noise_seed": 20261019
-    },
-    "_meta": {
-      "title": "Noise"
-    }
-  },
-  "25": {
-    "class_type": "SamplerCustomAdvanced",
-    "inputs": {
-      "noise": [
-        "24",
-        0
-      ],
-      "guider": [
-        "22",
-        0
-      ],
-      "sampler": [
-        "23",
-        0
-      ],
-      "sigmas": [
-        "10",
-        0
+        "11",
+        1
       ],
       "latent_image": [
-        "9",
-        0
+        "11",
+        2
       ]
-    },
-    "_meta": {
-      "title": "Sample"
     }
   },
   "26": {
@@ -388,22 +163,16 @@
   "70": {
     "class_type": "UNETLoader",
     "inputs": {
-      "unet_name": "flux-2-klein-4b-fp8.safetensors",
+      "unet_name": "fibo2_edit_turbo_int8_convrot.safetensors",
       "weight_dtype": "default"
-    },
-    "_meta": {
-      "title": "Flux 2 Klein 4B"
     }
   },
   "71": {
     "class_type": "CLIPLoader",
     "inputs": {
-      "clip_name": "qwen_3_4b.safetensors",
-      "type": "flux2",
+      "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+      "type": "fibo2",
       "device": "default"
-    },
-    "_meta": {
-      "title": "Text encoder"
     }
   },
   "72": {
