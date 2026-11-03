@@ -12,6 +12,10 @@
 .cf-models-dialog .ds-catalogue--modal,
 .cf-models-dialog .ds-catalogue--modal .ds-page { flex: 1; }
 .cf-form { display:flex; flex-direction:column; gap:var(--gap-stack); min-width:0; }
+.cf-project-create__name { width:50%; min-width:0; }
+.cf-settings-problem .ds-notice__body { flex:1; display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:var(--gap-stack); }
+.cf-settings-problem .ds-notice__title, .cf-settings-problem .ds-notice__details { grid-column:1; }
+.cf-settings-problem .ds-notice__actions { grid-column:2; grid-row:1 / span 3; align-self:center; margin-top:0; }
 .cf-webcam { display:flex; flex-direction:column; gap:var(--gap-stack); }
 .cf-webcam__video { width:100%; aspect-ratio:4 / 3; object-fit:cover; }
 .cf-webcam__actions { display:flex; flex-wrap:wrap; gap:var(--gap-inline); }

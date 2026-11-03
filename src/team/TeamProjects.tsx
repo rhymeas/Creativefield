@@ -8,7 +8,7 @@ export function ProjectCreateDialog({open,onClose,onCreate}:{open:boolean;onClos
   async function submit(e:React.FormEvent){e.preventDefault();if(!name.trim()||busy)return;setBusy(true);const ok=await onCreate(name.trim(),description.trim());setBusy(false);if(ok){setName("");setDescription("");onClose();}}
   return <Dialog open={open} title="Add project" onClose={onClose} footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!name.trim()||busy} onClick={e=>void submit(e as unknown as React.FormEvent)}><Plus size={14}/>Add project</Button></>}>
     <form className="cf-form" onSubmit={submit}>
-      <TextField label="Project name" autoFocus required maxLength={120} value={name} onChange={setName} disabled={busy}/>
+      <div className="cf-project-create__name"><TextField label="Project name" autoFocus required maxLength={120} value={name} onChange={setName} disabled={busy}/></div>
       <TextField label="Description" maxLength={500} value={description} onChange={setDescription} disabled={busy} hint="Optional · a short purpose shared with the team"/>
     </form>
   </Dialog>;
