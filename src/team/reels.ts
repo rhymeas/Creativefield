@@ -9,7 +9,7 @@ const REELS = {
   "h3-flf2v": "/examples/promo/video-studio.mp4",
   "h3-effects": "/examples/promo/effects-lab.mp4",
   "h3-object-swap": "/examples/promo/swap-thing.mp4",
-  "openjutsu-h3-swap": "/examples/promo/reshoot.mp4",
+  "openjutsu-h3-swap": "/examples/showcase/result-1.mp4",
 
   "wan-animate2-distilled": "/reels/mj-07.mp4",
   "wan21-vace-masked-edit": "/reels/feature-swap.mp4",
@@ -30,8 +30,14 @@ const REELS = {
 /** The placeholder clips that take turns behind heroes (Midjourney set). */
 export const POOL_VIDEOS = Array.from({ length: 8 }, (_, i) => `/reels/mj-0${i}.mp4`);
 
+/** Actual local OpenJutsu renders, with their corresponding input assets. */
+export const OPENJUTSU_SHOWCASE = Array.from({length:4},(_,index)=>{
+  const number=index+1;
+  return {result:`/examples/showcase/result-${number}.mp4`,original:`/examples/showcase/original-${number}.mp4`,source:`/examples/showcase/source-${number}.mp4`,character:`/examples/showcase/character-${number}.png`,number};
+});
+
 /** All bundled video examples are available in the Library and media picker. */
-export const LIBRARY_EXAMPLE_VIDEOS = [...POOL_VIDEOS,...[
+export const LIBRARY_EXAMPLE_VIDEOS = [...OPENJUTSU_SHOWCASE.map(item=>item.result),...POOL_VIDEOS,...[
   "feature-effects", "feature-motion", "feature-replace", "feature-restyle", "feature-swap",
   "wan22-flf-14b", "wan22-i2v-14b", "wan22-i2v-5b", "wan22-t2v-5b",
 ].map(name=>`/reels/${name}.mp4`),...["film-studio","reshoot","ad-studio","effects-lab","persona-studio","video-studio","block-shot","copy-moves","new-look","swap-thing"].map(name=>`/examples/promo/${name}.mp4`)];
@@ -39,6 +45,7 @@ export const LIBRARY_EXAMPLE_VIDEOS = [...POOL_VIDEOS,...[
 /** These clips illustrate each area; they are not claims that the named workflow made the clip. */
 export function promoReelForCapability(ids?:string|string[]){
   const map:Record<string,string>={"h3-t2v":"video-studio","h3-i2v":"video-studio","h3-flf2v":"video-studio","h3-effects":"effects-lab","h3-object-swap":"swap-thing","openjutsu-h3-swap":"reshoot"};
+  if([ids??""].flat().includes("openjutsu-h3-swap"))return OPENJUTSU_SHOWCASE[0].result;
   const name=[ids??""].flat().map(id=>map[id]).find(Boolean);
   return name?`/examples/promo/${name}.mp4`:undefined;
 }
