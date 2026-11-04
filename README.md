@@ -65,8 +65,8 @@ It is an early preview, not a Photoshop clone. FotoField covers the everyday lay
 | ![FotoField editor](docs/screens/creativefield/fotofield-editor.png) | ![Keyframes workspace](docs/screens/creativefield/keyframes-preview.webp) |
 | **3D workspace** | **Nodes editor** |
 | ![3D workspace](docs/screens/creativefield/3d.png) | ![Nodes editor with a sample image graph](docs/screens/creativefield/nodes-preview.webp) |
-| **Trim video** | |
-| ![Trim video workspace](docs/screens/creativefield/trim-video.png) | |
+| **Trim video** | **Project library** |
+| ![Trim video workspace](docs/screens/creativefield/trim-video.png) | ![Project library](docs/screens/creativefield/library.png) |
 
 These screenshots show the application in a demo project. They show the interface, not a claim about output quality; the Nodes view shows a sample image graph.
 
