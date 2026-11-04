@@ -21,7 +21,8 @@ export function StoryboardStills({boardId,workspace,revision,shots,selected,fram
   const [advanced,setAdvanced]=useState(false),[overrides,setOverrides]=useState<Record<string,Record<string,string|number|boolean>>>({});
   const [model,setModel]=useState(""),[workerId,setWorkerId]=useState(""),[takes,setTakes]=useState<StillTake[]>([]),[candidateId,setCandidateId]=useState(""),[busy,setBusy]=useState(false),[error,setError]=useState(""),[refresh,setRefresh]=useState(0);
   const [pending,setPending]=useState<Intent|null>(()=>{try{const p=JSON.parse(sessionStorage.getItem(`${storageKey}:stills`)??"null");return p&&typeof p.idempotencyKey==="string"&&p.controls?p:null;}catch{return null;}});
-  const chosen=manifests.find(m=>m.id===model)??manifests.find(m=>workers.some(w=>workerReadiness(m,w).state==="ready"))??manifests[0];
+  const ready=(m:CapabilityManifestV2)=>workers.some(w=>workerReadiness(m,w).state==="ready");
+  const chosen=manifests.find(m=>m.id===model)??manifests.find(m=>m.inputs.every(p=>!p.required)&&ready(m))??manifests.find(ready)??manifests.find(m=>m.inputs.every(p=>!p.required))??manifests[0];
   const worker=workers.find(w=>w.id===workerId)??workers.find(w=>chosen&&workerReadiness(chosen,w).state==="ready");
   const controls=chosen?{...defaultDraft(chosen).controls,...overrides[chosen.id]}:{};
   delete controls.prompt;
