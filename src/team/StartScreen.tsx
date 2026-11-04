@@ -12,7 +12,8 @@ const ICONS:Record<StartTaskId,ReactNode>={
   character:<UserRound size={20}/>,talk:<MessageCircle size={20}/>,model3d:<Box size={20}/>,
 };
 
-/** "All tools": one card per task this computer can run, each opening its screen directly. Search narrows by name and line.
+/** "All tools": one card per task this computer can run, each opening its screen directly. The start field narrows them
+    by name and line.
     A task with its own workflow opens the composer on that workflow through `onOpen`. */
 export function StartScreen({ready,onOpen}:{ready:Partial<Record<StartNeed,boolean>>;onOpen?:(task:StartTask)=>void}){
   const [query,setQuery]=useState("");
@@ -20,18 +21,20 @@ export function StartScreen({ready,onOpen}:{ready:Partial<Record<StartNeed,boole
   const [examples,setExamples]=useState<Record<string,string>>({}),[pool,setPool]=useState<string[]>([]);
   useEffect(()=>{let current=true;fetch("/examples/pool.json").then(r=>r.ok?r.json():{images:[]}).then((p:{images?:string[]})=>{if(current&&Array.isArray(p?.images))setPool(p.images.map((f:string)=>`/examples/${f}`));}).catch(()=>{});return()=>{current=false;};},[]);
   useEffect(()=>{let current=true;fetch("/examples/index.json").then(r=>r.ok?r.json():{}).then(map=>{if(current&&map&&typeof map==="object")setExamples(map as Record<string,string>);}).catch(()=>{});return()=>{current=false;};},[]);
-  const all=startTasks(ready),led=all.find(t=>t.featured),shown=matchTasks(query.trim()?all:all.filter(t=>!t.featured),query);
+  const all=startTasks(ready),shown=matchTasks(all,query);
   return <div className="cf-start">
-    <Hero stage accent="Free." title="Create. Free. On your computer." text="Edit photos in FotoField, make video, images and 3D. Open source, powered by ComfyUI, nothing leaves your machine." media={<RotatingVideo srcs={[POOL_VIDEOS[LOAD_TURN%POOL_VIDEOS.length]]}/>} aside={led&&<PresetCard size="tool" featured badge="FotoField" label={led.label} hint={led.text} thumb={examples[led.id]?`/examples/${examples[led.id]}`:led.thumb} onSelect={()=>{if(onOpen)onOpen(led);else location.hash=led.href.slice(1);}}/>}/>
-    <Toolbar end={<SearchField label="Search tools" value={query} onChange={setQuery} placeholder="Search tools"/>}>
+    <Hero title="What do you want to make?" text="Free and open source, powered by ComfyUI. Nothing leaves your computer." media={<RotatingVideo srcs={POOL_VIDEOS.slice(LOAD_TURN%POOL_VIDEOS.length).concat(POOL_VIDEOS.slice(0,LOAD_TURN%POOL_VIDEOS.length))}/>}>
+      <SearchField label="Search tools" value={query} onChange={setQuery} placeholder="Describe it: a video of my dog, a product shot…"/>
+    </Hero>
+    <Toolbar>
       <SectionHeader title="All tools" large/>
     </Toolbar>
-    {shown.length===0?<EmptyState title="No tool matches." action={<Button variant="ghost" onClick={()=>setQuery("")}>Clear search</Button>}/>:
+    {shown.length===0?<EmptyState title="No tool matches." action={<Button variant="ghost" onClick={()=>setQuery("")}>Show all tools</Button>}/>:
     <div className="cf-start__tools">{START_GROUPS.map(group=>{
         const tasks=shown.filter(t=>t.group===group);
         return tasks.length>0?<Block key={group} label={group}>
           <PresetGrid label={group}>
-            {tasks.map(t=>{const at=shown.indexOf(t),turn=pool.length?pool.slice((at*3+LOAD_TURN)%pool.length).concat(pool.slice(0,(at*3+LOAD_TURN)%pool.length)):[],own=examples[t.id]?`/examples/${examples[t.id]}`:t.thumb;return <PresetCard key={t.id} size="tool" featured={t.featured} thumb={own??turn[0]} thumbs={turn} label={t.label} hint={t.text} icon={ICONS[t.id]} onSelect={()=>{if(onOpen)onOpen(t);else location.hash=t.href.slice(1);}}/>;})}
+            {tasks.map(t=>{const at=shown.indexOf(t),turn=pool.length?pool.slice((at*3+LOAD_TURN)%pool.length).concat(pool.slice(0,(at*3+LOAD_TURN)%pool.length)):[],own=examples[t.id]?`/examples/${examples[t.id]}`:t.thumb;return <PresetCard key={t.id} size="tool" featured={t.featured} promo={t.promo} video={t.video} thumb={own??turn[0]} thumbs={turn} label={t.label} hint={t.text} icon={ICONS[t.id]} onSelect={()=>{if(onOpen)onOpen(t);else location.hash=t.href.slice(1);}}/>;})}
           </PresetGrid>
         </Block>:null;
       })}</div>}

@@ -479,6 +479,10 @@ export default function Showcase() {
               <UploadSlot tile label="Character" hint="Full body works best" accept="image/*" onFile={() => {}} />
               <UploadSlot tile label="Motion video" hint="About 3 seconds" accept="video/*" kinds={["video"]} onFile={() => {}} />
             </UploadPair>
+            <UploadPair>
+              <MediaCard quiet media={<img src="/examples/picture.webp" alt="Start image" />} onRemove={() => {}} removeLabel="Remove start image" />
+              <UploadSlot label="End image" hint="" accept="image/*" onFile={() => {}} />
+            </UploadPair>
             <PromptGroup>
               <PromptField label="Character and background" placeholder="How the character looks" value={long} onChange={setLong} />
               <PromptField compact label="Motion" placeholder="What the movement is" value={short} onChange={setShort} />
@@ -941,6 +945,7 @@ export default function Showcase() {
               <PresetGrid label="All tools">
                 <PresetCard size="tool" label="Fix a picture" hint="Paint over a part and say what should be there." icon={<Brush size={20}/>} onSelect={()=>{}}/>
                 <PresetCard size="tool" label="My characters" hint="Save a person once, then use them to replace a face, make a picture or fill a shot." icon={<UserRound size={20}/>} onSelect={()=>{}}/>
+                <PresetCard size="tool" promo label="Make a video" hint="From a photo or from a few words." thumb="/examples/promo/video-studio.webp" video="/examples/promo/video-studio.mp4" onSelect={()=>{}}/>
               </PresetGrid>
             </PanelSection>
             <ToastHost><ToastDemo/></ToastHost>

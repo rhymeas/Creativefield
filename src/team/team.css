@@ -26,7 +26,6 @@
 .cf-workspace-picker { max-width:var(--panel-w); }
 .cf-workspace-picker .ds-pill { max-width:100%; }
 .cf-production { display:flex; align-items:flex-start; gap:calc(var(--gap-section) + var(--gap-inline)); min-width:0; }
-.cf-frame-inputs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--gap-inline); align-items:start; }
 .cf-production__content { flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gap-block); }
 /* A production panel starts under the top bar, the workspace bar and the page's own padding, so its cap
    takes those three away: the body scrolls and the footer (the Generate button) stays inside the work
@@ -79,7 +78,7 @@
 .cf-start { display:flex; flex-direction:column; gap:var(--gap-section); min-height:100%; }
 .cf-start__tools { flex:1; display:grid; align-content:start; gap:var(--gap-block); padding-block:var(--space-5); }
 /* All tools: the tool tiles stay narrower than the page frame, so the whole set reads as one quiet menu. */
-.cf-start .ds-presetgrid { grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(230px * var(--ui-scale))),1fr)); justify-content:start; align-items:stretch; grid-auto-flow:dense; gap:var(--gap-block); }
+.cf-start .ds-presetgrid { grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(230px * var(--ui-scale))),1fr)); justify-content:start; align-items:stretch; grid-auto-flow:dense; gap:var(--gap-block); }
 .cf-start .ds-preset__art { aspect-ratio:16/10; }
 /* The led tool is twice as wide and its picture fills the card; every picture is shown uncropped to its frame (cover), never as a small inset. */
 .cf-start .ds-preset--featured { grid-column:span 2; grid-row:span 2; }
@@ -105,3 +104,14 @@
 .cf-advanced-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%, 300px),1fr)); gap:var(--gap-stack); min-width:0; }
 .cf-advanced-grid > * { min-width:0; }
 .cf-advanced-grid__full { grid-column:1 / -1; }
+/* A promoted tool is two columns wide; its loop or picture fills the tile under the bold name. */
+.cf-start .ds-preset--promo { grid-column:span 2; }
+.cf-start .ds-preset--promo .ds-preset__art { aspect-ratio:auto; min-height:calc(220px * var(--ui-scale)); }
+.cf-start .ds-preset:hover .ds-preset__art video { transform:scale(1.04); }
+.cf-start .ds-preset__art video { transition:transform var(--dur-med) var(--ease); }
+/* The start field and the loop share the hero: the field gets room to type, the loop sits beside it without a gap. */
+.cf-start .ds-hero { justify-content:flex-start; }
+.cf-start .ds-hero__copy { flex:1; max-width:calc(560px * var(--ui-scale)); }
+.cf-start .ds-hero__media { margin-left:auto; width:min(calc(620px * var(--ui-scale)), 48%); }
+/* Promoted loops are framed a little high so faces and heads stay in the tile. */
+.cf-start .ds-preset--promo .ds-preset__art video { object-position:center 22%; }

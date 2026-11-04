@@ -546,11 +546,9 @@ export function UploadSlot({
         ) : (
           <img src={preview} alt={label} />
         )}
-        {tile?<><IconButton className="ds-upload__remove" disabled={disabled} onClick={()=>{pasteRevision.current++;onFile(null);}} label={removeLabel??`Remove ${label.toLowerCase()}`}><X size={14}/></IconButton><span className="ds-upload__tools"><IconButton label="Full view" onClick={surface.open}><Maximize2 size={14}/></IconButton>{surface.canEdit&&<IconButton label="Edit media" disabled={disabled} onClick={surface.edit}><Pencil size={14}/></IconButton>}</span></>:<span className="ds-upload__clear">
+        <IconButton className="ds-corner-x" disabled={disabled} onClick={()=>{pasteRevision.current++;onFile(null);}} label={removeLabel??`Remove ${label.toLowerCase()}`}><X size={12}/></IconButton>
+        {tile?<><span className="ds-upload__tools"><IconButton label="Full view" onClick={surface.open}><Maximize2 size={14}/></IconButton>{surface.canEdit&&<IconButton label="Edit media" disabled={disabled} onClick={surface.edit}><Pencil size={14}/></IconButton>}</span></>:<span className="ds-upload__clear">
           {onBrowse && <GlassButton disabled={disabled} onClick={()=>{pasteRevision.current++;onBrowse();}}>Change</GlassButton>}
-          <GlassButton disabled={disabled} onClick={() => {pasteRevision.current++;onFile(null);}} aria-label={removeLabel??`Remove ${label.toLowerCase()}`}>
-            <X size={12} /> Remove
-          </GlassButton>
         </span>}
         {(pasteError||exampleError) && <span role="status" className="ds-upload__clear">{pasteError||exampleError}</span>}
         {surface.viewer}
@@ -583,7 +581,7 @@ export function UploadSlot({
             {kinds.map((k) => <span key={k} className="ds-upload__icon">{icons[k]}</span>)}
           </div>
           <p className="ds-upload__label">{label}</p>
-          <p className="ds-upload__hint">{hint}</p>
+          {hint && <p className="ds-upload__hint">{hint}</p>}
           {(pasteError||exampleError) && <p role="status">{pasteError||exampleError}</p>}
         </div>
         {!disabled && <button type="button" className="ds-upload__paste" aria-label="Paste from clipboard" onClick={(e)=>{e.preventDefault();e.stopPropagation();void pasteFromClipboard();}}>Paste</button>}
@@ -999,7 +997,7 @@ export function LinkButton({ variant = "secondary", ...rest }: AnchorHTMLAttribu
 }
 
 /* MediaCard: one stored file in a grid (shared assets). Preview, name, facts, actions. */
-export function MediaCard({ media, title, meta, actions, info, quiet, onView, viewLabel = "View media", dragAsset }: { /** Makes the card draggable onto any upload slot or reference tray. */ dragAsset?: { id: string; url: string; contentType?: string }; media: ReactNode; title?: ReactNode; meta?: ReactNode; actions?: ReactNode; info?: ReactNode; quiet?: boolean; onView?: () => void; viewLabel?: string }) {
+export function MediaCard({ media, title, meta, actions, info, quiet, onView, viewLabel = "View media", dragAsset, onRemove, removeLabel = "Remove" }: { /** A small round X on the card's top-right corner (rule 65). */ onRemove?: () => void; removeLabel?: string; /** Makes the card draggable onto any upload slot or reference tray. */ dragAsset?: { id: string; url: string; contentType?: string }; media: ReactNode; title?: ReactNode; meta?: ReactNode; actions?: ReactNode; info?: ReactNode; quiet?: boolean; onView?: () => void; viewLabel?: string }) {
   const preview=useSurfacePreview();
   const mediaKind=isValidElement(media)&&typeof media.type==="string"?(media.type==="img"?"image":media.type):undefined;
   return (
@@ -1016,6 +1014,7 @@ export function MediaCard({ media, title, meta, actions, info, quiet, onView, vi
         </div>
       )}
       {!quiet && actions && <div className="ds-mediacard__actions">{actions}</div>}
+      {onRemove && <IconButton className="ds-corner-x" label={removeLabel} onClick={onRemove}><X size={12} /></IconButton>}
       {preview.viewer}
     </article>
   );
@@ -1377,7 +1376,7 @@ export function ShotTile({
         )}
         {!image && meta}
       </button>
-      {onRemove && <IconButton className="ds-shottile__remove" label={`Remove shot ${index}`} disabled={disabled} onClick={onRemove}><X size={12} /></IconButton>}
+      {onRemove && <IconButton className="ds-shottile__remove ds-corner-x" label={`Remove shot ${index}`} disabled={disabled} onClick={onRemove}><X size={12} /></IconButton>}
       {tools && <span className="ds-shottile__tools">{tools}</span>}
       {hasMediaNode(image)&&<span className="ds-shottile__preview">{preview.actions}</span>}
       {preview.viewer}
@@ -1443,7 +1442,7 @@ export function Thumb({ src, label, badge, info, selected, disabled, onSelect, o
       )}
       {badge&&<span className="ds-thumb__badge"><Badge tone="soft">{badge}</Badge></span>}
       {info && <InfoDot>{info}</InfoDot>}
-      {onRemove&&<IconButton className="ds-thumb__remove" label={`Remove ${label}`} disabled={disabled} onClick={onRemove}><X size={14}/></IconButton>}
+      {onRemove&&<IconButton className="ds-thumb__remove ds-corner-x" label={`Remove ${label}`} disabled={disabled} onClick={onRemove}><X size={14}/></IconButton>}
       {canPreview&&<span className="ds-thumb__actions"><IconButton label="Full view" onClick={openPreview}><Maximize2 size={14}/></IconButton>{preview.canEdit&&<IconButton label="Edit media" disabled={disabled} onClick={preview.edit}><Pencil size={14}/></IconButton>}</span>}
       {preview.viewer}
     </div>
@@ -3522,12 +3521,14 @@ export function PresetGrid({ children, label }: { children: ReactNode; label: st
     </div>
   );
 }
-export function PresetCard({ label, hint, thumb, thumbs, icon, selected, size, featured, badge, onSelect }: { /** A short name set on the picture in a ring, for the one led tool. */ badge?: string; /** Pictures shown one after another (a slow cross-fade) when there are several; `thumb` leads. */ thumbs?: string[]; /** The one card the product leads with: a thin brand-yellow ring. */ featured?: boolean; label: string; hint?: string; thumb?: string; icon?: ReactNode; selected?: boolean; /** The larger name and air of an All tools tile. */ size?: "tool"; onSelect: () => void }) {
+export function PresetCard({ label, hint, thumb, thumbs, icon, selected, size, featured, badge, promo, video, onSelect }: { /** A few promoted All tools tiles: the picture fills the card and the name sits on it in two bold lines over a black scrim (rule 64). */ promo?: boolean; /** A muted loop that plays in place of the picture; `thumb` is its poster and stands in when motion is reduced. */ video?: string; /** A short name set on the picture in a ring, for the one led tool. */ badge?: string; /** Pictures shown one after another (a slow cross-fade) when there are several; `thumb` leads. */ thumbs?: string[]; /** The one card the product leads with: a thin brand-yellow ring. */ featured?: boolean; label: string; hint?: string; thumb?: string; icon?: ReactNode; selected?: boolean; /** The larger name and air of an All tools tile. */ size?: "tool"; onSelect: () => void }) {
+  const reduced = useReducedMotion();
   return (
-    <button type="button" role="radio" aria-checked={!!selected} className={cx("ds-preset", size === "tool" && "ds-preset--tool", featured && "ds-preset--featured")} onClick={onSelect}>
-      <span className="ds-preset__art">{thumb ? <RotatingPicture first={thumb} more={thumbs} /> : icon}{badge && <span className="ds-preset__badge">{badge}</span>}</span>
-      <span className="ds-preset__label" title={size === "tool" ? label : undefined}>{label}</span>
-      {hint && <span className="ds-preset__hint">{hint}</span>}
+    <button type="button" role="radio" aria-checked={!!selected} className={cx("ds-preset", size === "tool" && "ds-preset--tool", featured && "ds-preset--featured", promo && "ds-preset--promo")} onClick={onSelect}>
+      <span className="ds-preset__art">{video && !reduced ? <video src={video} poster={thumb} muted autoPlay loop playsInline preload="metadata" aria-hidden /> : thumb ? <RotatingPicture first={thumb} more={thumbs} /> : icon}{badge && <span className="ds-preset__badge">{badge}</span>}
+        {promo && <span className="ds-preset__over"><span className="ds-preset__headline">{label}</span>{hint && <span className="ds-preset__overhint">{hint}</span>}</span>}</span>
+      {!promo && <span className="ds-preset__label" title={size === "tool" ? label : undefined}>{label}</span>}
+      {!promo && hint && <span className="ds-preset__hint">{hint}</span>}
     </button>
   );
 }
@@ -3537,11 +3538,14 @@ function RotatingPicture({ first }: { first: string; more?: string[] }) {
   return <img src={first} alt="" loading="lazy" />;
 }
 
-/* A hero video plays one clip of the set, in a loop; the app picks a different clip on every page load. */
+/* A hero video plays the clips of the set in turn, each once, then starts over; a single clip loops. The app turns the
+   list on every page load, so each visit opens on a different clip. */
 export function RotatingVideo({ srcs }: { srcs: string[] }) {
   const reduced = useReducedMotion();
+  const [turn, setTurn] = useState(0);
   if (!srcs.length) return null;
-  return <video className="ds-rotvid" src={srcs[0]} muted autoPlay={!reduced} loop playsInline preload="auto" aria-hidden />;
+  const several = srcs.length > 1 && !reduced;
+  return <video key={turn % srcs.length} className="ds-rotvid" src={srcs[turn % srcs.length]} muted autoPlay={!reduced} loop={!several} onEnded={several ? () => setTurn((value) => value + 1) : undefined} playsInline preload="auto" aria-hidden />;
 }
 
 /* Steps: a short numbered path, each step one bold word and one plain line; the last may carry the action. */
@@ -4206,7 +4210,7 @@ export function CodeLine({ children, copyLabel = "Copy" }: { children: string; /
 
 /* Hero: the encouraging title over a results pane, with the tool's own clip on the right. Behind the clip, three
    soft accent glows drift slowly (the one place a glow is not an action, rule 55). Without media it is title and text only. */
-export function Hero({ title, text, media, stage, accent, aside }: { /** A card at the right end of a stage hero, above the loop. */ aside?: ReactNode; title: string; text?: string; media?: ReactNode; /** The loop fills the whole band behind the words, slowly drifting; the title rises word by word. */ stage?: boolean; /** One word of the title drawn in the brand yellow. */ accent?: string }) {
+export function Hero({ title, text, media, stage, accent, aside, children }: { /** Controls under the words of a plain hero, such as the All tools start field. */ children?: ReactNode; /** A card at the right end of a stage hero, above the loop. */ aside?: ReactNode; title: string; text?: string; media?: ReactNode; /** The loop fills the whole band behind the words, slowly drifting; the title rises word by word. */ stage?: boolean; /** One word of the title drawn in the brand yellow. */ accent?: string }) {
   const words = title.split(" ");
   const heading = stage ? words.map((word, i) => <span key={i} className={cx("ds-hero__word", accent && word === accent && "ds-hero__word--accent")} style={{ animationDelay: `${i * 90}ms` }}>{word}</span>) : title;
   if (stage) return (
@@ -4229,6 +4233,7 @@ export function Hero({ title, text, media, stage, accent, aside }: { /** A card 
       <div className="ds-hero__copy">
         <h2 className="ds-hero__title">{heading}</h2>
         {text && <p className="ds-hero__text">{text}</p>}
+        {children && <div className="ds-hero__actions">{children}</div>}
       </div>
       {media && (
         <div className="ds-hero__media">

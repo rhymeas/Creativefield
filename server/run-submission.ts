@@ -102,7 +102,7 @@ export async function prepareInvocation(client:PoolClient,catalogue:CapabilityBu
     // Skip work that would be discarded, while preserving resolution of masks
     // that already name a previously cleaned copy through the existing path.
     if(original?.storage_key&&!masks.some(mask=>maskNamesSource(mask?.metadata,original))){
-      const cleaned=await admitCleanVideoSource(client,store,workspaceId,original,cleanRule.fps,!!bundle.manifest.replaceContract||videoProbe);
+      const cleaned=await admitCleanVideoSource(client,store,workspaceId,original,cleanRule.fps,!!bundle.manifest.replaceContract||videoProbe||bundle.manifest.id==="openjutsu-h3-advanced");
       if(cleaned&&masks.every(mask=>maskNamesSource(mask?.metadata,{id:cleaned.asset.id,sha256:cleaned.asset.sha256}))){
         assets[cleanRule.sourceInput]=cleaned.asset;
         resolved.inputIds[cleanRule.sourceInput]=cleaned.asset.id;

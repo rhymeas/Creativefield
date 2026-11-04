@@ -2172,3 +2172,34 @@ button.ds-castcard__main { cursor: pointer; }
 .ds-floatrail__grip:active { cursor: grabbing; }
 .ds-floatrail__grip::before { content: ""; width: calc(26px * var(--ui-scale)); height: 3px; border-radius: var(--radius-full); background: var(--line-strong); }
 .ds-floatrail__grip:hover::before { background: var(--text-secondary); }
+
+/* PresetCard promo (rule 64): a few All tools tiles carry their picture or loop edge to edge, with the name in two bold display lines on a black scrim at the foot. */
+.ds-preset--promo { padding: 0; overflow: hidden; }
+.ds-preset--promo .ds-preset__art { flex: 1; aspect-ratio: auto; min-height: calc(200px * var(--ui-scale)); border-radius: inherit; place-items: stretch; }
+.ds-preset__art > video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ds-preset__over { position: absolute; inset: auto 0 0 0; display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-8) var(--space-4) var(--space-4); background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.55) 45%, rgba(0, 0, 0, 0.85) 100%); text-align: left; pointer-events: none; }
+.ds-preset__headline { max-width: 11ch; font-family: var(--font-display); font-weight: var(--weight-bold); font-size: var(--display-md); line-height: var(--lh-display-md); letter-spacing: var(--tracking-display); text-transform: uppercase; color: #fff; text-wrap: balance; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.ds-preset__overhint { font-size: var(--text-xs); line-height: var(--lh-xs); color: rgba(255, 255, 255, 0.72); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ds-hero__actions { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-3); }
+.ds-preset--promo .ds-preset__art > video, .ds-preset--promo .ds-preset__art > img { position: absolute; inset: 0; }
+.ds-preset--promo { position: relative; }
+.ds-preset--promo.ds-preset--featured::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; box-shadow: inset 0 0 0 1.5px var(--brand); pointer-events: none; }
+
+/* Rule 65: removing media is a small round X on the top-right corner of its box, shown on hover or focus. */
+.ds-iconbtn.ds-corner-x { position: absolute; top: calc(-7px * var(--ui-scale)); right: calc(-7px * var(--ui-scale)); bottom: auto; left: auto; z-index: 4; width: calc(20px * var(--ui-scale)); height: calc(20px * var(--ui-scale)); min-width: 0; min-height: 0; padding: 0; border-radius: var(--radius-full); background: var(--surface-control); border: 1px solid var(--line-strong); color: var(--text-secondary); box-shadow: var(--shadow-pop); opacity: 0; pointer-events: none; }
+.ds-iconbtn.ds-corner-x:hover { color: var(--text-primary); background: var(--surface-control-hover); }
+:is(.ds-thumb, .ds-shottile, .ds-upload, .ds-mediacard, .ds-kstrip__card):is(:hover, :focus-within) .ds-iconbtn.ds-corner-x { opacity: 1; pointer-events: auto; }
+.ds-upload--filled:has(> .ds-corner-x), .ds-mediacard:has(> .ds-corner-x) { overflow: visible; }
+.ds-upload--filled:has(> .ds-corner-x) > :is(img, video), .ds-mediacard:has(> .ds-corner-x) .ds-mediacard__media { border-radius: inherit; overflow: hidden; }
+.ds-upload--filled:has(> .ds-corner-x):hover > :is(img, video) { transform: none; }
+:is(.ds-reftray__row, .ds-thumbgrid--compact, .ds-shotstrip) { padding-top: calc(8px * var(--ui-scale)); padding-right: calc(8px * var(--ui-scale)); }
+/* An empty box names its input in a few quiet words, centred (rule 65). */
+.ds-upload:not(.ds-upload--filled) .ds-upload__label { color: var(--text-tertiary); font-weight: var(--weight-regular); }
+.ds-upload:not(.ds-upload--filled):hover .ds-upload__label { color: var(--text-secondary); }
+/* UploadPair: both boxes are squares of the same size, filled or empty. */
+.ds-uploadpair { align-items: start; }
+.ds-uploadpair :is(.ds-upload, .ds-mediacard) { aspect-ratio: 1; min-height: 0; }
+.ds-uploadpair .ds-upload:not(.ds-upload--filled) { padding: var(--space-2); }
+.ds-uploadpair .ds-mediacard__media { aspect-ratio: auto; height: 100%; }
+.ds-uploadpair :is(.ds-mediacard__media, .ds-upload--filled) :is(img, video) { width: 100%; height: 100%; aspect-ratio: auto; max-height: none; object-fit: cover; }
+.ds-uploadpair .ds-upload { box-sizing: border-box; width: 100%; }

@@ -11,6 +11,7 @@ import {transaction} from "./db";
 import {newId} from "./crypto";
 import type {DiskStore} from "./storage";
 import {fileSha256AndBytes,inspectNormalizedVideo} from "./video-extension-media";
+import {admitCleanVideoSource} from "./video-extension-prepare";
 import {canonical,prepareInvocation,enqueuePreparedRun} from "./run-submission";
 import type {CapabilityBundle} from "../src/capabilities/types";
 import {SCENE_ANCHOR_ID,SCENE_ANCHOR_FLUX_ID,sceneAnchorPrompt,sceneAnchorFluxPrompt,type SceneAnchorReview} from "../src/capabilities/scene-anchor";
@@ -20,8 +21,11 @@ const createSchema=z.object({projectId:z.uuid(),workerId:z.uuid(),videoAssetId:z
 const hash=(value:unknown)=>createHash("sha256").update(canonical(value)).digest("hex");
 
 async function frame(client:PoolClient,store:DiskStore,workspace:string,user:string,body:z.infer<typeof createSchema>,created:string[]){
-  const source=(await client.query("SELECT id,project_id,media_type,storage_key,sha256,bytes FROM assets WHERE workspace_id=$1 AND project_id=$2 AND id=$3",[workspace,body.projectId,body.videoAssetId])).rows[0];
-  if(!source||source.media_type!=="video")throw new HttpError(404,"Source video not found");
+  const original=(await client.query("SELECT id,project_id,media_type,content_type,storage_key,sha256,bytes,parent_id,metadata FROM assets WHERE workspace_id=$1 AND project_id=$2 AND id=$3",[workspace,body.projectId,body.videoAssetId])).rows[0];
+  if(!original||original.media_type!=="video")throw new HttpError(404,"Source video not found");
+  // Extract the scene from the same cleaned source used by video admission.
+  // The returned asset retains its own provenance; a clean clip remains unchanged.
+  const source=(await admitCleanVideoSource(client,store,workspace,original,24,true))?.asset??original;
   const file=await store.file(workspace,source.storage_key),bytes=await fileSha256AndBytes(file);
   if(bytes.sha256!==source.sha256||bytes.bytes!==Number(source.bytes))throw new HttpError(422,"The source video changed");
   const facts=await inspectNormalizedVideo(file);
