@@ -7,7 +7,10 @@ project's [`lib/advanced.ts`](https://github.com/D3voz/openjutsu/blob/7fe118bb5a
 defines the reference-branch removal and role defaults adapted in
 `src/capabilities/openjutsu-advanced.ts`.
 
-This experimental pack is registered for compilation, but is not yet offered as a verified UI feature. It needs real-worker verification before it can be promoted. The template uses Qwen3-VL 8B to describe pictures and identify roles,
+The app offers this as the multiple-character H3 workflow. One local 480p,
+2.33-second test replaced two people using the installed NVFP4 text encoder,
+FP16 video VAE and DMAD 4-step LoRA; longer clips and other scenes still need
+verification. The template uses Qwen3-VL 8B to describe pictures and identify roles,
 SAM 3.1 for people tracking, MiniMax H3 and its LoRA, and the upstream custom
 node packs. Models are acquired separately and are not included here.
 
@@ -18,4 +21,5 @@ duration, resolution and seed at node `20.roles`, `20.clip_seconds`,
 one to four contiguous worker-uploaded filenames, removes unused loader,
 resize and describer nodes and the corresponding plan/reference connections,
 and writes the role list. It does not bind or validate the video, configure
-other controls, check model readiness or submit the run.
+other controls, check model readiness or submit the run. The app accepts
+optional `@Image N` mentions followed by the person each reference replaces.

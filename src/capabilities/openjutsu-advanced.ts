@@ -6,6 +6,35 @@ type TitledNode = ApiGraph[string] & { _meta?: { title?: string } };
 type TitledGraph = Record<string, TitledNode>;
 const isLink = (value: unknown): value is [string, number] => Array.isArray(value) && value.length === 2 && typeof value[0] === "string" && Number.isInteger(value[1]);
 
+/** Associate optional @Image mentions with the corresponding ordered role. */
+export function openJutsuRoles(text:string,count:number):string[] {
+  const hits=[...text.matchAll(/@Image\s*(\d+)\b/gi)];
+  if(!hits.length)return text.split(/\r?\n/);
+  const roles=Array<string>(count).fill("");
+  const lines=text.split(/\r?\n/);
+  if(lines.every(line => [...line.matchAll(/@Image\s*\d+\b/gi)].length <= 1)) {
+    for(const line of lines) {
+      const match=line.match(/@Image\s*(\d+)\b/i);
+      if(!match)continue;
+      const n=Number(match[1])-1;
+      if(n<0||n>=count)throw new Error(`@Image ${n+1} has no attached character reference.`);
+      const before=line.slice(0,match.index).trim();
+      const after=line.slice(match.index!+match[0].length).replace(/^[\s,:;\-]+|[\s,:;\-]+$/g,"");
+      const replacement=before.match(/(?:replace|swap)\s+(.+?)\s+with\s*$/i);
+      roles[n]=replacement?.[1] ?? after;
+    }
+    return roles;
+  }
+  for(let i=0;i<hits.length;i++){
+    const n=Number(hits[i][1])-1;
+    if(n<0||n>=count)throw new Error(`@Image ${n+1} has no attached character reference.`);
+    const start=hits[i].index!+hits[i][0].length;
+    const end=hits[i+1]?.index??text.length;
+    roles[n]=text.slice(start,end).replace(/^[\s,:;\-]+|[\s,:;\-]+$/g,"");
+  }
+  return roles;
+}
+
 function titleId(graph: TitledGraph, title: string, classType: string): string {
   const matches = Object.entries(graph).filter(([, node]) => node._meta?.title === title && node.class_type === classType);
   if (matches.length !== 1) throw new Error(`The advanced workflow must contain one ${title} node.`);

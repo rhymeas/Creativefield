@@ -3,7 +3,7 @@ import type { CapabilityBundle, Invocation } from "./types";
 import { assertCloudGraphPolicy, assertLocalGraphPolicy, assertRoutePolicy, OPENJUTSU_ADVANCED_CLASSES } from "./policy";
 import {omitMissingReferences} from "./optional-image-references";
 import {keepSourceSubjectPrompt} from "./keep-subject";
-import {prepareOpenJutsuAdvancedCharacters} from "./openjutsu-advanced";
+import {openJutsuRoles,prepareOpenJutsuAdvancedCharacters} from "./openjutsu-advanced";
 
 /** Compiles only server-owned templates. Asset filenames must have been resolved by
  * the server after workspace ownership checks, never supplied as browser paths. */
@@ -15,7 +15,7 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
   /* A cloud route compiles the same template; only where the graph runs differs. */
   const cloud = route?.execution === "comfy_cloud";
   if (!route || (route.execution !== "local_comfy" && !cloud) || !allowed || !template) throw new Error("Selected route is unavailable");
-  const graphPolicy = cloud ? assertCloudGraphPolicy : (graph: ApiGraph) => assertLocalGraphPolicy(graph, manifest.id === "openjutsu-h3-advanced" && options.allowExperimental ? OPENJUTSU_ADVANCED_CLASSES : undefined);
+  const graphPolicy = cloud ? assertCloudGraphPolicy : (graph: ApiGraph) => assertLocalGraphPolicy(graph, manifest.id === "openjutsu-h3-advanced" ? OPENJUTSU_ADVANCED_CLASSES : undefined);
   assertRoutePolicy(route); graphPolicy(template);
   const silentImageOperation=manifest.imageArtifacts&&manifest.audioPolicies.length===0&&invocation.audioPolicy==="mute";
   if (!silentImageOperation&&!manifest.audioPolicies.includes(invocation.audioPolicy)) throw new Error("Audio policy is not supported by this workflow");
@@ -89,7 +89,7 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
       if (missing) throw new Error("Fill character references in order without empty slots.");
       filenames.push(filename);
     }
-    const roles = String(values.roles ?? "").split(/\r?\n/);
+    const roles = openJutsuRoles(String(values.prompt ?? values.roles ?? ""),filenames.length);
     while (roles.length && !roles[roles.length - 1].trim()) roles.pop();
     graph = prepareOpenJutsuAdvancedCharacters(graph, filenames, roles);
   }

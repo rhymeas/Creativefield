@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "title": "OpenJutsu multiple characters",
   "category": "replacement",
-  "description": "Experimental OpenJutsu H3 role-matched character replacement for one to four reference images. Requires real-worker qualification.",
+  "description": "Replace one to four people in a video using H3 and character references.",
   "inputs": [
     {
       "id": "source_video",
@@ -67,8 +67,8 @@
   ],
   "controls": [
     {
-      "id": "roles",
-      "label": "Who to replace (one line per image)",
+      "id": "prompt",
+      "label": "Who to replace",
       "type": "string",
       "default": "",
       "binding": {
@@ -125,7 +125,7 @@
       "execution": "local_comfy",
       "provider": "comfy-local",
       "upstreamProviders": [],
-      "implementation": "experimental",
+      "implementation": "implemented",
       "workflowId": "openjutsu-h3-advanced",
       "requirements": [
         {
@@ -469,10 +469,10 @@
         {
           "id": "model:h3-text",
           "kind": "model",
-          "name": "qwen3vl_32b_minimax_h3_int4_convrot.safetensors",
+          "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
           "location": "text_encoders",
           "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
-          "instructions": "Install qwen3vl_32b_minimax_h3_int4_convrot.safetensors in ComfyUI models/text_encoders."
+          "instructions": "Install qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors in ComfyUI models/text_encoders."
         },
         {
           "id": "model:visual-describer",
@@ -485,10 +485,10 @@
         {
           "id": "model:h3-video-vae",
           "kind": "model",
-          "name": "minimax_h3_video_vae_int8_convrot.safetensors",
+          "name": "minimax_h3_video_vae_fp16.safetensors",
           "location": "vae",
           "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
-          "instructions": "Install minimax_h3_video_vae_int8_convrot.safetensors in ComfyUI models/vae."
+          "instructions": "Install minimax_h3_video_vae_fp16.safetensors in ComfyUI models/vae."
         },
         {
           "id": "model:h3-audio-vae",
@@ -509,19 +509,19 @@
         {
           "id": "model:dmad",
           "kind": "model",
-          "name": "minimax_h3_DMAD_4step_full_lora_avg_rank_39_bf16.safetensors",
+          "name": "dmad_minimax_h3_4step_full_critic_comfyui.safetensors",
           "location": "loras",
           "source": "https://huggingface.co/ZhengmingYu/DMAD",
-          "instructions": "Install minimax_h3_DMAD_4step_full_lora_avg_rank_39_bf16.safetensors in ComfyUI models/loras."
+          "instructions": "Install dmad_minimax_h3_4step_full_critic_comfyui.safetensors in ComfyUI models/loras."
         }
       ],
       "evidence": [
-        "Unchanged upstream graph; no real-worker qualification yet."
+        "One local two-character 480p 2.33-second render with installed model variants; broader qualification pending."
       ]
     }
   ],
   "coverage": {
-    "local": "experimental",
+    "local": "implemented",
     "hosted": "planned"
   },
   "licenses": {
