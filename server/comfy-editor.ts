@@ -44,7 +44,8 @@ export function withSubmittedIds(workflow: EditorWorkflow): EditorWorkflow {
 }
 
 /** Runs only inside the isolated ComfyUI origin. Opens the graph a run submitted as a copy; it never queues a prompt. */
-export const RUN_SCRIPT = `const RUN_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const RUN_SCRIPT = `import { featureExportHandler, loadFeatureGraph, showFeatureError } from "/comfyfield-feature.js";
+const RUN_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function comfyApp() {
   return (window.comfyAPI && window.comfyAPI.app && window.comfyAPI.app.app) || window.app;
@@ -81,14 +82,13 @@ async function open() {
   const data = await response.json();
   // The editor restores the previous session's tabs after start-up; loading before that finishes loses our tab.
   await settled(app);
-  for (let attempt = 0; attempt < 2; attempt++) {
-    await app.loadGraphData(data.workflow, true, true, data.name);
-    await new Promise(function (resolve) { setTimeout(resolve, 1500); });
-    if ((app.graph.serialize().links || []).length >= data.workflow.links.length) return;
-  }
+  await loadFeatureGraph(app, data.workflow, data.name);
+  const parentOrigin = document.referrer ? new URL(document.referrer).origin : null;
+  const ids = JSON.stringify(data.workflow.extra?.comfyfield?.ids ?? null);
+  window.addEventListener("message", featureExportHandler(app, run, ids, window.parent, parentOrigin));
 }
 
-if (typeof window !== "undefined") open().catch(function (error) { console.warn("[ComfyField]", error.message); });
+if (typeof window !== "undefined") open().catch(function (error) { console.warn("[ComfyField]", error.message); showFeatureError(document, error.message); });
 `;
 
 /** The node types the run's worker has, needed to draw its graph in the editor. */

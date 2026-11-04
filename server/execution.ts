@@ -20,6 +20,8 @@ import {chainKeyPrefix,chainPart,type JobPart} from "./progress";
 import {compileJutsuRelay,planJutsuRelay} from "../src/capabilities/jutsu";
 import {inspectReplaceClip} from "./replace-clip-check";
 import {requestSchema,publicColumns,canonical,extension,prepareInvocation,enqueuePreparedRun,cancelRun} from "./run-submission";
+import {applyStoredRunGraphEdits} from "./run-graph-edits";
+import {editedRunRoutes} from "./edited-run";
 import {sdkClient,sdkTransportConfigured,sdkSupportsManifest,cloudInputs,sdkFailureReason} from "./sdk-client";
 import {measurePreservation} from "./edit-preservation";
 import {comfyCloudKey,scailChunksEnabled} from "./config";
@@ -629,7 +631,7 @@ export class ExecutionService {
       }
       const sourceFrames=await this.replaceSourceFrames(run,assets,bundle.manifest);
       const inputs=await this.uploadInputs(run,worker,assets,undefined,["h3-object-swap","openjutsu-h3-advanced"].includes(bundle.manifest.id));
-      const graph=compileRunGraph(bundle,run.invocation,inputs,sourceFrames);
+      const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,compileRunGraph(bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
       // A cancellation before prompt submission can complete without touching the worker queue.
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
       if(current.state==="cancel_requested") { await this.finish(run,"canceled");return; }
@@ -682,7 +684,7 @@ export class ExecutionService {
       const cloud=worker.kind==="cloud";
       const named=Object.fromEntries(assets.map(asset=>[asset.role,`comfyfield-${run.id}-${asset.id}.${extension(asset.content_type)}`]));
       const inputs=cloud?named:await this.uploadInputs(run,worker,assets,undefined,["h3-object-swap","openjutsu-h3-advanced"].includes(bundle.manifest.id));
-      const graph=compileRunGraph(bundle,run.invocation,inputs,sourceFrames);
+      const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,compileRunGraph(bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
       if(current.state==="cancel_requested"){await this.finish(run,"canceled");return;}
       await this.pool.query("UPDATE runs SET graph=$1,updated_at=now() WHERE workspace_id=$2 AND id=$3",[JSON.stringify(graph),run.workspace_id,run.id]);
@@ -1250,6 +1252,7 @@ async function chainPartOf(pool:Pool,workspaceId:string,key:string|undefined|nul
 
 export async function executionRoutes(app:FastifyInstance,pool:Pool,store:DiskStore,catalogue:CapabilityBundle[],registry:DirectRegistry=productionDirectRegistry,cancelNative?:(workspace:string,id:string)=>Promise<void>) {
   const service=new ExecutionService(pool,store,catalogue);
+  await editedRunRoutes(app,pool);
   jobFeedRoutes(app,pool,id=>service.developFrame(id));
   app.post(`${base}/runs`,async request=>{
     const {workspaceId}=ws.parse(request.params),user=await member(pool,request,workspaceId,"creator");

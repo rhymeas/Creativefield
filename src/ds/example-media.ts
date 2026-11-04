@@ -6,7 +6,7 @@ export function acceptsMediaType(accept:string,type:string):boolean {
   return !!mime&&accept.split(",").some(item=>{const rule=item.trim().toLowerCase();return rule==="*/*"||rule===mime||rule.endsWith("/*")&&mime.startsWith(rule.slice(0,-1))||mime.endsWith("/*")&&rule.startsWith(mime.slice(0,-1));});
 }
 export async function readExampleFile(path:string,accept:string):Promise<File>{
-  if(!/^\/(?:reels|examples|examples\/pool)\/[\w-][\w.-]*$/.test(path))throw new Error("This example cannot be used here.");
+  if(!/^\/(?:reels|examples|examples\/pool|examples\/promo)\/[\w-][\w.-]*$/.test(path))throw new Error("This example cannot be used here.");
   const response=await fetch(path);
   if(!response.ok)throw new Error("The example could not be loaded.");
   const blob=await response.blob(),name=path.split("/").pop()??"example";

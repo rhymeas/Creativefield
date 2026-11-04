@@ -60,13 +60,15 @@ It is an early preview, not a Photoshop clone. FotoField covers the everyday lay
 
 | All tools | Create Video |
 | --- | --- |
-| ![All tools](docs/screens/creativefield/all-tools.png) | ![Create Video with a camera move](docs/screens/creativefield/create-video-camera.png) |
+| ![All tools](docs/screens/creativefield/all-tools.png) | ![Create Video workspace](docs/screens/creativefield/create-video-camera.png) |
 | **FotoField editor** | **Keyframes workspace** |
 | ![FotoField editor](docs/screens/creativefield/fotofield-editor.png) | ![Keyframes workspace](docs/screens/creativefield/keyframes-preview.webp) |
-| **3D workspace** | **Nodes design preview** |
-| ![3D workspace](docs/screens/creativefield/3d.png) | ![Node design preview](docs/screens/creativefield/nodes-preview.webp) |
+| **3D workspace** | **Nodes editor** |
+| ![3D workspace](docs/screens/creativefield/3d.png) | ![Nodes editor with a sample image graph](docs/screens/creativefield/nodes-preview.webp) |
+| **Trim video** | |
+| ![Trim video workspace](docs/screens/creativefield/trim-video.png) | |
 
-The node screenshot is a design preview; the remaining screenshots show the real application in a demo project. They show the interface, not a claim about output quality.
+These screenshots show the application in a demo project. They show the interface, not a claim about output quality; the Nodes view shows a sample image graph.
 
 ### Camera moves are checked, not hoped for
 

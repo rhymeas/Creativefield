@@ -1,0 +1,4 @@
+/* Keep the trim result and its preview at a comfortable size without changing the editor panel. */
+.cf-video-edit .cf-production__content :is(.ds-slot, .ds-mediacard, .ds-trim__stage) {
+  width: min(60%, calc(100vw - 2 * var(--pad-page)));
+}

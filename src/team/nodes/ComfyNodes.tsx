@@ -80,8 +80,20 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
   const [feature,setFeature]=useState<string|null>(featureFromHash);
   const [run,setRun]=useState<string|null>(()=>runFromHash(location.hash));
   const [featureResult,setFeatureResult]=useState<FeatureResult|null>(null);
+  const [runError,setRunError]=useState("");
+  const [runNotice,setRunNotice]=useState("");
+  const [runEditingAvailable,setRunEditingAvailable]=useState(false);
   const frameRef=useRef<HTMLIFrameElement>(null);
-  useEffect(()=>{const sync=()=>{setFeature(featureFromHash());setRun(runFromHash(location.hash));setFeatureResult(null);};window.addEventListener("hashchange",sync);return()=>window.removeEventListener("hashchange",sync);},[]);
+  const runAttempt=useRef<{run:string;json:string;key:string}|null>(null);
+  useEffect(()=>{const sync=()=>{setFeature(featureFromHash());setRun(runFromHash(location.hash));setFeatureResult(null);setRunError("");setRunNotice("");runAttempt.current=null;};window.addEventListener("hashchange",sync);return()=>window.removeEventListener("hashchange",sync);},[]);
+  useEffect(()=>{
+    setRunEditingAvailable(false);
+    if(!run||!canEdit)return;
+    const controller=new AbortController();
+    request<{available:boolean}>(workspacePath(workspace.id,`runs/${encodeURIComponent(run)}/edited`),"GET",undefined,controller.signal)
+      .then(result=>setRunEditingAvailable(result.available===true)).catch(()=>{});
+    return()=>controller.abort();
+  },[workspace.id,run,canEdit]);
   const showShelf=!tool||tool==="workflows";
   const shelfPath=workspacePath(workspace.id,"workflow-imports");
 
@@ -140,26 +152,41 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
     }catch(cause){setShelfError((cause as Error).message);}
     finally{setShelfBusy("");}
   }
-  async function saveFeature(capabilityId:string){
+  async function editorGraph(identity:string):Promise<unknown>{
     const frame=frameRef.current?.contentWindow;
-    if(!frame||!src)return;
+    if(!frame||!src)throw new Error("The node editor is not ready yet.");
+    const origin=new URL(src,location.href).origin, id=crypto.randomUUID();
+    return new Promise<unknown>((resolve,reject)=>{
+      const timeout=window.setTimeout(()=>{window.removeEventListener("message",receive);reject(new Error("The node editor did not answer. Wait for it to finish loading and try again."));},10000);
+      function receive(event:MessageEvent){
+        if(event.origin!==origin||event.source!==frame||event.data?.type!=="comfyfield:feature-export"||event.data.id!==id)return;
+        window.clearTimeout(timeout);window.removeEventListener("message",receive);
+        if(event.data.error)reject(new Error(String(event.data.error)));else resolve(event.data.workflow);
+      }
+      window.addEventListener("message",receive);
+      frame.postMessage({type:"comfyfield:export-feature",id,feature:identity},origin);
+    });
+  }
+  async function saveFeature(capabilityId:string){
     setShelfBusy("feature");setShelfError("");setShelfNotice("");setFeatureResult(null);
     try{
-      const origin=new URL(src,location.href).origin, id=crypto.randomUUID();
-      const workflow=await new Promise<unknown>((resolve,reject)=>{
-        const timeout=window.setTimeout(()=>{window.removeEventListener("message",receive);reject(new Error("The node editor did not answer. Wait for it to finish loading and try again."));},10000);
-        function receive(event:MessageEvent){
-          if(event.origin!==origin||event.source!==frame||event.data?.type!=="comfyfield:feature-export"||event.data.id!==id)return;
-          window.clearTimeout(timeout);window.removeEventListener("message",receive);
-          if(event.data.error)reject(new Error(String(event.data.error)));else resolve(event.data.workflow);
-        }
-        window.addEventListener("message",receive);
-        frame.postMessage({type:"comfyfield:export-feature",id,feature:capabilityId},origin);
-      });
+      const workflow=await editorGraph(capabilityId);
       const result=await request<FeatureResult>(`${shelfPath}/feature-edit`,"POST",{capabilityId,json:JSON.stringify(workflow),...(worker?{workerId:worker.id}:{})});
       setFeatureResult(result);
       if(result.applied){setShelfNotice("Your version is saved and active. Restore the original from Your workflows.");await loadShelf();}
     }catch(cause){setShelfError((cause as Error).message);}
+    finally{setShelfBusy("");}
+  }
+  async function runEditedGraph(runId:string){
+    setShelfBusy("run");setRunError("");setRunNotice("");
+    try{
+      const json=JSON.stringify(await editorGraph(runId));
+      if(!runAttempt.current||runAttempt.current.run!==runId||runAttempt.current.json!==json)runAttempt.current={run:runId,json,key:crypto.randomUUID()};
+      await request(workspacePath(workspace.id,`runs/${encodeURIComponent(runId)}/edited`),"POST",{json,idempotencyKey:runAttempt.current.key});
+      runAttempt.current=null;
+      setRunNotice("Your edited graph was added to the render queue.");
+      void Promise.resolve().then(()=>onChanged?.()).catch(()=>{});
+    }catch(cause){setRunError((cause as Error).message);}
     finally{setShelfBusy("");}
   }
   async function publish(item:SavedWorkflow,published:boolean){
@@ -281,10 +308,14 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
       </div>}
       {run&&!feature&&<div className="cf-nodes__shelf">
         <div className="cf-nodes__shelf-head">
-          <SectionHeader title="Live run" />
+          <SectionHeader title="Run graph" />
           <LinkButton variant="secondary" href="#nodes">Back to the node editor</LinkButton>
         </div>
-        <Meta>This is a copy of the graph the run sent. The run keeps going. The editor shows the node it is working on and its progress.</Meta>
+        <Meta>This copy can be edited and queued as a new run. The original run is unchanged.</Meta>
+        {canEdit&&runEditingAvailable&&<Button disabled={!!shelfBusy||!loaded} onClick={()=>void runEditedGraph(run)}>Run edited graph</Button>}
+        {canEdit&&!runEditingAvailable&&<Meta>Running edited graphs is unavailable on this server version.</Meta>}
+        {runError&&<Notice inline priority={30} title="Could not start this run" details={runError}>Check the graph and try again.</Notice>}
+        {runNotice&&<StatusText tone="ok">{runNotice}</StatusText>}
       </div>}
       {showShelf&&<div className="cf-nodes__shelf">
         <div className="cf-nodes__shelf-head">
