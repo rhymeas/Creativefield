@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "title": "Fibo 2.0 image edit",
   "category": "image",
-  "description": "Describe an edit and optionally add up to three reference images. Fibo 2.0 Edit Turbo runs locally in four steps when its model and nodes are installed.",
+  "description": "Change a picture by saying what to change; everything else stays. Fibo 2.0 Edit Turbo ranks first among open image editors. Add up to three reference pictures for the look of the change. Runs on this computer in 4 steps.",
   "inputs": [
     {
       "id": "source_image",
@@ -249,7 +249,7 @@
     "weights": [
       {
         "name": "Fibo 2.0 Edit Turbo int8, Qwen3-VL 4B and 8B encoders, FLUX 2 VAE",
-        "license": "Fibo 2.0 weights: CC BY-NC 4.0 (non-commercial use only).",
+        "license": "Fibo 2.0 weights: CC BY-NC 4.0 (non-commercial use only; user accepted for local, non-commercial use on 2026-10-31).",
         "source": "https://huggingface.co/Comfy-Org/Fibo-2.0"
       }
     ]

@@ -24,7 +24,7 @@ The optional NVIDIA VFX pack uses ComfyUI Nvidia VFX Nodes, which is
 Apache-2.0. Its `nvidia-vfx` Python runtime is NVIDIA proprietary
 (`LicenseRef-NvidiaProprietary`), is installed separately from NVIDIA's package
 index and is not included or relicensed here. The pack downloads no model
-weights. See docs/NVIDIA-VFX.md and
+weights. See [docs/NVIDIA-VFX.md](docs/NVIDIA-VFX.md) and
 [docs/LICENSE-INVENTORY.md](docs/LICENSE-INVENTORY.md).
 
 The utility packs bg-remove-birefnet, upscale-image-esrgan, palette-transfer-image,
@@ -79,19 +79,3 @@ use official Comfy-Org workflow templates (MIT). Their model weights are install
 
 Grey-block to video (native-workflows/previs-to-video) uses the local MiniMax H3 core of the Comfy hub workflow
 "Minimax H3 Video Restyling" by Comfy Org; its paid API nodes are not used.
-
-License texts for the integrated third-party components listed above are preserved in third-party-licenses/.
-
-The older Wan pipelines in pipelines/ contain adapted ComfyUI workflow templates;
-see their README files and the workflow-templates license above. The Real-ESRGAN
-video graph in pipelines/enhance/realesrgan-x4 was authored for this app.
-Their separately installed model weights have their own terms. Some older
-manifest formats do not record machine-readable provenance or license fields;
-those records should not be treated as a complete model-license inventory.
-
-The lockfile also names separately installed npm dependencies. Among them,
-Sharp platform packages declare Apache-2.0 and LGPL-3.0-or-later components;
-caniuse-lite declares CC-BY-4.0, and the bundled Fontsource packages declare
-OFL-1.1. Their packages and upstream projects provide their license texts and
-notices. These dependencies are not bundled in this source export; review their
-terms and notices before redistributing a built package with dependencies.

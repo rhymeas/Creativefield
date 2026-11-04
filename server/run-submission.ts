@@ -74,7 +74,7 @@ export async function prepareInvocation(client:PoolClient,catalogue:CapabilityBu
   }else if(body.tracking)throw new HttpError(400,"Tracking input is not supported by this workflow");
   const inventory:WorkerInventory=structuredClone(worker.inventory??{online:false,nodes:[],models:[],credentials:[]});
   if(!worker.checked_at||Date.now()-new Date(worker.checked_at).getTime()>5*60*1000)inventory.online=false;
-  const readiness=capabilityReadiness(bundle.manifest,body.routeId,inventory);
+  const readiness=capabilityReadiness(bundle.manifest,body.routeId,inventory,body.presetId);
   if(readiness.state!=="ready")throw new HttpError(422,readiness.reasons.join(" "));
   const resolved=await resolveRunInputs(client,bundle.manifest,workspaceId,body.projectId,body.inputs,body.elementInputs);
   const assets=resolved.assets;

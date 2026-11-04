@@ -22,7 +22,7 @@ export function StartScreen({ready,onOpen}:{ready:Partial<Record<StartNeed,boole
   useEffect(()=>{let current=true;fetch("/examples/index.json").then(r=>r.ok?r.json():{}).then(map=>{if(current&&map&&typeof map==="object")setExamples(map as Record<string,string>);}).catch(()=>{});return()=>{current=false;};},[]);
   const all=startTasks(ready),led=all.find(t=>t.featured),shown=matchTasks(query.trim()?all:all.filter(t=>!t.featured),query);
   return <div className="cf-start">
-    <Hero stage accent="Free." title="Create. Free. On your computer." text="Edit photos in FotoField, make video, images and 3D. Open source and powered by ComfyUI. Cloud routes send media to their provider." media={<RotatingVideo srcs={[POOL_VIDEOS[LOAD_TURN%POOL_VIDEOS.length]]}/>} aside={led&&<PresetCard size="tool" featured badge="FotoField" label={led.label} hint={led.text} thumb={examples[led.id]?`/examples/${examples[led.id]}`:led.thumb} onSelect={()=>{if(onOpen)onOpen(led);else location.hash=led.href.slice(1);}}/>}/>
+    <Hero stage accent="Free." title="Create. Free. On your computer." text="Edit photos in FotoField, make video, images and 3D. Open source, powered by ComfyUI, nothing leaves your machine." media={<RotatingVideo srcs={[POOL_VIDEOS[LOAD_TURN%POOL_VIDEOS.length]]}/>} aside={led&&<PresetCard size="tool" featured badge="FotoField" label={led.label} hint={led.text} thumb={examples[led.id]?`/examples/${examples[led.id]}`:led.thumb} onSelect={()=>{if(onOpen)onOpen(led);else location.hash=led.href.slice(1);}}/>}/>
     <Toolbar end={<SearchField label="Search tools" value={query} onChange={setQuery} placeholder="Search tools"/>}>
       <SectionHeader title="All tools" large/>
     </Toolbar>

@@ -31,7 +31,7 @@ and clothing are reviewed per output; the model can change the scene.
 
 - Graph test on 2026-10-24: source `flux2-klein-t2i_00020_.png`, prompt
   `<mva> left side view, eye-level shot...`, ComfyUI prompt
-  `[local run]` succeeded.
+  `ee018f56-50af-4999-8be0-d4bbbcb00c24` succeeded.
 - Output `ComfyField/qwen-image-21-angles_00001.png`, 1,246,161 bytes. The
   inspected result is a genuine different side of the red cabin, not the
   source view.

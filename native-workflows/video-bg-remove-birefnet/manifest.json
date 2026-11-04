@@ -114,7 +114,7 @@
       ],
       "evidence": [
         "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/video-bg-remove-birefnet.json (MIT, commit c307034); only the output file prefix was set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
-        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, no GPU), workflow hash 093c2a44cac8, 354 s. Input: 1 s, 12 fps, 320 px wide cut of Pexels clip-woman-walking.mp4 (12 frames). Result: VP9 WebM with alpha flag (alpha_mode 1) and a matte MP4, both 320x180, 1.00 s; one frame looked at: clean outline on a blue background, matte matches. Only 12 small frames; CPU time 354 s, so long or large clips are slow. Sound not carried over. Receipt: scripts/utility-packs-e2e.mjs."
+        "2026-10-30: run c7e28218-97a6-44b2-bebb-0589f275cb58 through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, no GPU), workflow hash 093c2a44cac8, 354 s. Input: 1 s, 12 fps, 320 px wide cut of Pexels clip-woman-walking.mp4 (12 frames). Result: VP9 WebM with alpha flag (alpha_mode 1) and a matte MP4, both 320x180, 1.00 s; one frame looked at: clean outline on a blue background, matte matches. Only 12 small frames; CPU time 354 s, so long or large clips are slow. Sound not carried over. Receipt: scripts/utility-packs-e2e.mjs."
       ]
     }
   ],

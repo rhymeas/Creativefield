@@ -69,22 +69,70 @@ reported as `WARN` with the next command, so the same check works before the
 first start and after `npm start`.
 
 
+Verified on 2026-10-24: `npm run package:release` produced
+`release/comfyfield-0.1.0-<timestamp>.tar.gz` with **870 files, 24 MB** and a printed
+SHA-256. The archive holds `LICENSE`, `README.md`, `package.json`, `.env.example`,
+`docs/` (93 files), `scripts/` (40) and `fixtures/` (26, the openly licensed test media),
+and it leaves out `.comfyfield/`, `node_modules/` and `dist/` — so it contains no
+database, no generated media and no secrets. `release/` is gitignored.
 ### Source release archive
 
-`npm run package:release` packages only the files listed with matching SHA-256 hashes in a manually reviewed local release manifest. It refuses packaging without that manifest. Review source, media and metadata before preparing a public export. The resulting archive and checksum are written under the ignored `release/` directory.
+Create a reproducible source archive from the current worktree:
 
-### Run rendering on another worker
+```bash
+npm run package:release
+```
 
-A compatible ComfyUI worker can run on another machine. Configure a reachable HTTP(S) origin and required nodes and models; provider and model terms still apply.
+It writes `release/comfyfield-<version>-<UTC timestamp>.tar.gz` and a sibling
+`.sha256` file. The archive contains tracked and non-ignored source files:
+license, setup docs, native workflow manifests/templates, server, UI and scripts.
+It excludes `node_modules/`, `dist/`, `.comfyfield/`, `release/`, renders,
+screenshots, model weights and secret-looking files such as `app.env`, `.env`,
+keys and certificates. Extract it, then run `npm install`, `npm run doctor`,
+`npm start`. This is packaging, not a rehearsal on a fresh machine.
+
+### Run the rendering somewhere else
+
+The local 64 GB machine is the binding constraint here, not the GPU: the free-RAM gate holds
+runs at about 9.6 GB free whatever the 3090/4090 is doing. You can move execution to a
+ComfyUI that runs elsewhere — a rented GPU, another workstation, a colleague's box.
+
+Nothing in the app assumes a local worker: a worker is just an HTTP(S) origin, and the free-
+RAM check reads **that** worker's own `system_stats`. So offloading removes the local limit.
 
 ```bash
 npm run worker:remote list
-npm run worker:remote add "Remote worker" https://example.com
+npm run worker:remote add "Rented 4090" https://<pod>-8188.proxy.runpod.net
 npm run worker:remote probe <workerId>
-npm run worker:remote point https://example.com
+npm run worker:remote point https://<pod>-8188.proxy.runpod.net   # repoint the default worker
 ```
 
-Adding a worker keeps the existing worker; pointing changes the enabled worker and clears its inventory until it is probed again. Some workflows also support optional cloud routes. Check the selected route and worker before submitting inputs. See [OFFLOAD-GPU.md](OFFLOAD-GPU.md) for remote setup.
+`add` keeps the local worker beside the remote one, so both show in each panel's **Worker**
+row and you choose per run. `point` rewrites the enabled worker and clears its inventory so
+the app probes the new origin before trusting readiness.
+
+**Freeing the worker by hand.** `npm run worker:remote free` asks the worker to unload its
+models and prints the resulting free RAM. It refuses while the queue is busy, for the same
+reason the app does: freeing a worker mid-job would kill the job. On this machine it returned
+HTTP 200 and the free RAM stayed at **4 of 69 GB**, which is the honest result — the pressure
+here is other software, not ComfyUI's loaded models.
+**The full list for the remote box** — base image, third-party packs and all 34 model files, generated from the manifests — is in [OFFLOAD-GPU.md](OFFLOAD-GPU.md).
+
+**Choosing it in the app.** Each panel has a **Worker** row that opens a dialog listing every
+worker with its state — observed here with three rows: *Precision QA worker · Offline · The
+selected execution service is not reachable*, *Local ComfyUI · Ready*, *Rented GPU · Ready*.
+So picking where a run executes is one click, and a worker that cannot run the capability shows
+Offline or asks you to choose rather than failing the run.
+**What the remote box must have** — the same ComfyUI version, the same custom nodes (SCAIL-2,
+SAM 3.1, Wan Animate, VACE, the Klein helpers) and the same model files, or the capability
+shows `install_required` / `download_required` instead of ready. The app tells you which:
+`npm run worker:remote probe` prints every capability that is not ready and why.
+
+**What stays local** — the app, PostgreSQL, the library and FFmpeg assembly (trims, storyboard
+assembly, exports). Those are light; the heavy model work is what leaves.
+
+**Comfy Cloud / hosted APIs** are a different matter: the code only registers `local_comfy`
+execution, and the policy refuses hosted execution on those routes.
 
 ## 2. Backup
 
@@ -98,9 +146,8 @@ supported backup is a **cold, file-level copy** of the whole home while the app
 is stopped. This is consistent because PostgreSQL is shut down cleanly; it is
 not a hot backup and offers no point-in-time recovery.
 
-1. Stop the app (`Ctrl+C`) and confirm its PostgreSQL instance has stopped.
-   The backup command checks the app health endpoint, but that check alone does
-   not establish that a separately running database has stopped.
+1. Stop the app (`Ctrl+C`). `npm run backup` refuses to run while
+   `http://127.0.0.1:8787/api/v1/health` still answers.
 2. Run:
 
    ```bash
@@ -110,8 +157,8 @@ not a hot backup and offers no point-in-time recovery.
 
 3. The command copies `app.env`, `postgres/` and `storage/`, writes
    `manifest.json` (format version, timestamp, app version, per-entry file count
-   and bytes) and verifies file counts and sizes against that manifest. A mismatch
-   fails the command; this is not a full data-integrity check.
+   and bytes) and verifies the copy against that manifest. A mismatch fails the
+   command instead of leaving a silent partial backup.
 
 Manual equivalent, if Node is unavailable: stop the app and copy the complete
 home folder with Explorer or `robocopy <home> <target> /E /COPY:DAT`. Keep
@@ -125,9 +172,43 @@ Rules:
   into a scratch home verifies readability without touching the live one.
 - Do not edit `manifest.json`; restore validates entries and sizes against it.
 
-### Backup and restore notes
+Verified on 2026-10-24 end to end: with the app stopped, `npm run backup` wrote
+`backups/comfyfield-backup-2026-10-25T12-56-09Z` — **549 MB, 2273 files** — and the app
+started again five seconds later with its data intact (assets listed, screens render).
 
-Create a cold backup while the app and database are stopped. Preserve the matching `app.env`, database and storage together; losing the master key can make saved provider credentials unavailable. The launcher requests database shutdown on a normal exit. After an unexpected interruption, check the owning process before recovery. Backup and restore skip transient PostgreSQL runtime files.
+While the app is running the command refuses politely instead of copying a live
+cluster: *"The app still answers on 127.0.0.1:8787. Stop it first (Ctrl+C in its
+terminal) so the database closes cleanly."* That refusal is the correct behaviour, and
+it prints a warning that the folder contains `app.env` (database password and master
+key) and must be stored protected.
+
+### A restore used to produce a home that could not start (fixed 2026-10-24)
+
+Restoring the backup into a *different* home failed with
+*"PostgreSQL cluster ownership does not match this launcher."* The cause was a runtime
+file: `postgres/postmaster.pid` travelled inside the backup and names the **old data
+directory** and port, so the launcher read it, saw another path and refused.
+
+Both halves are now verified: a fresh backup taken after the fix contains **no**
+`postmaster.pid`, `postmaster.opts` or `launcher.log` (2272 files instead of 2273), and
+restoring the older backup that still carried the pid file also starts. The backup test
+suite passes (5 tests).
+`scripts/local-backup-lib.mjs` now skips the PostgreSQL runtime files
+(`postmaster.pid`, `postmaster.opts`, `launcher.log`) **both when writing a backup and
+when restoring one**, so an existing backup taken before the fix also restores
+correctly.
+
+Verified end to end: the backup restored into `.comfyfield-restore-test`, its cluster
+recovered and accepted connections, and `npm start` served that copy with real data —
+3 assets (first `product-mug-white.jpg`), 53 catalogue manifests and 17 storyboards.
+One environment note for anyone repeating this: the launcher starts PostgreSQL
+detached, so stopping the app leaves the old postmaster holding port 55433; stop it
+with `pg_ctl -D <home>/postgres -m fast stop` before starting a restored copy on the
+same port.
+
+The backup folder's own `manifest.json` records `formatVersion`, `createdAt`,
+`appVersion`, `sourceServerPort` and the size of each entry: `app.env` 375 B,
+`postgres/` 77 MB over 1621 files, `storage/` 499 MB over 651 files.
 
 ## 3. Restore
 
@@ -157,7 +238,7 @@ Typical cases:
 
 | Symptom | Cause | Action |
 |---|---|---|
-| `npm start` stops: `app.env` missing but data exists | Secrets file lost or moved | Restore the matching `app.env` from backup; do not re-run setup over existing data |
+| `npm start` stops: `app.env` missing but data exists | Secrets file lost or moved | Restore `app.env` from backup. Without a backup the cluster cannot be decrypted; do not re-run setup over it |
 | PostgreSQL will not start, `postmaster.pid` remains | Unclean shutdown or crash | Check that no `postgres.exe` runs, then restore the last cold backup. Removing `postmaster.pid` manually is not a supported repair for a damaged cluster |
 | Database starts but migrations fail | Interrupted upgrade or corrupted schema | Stop, keep the home for diagnosis, restore the pre-upgrade backup |
 | Media missing in the app | `storage/` deleted or moved | Restore `storage/` from backup; database rows alone do not contain media |

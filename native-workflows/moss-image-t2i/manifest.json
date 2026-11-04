@@ -82,7 +82,7 @@
       "evidence": [
         "Adapted official Comfy-Org workflow_templates at 86ce86e92ec77e3c3c6d4a754e69cfce37886542; source SHA-256 91d76c158a1e427c09904c6222978065c1ed965c8b3f40ae323e649808af2198.",
         "Retains the official SFT INT8 model, Qwen 3.5 W4A8 encoder, small Flux 2 VAE, 25-step, CFG 2.5, er_sde/simple defaults. The optional prompt upsampler and skip-layer branches are disabled for a direct, bounded first test.",
-        "Catalogue, schema, graph-policy and readiness integration have checks. Model loading, generation and image-quality qualification remain unverified."
+        "Packaged direct-prompt API graph SHA-256: 38ff285e28a2e5832c7402cb3ed461c86da78392575ff04b7ef85db19394398a. Catalogue, schema, graph-policy and readiness integration are tested. The current local worker lacks the moss_image CLIP type and all three model files; no model loading, generation, speed, memory or image-quality qualification has been performed."
       ]
     }
   ],

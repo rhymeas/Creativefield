@@ -84,7 +84,7 @@
       ],
       "evidence": [
         "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/bg-remove-birefnet.json (MIT, commit c307034); only SaveImage/SaveGLB output prefixes were set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
-        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, so no GPU was used), workflow hash 71d7687c2dd1, 34 s. Input: Pexels fixture product-mug-white.jpg at 768 px. Result: 768x1152 RGBA PNG, 84% transparent and 16% opaque; looked at on a flat blue background, the outline of the mug is clean. One simple subject only: hair, glass and busy backgrounds are not tested. Receipt: scripts/utility-packs-e2e.mjs."
+        "2026-10-30: run b3790c4f-2470-456e-9e02-a7642a2e78f8 through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, so no GPU was used), workflow hash 71d7687c2dd1, 34 s. Input: Pexels fixture product-mug-white.jpg at 768 px. Result: 768x1152 RGBA PNG, 84% transparent and 16% opaque; looked at on a flat blue background, the outline of the mug is clean. One simple subject only: hair, glass and busy backgrounds are not tested. Receipt: scripts/utility-packs-e2e.mjs."
       ]
     }
   ],

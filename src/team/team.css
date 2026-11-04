@@ -26,6 +26,7 @@
 .cf-workspace-picker { max-width:var(--panel-w); }
 .cf-workspace-picker .ds-pill { max-width:100%; }
 .cf-production { display:flex; align-items:flex-start; gap:calc(var(--gap-section) + var(--gap-inline)); min-width:0; }
+.cf-frame-inputs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--gap-inline); align-items:start; }
 .cf-production__content { flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gap-block); }
 /* A production panel starts under the top bar, the workspace bar and the page's own padding, so its cap
    takes those three away: the body scrolls and the footer (the Generate button) stays inside the work

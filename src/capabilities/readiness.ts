@@ -16,12 +16,14 @@ export function cloudRoute(manifest: CapabilityManifestV2) {
   return manifest.routes.find(r => r.execution === "comfy_cloud" && r.implementation === "implemented");
 }
 
-export function capabilityReadiness(manifest: CapabilityManifestV2, routeId: string, inventory: WorkerInventory): Readiness {
+export function capabilityReadiness(manifest: CapabilityManifestV2, routeId: string, inventory: WorkerInventory, presetId?:string): Readiness {
   const route = manifest.routes.find(r => r.id === routeId);
   /* A cloud-only pack has no local route, and the panel asks about the local one first: say where
      the workflow runs instead of calling the missing route unimplemented. */
   if (!route && manifest.routes.some(r => r.execution === "comfy_cloud")) return { state: "unsupported", reasons: [CLOUD_ONLY_REASON], missing: [] };
   if (!route || route.implementation === "planned") return { state: "unsupported", reasons: ["This execution route has not been implemented and qualified."], missing: [] };
+  if(presetId&&!manifest.presets.some(p=>p.id===presetId))return {state:"incompatible",reasons:["The selected effect is unavailable in this workflow."],missing:[]};
+  if(manifest.id==="h3-effects"&&presetId&&!route.requirements.some(r=>r.id===`model:h3-effect-${presetId}`))return {state:"incompatible",reasons:["The selected effect has no verified model requirement."],missing:[]};
   try { assertRoutePolicy(route); } catch { return { state: "incompatible", reasons: ["Execution route violates the independent-provider policy."], missing: [] }; }
   const cloudRoute = route.execution === "comfy_cloud";
   if (route.execution !== "local_comfy" && !cloudRoute) return { state: "unsupported", reasons: ["Hosted execution requires a qualified server adapter; worker inventory and saved credentials do not enable it."], missing: [] };
@@ -36,7 +38,9 @@ export function capabilityReadiness(manifest: CapabilityManifestV2, routeId: str
   const hasModel = (r: Requirement) => cloudModels
     ? !cloudFiles || cloudFiles.includes(r.name) || inventory.models.includes(r.name) || inventory.models.includes(`${r.location}/${r.name}`)
     : inventory.models.includes(`${r.location}/${r.name}`);
-  const missing = route.requirements.filter(r => r.kind === "node" ? !inventory.nodes.includes(r.name)
+  // The H3 effect embeddings are alternatives, not a bundle used by every run.
+  const required=manifest.id==="h3-effects"?route.requirements.filter(r=>!r.id.startsWith("model:h3-effect-")||r.id===`model:h3-effect-${presetId}`):route.requirements;
+  const missing = required.filter(r => r.kind === "node" ? !inventory.nodes.includes(r.name)
     : r.kind === "model" ? !hasModel(r)
     : r.kind === "credential" ? !inventory.credentials.includes(r.name) : true);
   if (!inventory.online) return { state: "offline", reasons: ["The selected execution service is not reachable."], missing };

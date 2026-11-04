@@ -2,7 +2,8 @@ import {useRef,useState} from "react";
 import {Button,Meta,Notice,Panel,SectionHeader,TextField} from "../ds";
 import {request} from "./api";
 import logo from "../assets/creativefield-logo-trim.png";
-export function AuthPanel({onSignedIn,embedded=false}:{onSignedIn:()=>Promise<void>;embedded?:boolean}){
+/** `serverError` is a failed session check; it shows inside the card, next to the form it blocks. */
+export function AuthPanel({onSignedIn,embedded=false,serverError,onRetry}:{onSignedIn:()=>Promise<void>;embedded?:boolean;serverError?:string;onRetry?:()=>void}){
   const [invite,setInvite]=useState(false),[email,setEmail]=useState(""),[password,setPassword]=useState(""),[token,setToken]=useState(""),[busy,setBusy]=useState(false),[error,setError]=useState("");
   const first=useRef<HTMLInputElement>(null);
   async function submit(e:React.FormEvent){
@@ -22,6 +23,7 @@ export function AuthPanel({onSignedIn,embedded=false}:{onSignedIn:()=>Promise<vo
       {error&&(/^Invitation accepted/.test(error)
         ?<Notice tone="info" title="Invitation accepted">{error.replace(/^Invitation accepted\.\s*/,"")}</Notice>
         :<Notice inline priority={60} title="Sign-in failed">{error}</Notice>)}
+      {serverError&&!error&&<Notice inline priority={60} title="Server not reachable" actions={onRetry&&<Button variant="secondary" onClick={onRetry}>Retry</Button>}>Start the team server, then retry.</Notice>}
       <Button variant="primary" disabled={busy} type="submit">{busy?"Please wait…":invite?"Accept invitation":"Sign in"}</Button>
       <Button variant="ghost" type="button" disabled={busy} onClick={()=>{setInvite(!invite);setError("");setPassword("");}}>{invite?"Back to sign in":"Have an invitation?"}</Button>
     </form></Panel>

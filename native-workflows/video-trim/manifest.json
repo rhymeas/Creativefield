@@ -84,7 +84,7 @@
       ],
       "evidence": [
         "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/video-trim.json (MIT, commit c307034); only the output file prefix was set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
-        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, no GPU), workflow hash a7f944a0dc91, 9 s. Input: Pexels clip-ocean-waves.mp4 as a 5 s, 480 px wide copy without sound; start 1, length 2. Result: 480x270, 2.00 s. Whether sound is kept was not tested (the test clip had none). Receipt: scripts/utility-packs-e2e.mjs."
+        "2026-10-30: run cb23eb99-d1bf-44e5-a611-50e608bf428b through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, no GPU), workflow hash a7f944a0dc91, 9 s. Input: Pexels clip-ocean-waves.mp4 as a 5 s, 480 px wide copy without sound; start 1, length 2. Result: 480x270, 2.00 s. Whether sound is kept was not tested (the test clip had none). Receipt: scripts/utility-packs-e2e.mjs."
       ]
     }
   ],

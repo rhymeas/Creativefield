@@ -78,16 +78,5 @@
         "file": "wan2.2_vae.safetensors"
       }
     ]
-  },
-  "licenses": {
-    "software": "Adapted from Comfy-Org/workflow_templates video_wan2_2_5B_ti2v (MIT; notice preserved in third-party-licenses/workflow-templates.txt). ComfyUI core is GPL-3.0. Integration changes follow this repository's GPL-3.0-only license.",
-    "weights": []
-  },
-  "sources": [
-    {
-      "url": "https://github.com/Comfy-Org/workflow_templates/blob/main/templates/video_wan2_2_5B_ti2v.json",
-      "observedAt": "2026-10-16",
-      "kind": "implementation"
-    }
-  ]
+  }
 }

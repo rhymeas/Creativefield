@@ -1,0 +1,80 @@
+/* CameraPoseStage: aim the camera on the picture. The start frame sits in the middle two thirds of the stage;
+   the accent end frame stays where it is put; the monitor plays the move once and holds its end. Tokens only. */
+.ds-campose { display: grid; gap: var(--space-3); }
+.ds-campose__stage { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--radius-xl); background: var(--surface-page); box-shadow: inset 0 0 0 1px var(--line-strong); cursor: crosshair; touch-action: none; user-select: none; outline: none; }
+.ds-campose__stage:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.ds-campose[data-disabled] .ds-campose__stage { cursor: default; opacity: .6; }
+.ds-campose__world { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.ds-campose__beyond { position: absolute; inset: -6%; width: 112%; height: 112%; object-fit: cover; filter: blur(10px) brightness(.45) saturate(.7); pointer-events: none; }
+.ds-campose__picture { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.ds-campose__picture--start { inset: 16.667%; width: 66.667%; height: 66.667%; border-radius: var(--radius-xs); }
+.ds-campose__start { position: absolute; inset: 16.667%; border: 1.5px dashed var(--text-tertiary); border-radius: var(--radius-xs); pointer-events: none; }
+.ds-campose__start b, .ds-campose__end b { position: absolute; top: 4px; left: 6px; padding: 1px var(--space-2); border-radius: var(--radius-xs); background: var(--surface-overlay); color: var(--text-primary); font-size: var(--text-2xs); line-height: var(--lh-2xs); font-weight: var(--weight-medium); }
+.ds-campose__path { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.ds-campose__path line { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; animation: ds-campose-march 1s linear infinite; }
+@keyframes ds-campose-march { to { stroke-dashoffset: -9; } }
+.ds-campose__end { position: absolute; border: 2px solid var(--accent); border-radius: var(--radius-xs); box-shadow: 0 0 0 9999px var(--surface-glass), var(--accent-glow); cursor: move; transition: box-shadow var(--dur-fast) var(--ease); }
+.ds-campose__end b { background: var(--accent); color: var(--text-on-accent); }
+.ds-campose__end i { position: absolute; width: 12px; height: 12px; border-radius: var(--radius-full); background: var(--text-primary); box-shadow: 0 0 0 2px var(--accent); }
+.ds-campose__end i[data-handle="nw"] { left: -7px; top: -7px; cursor: nwse-resize; }
+.ds-campose__end i[data-handle="ne"] { right: -7px; top: -7px; cursor: nesw-resize; }
+.ds-campose__end i[data-handle="sw"] { left: -7px; bottom: -7px; cursor: nesw-resize; }
+.ds-campose__end i[data-handle="se"] { right: -7px; bottom: -7px; cursor: nwse-resize; }
+.ds-campose__end[data-still] { border-style: dashed; box-shadow: none; }
+
+/* The camera view: one pass from the start to the chosen end, then it stays there. */
+.ds-campose__monitor { position: absolute; right: var(--space-3); bottom: var(--space-3); z-index: 2; width: 26%; aspect-ratio: 16 / 9; overflow: hidden; padding: 0; border: 2px solid var(--text-primary); border-radius: var(--radius-sm); background: var(--surface-page); box-shadow: var(--shadow-pop); cursor: pointer; }
+.ds-campose__view { position: absolute; inset: 0; display: block; transform-origin: 50% 50%; animation: ds-campose-move 2.4s var(--ease) .2s both; }
+.ds-campose__view .ds-campose__world { overflow: visible; }
+.ds-campose__view .ds-campose__beyond { inset: -60%; width: 220%; height: 220%; }
+@keyframes ds-campose-move { from { transform: none; } to { transform: var(--end); } }
+.ds-campose__monitor-label { position: absolute; left: 4px; top: 4px; display: inline-flex; align-items: center; gap: 4px; padding: 1px var(--space-1); border-radius: var(--radius-xs); background: var(--surface-overlay); color: var(--text-primary); font-size: var(--text-3xs); line-height: var(--lh-3xs); }
+.ds-campose__monitor-label::before { content: ""; width: 5px; height: 5px; border-radius: var(--radius-full); background: var(--accent); animation: ds-campose-rec 1s steps(1) infinite; }
+@keyframes ds-campose-rec { 50% { opacity: 0; } }
+.ds-campose__readout { margin-right: auto; color: var(--text-secondary); font-size: var(--text-sm); line-height: var(--lh-sm); font-variant-numeric: tabular-nums; }
+
+/* The drawn world: flat token colours, a few living details (twinkling stars, drifting clouds, a waving figure). */
+.ds-campose__world .w-sky { fill: var(--surface-control); }
+.ds-campose__world .w-stars { fill: var(--text-tertiary); animation: ds-campose-twinkle 3s ease-in-out infinite alternate; }
+.ds-campose__world .w-moon { fill: var(--surface-subtle); stroke: var(--text-muted); }
+.ds-campose__world .w-crater { fill: var(--line-hover); }
+.ds-campose__world .w-cloud { fill: var(--line-strong); animation: ds-campose-cloud 26s linear infinite alternate; }
+.ds-campose__world .w-cloud--slow { animation-duration: 40s; animation-direction: alternate-reverse; }
+.ds-campose__world .w-far { fill: var(--surface-control-hover); }
+.ds-campose__world .w-snow { fill: var(--text-muted); }
+.ds-campose__world .w-mid { fill: var(--surface-panel); }
+.ds-campose__world .w-trees { fill: var(--line-hover); }
+.ds-campose__world .w-house rect:first-child, .ds-campose__world .w-house path { fill: var(--surface-control-hover); stroke: var(--line-hover); stroke-width: .5; }
+.ds-campose__world .w-window { fill: var(--accent-ring); animation: ds-campose-twinkle 2.2s ease-in-out infinite alternate; }
+.ds-campose__world .w-lake { fill: var(--surface-input); }
+.ds-campose__world .w-ripples, .ds-campose__world .w-moonpath { fill: none; stroke: var(--line-hover); stroke-width: .8; stroke-linecap: round; }
+.ds-campose__world .w-moonpath { stroke: var(--text-muted); }
+.ds-campose__world .w-shore { fill: var(--surface-panel); }
+.ds-campose__world .w-road { fill: none; stroke: var(--line-strong); stroke-width: 5; stroke-linecap: round; }
+.ds-campose__world .w-subject { fill: var(--accent); }
+.ds-campose__world .w-arm { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; transform-box: fill-box; transform-origin: 0% 100%; animation: ds-campose-wave .9s ease-in-out infinite alternate; }
+.ds-campose__world .w-lamp { fill: none; stroke: var(--text-muted); stroke-width: 1; }
+.ds-campose__world .w-light { fill: var(--accent-ring); }
+.ds-campose__world .w-near { fill: var(--surface-page); }
+.ds-campose__world .w-rocks { fill: var(--surface-control); }
+.ds-campose__world .w-grass { fill: none; stroke: var(--line-hover); stroke-width: 1; stroke-linecap: round; }
+@keyframes ds-campose-twinkle { from { opacity: .45; } to { opacity: 1; } }
+@keyframes ds-campose-cloud { from { transform: translateX(-12px); } to { transform: translateX(12px); } }
+@keyframes ds-campose-wave { from { transform: rotate(-25deg); } to { transform: rotate(20deg); } }
+
+@media (prefers-reduced-motion: reduce) { .ds-campose *, .ds-campose *::before { animation: none !important; } .ds-campose__view { transform: var(--end); } }
+
+/* Inline in a side panel: the stage at panel width, its labels and monitor scaled down, and one slim tool line. */
+.ds-campose-inline { display: grid; gap: var(--space-1); }
+.ds-campose-inline .ds-campose__stage { border-radius: var(--radius-lg); }
+.ds-campose-inline .ds-campose__start b, .ds-campose-inline .ds-campose__end b { top: 2px; left: 3px; padding: 0 var(--space-1); font-size: var(--text-3xs); line-height: var(--lh-3xs); }
+.ds-campose-inline .ds-campose__end i { width: 9px; height: 9px; }
+.ds-campose-inline .ds-campose__end i[data-handle="nw"] { left: -5px; top: -5px; }
+.ds-campose-inline .ds-campose__end i[data-handle="ne"] { right: -5px; top: -5px; }
+.ds-campose-inline .ds-campose__end i[data-handle="sw"] { left: -5px; bottom: -5px; }
+.ds-campose-inline .ds-campose__end i[data-handle="se"] { right: -5px; bottom: -5px; }
+.ds-campose-inline .ds-campose__monitor { display: none; }
+.ds-campose-inline .ds-campose__monitor-label { display: none; }
+.ds-campose-inline__bar { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.ds-campose-inline__readout { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text-secondary); font-size: var(--text-xs); line-height: var(--lh-xs); font-variant-numeric: tabular-nums; }
+.ds-campose-inline__bar .ds-iconbtn { width: 26px; height: 26px; min-width: 26px; min-height: 26px; }

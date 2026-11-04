@@ -1,5 +1,5 @@
 import {useEffect, useState} from "react";
-import {MediaCard, Meta, SectionHeader} from "../../ds";
+import {MediaCard, Meta} from "../../ds";
 import {assetUrl, workspacePath, type Call} from "../../team/api";
 import {blankCanvas, loadBitmap} from "./bitmaps";
 import {documentKeys, mapDocumentKeys} from "./document-keys";
@@ -41,7 +41,7 @@ export function RecentDocuments({records, workspaceId, projectId, call, busy, on
   }, [signature, workspaceId, projectId, call]);
   if (!recent.length) return null;
   return <section className="cf-editor-recent" aria-label="Recent documents">
-    <SectionHeader title="Recent documents"/>
+    <h2>Recent documents</h2>
     <div className="cf-editor-recent__grid">
       {recent.map(record => <MediaCard key={record.id} title={record.name}
         meta={<Meta>{record.kind === "recovery" ? "Draft · " : ""}{new Date(record.updated_at).toLocaleDateString()}</Meta>}

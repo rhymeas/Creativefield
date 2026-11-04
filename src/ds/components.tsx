@@ -1259,10 +1259,22 @@ export function AddButton({ children, ...rest }: ButtonHTMLAttributes<HTMLButton
 }
 
 /* ShotStrip / ShotTile: the storyboard timeline. Shots sit in one horizontally scrolling row, so ten shots
-   or thirty read the same as three. The selected tile shows its move buttons. */
-export function ShotStrip({ children, label, onAdd, addDisabled }: { children: ReactNode; label: string; onAdd?: () => void; addDisabled?: boolean }) {
+   or thirty read the same as three. Tiles drag to a new position; pictures dropped on the strip become
+   new shots; a hovered tile shows its tools. */
+const SHOT_DRAG = "application/x-comfyfield-shot";
+export type ShotMediaDrop = NonNullable<ReturnType<typeof referenceTrayDrop>>;
+const shotStripContext = createContext<{ onReorder?: (from: number, to: number) => void }>({});
+export function ShotStrip({ children, label, onAdd, addDisabled, onReorder, onDropMedia, end }: { children: ReactNode; label: string; onAdd?: () => void; addDisabled?: boolean;
+  /** Move the shot at `from` to `to` (0-based) when a tile is dropped on another. */
+  onReorder?: (from: number, to: number) => void;
+  /** Pictures, library media or examples dropped on the strip, to add as new shots. */
+  onDropMedia?: (drop: ShotMediaDrop) => void;
+  /** A quiet fact after the add tile, such as the film's running time. */
+  end?: ReactNode }) {
   const list = useRef<HTMLOListElement>(null);
   const [edge, setEdge] = useState({ left: false, right: false });
+  const [dropping, setDropping] = useState(false);
+  const carriesMedia = (data: DataTransfer) => !!onDropMedia && !addDisabled && !data.types.includes(SHOT_DRAG) && (data.types.includes("Files") || data.types.includes(ASSET_DRAG) || data.types.includes(EXAMPLE_DRAG));
   const measure = useCallback(() => {
     const el = list.current;
     if (!el) return;
@@ -1280,16 +1292,20 @@ export function ShotStrip({ children, label, onAdd, addDisabled }: { children: R
   const go = (dir: 1 | -1) => list.current?.scrollBy({ left: dir * (list.current.clientWidth * 0.8), behavior: "smooth" });
   return (
     <div className="ds-shotstrip-wrap">
-      <ol className="ds-shotstrip" aria-label={label} ref={list} onScroll={measure}>
-        {children}
+      <ol className="ds-shotstrip" aria-label={label} ref={list} onScroll={measure} data-dropping={dropping || undefined}
+        onDragOver={(e) => { if (!carriesMedia(e.dataTransfer)) return; e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setDropping(true); }}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropping(false); }}
+        onDrop={(e) => { if (!carriesMedia(e.dataTransfer)) return; e.preventDefault(); setDropping(false); const drop = referenceTrayDrop(e.dataTransfer); if (drop) onDropMedia?.(drop); }}>
+        <shotStripContext.Provider value={{ onReorder }}>{children}</shotStripContext.Provider>
         {onAdd && (
           <li className="ds-shotstrip__add">
             <button type="button" className="ds-addshot" disabled={addDisabled} onClick={onAdd}>
               <Plus size={14} />
-              Add shot
+              {dropping ? "Drop to add" : "Add shot"}
             </button>
           </li>
         )}
+        {end && <li className="ds-shotstrip__end">{end}</li>}
       </ol>
       {edge.left && (
         <span className="ds-shotstrip__fade ds-shotstrip__fade--left">
@@ -1318,10 +1334,13 @@ export function ShotTile({
   tools,
   image,
   onSelect,
+  onRemove,
   buttonRef,
 }: {
   index: number;
   title: ReactNode;
+  /** Remove this shot. Shown top right on hover or focus, in place of the state dot. */
+  onRemove?: () => void;
   /** The shot's picture (rendered clip or input image). With it, the tile shows only the picture and its number. */
   image?: ReactNode;
   meta?: ReactNode;
@@ -1333,8 +1352,17 @@ export function ShotTile({
   buttonRef?: (el: HTMLButtonElement | null) => void;
 }) {
   const preview=useSurfacePreview<HTMLLIElement>();
+  const { onReorder } = useContext(shotStripContext);
+  const [moving, setMoving] = useState(false), [target, setTarget] = useState(false);
+  const movable = !!onReorder && !disabled;
   return (
-    <li ref={preview.ref} className="ds-shottile" data-selected={selected || undefined} data-image={image ? "" : undefined}>
+    <li ref={preview.ref} className="ds-shottile" data-selected={selected || undefined} data-image={image ? "" : undefined} data-moving={moving || undefined} data-target={target || undefined}
+      draggable={movable}
+      onDragStart={(e) => { if (!movable) return; e.dataTransfer.setData(SHOT_DRAG, String(index - 1)); e.dataTransfer.effectAllowed = "move"; setMoving(true); }}
+      onDragEnd={() => { setMoving(false); setTarget(false); }}
+      onDragOver={(e) => { if (!movable || !e.dataTransfer.types.includes(SHOT_DRAG)) return; e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "move"; if (!moving) setTarget(true); }}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setTarget(false); }}
+      onDrop={(e) => { if (!e.dataTransfer.types.includes(SHOT_DRAG)) return; e.preventDefault(); e.stopPropagation(); setTarget(false); const from = Number(e.dataTransfer.getData(SHOT_DRAG)); if (movable && Number.isInteger(from) && from !== index - 1) onReorder?.(from, index - 1); }}>
       <button type="button" className="ds-shottile__main" ref={buttonRef} aria-current={selected ? "step" : undefined} disabled={disabled} onClick={()=>{onSelect();if(image)preview.open();}} title={typeof title === "string" ? title : undefined}>
         {image && <span className="ds-shottile__art">{image}</span>}
         <span className="ds-shottile__head">
@@ -1350,7 +1378,8 @@ export function ShotTile({
         )}
         {!image && meta}
       </button>
-      {selected && tools && <span className="ds-shottile__tools">{tools}</span>}
+      {onRemove && <IconButton className="ds-shottile__remove" label={`Remove shot ${index}`} disabled={disabled} onClick={onRemove}><X size={12} /></IconButton>}
+      {tools && <span className="ds-shottile__tools">{tools}</span>}
       {hasMediaNode(image)&&<span className="ds-shottile__preview">{preview.actions}</span>}
       {preview.viewer}
     </li>

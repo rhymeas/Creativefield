@@ -55,18 +55,12 @@
     {
       "id": "double-16",
       "title": "2x from 16 FPS to 32 FPS",
-      "values": {
-        "multiplier": 2,
-        "output_fps": 32
-      }
+      "values": { "multiplier": 2, "output_fps": 32 }
     },
     {
       "id": "double-24",
       "title": "2x from 24 FPS to 48 FPS",
-      "values": {
-        "multiplier": 2,
-        "output_fps": 48
-      }
+      "values": { "multiplier": 2, "output_fps": 48 }
     }
   ],
   "routes": [
@@ -78,42 +72,12 @@
       "implementation": "implemented",
       "workflowId": "film-frame-interpolation",
       "requirements": [
-        {
-          "id": "node:LoadVideo",
-          "kind": "node",
-          "name": "LoadVideo",
-          "instructions": "Install a ComfyUI version providing LoadVideo."
-        },
-        {
-          "id": "node:GetVideoComponents",
-          "kind": "node",
-          "name": "GetVideoComponents",
-          "instructions": "Install a ComfyUI version providing GetVideoComponents."
-        },
-        {
-          "id": "node:FrameInterpolationModelLoader",
-          "kind": "node",
-          "name": "FrameInterpolationModelLoader",
-          "instructions": "Install a ComfyUI version providing FrameInterpolationModelLoader."
-        },
-        {
-          "id": "node:FrameInterpolate",
-          "kind": "node",
-          "name": "FrameInterpolate",
-          "instructions": "Install a ComfyUI version providing FrameInterpolate."
-        },
-        {
-          "id": "node:CreateVideo",
-          "kind": "node",
-          "name": "CreateVideo",
-          "instructions": "Install a ComfyUI version providing CreateVideo."
-        },
-        {
-          "id": "node:SaveVideo",
-          "kind": "node",
-          "name": "SaveVideo",
-          "instructions": "Install a ComfyUI version providing SaveVideo."
-        },
+        { "id": "node:LoadVideo", "kind": "node", "name": "LoadVideo", "instructions": "Install a ComfyUI version providing LoadVideo." },
+        { "id": "node:GetVideoComponents", "kind": "node", "name": "GetVideoComponents", "instructions": "Install a ComfyUI version providing GetVideoComponents." },
+        { "id": "node:FrameInterpolationModelLoader", "kind": "node", "name": "FrameInterpolationModelLoader", "instructions": "Install a ComfyUI version providing FrameInterpolationModelLoader." },
+        { "id": "node:FrameInterpolate", "kind": "node", "name": "FrameInterpolate", "instructions": "Install a ComfyUI version providing FrameInterpolate." },
+        { "id": "node:CreateVideo", "kind": "node", "name": "CreateVideo", "instructions": "Install a ComfyUI version providing CreateVideo." },
+        { "id": "node:SaveVideo", "kind": "node", "name": "SaveVideo", "instructions": "Install a ComfyUI version providing SaveVideo." },
         {
           "id": "model:film-net-fp16",
           "kind": "model",
@@ -125,7 +89,7 @@
         }
       ],
       "evidence": [
-        "GPU-qualified 2026-10-19 on ComfyUI 0.37.0 / RTX 4090: the exact template graph interpolated a 320x180, 16 FPS, 17-frame testsrc2 source (SHA-256 d877c754873751e17596d91e1fa91850ec9f81363459e0e1fa23877b5f4eaa58) with multiplier 2 and output FPS 32 to a 32,211-byte H.264 MP4 (SHA-256 656294eba3d03e30685f383201899956a03105847b83f3112bc4f6f3b1058ce2) with 33 frames, 32 FPS and 1.031 seconds in 4.1 s (prompt [local run]). This proves graph execution, frame multiplication and output structure. Interpolation artifacts, perceptual quality, temporal consistency, longer clips, memory limits and offline behavior are not proven."
+        "GPU-qualified 2026-10-19 on ComfyUI 0.37.0 / RTX 4090: the exact template graph interpolated a 320x180, 16 FPS, 17-frame testsrc2 source (SHA-256 d877c754873751e17596d91e1fa91850ec9f81363459e0e1fa23877b5f4eaa58) with multiplier 2 and output FPS 32 to a 32,211-byte H.264 MP4 (SHA-256 656294eba3d03e30685f383201899956a03105847b83f3112bc4f6f3b1058ce2) with 33 frames, 32 FPS and 1.031 seconds in 4.1 s (prompt e1f7d75b-1ec6-4fe3-adda-7e6bcf5621e8). This proves graph execution, frame multiplication and output structure. Interpolation artifacts, perceptual quality, temporal consistency, longer clips, memory limits and offline behavior are not proven."
       ]
     }
   ],
@@ -155,10 +119,6 @@
       "kind": "implementation"
     }
   ],
-  "tickets": [
-    "FIN-04"
-  ],
-  "audioPolicies": [
-    "mute"
-  ]
+  "tickets": ["FIN-04"],
+  "audioPolicies": ["mute"]
 }

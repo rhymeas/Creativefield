@@ -127,7 +127,7 @@
       ],
       "evidence": [
         "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/scene-mesh-moge.json (MIT, commit c307034); only SaveImage/SaveGLB output prefixes were set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
-        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, so no GPU was used), workflow hash 47eff42f3364, 43 s. Input: Pexels scene-living-room.jpg at 768 px, simplification 2. Result: a valid GLB (6.6 MB, glTF 2.0) with one textured mesh of 141,513 vertices and 276,654 triangles. The mesh was not looked at in a viewer, and the second (depth picture) output of the graph is not exposed. Receipt: scripts/utility-packs-e2e.mjs."
+        "2026-10-30: run 9449534b-0103-427e-b21c-aea3c9bc1e15 through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, so no GPU was used), workflow hash 47eff42f3364, 43 s. Input: Pexels scene-living-room.jpg at 768 px, simplification 2. Result: a valid GLB (6.6 MB, glTF 2.0) with one textured mesh of 141,513 vertices and 276,654 triangles. The mesh was not looked at in a viewer, and the second (depth picture) output of the graph is not exposed. Receipt: scripts/utility-packs-e2e.mjs."
       ]
     }
   ],

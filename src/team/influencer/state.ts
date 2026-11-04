@@ -1,13 +1,21 @@
 import {assetMatchesPort} from "../../capabilities/assets";
 import type {CapabilityManifestV2} from "../../capabilities/types";
 import type {CharacterRecord,ReusableElement} from "../api";
-import type {ShotPayload} from "../storyboard-state";
+import {storyboardCreationModels,type ShotPayload} from "../storyboard-state";
 import {defaultDraft,h3GeneratedAudio} from "../state";
 
 export const MAX_SCENES=20;
 export const WORDS_PER_SECOND=2.5;
 
-export type CastScene={key:string;text:string;characterId:string};
+/** A character reference is one starting image, not an instruction to end on a second portrait. */
+export function personaWorkflows(catalogue:CapabilityManifestV2[],elements:Array<ReusableElement|undefined>){
+  return elements.length?storyboardCreationModels(catalogue).filter(model=>model.category==="i2v"&&elements.every(element=>characterWorkflowReady(model,element))):[];
+}
+export function choosePersonaWorkflow(workflows:CapabilityManifestV2[],savedId:string){
+  return workflows.find(model=>model.id===savedId)??workflows.find(model=>model.id==="h3-i2v")??workflows[0];
+}
+
+export type CastScene={key:string;text:string;characterId:string;referenceAssetId?:string};
 export type InfluencerDraft={characterId:string;title:string;script:string;castIds?:string[];scenes?:CastScene[];workflowId?:string};
 
 export const emptyInfluencerDraft:InfluencerDraft={characterId:"",title:"",script:""};
@@ -19,7 +27,7 @@ export function storedInfluencerDraft(value:unknown):value is InfluencerDraft{
   const draft=value as Record<string,unknown>;
   return typeof draft.characterId==="string"&&typeof draft.title==="string"&&typeof draft.script==="string"&&(draft.workflowId===undefined||typeof draft.workflowId==="string")&&
     (draft.castIds===undefined||Array.isArray(draft.castIds)&&draft.castIds.length<=16&&new Set(draft.castIds).size===draft.castIds.length&&draft.castIds.every(id=>typeof id==="string"))&&
-    (draft.scenes===undefined||Array.isArray(draft.scenes)&&draft.scenes.length<=MAX_SCENES&&draft.scenes.every(s=>s&&typeof s.key==="string"&&typeof s.text==="string"&&typeof s.characterId==="string")&&new Set(draft.scenes.map(s=>s.key)).size===draft.scenes.length);
+    (draft.scenes===undefined||Array.isArray(draft.scenes)&&draft.scenes.length<=MAX_SCENES&&draft.scenes.every(s=>s&&typeof s.key==="string"&&typeof s.text==="string"&&typeof s.characterId==="string"&&(s.referenceAssetId===undefined||typeof s.referenceAssetId==="string"))&&new Set(draft.scenes.map(s=>s.key)).size===draft.scenes.length);
 }
 
 export function normalizeCastDraft(draft:InfluencerDraft):InfluencerDraft&{castIds:string[];scenes:CastScene[]}{
@@ -75,10 +83,23 @@ export function influencerErrors(draft:InfluencerDraft,characters:CharacterRecor
   const castIds=draft.castIds??(draft.characterId?[draft.characterId]:[]);
   if(!castIds.length||castIds.some(id=>!characters.some(character=>character.id===id)))errors.push("Choose an existing character.");
   if(draft.scenes?.some(s=>s.text.trim()&&!castIds.includes(s.characterId)))errors.push("Assign each scene to a selected cast member; removing a member does not replace their identity.");
+  if(draft.scenes?.some(s=>s.text.trim()&&s.referenceAssetId&&!characters.find(c=>c.id===s.characterId)?.referencePack.references.some(r=>r.assetId===s.referenceAssetId)))errors.push("A selected scene reference is unavailable. Choose another reference.");
   const scenes=splitScript(draft.script);
   if(!scenes.length)errors.push("Write at least one scene. Separate scenes with a blank line.");
   if(scenes.length>MAX_SCENES)errors.push(`At most ${MAX_SCENES} scenes per storyboard.`);
   return errors;
+}
+
+/** Report an unavailable displayed or chosen reference before creating a board. */
+export function personaReferenceErrors(draft:InfluencerDraft,characters:CharacterRecord[],elements:ReusableElement[],manifest:CapabilityManifestV2):string[]{
+  return normalizeCastDraft(draft).scenes.some(scene=>{
+    if(!scene.text.trim())return false;
+    const character=characters.find(c=>c.id===scene.characterId);
+    if(!character)return false; // Assignment errors have their own message.
+    const assetId=scene.referenceAssetId??character.referencePack.references[0]?.assetId;
+    const element=elements.find(e=>e.id===character.elementId);
+    return !assetId||!character.referencePack.references.some(r=>r.assetId===assetId)||!element?.assets.some(asset=>asset.id===assetId&&manifest.inputs.some(port=>assetMatchesPort(asset,port)));
+  })?["A scene reference is unavailable or incompatible. Choose another reference."]:[];
 }
 
 /** The current video contracts bind one identity per scene, never one identity to each temporal endpoint. */
@@ -87,7 +108,14 @@ export function buildCastShotPayloads(draft:InfluencerDraft,characters:Character
   return d.scenes.filter(s=>s.text.trim()).map(scene=>{
     const character=characters.find(c=>c.id===scene.characterId),element=elements.find(e=>e.id===character?.elementId);
     if(!character||!d.castIds.includes(character.id)||!characterWorkflowReady(manifest,element))throw new Error("A scene has missing or incompatible character references.");
-    return {...buildShotPayloads(character,scene.text.trim().replace(/\s+/g," "),manifest,element)[0],planKey:scene.key};
+    // The character card shows the first saved reference. Element assets arrive sorted by ID,
+    // so restore the character pack order before choosing the workflow's starting image.
+    const selectedReference=scene.referenceAssetId??character.referencePack.references[0]?.assetId;
+    if(!selectedReference||!element!.assets.some(asset=>asset.id===selectedReference&&manifest.inputs.some(port=>assetMatchesPort(asset,port))))throw new Error("A selected scene reference is unavailable or incompatible.");
+    const order=new Map(character.referencePack.references.map((reference,index)=>[reference.assetId,reference.assetId===scene.referenceAssetId?-1:index]));
+    const orderedElement={...element!,assets:element!.assets.filter(asset=>order.has(asset.id)).sort((a,b)=>order.get(a.id)!-order.get(b.id)!)};
+    if(!characterWorkflowReady(manifest,orderedElement))throw new Error("A scene has missing or incompatible character references.");
+    return {...buildShotPayloads(character,scene.text.trim().replace(/\s+/g," "),manifest,orderedElement)[0],planKey:scene.key};
   });
 }
 

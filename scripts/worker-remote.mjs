@@ -94,8 +94,7 @@ if (command === "list" || !command) {
   const [origin] = args;
   if (!origin) throw new Error("Usage: point <origin>");
   const {execFileSync} = await import("node:child_process");
-  const apiPrefix = flag("api-prefix");
-  const output = execFileSync("node", ["--env-file=.comfyfield/app.env", "scripts/worker-point.mjs", origin, ...(apiPrefix === undefined ? [] : [apiPrefix])], {encoding: "utf8"});
+  const output = execFileSync("node", ["--env-file=.comfyfield/app.env", "scripts/worker-point.mjs", origin, ...(flag("api-prefix") ? [flag("api-prefix")] : [])], {encoding: "utf8"});
   console.log(output.trim());
 } else {
   throw new Error(`Unknown command ${command}. Use list, add, probe or point.`);

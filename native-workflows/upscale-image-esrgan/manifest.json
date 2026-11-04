@@ -92,7 +92,7 @@
       ],
       "evidence": [
         "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/upscale-image-esrgan.json (MIT, commit c307034); only SaveImage/SaveGLB output prefixes and the upscale model file name were set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
-        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, so no GPU was used), workflow hash a2e2dfe2f5b8, 18 s. Input: the same mug photo at 256 px wide, Size 0.5. Result: 512x768, the expected 2x; looked at next to the source, it is sharp with no artefacts. One image only. Receipt: scripts/utility-packs-e2e.mjs."
+        "2026-10-30: run 558f66d9-e872-497d-a0fd-ec947d34a09c through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, so no GPU was used), workflow hash a2e2dfe2f5b8, 18 s. Input: the same mug photo at 256 px wide, Size 0.5. Result: 512x768, the expected 2x; looked at next to the source, it is sharp with no artefacts. One image only. Receipt: scripts/utility-packs-e2e.mjs."
       ]
     }
   ],

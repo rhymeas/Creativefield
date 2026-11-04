@@ -8,4 +8,4 @@ The existing source-linked mask contract pins the source hash, geometry, timing,
 
 Supported source envelope is inherited from local tracking and VACE admission: 16 FPS, 17–81 frames, up to 832×480 landscape or 480×832 portrait. Outputs are muted. Existing mask review, manual mask corrections, cancellation and idempotent recovery remain in use. Video encoding can change pixels outside the mask; preservation is not a bit-exact video promise.
 
-Qualification and remaining limits: VIDEO-BACKGROUND-EDITING.md. Software and weight terms remain those declared in `manifest.json` and the repository license inventory. No model weights or upstream implementation source are bundled here.
+Qualification and remaining limits: [VIDEO-BACKGROUND-EDITING.md](../../docs/VIDEO-BACKGROUND-EDITING.md). Software and weight terms remain those declared in `manifest.json` and the repository license inventory. No model weights or upstream implementation source are bundled here.

@@ -269,7 +269,7 @@
       ],
       "evidence": [
         "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/kenburns-still.json (MIT, commit c307034); only the output file prefix was set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
-        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, no GPU), workflow hash 16c1fe2a6830, 110 s. Input: Pexels scene-city-street.jpg, 3 s, 24 fps, 640x360, zoom 1 to 1.5, end position 0.7/0.4. Result: 640x360, 3.00 s, first and last frame clearly different (zoomed in and panned right; looked at). One photo only. Receipt: scripts/utility-packs-e2e.mjs."
+        "2026-10-30: run 026f826b-33ed-4c88-892d-feab27a03b01 through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, no GPU), workflow hash 16c1fe2a6830, 110 s. Input: Pexels scene-city-street.jpg, 3 s, 24 fps, 640x360, zoom 1 to 1.5, end position 0.7/0.4. Result: 640x360, 3.00 s, first and last frame clearly different (zoomed in and panned right; looked at). One photo only. Receipt: scripts/utility-packs-e2e.mjs."
       ]
     }
   ],

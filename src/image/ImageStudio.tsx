@@ -2,13 +2,14 @@ import {insertReferenceMention} from "../team/prompt-reference";
 import {inferLightGuide,relightPrompt} from "./relight-prompt";
 import {resolveImageReference} from "./image-reference";
 import {ExampleTiles} from "../team/ExampleTiles";
+import {promoStillForImage} from "../team/reels";
 import {routeTask} from "../capabilities/tasks";
 import {TeamChoice,type TeamChoiceOption} from "../team/TeamChoice";
 import {ToolHero} from "../team/heroes";
 import {ProductionContent} from "../team/ProductionWorkspace";
 import {SourceCredit,WorkflowDescription} from "../team/workflow-info";
 import { useEffect, useId, useRef, useState, type RefObject, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { Maximize2, Pencil, Trash2 } from "lucide-react";
+import { Clapperboard, Maximize2, Pencil, Trash2 } from "lucide-react";
 import type { CapabilityManifestV2, Control, Readiness } from "../capabilities/types";
 import { UploadSlot, Block, Canvas, ConfirmDialog, GenerateButton, HintButton, Meta, ModelCard, Notice, Panel, PanelSection, ParamButton, Params, PromptField, Button, ContactSheet, Dialog, Flashlight, IconButton, InfoButton, MediaViewer, ResultGrid, ResultTile, CameraAngleSheet, useToast, Row, SectionHeader, StatusText, TextField, Thumb, ThumbGrid, Toolbar, type ContactSheetItem, CompareWipe, LinkButton } from "../ds";
 import {AngleBatchPanel} from "./AngleBatchPanel";
@@ -50,6 +51,7 @@ export type ImageStudioProps = {
   canCancelRun?: (run: Run) => boolean;
   onRetake?: (run: Run) => void;
   onUseInVideo?: (assetId:string)=>void;
+  onUseInStoryboard?: (assetId:string)=>void;
   /** The image models to choose from; a click on the model card opens them. */
   modelOptions?: TeamChoiceOption[];
   onModel?: (id:string,inputs?:Record<string,string>)=>void;
@@ -190,6 +192,7 @@ export function ImageStudio({
   onRetake,
   batchContext,
   onUseInVideo,
+  onUseInStoryboard,
   modelOptions,
   onModel,
 }: ImageStudioProps) {
@@ -417,7 +420,7 @@ export function ImageStudio({
             }
           >
             <Block label="Image workflow">
-              {modelOptions&&modelOptions.length>1&&onModel?<TeamChoice variant="model" label="Model" display={title} subtitle={workerName ?? "Local ComfyUI"} value={manifest.id} options={modelOptions} onChange={onModel}/>:<ModelCard title={title} subtitle={workerName ?? "Local ComfyUI"} />}
+              {modelOptions&&modelOptions.length>1&&onModel?<TeamChoice variant="model" label="Model" display={title} subtitle={workerName ?? "Local ComfyUI"} image={promoStillForImage(manifest.id,adStudio,remixStudio)} value={manifest.id} options={modelOptions} onChange={onModel}/>:<ModelCard title={title} subtitle={workerName ?? "Local ComfyUI"} image={promoStillForImage(manifest.id,adStudio,remixStudio)} />}
               {workspace.role !== "viewer" && <LinkButton variant="ghost" href={`#nodes/feature/${manifest.id}`}>Edit in nodes</LinkButton>}
               <div className={visibleImageInputs.length>1?"cf-image-input-grid":"cf-image-input-list"}>
               {visibleImageInputs.map((port) => {
@@ -461,7 +464,8 @@ export function ImageStudio({
                   : <CameraAngleSheet compact source={{src:lightSource?assetUrl(workspace.id,lightSource.id):undefined}} items={manifest.presets.map(preset=>({id:preset.id,label:preset.title}))} selected={draft.presetId?[draft.presetId]:[]} multiple={false} disabled={busy} onChange={ids=>onDraftChange({...draft,presetId:ids[0]})}/>
                 }
               </PanelSection>}
-              {["fibo2-edit","qwen-image-21-edit"].includes(manifest.id)&&batchContext&&<IdentityPhotoset variant={remixStudio?"remix":"character"} key={`${workspace.id}:${project.id}:${manifest.id}:${batchContext.workerId}:${remixStudio?"remix":"character"}`} manifest={manifest} draft={draft} workspaceId={workspace.id} projectId={project.id} userId={batchContext.userId} workerId={batchContext.workerId} allowed={!!batchContext.photosetAllowed} disabled={externalBusy||readiness.state!=="ready"} call={batchContext.call} onChanged={batchContext.onChanged} onBusy={setBatchBusy}/>}
+              {(["fibo2-edit","qwen-image-21-edit"].includes(manifest.id)||((adStudio||remixStudio)&&manifest.id==="flux2-klein-edit"))&&batchContext&&<IdentityPhotoset variant={adStudio?"ad":remixStudio?"remix":"character"} key={`${workspace.id}:${project.id}:${manifest.id}:${batchContext.workerId}:${adStudio?"ad":remixStudio?"remix":"character"}`} manifest={manifest} draft={draft} workspaceId={workspace.id} projectId={project.id} userId={batchContext.userId} workerId={batchContext.workerId} allowed={!!batchContext.photosetAllowed} disabled={externalBusy||readiness.state!=="ready"} call={batchContext.call} onChanged={batchContext.onChanged} onBusy={setBatchBusy}/>}
+              {adStudio&&<LinkButton variant="ghost" href="#video/storyboard">Assemble shots in Storyboard</LinkButton>}
               {relight&&<PanelSection label="Light">
                 <Flashlight compact src={lightSource ? assetUrl(workspace.id, lightSource.id) : undefined} alt={lightSource?.name ?? "Selected source image"} direction={lightDirection} temperature={lightTemperature} temperatures={lightTemperatures} onDirectionChange={setGuideDirection} onTemperatureChange={setGuideTemperature}/>
                 <Meta>Guide is approximate; the written prompt defines the scene and light.</Meta>
@@ -516,11 +520,12 @@ export function ImageStudio({
                   {workspace.role!=="viewer"&&batchContext&&<IconButton label="Delete image" onClick={()=>{setDeleteError("");setDeleteAsset(asset);}}><Trash2 size={14}/></IconButton>}
                   <IconButton label="Open full view" onClick={() => setViewing(asset)}><Maximize2 size={14} /></IconButton>
                   <IconButton label="Edit this image" onClick={() => editAsset(asset)}><Pencil size={14} /></IconButton>
+                  {onUseInStoryboard&&<IconButton label="Add to storyboard" onClick={()=>onUseInStoryboard(asset.id)}><Clapperboard size={14}/></IconButton>}
                   {onUseInVideo&&<Button variant="ghost" onClick={()=>onUseInVideo(asset.id)}>Use in video</Button>}
                 </>}><img draggable={false} src={assetUrl(workspace.id,asset.id)} alt={asset.name}/></ResultTile>)}
               </ResultGrid>
             </Block>}
-            {visibleRuns.length === 0 && <ExampleTiles kind="image" />}
+            {visibleRuns.length === 0 && <ExampleTiles kind="image" imageSources={promoStillForImage(manifest.id,adStudio,remixStudio)?[promoStillForImage(manifest.id,adStudio,remixStudio)!]:undefined} caption={promoStillForImage(manifest.id,adStudio,remixStudio)?"Illustration":"Example"} />}
           </Canvas>
           </ProductionContent>
       </div>

@@ -14,10 +14,8 @@ function WelcomeClipCard({task,clip,onSelect}:{task:StartTask;clip:string;onSele
   const poster = `/examples/welcome-${clip}.webp`;
   const [reducedMotion,setReducedMotion] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
   useEffect(()=>{if(typeof matchMedia !== "function")return;const query=matchMedia("(prefers-reduced-motion: reduce)");const update=()=>setReducedMotion(query.matches);query.addEventListener("change",update);return()=>query.removeEventListener("change",update);},[]);
-  return <button type="button" role="radio" aria-checked={false} className={`ds-preset ds-preset--tool${task.featured ? " ds-preset--featured" : ""}`} onClick={onSelect}>
-    <span className="ds-preset__art ds-welcome__clip"><img src={poster} alt=""/>{!reducedMotion&&<video src={`/examples/welcome-${clip}.mp4`} poster={poster} muted autoPlay loop playsInline aria-hidden="true"/>}</span>
-    <span className="ds-preset__label" title={task.label}>{task.label}</span><span className="ds-preset__hint">{task.text}</span>
-  </button>;
+  return <PresetCard size="tool" featured={task.featured} label={task.label} hint={task.text} onSelect={onSelect}
+    icon={<span className="ds-welcome__clip"><img src={poster} alt=""/>{!reducedMotion&&<video src={`/examples/welcome-${clip}.mp4`} poster={poster} muted autoPlay loop playsInline aria-hidden="true"/>}</span>}/>;
 }
 
 /** A short introduction, shown once per browser and dismissible at any time. A pick opens that tool directly. */

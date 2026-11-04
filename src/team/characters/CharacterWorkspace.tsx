@@ -19,7 +19,7 @@ type Props={
   authorized:boolean;
   canEdit:boolean;
   onCount?:(count:number)=>void;
-  onOpenStoryboard:()=>void;
+  onOpenStoryboard:(boardId:string)=>void;
   onOpenCharacters?:()=>void;
   onOpenScenes?:()=>void;
   onOpenImages?:(record:CharacterRecord)=>string|undefined;

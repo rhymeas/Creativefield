@@ -62,6 +62,32 @@ export function keyframePositions(frames:Keyframe[],index:number,model:Capabilit
   return spans.map(span=>start+span).filter(position=>position<=limit&&(end===undefined||valid.has(end-position)));
 }
 
+/** Positions where one more keyframe fits: both halves of the split segment (or the appended
+ * segment) must be spans the model really ends on, within the 15 second limit. */
+export function keyframeInsertPositions(frames:Keyframe[],model:CapabilityManifestV2):number[] {
+  if(frames.length>=4||!frames.length)return [];
+  const spans=keyframeSpans(model),valid=new Set(spans),limit=15*(model.timing?.fps??0),out=new Set<number>();
+  for(let i=0;i<frames.length;i++){
+    const start=frames[i].frame,end=frames[i+1]?.frame;
+    for(const span of spans){const position=start+span;if(end===undefined?position<=limit:position<end&&valid.has(end-position))out.add(position);}
+  }
+  return [...out].sort((a,b)=>a-b);
+}
+
+/** Insert an empty keyframe. A split segment keeps its prompt on the first half; the new half starts blank. */
+export function insertKeyframe(frames:Keyframe[],prompts:string[],position:number):{frames:Keyframe[];prompts:string[];index:number} {
+  if(frames.length>=4||!Number.isSafeInteger(position)||position<=0||frames.some(f=>f.frame===position)||prompts.length!==frames.length-1)throw new Error('Cannot add a keyframe here.');
+  const after=frames.findIndex(f=>f.frame>position),index=after<0?frames.length:after;
+  return {frames:[...frames.slice(0,index),{assetId:'',frame:position},...frames.slice(index)],prompts:[...prompts.slice(0,index),'',...prompts.slice(index)],index};
+}
+
+/** Rearrange the pictures; the timeline positions and the segment prompts stay where they are. */
+export function moveKeyframeImage(frames:Keyframe[],from:number,to:number):Keyframe[] {
+  if(from===to||from<0||to<0||from>=frames.length||to>=frames.length)return frames;
+  const images=frames.map(f=>f.assetId),[moved]=images.splice(from,1);images.splice(to,0,moved);
+  return frames.map((frame,i)=>({...frame,assetId:images[i]}));
+}
+
 /** Plan inclusive FLF segments. Adjacent segments share one boundary frame, which must be
  * removed once when assembling to keep the requested keyframe positions exact. */
 export function planKeyframeSegments(keyframes:Keyframe[],prompts:string[]):KeyframeSegment[] {

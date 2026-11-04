@@ -16,8 +16,11 @@ import {CompareStrip} from "./CompareStrip";
 import {TransformHandles} from "./TransformHandles";
 import {CompareWipe,MaskOverlay,DriftOverlay} from "./PrecisionCompare";
 import {WelcomeDialog} from "./WelcomeDialog";
+import {KeyframeOptions,KeyframeSegment,KeyframeStrip,PanelCrumb} from "./KeyframeStrip";
+import {ShotFrame} from "./ShotFrame";
+import {CameraPoseField,CameraPoseStage,describeCameraPose,type CameraPose} from "./CameraMovePicker";
 import welcomeLogo from "../assets/creativefield-logo-trim.png";
-import { ChevronLeft, ChevronRight, ArrowUp, Lock, Undo2, Download, Pencil, Maximize2, Camera, Plus, Search, Clock, Dices, LogOut, Settings, Video, History, Image, Info, MinusCircle, RectangleHorizontal, Sparkles, Brush, UserRound } from "lucide-react";
+import { ArrowUp, Lock, Undo2, Download, Pencil, Maximize2, Camera, Plus, Search, Clock, Dices, LogOut, Settings, Video, History, Image, Info, MinusCircle, RectangleHorizontal, Sparkles, Brush, UserRound } from "lucide-react";
 import {
   Steps,
   RotatingVideo,
@@ -219,6 +222,45 @@ function ChoiceDialogDemo(){
 function WordWaveDemo(){const [time,setTime]=useState(0);return <WordWave playback={speechPlaybackFixture as SpeechPlayback} currentTime={time} onSeek={setTime}/>;}
 function VisemeStripDemo(){const [time,setTime]=useState(0);return <VisemeStrip playback={speechVisemeFixture as SpeechPlayback} currentTime={time} onSeek={setTime}/>;}
 function PoseStripDemo(){const [selected,setSelected]=useState(0);return <PoseStrip frames={posePreviewFixture.frames} selected={selected} onSelect={frame=>setSelected(frame.frameIndex)}/>;}
+function CameraMoveDemo(){
+  const [pose,setPose]=useState<CameraPose|null>({x:-.3,y:-.1,zoom:1.3}),[picture,setPicture]=useState<CameraPose|null>({x:.2,y:0,zoom:1}),[snapped,setSnapped]=useState<CameraPose|null>(null);
+  const presets=[{x:0,y:0,zoom:1},{x:-.3,y:0,zoom:1},{x:.3,y:0,zoom:1},{x:0,y:-.3,zoom:1},{x:0,y:.3,zoom:1},{x:0,y:0,zoom:1.4},{x:0,y:0,zoom:.75}];
+  return <div style={{display:"grid",gap:16,maxWidth:720}}>
+    <CameraPoseStage value={pose} onChange={setPose}/>
+    <Meta>{describeCameraPose(pose)}</Meta>
+    <CameraPoseStage value={picture} src="/reels/wan22-i2v-14b.png" onChange={setPicture}/>
+    <div style={{maxWidth:300}}><CameraPoseField label="Camera move (snaps to the model's moves)" value={snapped} presets={presets} onChange={setSnapped}/></div>
+  </div>;
+}function ShotStripDemo(){
+  const [shots,setShots]=useState(()=>Array.from({length:8},(_,i)=>({id:i,title:i===0?"A blue ceramic cup on a wooden table, soft morning light":`Shot number ${i+1}`,seconds:i%3+2,src:i%4===1?"/reels/wan22-i2v-14b.png":i%4===2?"/reels/wan22-flf-14b.png":undefined})));
+  const [selected,setSelected]=useState(1);
+  const move=(from:number,to:number)=>setShots(old=>{const next=[...old],[moved]=next.splice(from,1);next.splice(to,0,moved);return next;});
+  const total=shots.reduce((sum,s)=>sum+s.seconds,0);
+  return <ShotStrip label="Shots" onAdd={()=>setShots(old=>[...old,{id:old.length,title:"New shot",seconds:3,src:undefined}])} onReorder={move} onDropMedia={()=>setShots(old=>[...old,{id:old.length,title:"Dropped picture",seconds:5,src:"/reels/wan22-i2v-5b.png"}])} end={<Meta>{`${Math.floor(total/60)}:${String(total%60).padStart(2,"0")}`}</Meta>}>
+    {shots.map((s,i)=><ShotTile key={s.id} index={i+1} selected={s.id===selected} title={s.title} image={s.src?<img src={s.src} alt=""/>:undefined} meta={<Meta parts={["MiniMax H3",`${s.seconds}s`]}/>} onSelect={()=>setSelected(s.id)} onRemove={()=>setShots(old=>old.filter(x=>x.id!==s.id))}/>)}
+  </ShotStrip>;
+}
+/* Keyframe panel demo: one-second minimum segments on a half-second grid, 15 seconds at 24 fps. */
+function KeyframeStripDemo(){
+  const fps=24,step=12,max=15*fps;
+  const [frames,setFrames]=useState([{src:"/reels/wan22-i2v-5b.png",frame:0},{src:"/reels/wan22-i2v-14b.png",frame:72},{src:"/reels/wan22-flf-14b.png",frame:144},{src:"",frame:240}]);
+  const [segment,setSegment]=useState(0),[speed,setSpeed]=useState("fast");
+  const between=(from:number,to:number)=>{const out:number[]=[];for(let f=from+2*step;f<=to-2*step;f+=step)out.push(f);return out;};
+  const positions=(i:number)=>i===0?[]:between(frames[i-1].frame,frames[i+1]?.frame??max+2*step);
+  const inserts=frames.length>=4?[]:frames.flatMap((f,i)=>between(f.frame,frames[i+1]?.frame??max+2*step));
+  return <div style={{maxWidth:300,display:"grid",gap:12}}>
+    <PanelCrumb back={{href:"#ds",label:"Back"}} parent="Animate" title="Key frames" end={<IconButton label="About keyframes"><Info size={19}/></IconButton>}/>
+    <KeyframeStrip frames={frames.map(f=>({frame:f.frame,filled:!!f.src}))} fps={fps} maxFrame={max} activeSegment={segment} positions={positions} insertPositions={inserts}
+      onMove={(i,frame)=>setFrames(old=>old.map((f,j)=>j===i?{...f,frame}:f))}
+      onReorder={(from,to)=>setFrames(old=>{const srcs=old.map(f=>f.src),[moved]=srcs.splice(from,1);srcs.splice(to,0,moved);return old.map((f,j)=>({...f,src:srcs[j]}));})}
+      onInsert={frame=>setFrames(old=>[...old,{src:"",frame}].sort((a,b)=>a.frame-b.frame))}
+      onRemove={frames.length>2?i=>setFrames(old=>old.filter((_,j)=>j!==i)):undefined}
+      mention={i=>frames[i].src&&i>=segment&&i<=segment+1?`@Image ${i-segment+1}`:null}
+      media={i=><UploadSlot tile label={`Frame ${i+1}`} hint="" accept="image/*" preview={frames[i].src||null} onBrowse={()=>{}} onFile={file=>{if(!file&&frames.length>2)setFrames(old=>old.filter((_,j)=>j!==i));}}/>}/>
+    <div>{frames.slice(1).map((f,i)=><KeyframeSegment key={i} time={`${frames[i].frame/fps}–${f.frame/fps}s`} title={`Segment ${i+1}`} summary={i===1?"Camera pushes in while the light turns warm":undefined} open={segment===i} onToggle={()=>setSegment(segment===i?-1:i)}><PromptField compact label={`Segment ${i+1} prompt`} placeholder="Describe this transition" value="" onChange={()=>{}}/></KeyframeSegment>)}</div>
+    <KeyframeOptions silent><InlineSelect label="Aspect ratio" value="landscape" onChange={()=>{}} options={[{value:"landscape",label:"16:9"},{value:"portrait",label:"9:16"}]}/><InlineSelect label="Render speed" value={speed} onChange={setSpeed} options={[{value:"fast",label:"Fast"},{value:"quality",label:"Quality"}]}/></KeyframeOptions>
+  </div>;
+}
 
 function TransformDemo(){
   const initial={x:70,y:50,w:60,h:34,rotation:12};
@@ -513,12 +555,21 @@ export default function Showcase() {
         </div>
       </Section>
 
-      <Section title="Shot strip">
-        <ShotStrip label="Shots" onAdd={() => {}}>
-          {Array.from({ length: 14 }, (_, i) => (
-            <ShotTile key={i} index={i + 1} selected={i === 1} title={i === 0 ? "A blue ceramic cup on a wooden table, soft morning light" : i === 2 ? "" : `Shot number ${i + 1}`} meta={<Meta parts={["Wan 2.2 TI2V 5B", "1s"]} />} onSelect={() => {}} tools={i === 1 ? <><IconButton label="Earlier"><ChevronLeft size={12} /></IconButton><IconButton label="Later"><ChevronRight size={12} /></IconButton></> : undefined} />
-          ))}
-        </ShotStrip>
+      <Section title="Shot strip (drag tiles to reorder, drop pictures to add shots)">
+        <ShotStripDemo/>
+      </Section>
+
+      <Section title="Camera pose (click or drag on the picture, scroll to zoom; the monitor plays the move once and holds)">
+        <CameraMoveDemo/>
+      </Section>
+
+      <Section title="Shot frame (hover for actions)">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16, maxWidth: 960 }}>
+          <ShotFrame state="empty" onDraw={() => {}} onSettings={() => {}} />
+          <ShotFrame state="candidate" src="/reels/wan22-i2v-14b.png" take="2 / 3" onUse={() => {}} onReject={() => {}} onRetake={() => {}} onPrev={() => {}} onNext={() => {}} onSettings={() => {}} />
+          <ShotFrame state="approved" src="/reels/wan22-flf-14b.png" onRetake={() => {}} />
+          <ShotFrame state="empty" drawDisabledReason="Write the prompt and save the shots first." onDraw={() => {}} />
+        </div>
       </Section>
 
       <Section title="Corkboard (planned shots)">
@@ -709,6 +760,9 @@ export default function Showcase() {
 
       <Section title="Detected pose">
         <PoseStripDemo/>
+      </Section>
+      <Section title="Keyframe strip (drag anchors, drop or rearrange pictures, hover the timeline to add)">
+        <KeyframeStripDemo/>
       </Section>
       <Section title="Voice tools">
         <WordWaveDemo/>

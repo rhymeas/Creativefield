@@ -3,12 +3,11 @@
 //
 //   COMFYFIELD_E2E=1 node scripts/block-shot-e2e.mjs [set] [move] [seconds]
 //
-// Needs `npm start`, a compatible local ComfyUI worker and ffmpeg. Set
-// COMFYFIELD_QA_OUTPUT to the directory where output files should be written.
+// Needs `npm start`, a running ComfyUI on a GPU with Wan 2.1 VACE, and ffmpeg. Output files are kept in
 
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 
 const BASE = process.env.COMFYFIELD_URL ?? "http://127.0.0.1:8787", API = `${BASE}/api/v1`;
 
@@ -30,8 +29,6 @@ const probe = (file) => JSON.parse(execFileSync("ffprobe", ["-v", "error", "-cou
 
 async function main() {
   if (process.env.COMFYFIELD_E2E !== "1") { console.log("block-shot-e2e is opt-in: set COMFYFIELD_E2E=1 and start ComfyField + ComfyUI (GPU) first."); return; }
-  if (!process.env.COMFYFIELD_QA_OUTPUT) throw new Error("Set COMFYFIELD_QA_OUTPUT to an output directory");
-  const OUT = resolve(process.env.COMFYFIELD_QA_OUTPUT);
   mkdirSync(OUT, { recursive: true });
   await call("GET", "/auth/me");
   const [workspace] = await call("GET", "/workspaces"), base = `/workspaces/${workspace.id}`;

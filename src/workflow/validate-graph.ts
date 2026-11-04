@@ -34,7 +34,14 @@ export function validateGraph(graph: ApiGraph, info: ObjectInfo | null, skip: Re
 
   for (const [id, node] of Object.entries(graph)) {
     for (const [name, value] of Object.entries(node.inputs)) {
-      if (isLink(value) && !graph[String(value[0])]) add(id, "bad_link", `${name} links to node ${value[0]}, which is not in the graph`, name);
+      if (!isLink(value)) continue;
+      const source = graph[String(value[0])];
+      if (!source) add(id, "bad_link", `${name} links to node ${value[0]}, which is not in the graph`, name);
+      else if (!Number.isSafeInteger(value[1]) || value[1] < 0) add(id, "bad_link", `${name} has an invalid output slot ${value[1]}`, name);
+      else {
+        const outputs = info?.[source.class_type]?.output;
+        if (outputs && value[1] >= outputs.length) add(id, "bad_link", `${name} links to output ${value[1]} of node ${value[0]}, which has only ${outputs.length} outputs`, name);
+      }
     }
     if (!info) continue;
     const def = info[node.class_type];

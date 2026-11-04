@@ -3,7 +3,7 @@ import {capabilityReadiness} from "../capabilities/readiness";
 import {capabilitySurface as surfaceOf} from "../capabilities/surfaces";
 import type {Worker} from "./api";
 
-export function workerReadiness(manifest:CapabilityManifestV2,worker:Worker,now=Date.now()){
+export function workerReadiness(manifest:CapabilityManifestV2,worker:Worker,now=Date.now(),presetId?:string){
   const fresh=!!worker.checked_at&&now-new Date(worker.checked_at).getTime()<5*60*1000;
   const inventory=worker.inventory??{online:false,nodes:[],models:[],credentials:[]};
   // A cloud worker is judged on the pack's own cloud route when it has one.
@@ -11,10 +11,10 @@ export function workerReadiness(manifest:CapabilityManifestV2,worker:Worker,now=
   // A plan that may not submit runs makes every pack unavailable there, with Comfy's own reason.
   const blocked=inventory as {canSubmit?:boolean;submitBlockedReason?:string};
   if(blocked.canSubmit===false)return {state:"credentials_required" as const,reasons:[blocked.submitBlockedReason??"This Comfy Cloud plan does not allow runs from other apps."],missing:[]};
-  return capabilityReadiness(manifest,route,{...inventory,online:worker.enabled&&fresh&&inventory.online});
+  return capabilityReadiness(manifest,route,{...inventory,online:worker.enabled&&fresh&&inventory.online},presetId);
 }
-export function soleReadyWorker(manifest:CapabilityManifestV2,workers:Worker[]):string {
-  const available=workers.filter(w=>workerReadiness(manifest,w).state==="ready");
+export function soleReadyWorker(manifest:CapabilityManifestV2,workers:Worker[],presetId?:string):string {
+  const available=workers.filter(w=>workerReadiness(manifest,w,undefined,presetId).state==="ready");
   return available.length===1?available[0].id:"";
 }
 const readinessRank:Record<ReadinessState,number>={ready:0,unsupported:1,credentials_required:2,download_required:3,install_required:4,incompatible:5,offline:6};

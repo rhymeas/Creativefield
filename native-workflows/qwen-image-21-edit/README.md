@@ -16,7 +16,7 @@ The weights are published under the Qwen Research License Agreement. It grants n
 
 Direct graph run against live ComfyUI 0.37.0 / RTX 4090: prompt 4af9a21-0d69-414d-a772-1b2ef1879e01, 51.2 s, 1024x1024 PNG, SHA-256 c6474b83d83d720e8a15fb40d91827e7c773faf318ce86e77c72ca11adcd7c78.
 
-Full ComfyField run through the durable queue: two uploaded project images, run [local run], 48.2 s, imported asset [local run] (1024x1024 PNG, 1,789,664 B) with PostgreSQL provenance (local_comfy, workflow hash c3ee35df...). This proves upload binding, submission, output import and provenance. Perceptual quality on arbitrary content and offline behavior remain unqualified. The Qwen weights stay research-only; commercial use needs a separate license.
+Full ComfyField run through the durable queue: two uploaded project images, run 46d4c42d-b645-4397-be35-8e9ae00772f2, 48.2 s, imported asset 7587cbad-6f29-47e2-90d5-cbfebec509ae (1024x1024 PNG, 1,789,664 B) with PostgreSQL provenance (local_comfy, workflow hash c3ee35df...). This proves upload binding, submission, output import and provenance. Perceptual quality on arbitrary content and offline behavior remain unqualified. The Qwen weights stay research-only; commercial use needs a separate license.
 
 ## Revision 0.2.0 — optional additional references
 

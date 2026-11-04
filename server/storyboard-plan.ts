@@ -29,6 +29,9 @@ export function planSystem(count:number){
   return "You are a film shot planner. Return only strict JSON, no markdown. The object must have a shots array with exactly "+count+" entries. Every entry has title, prompt, durationSeconds, shotIntent and cameraIntent. title is a short card title. prompt is a complete visual generation prompt. durationSeconds is 1 to 10. shotIntent and cameraIntent are short production notes.";
 }
 
+/** Keep the existing budget for short plans while allowing longer image sequences to finish. */
+export function planTokenBudget(count:number){return 1400+Math.max(0,Math.min(8,count)-3)*200;}
+
 /** Parse a model's answer without inventing or repairing shots. */
 export function parsePlannedShots(content:string,count:number){
   let parsed:unknown;
@@ -49,7 +52,7 @@ export async function storyboardPlanRoutes(app:FastifyInstance,pool:Pool){
     const {workspaceId}=z.object({workspaceId:z.uuid()}).parse(request.params);
     await member(pool,request,workspaceId,"creator");
     const {premise,count}=requestSchema.parse(request.body??{});
-    const ask=(note:string)=>generateText("active",{workspaceId,system:`${planSystem(count)}${note}`,prompt:`Premise: ${premise}`,maxTokens:1400,json:true},{pool});
+    const ask=(note:string)=>generateText("active",{workspaceId,system:`${planSystem(count)}${note}`,prompt:`Premise: ${premise}`,maxTokens:planTokenBudget(count),json:true},{pool});
     let answer=await ask("");
     try{return {provider:answer.provider,model:answer.model,shots:parsePlannedShots(extractJsonObject(answer.text),count)};}
     catch{

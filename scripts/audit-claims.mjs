@@ -1,16 +1,11 @@
 // The parity table quotes counts ("Ready 31", "Planned 17"). Those drift silently when a capability
 // changes state, so this compares the document against the live catalogue and fails on a mismatch.
-// Set COMFYFIELD_PARITY_DOC to the document to check; the app must be running.
+// Usage: npm run audit:claims (the app must be running).
 import {readFileSync} from "node:fs";
 
 const API = (process.env.COMFYFIELD_API ?? "http://127.0.0.1:8787/api/v1").replace(/\/$/, "");
 const ORIGIN = new URL(API).origin;
-const DOC = process.env.COMFYFIELD_PARITY_DOC;
-if (!DOC) throw new Error("Set COMFYFIELD_PARITY_DOC to the parity document to check.");
-const doc = readFileSync(DOC, "utf8");
-const claimedReady = Number(doc.match(/\|\s*\*\*Ready\*\*\s*\|\s*\*\*(\d+)\*\*/)?.[1] ?? NaN);
-const claimedTotal = Number(doc.match(/\*\*(\d+) capability tiles\*\*/)?.[1] ?? NaN);
-if (Number.isNaN(claimedReady) && Number.isNaN(claimedTotal)) throw new Error("The parity document contains no recognized counts to check.");
+const DOC = "docs/PARITY-STATUS.md";
 const jar = new Map();
 
 const healthy = await fetch(`${ORIGIN}/api/v1/health`).then(r => r.ok).catch(() => false);
@@ -57,6 +52,10 @@ for (const id of capabilityIds) {
   else if (state === "planned") count.planned++;
   else count.other++;
 }
+
+const doc = readFileSync(DOC, "utf8");
+const claimedReady = Number(doc.match(/\|\s*\*\*Ready\*\*\s*\|\s*\*\*(\d+)\*\*/)?.[1] ?? NaN);
+const claimedTotal = Number(doc.match(/\*\*(\d+) capability tiles\*\*/)?.[1] ?? NaN);
 
 console.log(`worker: ${worker.name}`);
 console.log(`live catalogue: ${capabilityIds.size} capabilities — ready ${count.ready}, not ready ${count.other}`);

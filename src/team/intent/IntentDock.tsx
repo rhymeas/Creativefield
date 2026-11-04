@@ -1,9 +1,11 @@
 import {useState,type DragEvent} from "react";
-import {ASSET_DRAG,CommandBar,IconButton} from "../../ds";
-import {classifyIntent,intentLabel,type IntentOverride,type IntentTarget} from "./router";
+import {ASSET_DRAG,CommandBar,Thumb} from "../../ds";
+import {contextualIntent,intentLabel,type IntentOverride,type IntentTarget} from "./router";
+import "./intent-dock.css";
 
 const actions: Record<Exclude<IntentTarget,"unknown">,string> = {
   image: "Generate image",
+  "image-edit": "Open Image Edit",
   video: "Open Create Video",
   motion: "Open Motion Control",
   edit: "Open Edit Area",
@@ -23,6 +25,8 @@ export function IntentDock({
   onReferenceFile,
   onReferenceAsset,
   onRemoveReference,
+  imageWorkspace,
+  videoWorkspace,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -34,18 +38,17 @@ export function IntentDock({
   onReferenceFile?: (file:File)=>void;
   onReferenceAsset?: (id:string)=>void;
   onRemoveReference?: ()=>void;
+  imageWorkspace?: boolean;
+  videoWorkspace?: boolean;
 }) {
   const [override, setOverride] = useState<IntentOverride>("auto");
-  const classified = classifyIntent(value, override);
-  // An image alone cannot satisfy a video-edit workflow; in Auto mode, edit
-  // instructions accompanying it open image editing instead.
-  const target = reference && override==="auto" && classified==="edit" ? "image" : classified;
+  const target = contextualIntent(value,override,!!reference,!!imageWorkspace,!!videoWorkspace);
   const known = target !== "unknown";
   const ready = known && available[target];
   const blocked = known && !available[target];
   const drop=(event:DragEvent)=>{const id=event.dataTransfer.getData(ASSET_DRAG);const file=event.dataTransfer.files[0];if(!id&&!file)return;event.preventDefault();event.stopPropagation();if(id)onReferenceAsset?.(id);else if(file)onReferenceFile?.(file);};
   return <div onDragOver={event=>{if(event.dataTransfer.types.includes(ASSET_DRAG)||event.dataTransfer.types.includes("Files"))event.preventDefault();}} onDrop={drop}>
-  {reference&&<div className="ds-intent-reference"><img src={reference.src} alt={reference.name}/><IconButton label="Remove reference" onClick={onRemoveReference}>×</IconButton></div>}
+  {reference&&<div className="cf-intent-reference"><Thumb src={reference.src} label={reference.name} onRemove={onRemoveReference}/></div>}
   <CommandBar
     label="Describe the result"
     placeholder="Describe the scene you imagine"

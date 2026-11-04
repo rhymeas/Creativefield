@@ -81,7 +81,7 @@
       ],
       "evidence": [
         "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/palette-transfer-image.json (MIT, commit c307034); only SaveImage/SaveGLB output prefixes were set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
-        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, so no GPU was used), workflow hash 470cb576b399, 4 s. Input: Pexels portrait-man-front.jpg recolored to the colors of scene-city-street.jpg, Strength 1. Result: mean RGB moved from 124,114,110 to 105,116,123 (reference 100,115,122); the picture takes on the blue cast and the purple hair turns navy. One pair only. Receipt: scripts/utility-packs-e2e.mjs."
+        "2026-10-30: run 2a87f74b-b8f0-47dc-ad0e-2cc0a5a0a0dc through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, so no GPU was used), workflow hash 470cb576b399, 4 s. Input: Pexels portrait-man-front.jpg recolored to the colors of scene-city-street.jpg, Strength 1. Result: mean RGB moved from 124,114,110 to 105,116,123 (reference 100,115,122); the picture takes on the blue cast and the purple hair turns navy. One pair only. Receipt: scripts/utility-packs-e2e.mjs."
       ]
     }
   ],

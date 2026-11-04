@@ -40,7 +40,7 @@ Exact `template.api.json` graph submitted to live ComfyUI 0.37.0 (`:8188/prompt`
 
 - Source: `ffmpeg testsrc2` 160×90, 16 fps, 17 frames, H.264
 - Output: 320×180, 16 fps, 17 frames, 32,700 B, SHA-256 `08e2aa3b582caaad6e1f0e676056fc2771cf903429378ab764f64e0b6be34460`
-- Elapsed 4.1 s on RTX 4090; ComfyUI prompt `[local run]`
+- Elapsed 4.1 s on RTX 4090; ComfyUI prompt `53ccd25f-e4fe-43a2-b6cf-62faf386c3e8`
 - Model: `upscale_models/RealESRGAN_x4plus.pth` (67,040,989 B)
 
 This proves model load, graph execution and dimension/frame/fps preservation. It does not prove perceptual quality on real footage.

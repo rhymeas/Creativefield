@@ -8,7 +8,7 @@ export type IdentityPhotosetRecipe={id:string;workspaceId:string;projectId:strin
 export function readIdentityPhotoset(raw:string|null,scope:{userId:string;workspaceId:string;projectId:string;model:string}):IdentityPhotosetRecipe|null{
   try{
     const r=raw?JSON.parse(raw) as IdentityPhotosetRecipe:null;
-    return r&&r.workspaceId===scope.workspaceId&&r.projectId===scope.projectId&&r.userId===scope.userId&&r.model===scope.model&&Array.isArray(r.drafts)&&r.drafts.length>=2&&r.drafts.length<=8?r:null;
+    return r&&r.workspaceId===scope.workspaceId&&r.projectId===scope.projectId&&r.userId===scope.userId&&r.model===scope.model&&typeof r.id==="string"&&typeof r.workerId==="string"&&typeof r.version==="string"&&Array.isArray(r.drafts)&&r.drafts.length>=2&&r.drafts.length<=8&&r.drafts.every(d=>!!d&&typeof d==="object"&&!!d.controls&&typeof d.controls==="object")&&!!r.accepted&&typeof r.accepted==="object"&&!Array.isArray(r.accepted)&&Object.values(r.accepted).every(id=>typeof id==="string")&&(r.pending===undefined||Number.isInteger(r.pending)&&r.pending>=0&&r.pending<r.drafts.length)?r:null;
   }catch{return null;}
 }
 
@@ -17,10 +17,10 @@ export function identityPhotosetCanResume(recipe:IdentityPhotosetRecipe,workerId
   return recipe.workerId===workerId&&recipe.version===version;
 }
 
-/** Keep Remix batches separate from character photosets without abandoning older character batches. */
-export function identityPhotosetStorageKey(scope:{userId:string;workspaceId:string;projectId:string;model:string},variant:"character"|"remix"):string{
+/** Keep workspace batches separate without abandoning older character photosets. */
+export function identityPhotosetStorageKey(scope:{userId:string;workspaceId:string;projectId:string;model:string},variant:"character"|"remix"|"ad"):string{
   const base=`comfyfield:photoset:${scope.userId}:${scope.workspaceId}:${scope.projectId}:${scope.model}`;
-  return variant==="remix"?`${base}:remix`:base;
+  return variant==="character"?base:`${base}:${variant}`;
 }
 
 /** A legacy shared batch with an uncertain request must be resolved with its original key first. */
@@ -28,7 +28,7 @@ export function hasUnresolvedLegacyPhotoset(raw:string|null,scope:{userId:string
   try{
     const recipe=raw?JSON.parse(raw):null;
     return !!recipe&&recipe.userId===scope.userId&&recipe.workspaceId===scope.workspaceId&&recipe.projectId===scope.projectId&&recipe.model===scope.model&&Number.isInteger(recipe.pending)&&recipe.pending>=0;
-  }catch{return false;}
+  }catch{return raw!==null;}
 }
 
 export function identityPhotosetWorkerAllowed(localSingleUser:boolean|undefined,origin:string|undefined):boolean{
@@ -36,7 +36,7 @@ export function identityPhotosetWorkerAllowed(localSingleUser:boolean|undefined,
   try{return ["localhost","127.0.0.1","[::1]","::1"].includes(new URL(origin).hostname);}catch{return false;}
 }
 export function identityPhotosetDrafts(manifest:CapabilityManifestV2,draft:ImageDraft,text:string):ImageDraft[]{
-  if(!["fibo2-edit","qwen-image-21-edit"].includes(manifest.id))throw new Error("Choose Fibo or Qwen image edit.");
+  if(!["fibo2-edit","qwen-image-21-edit","flux2-klein-edit"].includes(manifest.id))throw new Error("Choose Fibo, Qwen or FLUX image edit.");
   const lines=text.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
   if(lines.length<2||lines.length>8)throw new Error("Enter two to eight variations, one per line.");
   const base=String(draft.controls.prompt??"").trim();

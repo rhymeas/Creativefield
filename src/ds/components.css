@@ -898,6 +898,19 @@ button.ds-thumb__art:disabled { opacity: 0.45; cursor: not-allowed; }
 .ds-shottile[data-selected] .ds-shottile__main .ds-meta { padding-right: calc(68px * var(--ui-scale)); }
 .ds-shotstrip__add { flex: none; display: flex; width: calc(132px * var(--ui-scale)); align-self: stretch; }
 .ds-shotstrip__add .ds-addshot { width: 100%; height: 100%; flex-direction: column; gap: var(--gap-stack); padding: var(--space-3); white-space: nowrap; text-align: center; }
+/* Drag states: a dragged tile fades, the tile it would land on lights up, a picture over the strip lights the add tile. */
+.ds-shottile[draggable="true"] { cursor: grab; }
+.ds-shottile[data-moving] { opacity: .4; }
+.ds-shottile[data-target] { border-color: var(--accent); box-shadow: var(--accent-glow); }
+.ds-shotstrip[data-dropping] .ds-addshot { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.ds-shotstrip__end { flex: none; display: flex; align-items: center; padding-inline: var(--space-2); }
+/* The selected shot carries a 2px accent edge, drawn over its picture. */
+.ds-shottile[data-selected] { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: -2px; }
+/* Remove sits top right on hover or focus, where the state dot rests. */
+.ds-shottile__remove { position: absolute; top: var(--space-2); right: var(--space-2); z-index: 2; width: 22px; height: 22px; min-width: 22px; min-height: 22px; background: var(--surface-overlay); color: var(--text-primary); opacity: 0; pointer-events: none; transition: opacity var(--dur-fast) var(--ease); }
+.ds-shottile:is(:hover, :focus-within) .ds-shottile__remove { opacity: 1; pointer-events: auto; }
+.ds-shottile:has(.ds-shottile__remove):is(:hover, :focus-within) .ds-shottile__head .ds-status { opacity: 0; }
+.ds-shottile:has(.ds-shottile__remove) .ds-shottile__preview { right: calc(var(--space-2) + 26px); }
 
 /* â”€â”€ Mode tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ds-modetabs { display: flex; justify-content: center; gap: var(--space-8); padding: 0 var(--pad-page-x); border-bottom: 1px solid var(--line-hairline); }
@@ -1053,7 +1066,10 @@ button.ds-thumb__art:disabled { opacity: 0.45; cursor: not-allowed; }
 .ds-notice__body { min-width: 0; overflow-wrap: anywhere; }
 .ds-notice__title { display: block; margin-bottom: 2px; color: var(--text-primary); font-weight: var(--weight-medium); font-size: var(--text-sm); line-height: var(--lh-sm); }
 .ds-notice ul { margin: 4px 0 0; padding-left: 16px; }
-.ds-notice__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap-inline); margin-top: var(--gap-stack); }
+.ds-notice__actions { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--gap-inline); margin-top: var(--gap-stack); min-width: 0; }
+/* A problem's ways out stay side by side, never a button under a button: long labels shorten instead. */
+.ds-notice__actions > * { min-width: 0; }
+.ds-notice__actions .ds-btn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ds-notice__stack { display: flex; flex-direction: column; gap: var(--space-2); margin-top: 6px; }
 .ds-notice__stack ul { margin: 0; }
 /* The technical text is one step away: a small "Details" line, then the code and its Copy action. */
@@ -2108,24 +2124,3 @@ button.ds-castcard__main { cursor: pointer; }
 .ds-floatrail__grip:active { cursor: grabbing; }
 .ds-floatrail__grip::before { content: ""; width: calc(26px * var(--ui-scale)); height: 3px; border-radius: var(--radius-full); background: var(--line-strong); }
 .ds-floatrail__grip:hover::before { background: var(--text-secondary); }
-
-/* Shared editor and generation controls. */
-.cf-editor .cf-layer-rename { flex: 1; width: 100%; padding: var(--space-1); border: 1px solid var(--accent); border-radius: var(--radius-sm); color: var(--text-primary); background: var(--surface-page); }
-.ds-stage > canvas.cf-editor-outline { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; background: transparent; border-radius: 0; pointer-events: none; }
-.cf-editor-recent h2 { font-size: var(--text-sm); margin: var(--gap-block) 0; }
-.cf-editor-recent__placeholder { display: grid; place-items: center; width: 100%; height: 100%; color: var(--text-muted); }
-.cf-editor-ai-actions { flex-wrap: nowrap; gap: 6px; }
-.cf-editor-ai-actions .ds-btn { min-width: 0; padding-inline: 10px; font-size: var(--text-xs); white-space: nowrap; }
-.cf-editor-ai-actions .cf-modify-reference { min-width: 0; }
-.ds-prompt--label-outside .ds-prompt__editor--tokens { border-radius: var(--radius-xl); background: var(--surface-input); }
-.ds-prompt--label-outside .ds-prompt__editor--tokens .ds-prompt__highlight { padding: var(--pad-field); }
-.ds-prompt--label-outside .ds-prompt__editor--tokens textarea,
-.ds-prompt--label-outside .ds-prompt__editor--tokens textarea:hover,
-.ds-prompt--label-outside .ds-prompt__editor--tokens textarea:focus { background: transparent; }
-.cf-run-develop .ds-resulttile__developtext { position: static; box-sizing: border-box; width: min(88%, 320px); max-width: calc(100% - 24px); padding: 12px; gap: 4px; backdrop-filter: none; }
-.cf-run-develop .ds-resulttile__developtext > :first-child { font-size: var(--text-sm); line-height: 1.4; }
-.cf-run-develop .ds-resulttile__developdetail { display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 100%; font-family: inherit; font-size: var(--text-xs); letter-spacing: normal; }
-.cf-run-develop__elapsed { position: absolute; z-index: 2; top: 12px; right: 14px; color: var(--text-meta); font-variant-numeric: tabular-nums; }
-
-.ds-intent-reference { position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%); z-index: 41; background: var(--surface-panel); border-radius: 12px; padding: 6px; display: flex; align-items: center; gap: 8px; }
-.ds-intent-reference img { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; }

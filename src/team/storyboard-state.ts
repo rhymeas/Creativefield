@@ -2,14 +2,30 @@ import type {CapabilityManifestV2} from "../capabilities/types";
 import {hasQualifiedDurationMapping} from "../capabilities/timing";
 import {assetMatchesPort} from "../capabilities/assets";
 import type {Asset,ReusableElement,Worker} from "./api";
-import {defaultDraft,draftErrors,workerReadiness,type ElementInputBinding} from "./state";
+import {defaultDraft,draftErrors,h3GeneratedAudio,workerReadiness,type ElementInputBinding} from "./state";
 import {isSelectedVideoCreate} from "../capabilities/tasks";
 
 export type Shot={key:string;prompt:string;durationSeconds:number|string;settings:{title?:string;audioPolicy:"mute"|"preserve"|"replace"|"mix";elementInputs:Record<string,ElementInputBinding>;cameraHint?:string;capabilityId?:string;generation?:{capabilityId:string;version:string;routeId:"local";controls:Record<string,string|number|boolean>}};assets:Array<{role:string;assetId:string}>};
 export type ShotPayload=Omit<Shot,"key"|"durationSeconds">&{durationSeconds:number;planKey?:string};
+export type PlannedShot={title:string;prompt:string;durationSeconds:number;shotIntent?:string;cameraIntent?:string};
+export function isStoryboardImage(asset:Asset,projectId:string){return asset.project_id===projectId&&asset.media_type==="image"&&asset.content_type.startsWith("image/");}
+/** Plan enough shots for the existing image sequence, within the planner's eight-shot limit. */
+export function storyboardPlanCount(shots:Shot[]):number{return Math.min(8,Math.max(3,shots.filter(shot=>!shot.prompt.trim()).length));}
+/** Fill only blank prompts, leaving existing references, timing and edited text intact. */
+export function fillUnpromptedShots(shots:Shot[],plans:PlannedShot[]):{shots:Shot[];filled:number;firstKey?:string}{
+  let filled=0,firstKey:string|undefined;
+  const usable=plans.filter(plan=>plan.prompt.trim());
+  const next=shots.map(shot=>{
+    if(shot.prompt.trim()||filled>=usable.length)return shot;
+    const plan=usable[filled++];firstKey??=shot.key;
+    const notes=[plan.shotIntent&&`Shot: ${plan.shotIntent}.`,plan.cameraIntent&&`Camera: ${plan.cameraIntent}.`].filter(Boolean).join(" ");
+    return {...shot,prompt:notes?`${plan.prompt}\n\n${notes}`:plan.prompt,settings:{...shot.settings,title:shot.settings.title?.trim()?shot.settings.title:plan.title}};
+  });
+  return {shots:next,filled,firstKey};
+}
 export type Board={id:string;project_id:string;name:string;revision:number;shots?:Array<{id:string;plan_key?:string;ordinal:number;prompt:string;duration_seconds:number|string;settings:Shot["settings"];assets:Shot["assets"]}>};
 export type Assembly={width:number;height:number;fps:number;audioPolicy:"mute"|"preserve";/** Absent means hard cuts. A cross-fade overlaps neighbours and shortens the film. */transition?:{kind:"cut"|"crossfade";seconds:number}};
-export type BoardDraft={revision:number;shots:Shot[];workerId:string;assembly:Assembly};
+export type BoardDraft={revision:number;shots:Shot[];workerId:string;assembly:Assembly;audioExplicit?:boolean};
 export type SaveIntent={revision:number;shots:ShotPayload[]};
 export type RenderIntent={revision:number;workerId:string;idempotencyKey:string;assembly:Assembly;approvedStillTakes?:Record<string,string>};
 export type BoardRender={id:string;project_id:string;created_by:string;revision:number;state:string;error:string|null;output_asset_id:string|null;created_at:string;assembly:Assembly;shots?:Array<{ordinal:number;snapshot:{planKey?:string;approvedStill?:{producerRunId:string;assetId:string;takeId:string};prompt:string;frames:number;effectiveDurationSeconds:number};state:string|null;error:string|null;child_run_id:string|null;output_asset_id:string|null;scene?:number|null;shot?:number|null;take?:number|null}>};
@@ -34,14 +50,34 @@ export function transitionProblem(shots:Array<{durationSeconds:number|string}>,t
   if(fade>=shortest)return `A ${fade} s cross-fade is longer than the shortest shot.`;
 }
 export function boardDraftKey(user:string,workspace:string,project:string,board:string){return `comfyfield:board:v1:${user}:${workspace}:${project}:${board}`;}
-export function fromBoard(board:Board):BoardDraft{return {revision:board.revision,shots:(board.shots??[]).map(s=>({key:s.plan_key??s.id,prompt:s.prompt,durationSeconds:Number(s.duration_seconds),settings:{...structuredClone(s.settings),elementInputs:structuredClone(s.settings.elementInputs??{})},assets:structuredClone(s.assets)})),workerId:"",assembly:{...defaultAssembly}};}
+export function fromBoard(board:Board):BoardDraft{
+  const shots=(board.shots??[]).map(s=>({key:s.plan_key??s.id,prompt:s.prompt,durationSeconds:Number(s.duration_seconds),settings:{...structuredClone(s.settings),elementInputs:structuredClone(s.settings.elementInputs??{})},assets:structuredClone(s.assets)}));
+  // Keep generated or source audio by default; an explicit browser draft still overrides this.
+  const audioPolicy=shots.some(shot=>["preserve","replace","mix"].includes(shot.settings.audioPolicy))?"preserve":"mute";
+  return {revision:board.revision,shots,workerId:"",assembly:{...defaultAssembly,audioPolicy},audioExplicit:false};
+}
+/** Do not override a person's output choice, including drafts saved before this flag existed. */
+export function enableShotAudio(draft:BoardDraft):BoardDraft{
+  return draft.audioExplicit===false&&draft.assembly.audioPolicy==="mute"&&draft.shots.some(s=>s.settings.audioPolicy!=="mute")
+    ? {...draft,assembly:{...draft.assembly,audioPolicy:"preserve"}} : draft;
+}
 export function newShot(m?:CapabilityManifestV2):Shot{
   const shot:Shot={key:crypto.randomUUID(),prompt:"",durationSeconds:1,settings:{audioPolicy:"mute",elementInputs:{}},assets:[]};return m?chooseWorkflow(shot,m):shot;
+}
+/** Copy the start reference into a new shot; subsequent edits remain independent. */
+export function inheritShotStartImage(shot:Shot,donor:Shot):Shot{
+  const asset=donor.assets.find(item=>item.role==="start_image");
+  const element=donor.settings.elementInputs.start_image;
+  if(!asset&&!element)return shot;
+  const elementInputs={...shot.settings.elementInputs};
+  if(asset)delete elementInputs.start_image;
+  else elementInputs.start_image=structuredClone(element);
+  return {...shot,assets:asset?[...shot.assets.filter(item=>item.role!=="start_image"),{...asset}]:shot.assets.filter(item=>item.role!=="start_image"),settings:{...shot.settings,elementInputs}};
 }
 /** Explicit model selection resets only model-specific controls/references. */
 export function chooseWorkflow(shot:Shot,m:CapabilityManifestV2):Shot{
   const d=defaultDraft(m);delete d.controls.prompt;delete d.controls.length;
-  return {...shot,durationSeconds:m.controls.find(c=>c.id==="length")?.default as number??1,settings:{...shot.settings,generation:{capabilityId:m.id,version:m.version,routeId:"local",controls:d.controls},audioPolicy:m.audioPolicies.includes("mute")?"mute":m.audioPolicies[0],elementInputs:{}},assets:[]};
+  return {...shot,durationSeconds:m.controls.find(c=>c.id==="length")?.default as number??1,settings:{...shot.settings,generation:{capabilityId:m.id,version:m.version,routeId:"local",controls:d.controls},audioPolicy:h3GeneratedAudio(m)?"replace":m.audioPolicies.includes("mute")?"mute":m.audioPolicies[0],elementInputs:{}},assets:[]};
 }
 export function moveShot(shots:Shot[],from:number,to:number){if(from<0||to<0||from>=shots.length||to>=shots.length)return shots;const next=[...shots],item=next.splice(from,1)[0];next.splice(to,0,item);return next;}
 export function shotPayload(shots:Shot[]):ShotPayload[]{return shots.map(({key,...s})=>({...s,planKey:key,durationSeconds:Number(s.durationSeconds),settings:structuredClone(s.settings),assets:[...s.assets].sort((a,b)=>a.role.localeCompare(b.role))}));}

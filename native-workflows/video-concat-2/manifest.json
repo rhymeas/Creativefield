@@ -124,7 +124,7 @@
       ],
       "evidence": [
         "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/video-concat-2.json (MIT, commit c307034); only the output file prefix was set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
-        "2026-10-30: run [local run] through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, no GPU), workflow hash edaca9430666, 16 s. Input: two 2 s clips (ocean 29.97 fps, traffic 25 fps), size 640x360. Result: 640x360, 3.67 s (not 4 s): the first clip frame rate is used for everything, so the 25 fps clip plays about 20% fast; the description says so. Frames looked at: ocean, then traffic. No sound in the result. Receipt: scripts/utility-packs-e2e.mjs."
+        "2026-10-30: run 861d0c29-7b1e-4175-a847-5337b3c86deb through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, no GPU), workflow hash edaca9430666, 16 s. Input: two 2 s clips (ocean 29.97 fps, traffic 25 fps), size 640x360. Result: 640x360, 3.67 s (not 4 s): the first clip frame rate is used for everything, so the 25 fps clip plays about 20% fast; the description says so. Frames looked at: ocean, then traffic. No sound in the result. Receipt: scripts/utility-packs-e2e.mjs."
       ]
     }
   ],

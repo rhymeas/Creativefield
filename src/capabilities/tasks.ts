@@ -54,3 +54,8 @@ export function routeImageToVideo<T extends {id:string;inputs:readonly {id:strin
   const port=selected.inputs.find(input=>input.type==='image'&&['start_image','character_image'].includes(input.id));
   return port?{pack:selected,inputId:port.id}:undefined;
 }
+
+/** Preparing a draft does not require a running worker; prefer one when available. */
+export function routeImageToVideoDraft<T extends {id:string;inputs:readonly {id:string;type:string}[]}>(ready:readonly T[],available:readonly T[]):{pack:T;inputId:string}|undefined {
+  return routeImageToVideo(ready) ?? routeImageToVideo(available);
+}

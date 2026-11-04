@@ -8,6 +8,9 @@ import {TeamMediaInput} from "./TeamMediaInput";
 import {characterElementOptions,elementBinding} from "./element-selection";
 import {chooseWorkflow,storyboardCreationModels,type Shot} from "./storyboard-state";
 import {insertReferenceMention} from "./prompt-reference";
+import {readCameraPose,supportsH3PromptCamera,writeCameraPose} from "./camera-route";
+import {CameraPoseField} from "../ds/CameraMovePicker";
+import {assetUrl} from "./api";
 import "../image/image.css";
 import "../ds/reference-tag.css";
 
@@ -24,9 +27,10 @@ export function StoryboardModelChoice({shot,manifests,disabled,onChange}:{shot:S
   return <TeamChoice label="Shot workflow" variant="model" display={m?.title.split(" (")[0]??"Choose a workflow"} subtitle={m?.description??"Select a local generation workflow for this shot."} value={m?.id??""} options={choices.map(item=>({value:item.id,label:item.title,note:item.description}))} disabled={disabled} onChange={id=>{const selected=choices.find(item=>item.id===id);if(selected)onChange(chooseWorkflow(shot,selected));}}/>;
 }
 
-export function StoryboardShotEditor({shot,manifests,assets,elements,workspace,projectId,disabled,files,onChange,onFile,onUpload,onLoadMore,loadingMore,loadMoreError,hideModelChoice=false}:{shot:Shot;manifests:CapabilityManifestV2[];assets:Asset[];elements:ReusableElement[];workspace:string;projectId?:string;disabled:boolean;files:Record<string,File|null>;onChange:(s:Shot)=>void;onFile:(role:string,file:File|null)=>void;onUpload:(role:string)=>void;onLoadMore?:()=>void;loadingMore?:boolean;loadMoreError?:string;hideModelChoice?:boolean}){
+export function StoryboardShotEditor({shot,manifests,assets,elements,workspace,projectId,disabled,files,onChange,onFile,onUpload,onLoadMore,loadingMore,loadMoreError,hideModelChoice=false,picture}:{shot:Shot;/** The shot's current picture (its frame or start image), shown when aiming the camera. */picture?:string;manifests:CapabilityManifestV2[];assets:Asset[];elements:ReusableElement[];workspace:string;projectId?:string;disabled:boolean;files:Record<string,File|null>;onChange:(s:Shot)=>void;onFile:(role:string,file:File|null)=>void;onUpload:(role:string)=>void;onLoadMore?:()=>void;loadingMore?:boolean;loadMoreError?:string;hideModelChoice?:boolean}){
   const g=shot.settings.generation,m=manifests.find(m=>m.id===g?.capabilityId),[numeric,setNumeric]=useState(false),[durationOpen,setDurationOpen]=useState(false);
   const promptRef=useRef<HTMLTextAreaElement>(null);
+  const startPicture=shot.assets.find(a=>a.role==="start_image")?.assetId;
   const imagePorts=m?.inputs.filter(p=>p.type==="image"&&(shot.assets.some(a=>a.role===p.id)||shot.settings.elementInputs[p.id]))??[];
   function mentionImage(id:string){const index=imagePorts.findIndex(p=>p.id===id);if(index<0||disabled)return;const area=promptRef.current,result=insertReferenceMention(shot.prompt,area?.selectionStart??shot.prompt.length,area?.selectionEnd??shot.prompt.length,`@Image ${index+1}`);onChange({...shot,prompt:result.value});requestAnimationFrame(()=>{promptRef.current?.focus();promptRef.current?.setSelectionRange(result.caret,result.caret);});}
   useEffect(()=>{if(disabled){setNumeric(false);setDurationOpen(false);}},[disabled]);
@@ -34,7 +38,6 @@ export function StoryboardShotEditor({shot,manifests,assets,elements,workspace,p
   function renderControl(c:Control){if(!g)return null;const value=g.controls[c.id]??c.default??"";if(c.disabledReason)return <Notice key={c.id} inline title={c.label}>{c.disabledReason}</Notice>;if(c.type==="string")return <PromptField key={c.id} label={c.label} compact value={String(value)} placeholder={c.label} onChange={v=>control(c.id,v)}/>;if(c.type==="boolean")return <Row key={c.id} label={c.label} value={String(value)} display={value?"On":"Off"} options={[{value:"true",label:"On"},{value:"false",label:"Off"}]} onChange={v=>control(c.id,v==="true")}/>;if(c.type==="select")return <Row key={c.id} label={c.label} value={String(value)} display={String(value||"Choose")} options={(c.options??[]).map(v=>({value:String(v),label:String(v)}))} onChange={v=>control(c.id,c.options?.find(option=>String(option)===v)??v)}/>;return <TextField key={c.id} label={c.label} type="number" min={c.min} max={c.max} step={c.step??(c.type==="integer"?1:"any")} value={String(value)} onChange={v=>control(c.id,v===""?"":Number(v))}/>;}
   const length=m?.controls.find(c=>c.id==="length"),seed=m?.controls.find(c=>c.id==="seed"),sizeControl=m?.controls.find(c=>["resolution","megapixels"].includes(c.id)&&c.type==="select"&&!c.disabledReason),sizes=Object.entries(m?.resolutions??{}),size=sizes.find(([,s])=>s.width===g?.controls.width&&s.height===g?.controls.height),advancedControls=m?.controls.filter(c=>!["prompt","length","width","height","seed","two_people",...(sizeControl?[sizeControl.id]:[])].includes(c.id))??[],audioChoices=m?shotAudioChoices(m):[];
   return <fieldset disabled={disabled} className="cf-fieldset ds-fieldset">
-    <TextField label="Shot title" value={shot.settings.title??""} onChange={title=>onChange({...shot,settings:{...shot.settings,title}})}/>
     {!hideModelChoice&&<StoryboardModelChoice shot={shot} manifests={manifests} disabled={disabled} onChange={onChange}/>}
     {m&&g&&<>
       {m.inputs.map(p=>{
@@ -49,6 +52,7 @@ export function StoryboardShotEditor({shot,manifests,assets,elements,workspace,p
         </Fragment>;
       })}
       <PromptField textareaRef={promptRef} tokens={imagePorts.map((_,index)=>`@Image ${index+1}`)} label="Shot prompt" placeholder="Describe this shot" value={shot.prompt} onChange={prompt=>onChange({...shot,prompt})}/>
+      {supportsH3PromptCamera(m)&&<CameraPoseField inline label="Camera" value={readCameraPose(shot.prompt)} src={picture??(startPicture?assetUrl(workspace,startPicture):undefined)} disabled={disabled} onChange={pose=>onChange({...shot,prompt:writeCameraPose(shot.prompt,pose)})}/>}
       <Params>{sizeControl?<ParamButton<string|number> disabled={disabled} title="Shot frame size" icon={<RectangleHorizontal size={16}/>} label={String(g.controls[sizeControl.id]??sizeControl.default??"Choose size")} value={(g.controls[sizeControl.id]??sizeControl.default??"") as string|number} onChange={value=>control(sizeControl.id,value)} options={(sizeControl.options??[]).map(value=>({value,label:String(value)}))}/>:sizes.length>0&&<ParamButton disabled={disabled} title="Shot frame size" icon={<RectangleHorizontal size={16}/>} label={size?.[0]??"Choose size"} value={size?.[0]??""} onChange={id=>{const s=m.resolutions![id];onChange({...shot,settings:{...shot.settings,generation:{...g,controls:{...g.controls,width:s.width,height:s.height}}}});}} options={sizes.map(([id,s])=>({value:id,label:id,note:`${s.width} × ${s.height}`}))}/>}<ParamButton<string|number> disabled={disabled} title="Shot duration" icon={<Clock size={16}/>} label={`${shot.durationSeconds}s`} value={shot.durationSeconds} options={[...Array.from({length:Math.floor((length?.max??10)-(length?.min??1))+1},(_,i)=>({value:i+(length?.min??1),label:`${i+(length?.min??1)} seconds`})),{value:"custom",label:"Custom duration…"}]} onChange={v=>{if(v==="custom")setDurationOpen(true);else onChange({...shot,durationSeconds:v});}}/></Params>
       <Row subtle label="Advanced settings" display="Optional controls" disabled={disabled} onClick={()=>setNumeric(true)}/>
     </>}

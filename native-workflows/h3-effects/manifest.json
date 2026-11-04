@@ -4,7 +4,7 @@
   "version": "0.2.0",
   "title": "Effect clips",
   "category": "video",
-  "description": "Pick an effect, add a photo of a person and get a short vertical clip of them breathing fire, summoning a storm and more. Runs MiniMax H3 with its official effect embeddings locally when the model and nodes are installed.",
+  "description": "Pick an effect, add a photo of a person and get a short vertical clip of them breathing fire, summoning a storm and more. Runs MiniMax H3 with its official effect embeddings on this computer; a 5 second draft takes about a minute.",
   "inputs": [
     {
       "id": "character_image",

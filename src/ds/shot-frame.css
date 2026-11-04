@@ -1,0 +1,19 @@
+/* ShotFrame: a 16:9 picture with hover-revealed actions. Tokens only. */
+.ds-shotframe { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--radius-lg); border: 1px dashed var(--line-hover); background: var(--surface-control); outline: none; }
+.ds-shotframe:not([data-state="empty"]) { border-style: solid; border-color: var(--line-strong); }
+.ds-shotframe[data-state="approved"] { border-color: var(--accent-ring); }
+.ds-shotframe > img, .ds-shotframe > video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ds-shotframe[data-state="rejected"] > img { opacity: .45; }
+.ds-shotframe[data-state="empty"] { aspect-ratio: 16 / 4; }
+.ds-shotframe__empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-muted); transition: opacity var(--dur-fast) var(--ease); }
+.ds-shotframe:is(:hover, :focus-within) .ds-shotframe__empty { opacity: 0; }
+.ds-shotframe__badge { position: absolute; left: var(--space-2); top: var(--space-2); display: inline-flex; align-items: center; gap: var(--gap-inline); padding: 2px var(--space-2); border-radius: var(--radius-xs); background: var(--surface-overlay); color: var(--text-primary); font-size: var(--text-2xs); line-height: var(--lh-2xs); }
+.ds-shotframe[data-state="approved"] .ds-shotframe__badge svg { color: var(--accent); }
+.ds-shotframe__corner { position: absolute; top: var(--space-2); right: var(--space-2); }
+.ds-shotframe__actions { position: absolute; inset: auto 0 0; display: flex; justify-content: center; gap: var(--space-2); padding: var(--space-3); }
+.ds-shotframe[data-state="empty"] .ds-shotframe__actions { inset: 0; align-items: center; }
+.ds-shotframe__takes { position: absolute; left: var(--space-2); bottom: var(--space-2); display: inline-flex; align-items: center; gap: 2px; padding: 0 2px; border-radius: var(--radius-full); background: var(--surface-overlay); color: var(--text-secondary); font-size: var(--text-2xs); line-height: var(--lh-2xs); font-variant-numeric: tabular-nums; }
+.ds-shotframe :is(.ds-shotframe__corner, .ds-shotframe__actions, .ds-shotframe__takes) { opacity: 0; pointer-events: none; transition: opacity var(--dur-fast) var(--ease); }
+.ds-shotframe:is(:hover, :focus-within) :is(.ds-shotframe__corner, .ds-shotframe__actions, .ds-shotframe__takes) { opacity: 1; pointer-events: auto; }
+.ds-shotframe__actions .ds-iconbtn, .ds-shotframe__corner .ds-iconbtn, .ds-shotframe__takes .ds-iconbtn { background: var(--surface-overlay); color: var(--text-primary); }
+.ds-shotframe__takes .ds-iconbtn { background: transparent; width: 22px; height: 22px; }

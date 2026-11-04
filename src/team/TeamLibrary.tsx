@@ -11,7 +11,7 @@ const VoiceRunReview=lazy(()=>import("./audio/VoiceRunReview").then(module=>({de
 const SpeechAudioPlayer=lazy(()=>import("./audio/SpeechAudioPlayer").then(module=>({default:module.SpeechAudioPlayer})));
 import {activeRun,runLabel} from "./state";
 import {ExampleTiles} from "./ExampleTiles";
-import {LIBRARY_EXAMPLE_VIDEOS} from "./reels";
+import {LIBRARY_EXAMPLE_VIDEOS,promoReelForCapability} from "./reels";
 import {jobQueueTitle,runLocation} from "./job-queue";
 import {useRecreate} from "./recreate";
 import {capabilityHasControl} from "../capabilities/lookup";
@@ -79,7 +79,7 @@ function ProjectRuns({workspace,project,call,canEdit,authorized,version,user,tit
   return <Block label="Project runs">{hero?.(latestClip?assetUrl(workspace.id,latestClip.output_ids[0]):undefined)}{error&&<Notice priority={20} consequence title="Runs couldn't be updated" actions={<Button variant="secondary" onClick={()=>setUpdate(v=>v+1)}>Check again</Button>} details={error}>The list shows the last runs it read; nothing was cancelled. Checking again reads them once more.</Notice>}{!shown.length&&!examples&&<Meta>{capabilityId?"No runs yet. Runs of this workflow appear here after you queue one.":"No runs yet. Queue a workflow from Video or Motion Control and it will show up here."}</Meta>}
     {motionRun&&<PerformanceMirror driving={assetUrl(workspace.id,motionRun.invocation!.inputs.motion_video)} result={assetUrl(workspace.id,motionRun.output_ids[0])} caption="Latest motion run · driving performance and result side by side"/>}
     {pickedOutputs.length>0&&<Toolbar><Button variant="secondary" onClick={()=>setSheetOpen(true)}>Contact sheet · {pickedOutputs.length}</Button><Button variant="ghost" onClick={()=>{setPicked({});setSheetOpen(false);}}>Clear</Button></Toolbar>}
-    {examples?<ExampleTiles kind={examples} leading={runTiles} leadingCount={shown.length}/>:<ResultGrid count={shown.length} aspect={0} label="Project runs">{runTiles}</ResultGrid>}
+    {examples?<ExampleTiles kind={examples} leading={runTiles} leadingCount={shown.length} videoSources={examples==="video"&&promoReelForCapability(capabilityId)?[promoReelForCapability(capabilityId)!]:undefined} caption={examples==="video"&&promoReelForCapability(capabilityId)?"Illustration":"Example"}/>:<ResultGrid count={shown.length} aspect={0} label="Project runs">{runTiles}</ResultGrid>}
     <Dialog wide open={authorized&&sheetOpen&&sheetItems.length>0} title="Selected results" onClose={()=>setSheetOpen(false)} footer={<Button variant="secondary" onClick={()=>setSheetOpen(false)}>Close</Button>}>
       <ContactSheet items={sheetItems} title={`Selected results · ${project.name}`} fileName={`selected-results-${project.id.slice(0,8)}.png`}/>
     </Dialog>

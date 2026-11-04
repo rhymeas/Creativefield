@@ -34,7 +34,8 @@ import {secondsToWanFrames} from "../workflow/build";
 import {WAN_ANIMATE_MAX_DESIRED_FRAMES} from "../capabilities/motion";
 import {reelForManifest,reelForSection} from "./reels";
 import {nativeCameraGesture,nativeCameraMoves,nativeCameraPose} from "./camera-controls";
-import {cameraPair,cameraRoute as cameraPathRoute,supportsH3PromptCamera} from "./camera-route";
+import {CAMERA_MOVES,cameraMovePose,cameraPair,cameraPoseMove,cameraRoute as cameraPathRoute,supportsH3PromptCamera} from "./camera-route";
+import {CameraPoseField} from "../ds/CameraMovePicker";
 
 const VoicePreview=lazy(()=>import("./audio/VoicePreview").then(module=>({default:module.VoicePreview})));
 const PosePreview=lazy(()=>import("./performance/PosePreview").then(module=>({default:module.PosePreview})));
@@ -46,15 +47,6 @@ function readDraft(key:string,m:CapabilityManifestV2):Draft {try{const draft=res
 function readIntent(key:string):Intent|null {try{return JSON.parse(sessionStorage.getItem(`${key}:intent`)??"null");}catch{return null;}}
 const mediaLabels:Record<string,string>={start_image:"Start image",end_image:"End image",motion_video:"Motion video",source_video:"Source clip",edit_mask:"Mask"};
 const audioLabels:Record<string,string>={preserve:"Preserve source",mute:"Mute",replace:"Replace",mix:"Mix"};
-const CAMERA_MOVES=[
-  {id:"static",label:"Static",instruction:"Keep the camera still and locked off throughout the shot."},
-  {id:"pan-left",label:"Pan left",instruction:"The camera slowly pans left."},
-  {id:"pan-right",label:"Pan right",instruction:"The camera slowly pans right."},
-  {id:"pan-up",label:"Pan up",instruction:"The camera slowly tilts up."},
-  {id:"pan-down",label:"Pan down",instruction:"The camera slowly tilts down."},
-  {id:"zoom-in",label:"Zoom in",instruction:"The camera slowly zooms in."},
-  {id:"zoom-out",label:"Zoom out",instruction:"The camera slowly zooms out."},
-] as const;
 /** The speed control runs 0–10; half steps keep the compact menu short. */
 export const CAMERA_SPEEDS=Array.from({length:21},(_,index)=>index/2);
 /** A frame size said the way the clip comes out: width × height, e.g. 480 × 848. */
@@ -90,7 +82,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const key=draftKey(user.id,workspace.id,project.id,manifest.id);
   /* The one person on this PC has Settings; a shared workspace calls it Team settings. */
   const settingsPlace=settingsLabel(audienceOf(user));
-  const [draft,setDraft]=useState<Draft>(()=>{const d=readDraft(key,manifest);return initialInputs&&!readIntent(key)?{...d,inputs:{...d.inputs,...initialInputs}}:d;}),[pending,setPending]=useState<Intent|null>(()=>readIntent(key)),[workerId,setWorkerId]=useState(()=>soleReadyWorker(manifest,workers));
+  const [draft,setDraft]=useState<Draft>(()=>{const d=readDraft(key,manifest);return initialInputs&&!readIntent(key)?{...d,inputs:{...d.inputs,...initialInputs}}:d;}),[pending,setPending]=useState<Intent|null>(()=>readIntent(key)),[workerId,setWorkerId]=useState(()=>soleReadyWorker(manifest,workers,draft.presetId));
   const [files,setFiles]=useState<Record<string,File|null>>({}),[assets,setAssets]=useState<Asset[]>([]),[elements,setElements]=useState<ReusableElement[]>([]),[error,setError]=useState(""),[busy,setBusy]=useState(""),[runVersion,setRunVersion]=useState(0),[saved,setSaved]=useState("");
   const [assetCursor,setAssetCursor]=useState<string|null>(null),[loadingAssets,setLoadingAssets]=useState(false),[assetPageError,setAssetPageError]=useState("");
   const [advancedOpen,setAdvancedOpen]=useState(false);
@@ -128,9 +120,9 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   useEffect(()=>{if(!authorized){setElements([]);return;}let current=true;void call<ReusableElement[]>(workspacePath(workspace.id,`elements?projectId=${encodeURIComponent(project.id)}`)).then(value=>{if(current)setElements(value);}).catch(e=>{if(current)setError((e as Error).message);});return()=>{current=false;};},[call,workspace.id,project.id,authorized]);
   useEffect(()=>{if(authorized)return;invalidateOperation(uploadGate.current);setBusy("");},[authorized,workspace.id,project.id,manifest.id]);
   useEffect(()=>{if(!authorized||!masked)return;let current=true;setRequirements(null);void call<{state:string;missing:string[];instructions:string}>(workspacePath(workspace.id,"masked-edit-requirements")).then(value=>{if(current)setRequirements(value);}).catch(e=>{if(current)setError((e as Error).message);});return()=>{current=false;};},[authorized,masked,call,workspace.id]);
-  useEffect(()=>{setWorkerId(id=>workers.some(w=>w.id===id)?id:soleReadyWorker(manifest,workers));},[workers,manifest]);
+  useEffect(()=>{setWorkerId(id=>workers.some(w=>w.id===id)?id:soleReadyWorker(manifest,workers,draft.presetId));},[workers,manifest,draft.presetId]);
 
-  const worker=workers.find(w=>w.id===workerId),readiness=worker?workerReadiness(manifest,worker):null;
+  const worker=workers.find(w=>w.id===workerId),readiness=worker?workerReadiness(manifest,worker,undefined,draft.presetId):null;
   /* The catalogue shows this in an info popover; the screen where a run is queued should say it outright. */
   const workerHardware=worker?.inventory?.hardware,ramTotal=workerHardware?.ramTotal??0,ramFree=workerHardware?.ramFree??null,memoryTight=ramFree!==null&&ramTotal>0&&ramFree/ramTotal<=(workerHardware?.minFreeShare??DEFAULT_MIN_FREE_SHARE);
   const missing=manifest.inputs.filter(port=>port.required&&!draft.inputs[port.id]&&!draft.elementInputs[port.id]);
@@ -309,10 +301,11 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
     return <TextField label={label} type="number" min={c.min} max={c.max} step={c.id==="strength"?"0.05":c.type==="integer"?1:"any"} value={String(draft.controls[c.id]??"")} onChange={v=>changeControl(c.id,v===""?"":Number(v))}/>;
   }
   const maskChoice=source&&trackingReady&&!selectedMask?<SegmentedTabs quiet label="Mask method" value={maskMethod} onChange={setMaskMethod} items={[{id:"track",label:"Select area"},{id:"upload",label:"Upload mask"}]}/>:null;
-  const workerChoice=<TeamChoice label="Worker" display={worker?.name??"Choose a worker"} disabled={locked} value={workerId} onChange={setWorkerId} options={workers.map(w=>{const r=workerReadiness(manifest,w);return {value:w.id,label:w.name,disabled:r.state!=="ready",status:r.state==="ready"?"ready":r.state==="offline"?"offline":r.state==="download_required"?"missing":"incompatible",detail:r.state!=="ready"?plainReasons(r.reasons,{settings:settingsPlace}):undefined};})}/>;
+  const workerChoice=<TeamChoice label="Worker" display={worker?.name??"Choose a worker"} disabled={locked} value={workerId} onChange={setWorkerId} options={workers.map(w=>{const r=workerReadiness(manifest,w,undefined,draft.presetId);return {value:w.id,label:w.name,disabled:r.state!=="ready",status:r.state==="ready"?"ready":r.state==="offline"?"offline":r.state==="download_required"?"missing":"incompatible",detail:r.state!=="ready"?plainReasons(r.reasons,{settings:settingsPlace}):undefined};})}/>;
   const promptControl=manifest.controls.find(c=>c.id==="prompt"),optionalPrompt=promptOptional(manifest);
   /* Reference pictures (a style, an object, a person) go into one tray instead of a stack of boxes. */
   const referencePorts=manifest.inputs.filter(port=>port.type==="image"&&/reference/i.test(port.id)),openReferencePorts=referencePorts.filter(port=>!draft.inputs[port.id]&&!draft.elementInputs[port.id]),emptyReference=openReferencePorts[0];
+  const framePorts=createSurface?manifest.inputs.filter(port=>port.type==="image"&&(port.id==="start_image"||port.id==="end_image")):[];
   /* Quality is the frame size the clip comes out at; the menu notes its length and speed. */
   const qualityOptions=resolutions.map(([id,size])=>({value:id,label:resolutionLabel(size.width,size.height),note:[length?`${draft.controls.length} s`:null,manifest.timing?`${manifest.timing.fps} fps`:null].filter(Boolean).join(" · ")}));
   const quality=qualityOptions.find(option=>option.value===selectedResolution);
@@ -346,7 +339,8 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
     <div className="cf-form"><TeamChoice variant="model" label="Model" display={manifest.title.split(" (")[0]} subtitle={manifest.title.split(" (")[1]?.replace(")","")??"Local ComfyUI"} video={reelForManifest(manifest.id)??reelForSection("video")} value={manifest.id} options={workflowOptions} onChange={changeModel} disabled={locked}/>{top}{memoryTight&&<Notice inline title="Low free memory, a run may wait to start"/>}
       <fieldset disabled={locked} className="cf-fieldset">
         {imageTarget&&<TeamMediaInput projectId={project.id} onLoadMore={assetCursor?()=>void moreAssets():undefined} loadingMore={loadingAssets} loadMoreError={assetPageError} workspace={workspace.id} label="Add a picture to start from" type="image" hint="Your video begins with it" accept="image/png,image/jpeg,image/webp" file={null} selected={undefined} options={assets.filter(asset=>asset.media_type==="image")} disabled={locked} canUpload={workspace.role!=="viewer"} onSelect={id=>{if(id)startWithAsset(imageTarget,"start_image",id);}} onFile={file=>{if(file)void startWith(imageTarget,"start_image",file);}} onUpload={()=>{}}/>}
-        {manifest.inputs.filter(port=>!referencePorts.includes(port)).map(mediaZone)}
+        {framePorts.length===2&&<div className="cf-frame-inputs">{framePorts.map(mediaZone)}</div>}
+        {manifest.inputs.filter(port=>!referencePorts.includes(port)&&!(framePorts.length===2&&framePorts.includes(port))).map(mediaZone)}
         {referencePorts.length>0&&<div onDragStart={event=>addKnownAssetDragType(event.dataTransfer,assets)}><ReferenceTray label={referencePorts.length===1?referencePorts[0].label:"References"} max={referencePorts.length} disabled={locked||!emptyReference} onAssetDrop={emptyReference?id=>void dropReferenceAsset(emptyReference,id):undefined} onExampleDrop={emptyReference?path=>dropReferenceExample(emptyReference,path):undefined} onFilesDrop={openReferencePorts.length?files=>dropReferenceFiles(openReferencePorts,files):undefined} onAdd={()=>{if(!locked)setAddingReference(true);}}>{referencePorts.map(port=>{const asset=assets.find(a=>a.id===draft.inputs[port.id]),element=draft.elementInputs[port.id],assetId=asset?.id??element?.assetId;return assetId?<Thumb key={port.id} label={port.label} src={assetUrl(workspace.id,assetId)} onActivate={!locked&&manifest.controls.some(c=>c.id==="prompt")?()=>mentionImage(port.id):undefined} onRemove={()=>{if(!locked){invalidateReferenceDrop(referenceDropEpoch);setInput(port.id,"");setElementInput(port.id,"");}}} dragData={{type:"application/x-comfyfield-asset",value:assetId}}/>:null;})}</ReferenceTray></div>}
         {referencePorts.length>0&&addingReference&&emptyReference&&mediaZone(emptyReference)}
         <Rule/>
@@ -385,7 +379,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
           <CameraPathPreview src={cameraSource?assetUrl(workspace.id,cameraSource.id):undefined} alt="Start frame moving along the chosen camera path" pose={String(draft.controls.camera_pose??"Static")} speed={Number(draft.controls.speed??1)} seconds={Number(draft.controls.length??1)}/>
         </div>}
         {cameraRoute&&<div className="cf-form">
-          <Row disabled={locked} label="Camera move" display={cameraMoveInfo?.label??"No camera move"} value={cameraMove} options={[{value:"",label:"No camera move",note:"Use the prompt as written"},...cameraMoves.map(move=>({value:move.id,label:move.label,note:move.instruction}))]} onChange={setCameraMove}/>
+          <CameraPoseField label="Camera move" value={cameraMovePose(cameraMove)} presets={cameraMoves.map(move=>cameraMovePose(move.id)!)} src={draft.inputs.start_image?assetUrl(workspace.id,draft.inputs.start_image):undefined} disabled={locked} onChange={pose=>setCameraMove(pose?cameraPoseMove(pose):"")}/>
           <GestureStage
             src={cameraSource?assetUrl(workspace.id,cameraSource.id):undefined}
             alt="Selected start frame for the camera move"

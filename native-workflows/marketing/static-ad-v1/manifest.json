@@ -7,16 +7,5 @@
   "formats": ["square_1080", "portrait_1080x1350", "landscape_1920x1080"],
   "font": "Space Grotesk 600 / 400 (Fontsource 5.1.0)",
   "generative": false,
-  "comfyuiGraph": false,
-  "licenses": {
-    "software": "Project-authored deterministic compositor recipe under this repository's GPL-3.0-only license. It is not a ComfyUI graph.",
-    "weights": []
-  },
-  "sources": [
-    {
-      "url": "README.md",
-      "observedAt": "2026-10-17",
-      "kind": "authorship"
-    }
-  ]
+  "comfyuiGraph": false
 }

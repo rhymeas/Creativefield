@@ -46,6 +46,8 @@ export type ObjectInfo = Record<
   {
     input: { required?: Record<string, InputSpec>; optional?: Record<string, InputSpec> };
     input_order?: { required?: string[]; optional?: string[] };
+    /** Output types in slot order, when provided by ComfyUI object_info. */
+    output?: string[];
     output_node?: boolean;
   }
 >;

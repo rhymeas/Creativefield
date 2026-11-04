@@ -47,7 +47,7 @@ Exact `template.api.json` graph submitted to live ComfyUI 0.37.0 (`:8188/prompt`
 
 - Character image: synthetic 482×854 gradient PNG; driving video: `testsrc2` 320×400, 24 fps, 81 frames
 - Output: 480×848, 24 fps, 81 frames, 101,351 B, SHA-256 `78d801790ddff4d977db3118411955bf5d1c815ccfdb7f29abdd20087605cd9f`
-- Elapsed 205.8 s on RTX 4090; ComfyUI prompt `[local run]`
+- Elapsed 205.8 s on RTX 4090; ComfyUI prompt `74aff839-b45d-4518-aae4-950034a8f362`
 - The nominal 482×854 resize request yields 480×848 output (latent dimensions round to multiples of 16)
 
 This proves model load, graph execution and frame/fps/dimension behaviour with synthetic inputs. It does **not** prove perceptual motion quality, identity preservation or lip accuracy on real footage. The route is therefore `implemented` for execution, with that quality boundary stated in the manifest evidence.

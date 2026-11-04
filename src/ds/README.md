@@ -1,6 +1,6 @@
 # Design system
 
-Dark, dense studio UI. Surfaces, type sizes, and layout come from the reference video generator's computed styles (see ../../../docs/higgsfield-ui-map.md). The accent (neon blue), the glow buttons, the rounder radii, the motion, and the node graph are our own.
+Dark, dense studio UI. Surfaces, type sizes, and layout come from the reference video generator's computed styles (see [../../../docs/higgsfield-ui-map.md](../../../docs/higgsfield-ui-map.md)). The accent (neon blue), the glow buttons, the rounder radii, the motion, and the node graph are our own.
 
 Live reference: run `npm run dev` and open `http://localhost:5173/#ds`.
 
@@ -156,6 +156,10 @@ Live reference: run `npm run dev` and open `http://localhost:5173/#ds`.
 | `PoseStrip` | Actual OpenPose/SDPose body and hand points, no interpolated joints; measured sample selection and arrow/Home/End controls. Showcase currently uses one real extracted reference-image pose, not a video sequence |
 | `LevelMeter` | 16-bar microphone level with a live percentage; fed by the local analyser, never a decorative animation |
 | `UploadSlot` | Media inputs, with drag-and-drop and preview. `compact` makes a shorter slot. `previewKind="video"` previews a silent loop; `previewKind="audio"` provides explicit audio playback controls. Image previews show the whole image, never a crop. Audio quick-pick `Thumb` uses `audio` for a sound glyph |
+| `KeyframeStrip` | Keyframe cards over a mini timeline with stems to draggable anchors (live seconds), card rearranging, hover/drop insert and the duration slider. Pair with `KeyframeSegment` (one transition prompt), `KeyframeOptions` (output tiles) and `PanelCrumb` (back / parent / mode header) |
+| `ShotStrip`, `ShotTile` | The film's cut line above the storyboard panel: tiles drag to a new position, pictures dropped on the strip become new shots, hover tools move or remove a shot, the running time sits after the add tile |
+| `ShotFrame` | The picture a text-only shot starts from: empty until drawn, then take, use (start frame), reject and new take, all revealed on hover |
+| `CameraPoseStage`, `CameraPoseField` | Aim the camera on the shot's own picture (or a drawn world): click or drag places the end frame, scroll or a corner zooms, and the frame stays where it is put; a small monitor plays the move once and holds its end. `presets` snaps to the moves a fixed-path model can follow. The field is one row naming the move that opens the stage |
 | `ReferenceTray` | Many references for one run, up to a cap (`max`): a scrolling row of `Thumb`s with a remove action each, the count ("3 of 30") and an add tile that is gone at the cap. Use it instead of a grid of one-file uploads when a run takes several pictures |
 | `Rule` | The one hairline between two zones of a screen or panel; screens never draw their own divider |
 | `PromptField` (`compact`), `ToolChip` | Text fields with inline tools |
@@ -184,4 +188,6 @@ TransformHandles (Showcase) provides fixed-size corner, move and rotation target
 
 AnnotationEditor: shared numbered region editor with attached instructions, pointer drawing, keyboard movement/resizing and removal. Showcase before screen usage. Quick preview hands the regions to Image Edit; generation remains an explicit Modify action.
 
-Keyframe animation: keep two to four image inputs, their timeline positions and one prompt per transition in the side panel. Generate each transition with a qualified first/last-frame workflow, preserve shared boundaries once when assembling, and show results and examples in the content area. State model timing limits before generation.
+Keyframe animation: keep two to four image inputs, their timeline positions and one prompt per transition in the side panel. Generate each transition with a qualified first/last-frame workflow, preserve shared boundaries once when assembling, and show results and examples in the content area. State model timing limits before generation. Build the panel from `PanelCrumb`, `KeyframeStrip`, `KeyframeSegment` and `KeyframeOptions`: each card's picture is an `UploadSlot`, joined by a stem to its anchor on the mini timeline. Dragging an anchor changes only that time, snapped to positions the model really ends on; dragging a card onto another rearranges the pictures while times and segment prompts stay; hovering the timeline or dropping media on it adds a keyframe only where both halves stay valid. Accent is neon blue, never the reference's purple.
+
+Storyboard: a scene-cut creator. The shot strip is the film; the side panel shows only the selected shot (workflow, picture, prompt, size and duration) and Render film. A text-only shot gets its picture through `ShotFrame` in place of a picture input. Film-wide output (worker, size, FPS, audio, cuts or fades) is one Film settings dialog. No bulk title lists, idea planners, contact sheets or explainer sections in the panel.
