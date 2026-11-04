@@ -21,7 +21,7 @@ export function RunDevelop({ workspaceId, run,caption,actions,onCancel,cancellin
   return <div className="cf-run-develop"><ResultTile caption={caption} actions={actions}
     develop={(()=>{const d=developPresentation(run.state, frame, url);
       // While it works, the run's own graph can be watched live in Nodes, as a copy that never touches the job.
-      return d&&{...d,onCancel,cancelling,detail:d.active?<>{elapsed&&<span className="ds-running-result__elapsed" aria-label={`Elapsed ${elapsed}`}>{elapsed}</span>}<LinkButton variant="ghost" href={`#nodes/run/${encodeURIComponent(run.id)}`}>Go to nodes workflow</LinkButton></>:d.detail};})()}
+      return d&&{...d,onCancel,cancelling,elapsed:elapsed&&<span aria-label={`Elapsed ${elapsed}`}>{elapsed}</span>,detail:d.active?<LinkButton variant="ghost" href={`#nodes/run/${encodeURIComponent(run.id)}`}>Open in Nodes</LinkButton>:d.detail};})()}
     status={<StatusText tone="idle">No artifact available</StatusText>}
   /></div>;
 }

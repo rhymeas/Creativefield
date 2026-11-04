@@ -33,7 +33,7 @@ export async function refreshWorkerInventory(
 export const runLabel:Record<string,string>={pending:"Pending",submitting:"Submitting",submission_unknown:"Submission uncertain",queued:"Queued",running:"Running",succeeded:"Succeeded",failed:"Failed",cancel_requested:"Cancellation requested",canceled:"Cancelled"};
 export function activeRun(state:string){return ["pending","submitting","submission_unknown","queued","running","cancel_requested"].includes(state);}
 export type ElementInputBinding={elementId:string;assetId:string};
-export type Draft={controls:Record<string,string|number|boolean>;inputs:Record<string,string>;elementInputs:Record<string,ElementInputBinding>;audioPolicy:"preserve"|"replace"|"mix"|"mute";presetId?:string;cameraMove?:string};
+export type Draft={controls:Record<string,string|number|boolean>;inputs:Record<string,string>;elementInputs:Record<string,ElementInputBinding>;audioPolicy:"preserve"|"replace"|"mix"|"mute";presetId?:string;cameraMove?:string;cameraPose?:{x:number;y:number;zoom:number}};
 /** Carry the prompt the user is actually submitting, including an intentional empty value. */
 export function draftPromptForHandoff(manifest:CapabilityManifestV2,draft:Draft,promptOn:boolean):string {
   return promptOptional(manifest)&&!promptOn ? "" : String(draft.controls.prompt??"");
@@ -54,6 +54,7 @@ export function restoreDraft(m:CapabilityManifestV2,saved:unknown):Draft {
   if(data.audioPolicy&&m.audioPolicies.includes(data.audioPolicy))draft.audioPolicy=data.audioPolicy;
   if(typeof data.presetId==="string"&&m.presets.some(preset=>preset.id===data.presetId))draft.presetId=data.presetId;
   if(typeof data.cameraMove==="string")draft.cameraMove=data.cameraMove;
+  if(data.cameraPose&&[data.cameraPose.x,data.cameraPose.y,data.cameraPose.zoom].every(Number.isFinite)&&Math.abs(data.cameraPose.x)<=.5&&Math.abs(data.cameraPose.y)<=.5&&data.cameraPose.zoom>=.75&&data.cameraPose.zoom<=2.5)draft.cameraPose=data.cameraPose;
   return draft;
 }
 

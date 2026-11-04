@@ -34,7 +34,7 @@ import {secondsToWanFrames} from "../workflow/build";
 import {WAN_ANIMATE_MAX_DESIRED_FRAMES} from "../capabilities/motion";
 import {reelForManifest,reelForSection} from "./reels";
 import {nativeCameraGesture,nativeCameraMoves,nativeCameraPose} from "./camera-controls";
-import {CAMERA_MOVES,cameraMovePose,cameraPair,cameraPoseMove,cameraRoute as cameraPathRoute,supportsH3PromptCamera} from "./camera-route";
+import {CAMERA_MOVES,cameraMovePose,cameraPair,cameraPoseMove,cameraSentence,cameraRoute as cameraPathRoute,supportsH3PromptCamera} from "./camera-route";
 import {CameraPoseField} from "../ds/CameraMovePicker";
 
 const VoicePreview=lazy(()=>import("./audio/VoicePreview").then(module=>({default:module.VoicePreview})));
@@ -93,7 +93,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const [addingReference,setAddingReference]=useState(false);
   const [trimInput,setTrimInput]=useState<{role:string;assetId:string}|null>(null);
   const cameraMove=draft.cameraMove??"";
-  function setCameraMove(move:string){setDraft(d=>({...d,cameraMove:CAMERA_MOVES.some(option=>option.id===move)?move:undefined}));}
+  function setCameraMove(move:string){setDraft(d=>({...d,cameraMove:CAMERA_MOVES.some(option=>option.id===move)?move:undefined,cameraPose:cameraMovePose(move)??undefined}));}
   const [voiceConsent,setVoiceConsent]=useState(false);
   const [requirements,setRequirements]=useState<{state:string;missing:string[];instructions:string}|null>(null);
   const [drivingSeconds,setDrivingSeconds]=useState<number|null>(null);
@@ -175,7 +175,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const cameraMoves=supportsH3PromptCamera(manifest)?CAMERA_MOVES:CAMERA_MOVES.filter(move=>move.id!=="static");
   const cameraMoveInfo=cameraMoves.find(move=>move.id===cameraMove);
   const cameraPathModel=cameraRoute?cameraPair(chosenManifest,catalogue):undefined;
-  const cameraInstruction=cameraRoute&&cameraMoveInfo?`Camera move: ${cameraMoveInfo.instruction}`:"";
+  const cameraInstruction=cameraRoute&&draft.cameraPose?cameraSentence(draft.cameraPose):cameraRoute&&cameraMoveInfo?`Camera move: ${cameraMoveInfo.instruction}`:"";
   const cameraSource=cameraRoute||nativeCamera?assets.find(a=>a.id===draft.inputs.start_image):undefined;
   const motionRoute=manifest.category==="motion"&&manifest.inputs.some(port=>port.id==="motion_video");
   const drivingClip=motionRoute&&!files.motion_video?assets.find(asset=>asset.id===draft.inputs.motion_video&&asset.project_id===project.id&&asset.media_type==="video"):undefined;
@@ -222,7 +222,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
     if(locked)return;
     const nextKey=draftKey(user.id,workspace.id,project.id,target.id),next=readDraft(nextKey,target);
     next.inputs[port]=assetId;
-    if(supportsH3PromptCamera(manifest)&&supportsH3PromptCamera(target))next.cameraMove=draft.cameraMove;
+    if(supportsH3PromptCamera(manifest)&&supportsH3PromptCamera(target)){next.cameraMove=draft.cameraMove;next.cameraPose=draft.cameraPose;}
     if(target.controls.some(control=>control.id==="prompt"))next.controls.prompt=draftPromptForHandoff(manifest,draft,promptOn);
     localStorage.setItem(nextKey,JSON.stringify(next));onCapability(target.id);
   }
@@ -253,7 +253,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   function changeModel(id:string){
     const target=catalogue.find(item=>item.id===id);
     if(target&&supportsH3PromptCamera(manifest)&&supportsH3PromptCamera(target)){
-      try{const targetKey=draftKey(user.id,workspace.id,project.id,target.id),next=readDraft(targetKey,target);next.cameraMove=draft.cameraMove;localStorage.setItem(targetKey,JSON.stringify(next));}catch{setError("Camera choice could not be saved in this browser.");return;}
+      try{const targetKey=draftKey(user.id,workspace.id,project.id,target.id),next=readDraft(targetKey,target);next.cameraMove=draft.cameraMove;next.cameraPose=draft.cameraPose;localStorage.setItem(targetKey,JSON.stringify(next));}catch{setError("Camera choice could not be saved in this browser.");return;}
     }
     onCapability(id);
   }
@@ -379,7 +379,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
           <CameraPathPreview src={cameraSource?assetUrl(workspace.id,cameraSource.id):undefined} alt="Start frame moving along the chosen camera path" pose={String(draft.controls.camera_pose??"Static")} speed={Number(draft.controls.speed??1)} seconds={Number(draft.controls.length??1)}/>
         </div>}
         {cameraRoute&&<div className="cf-form">
-          <CameraPoseField label="Camera move" value={cameraMovePose(cameraMove)} presets={cameraMoves.map(move=>cameraMovePose(move.id)!)} src={draft.inputs.start_image?assetUrl(workspace.id,draft.inputs.start_image):undefined} disabled={locked} onChange={pose=>setCameraMove(pose?cameraPoseMove(pose):"")}/>
+          <CameraPoseField label="Camera move" value={draft.cameraPose??cameraMovePose(cameraMove)} presets={cameraPathModel?cameraMoves.map(move=>cameraMovePose(move.id)!):undefined} src={draft.inputs.start_image?assetUrl(workspace.id,draft.inputs.start_image):undefined} disabled={locked} onChange={pose=>setDraft(d=>({...d,cameraMove:pose?cameraPoseMove(pose):undefined,cameraPose:pose??undefined}))}/>
           <GestureStage
             src={cameraSource?assetUrl(workspace.id,cameraSource.id):undefined}
             alt="Selected start frame for the camera move"

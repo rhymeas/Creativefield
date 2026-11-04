@@ -2037,7 +2037,7 @@ export function ResultGrid({ count, aspect, label, children }: { count: number; 
 }
 
 /* ResultTile: one image in a ResultGrid, or its place while it is being made (pass a status instead of children). */
-export function ResultTile({ children, status, caption, actions, onOpen, develop, dragAsset }: { children?: ReactNode; status?: ReactNode; caption?: ReactNode; actions?: ReactNode; onOpen?: () => void; dragAsset?: { id: string; url: string; contentType?: string }; develop?: { src?: string; label: ReactNode; detail?: ReactNode; progress?: number; active?: boolean; onCancel?: () => void; cancelling?: boolean } }) {
+export function ResultTile({ children, status, caption, actions, onOpen, develop, dragAsset }: { children?: ReactNode; status?: ReactNode; caption?: ReactNode; actions?: ReactNode; onOpen?: () => void; dragAsset?: { id: string; url: string; contentType?: string }; develop?: { src?: string; label: ReactNode; detail?: ReactNode; elapsed?: ReactNode; progress?: number; active?: boolean; onCancel?: () => void; cancelling?: boolean } }) {
   const preview=useSurfacePreview();
   const open=onOpen??preview.open;
   return (
@@ -2054,12 +2054,19 @@ export function ResultTile({ children, status, caption, actions, onOpen, develop
           data-terminal={develop.active === false ? "" : undefined}
           style={{ ["--develop-blur" as string]: `${Math.max(2, 18 - Math.min(1, Math.max(0, develop.progress ?? 0)) * 16)}px` }}
         >
-          {develop.src ? <img className="ds-resulttile__preview" src={develop.src} alt="" /> : <span className="ds-resulttile__skeleton"><Skeleton height={10} /><Skeleton width="72%" height={10} /></span>}
+          {/* A drifting grain, the live preview sharpening as the run advances, an orbit while it works; the
+              elapsed time sits top right and the ways out appear on hover. */}
+          {develop.src && <img className="ds-resulttile__preview" src={develop.src} alt="" />}
+          <span className="ds-resulttile__grain" aria-hidden="true" />
+          {develop.elapsed && <span className="ds-resulttile__elapsed">{develop.elapsed}</span>}
           <span className="ds-resulttile__developtext">
+            <span className="ds-resulttile__orbit" aria-hidden="true"><i /></span>
             {develop.active === false ? <StatusText tone="warn">{develop.label}</StatusText> : <ShimmerText>{develop.label}</ShimmerText>}
+          </span>
+          {(develop.detail || (develop.onCancel && develop.active !== false)) && <span className="ds-resulttile__developbar">
             {develop.detail && <span className="ds-resulttile__developdetail">{develop.detail}</span>}
             {develop.onCancel && develop.active !== false && <Button variant="ghost" disabled={develop.cancelling} onClick={event => { event.stopPropagation(); develop.onCancel!(); }}>{develop.cancelling ? "Cancelling…" : "Cancel"}</Button>}
-          </span>
+          </span>}
         </span>
       ) : children ?? <span className="ds-resulttile__status">{status}</span>}
       {caption && <span className="ds-resulttile__caption">{caption}</span>}

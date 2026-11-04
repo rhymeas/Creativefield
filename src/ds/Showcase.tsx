@@ -655,7 +655,7 @@ export default function Showcase() {
 
       <Section title="Developing states">
         <ResultGrid count={4} aspect={16 / 9} label="Run states">
-          <ResultTile develop={{ label: "Working on it · part 2 of 4 · 12/20", progress: .6, onCancel: () => {} }} />
+          <ResultTile develop={{ label: "Working on it · part 2 of 4 · 12/20", progress: .6, elapsed: "0:15", detail: <LinkButton variant="ghost" href="#ds">Open in Nodes</LinkButton>, onCancel: () => {} }} />
           <ResultTile develop={{ label: "Cancelling…", progress: .2 }} />
           <ResultTile develop={{ label: "Failed at step 12/20", active: false }} />
           <ResultTile develop={{ label: "Cancelled at step 4/20", src: "/reels/wan22-i2v-5b.png", progress: .2, active: false }} />

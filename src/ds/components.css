@@ -1540,13 +1540,32 @@ button.ds-thumb__art:disabled { opacity: 0.45; cursor: not-allowed; }
 .ds-resulttile[data-hover-open] { cursor: zoom-in; }
 .ds-resulttile > video { object-fit: contain; background: #000; }
 .ds-resulttile[data-develop] { min-height: calc(180px * var(--ui-scale)); width: 100%; } /* with only overlay content it would shrink to 0 wide in its centred parent, hiding the progress */
-.ds-resulttile__develop { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; background: var(--surface-control); }
-.ds-resulttile__preview { position: absolute; inset: -4%; width: 108%; height: 108%; object-fit: cover; filter: blur(var(--develop-blur, 18px)) saturate(.8); opacity: .72; transform: scale(1.02); }
+/* Working card: drifting grain, a sharpening live preview, an orbit and the shimmering stage word; elapsed
+   time top right; Go to nodes / Cancel on hover. No progress bar, no gradients. */
+.ds-resulttile__develop { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; border-radius: inherit; background: var(--surface-control); box-shadow: inset 0 0 0 1px var(--line-soft); }
+.ds-resulttile__preview { position: absolute; inset: -4%; width: 108%; height: 108%; object-fit: cover; filter: blur(var(--develop-blur, 18px)) saturate(.8); opacity: .72; transform: scale(1.02); transition: filter var(--dur-slow) var(--ease); }
 .ds-resulttile__develop[data-terminal] .ds-resulttile__preview { opacity: .4; }
-.ds-resulttile__develop[data-terminal] .ds-skeleton { animation: none; }
-.ds-resulttile__developtext { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 12px; border-radius: var(--radius-sm); background: var(--surface-glass); backdrop-filter: blur(8px); text-align: center; }
-.ds-resulttile__developdetail { font-family: var(--font-mono); font-size: var(--text-3xs); color: var(--text-meta); letter-spacing: .04em; }
-.ds-resulttile__skeleton { position: relative; z-index: 1; width: 58%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.ds-resulttile__grain { position: absolute; inset: -40px; background-color: var(--line-hover); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Ccircle cx='7' cy='7' r='1' fill='black'/%3E%3C/svg%3E") 0 0 / 14px 14px; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Ccircle cx='7' cy='7' r='1' fill='black'/%3E%3C/svg%3E") 0 0 / 14px 14px; opacity: .55; animation: ds-develop-drift 14s linear infinite; pointer-events: none; }
+.ds-resulttile__develop:has(.ds-resulttile__preview) .ds-resulttile__grain { opacity: .25; }
+@keyframes ds-develop-drift { to { transform: translate(28px, 28px); } }
+.ds-resulttile__developtext { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; font-size: var(--text-sm); line-height: var(--lh-sm); color: var(--text-secondary); }
+.ds-resulttile__orbit { position: relative; width: 52px; height: 52px; border-radius: var(--radius-full); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.ds-resulttile__orbit::before { content: ""; position: absolute; inset: 17px; border-radius: inherit; background: var(--accent-soft); box-shadow: 0 0 18px var(--accent-ring); animation: ds-develop-core 1.8s var(--ease) infinite alternate; }
+.ds-resulttile__orbit::after { content: ""; position: absolute; inset: -9px; border-radius: inherit; border: 1px dashed var(--line-hover); animation: ds-develop-spin 9s linear infinite reverse; }
+.ds-resulttile__orbit i { position: absolute; inset: 0; border-radius: inherit; animation: ds-develop-spin 1.4s cubic-bezier(.45, .05, .55, .95) infinite; }
+.ds-resulttile__orbit i::after { content: ""; position: absolute; top: -3.5px; left: 50%; width: 7px; height: 7px; margin-left: -3.5px; border-radius: var(--radius-full); background: var(--accent); box-shadow: 0 0 10px var(--accent), 0 0 22px var(--accent-ring); }
+@keyframes ds-develop-spin { to { transform: rotate(360deg); } }
+@keyframes ds-develop-core { from { transform: scale(.7); opacity: .6; } to { transform: scale(1.1); opacity: 1; } }
+.ds-resulttile__develop[data-terminal] .ds-resulttile__orbit i, .ds-resulttile__develop[data-terminal] .ds-resulttile__grain { display: none; }
+.ds-resulttile__develop[data-terminal] .ds-resulttile__orbit::before, .ds-resulttile__develop[data-terminal] .ds-resulttile__orbit::after { animation: none; opacity: .4; box-shadow: none; }
+.ds-resulttile__elapsed { position: absolute; z-index: 1; top: var(--space-3); right: var(--space-3); padding: 2px var(--space-2); border-radius: var(--radius-full); background: var(--surface-overlay); color: var(--text-secondary); font-size: var(--text-2xs); line-height: var(--lh-2xs); font-variant-numeric: tabular-nums; }
+.ds-resulttile__developbar { position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-3); opacity: 0; transform: translateY(6px); transition: opacity var(--dur-fast) var(--ease), transform var(--dur-med) var(--ease); }
+.ds-resulttile:is(:hover, :focus-within) .ds-resulttile__developbar { opacity: 1; transform: none; }
+.ds-resulttile__developtext { transition: transform var(--dur-med) var(--ease); }
+.ds-resulttile:has(.ds-resulttile__developbar):is(:hover, :focus-within) .ds-resulttile__developtext { transform: translateY(calc(-1 * var(--space-5))); }
+.ds-resulttile__developbar .ds-btn { background: var(--surface-overlay); }
+.ds-resulttile__developdetail { display: flex; align-items: center; gap: var(--space-2); }
+@media (prefers-reduced-motion: reduce) { .ds-resulttile__develop *, .ds-resulttile__develop *::before, .ds-resulttile__develop *::after { animation: none !important; } }
 .ds-contactsheet__status { display: flex; flex-direction: column; gap: 4px; }
 
 /* â”€â”€ Trim timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
