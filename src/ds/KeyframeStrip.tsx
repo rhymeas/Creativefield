@@ -36,7 +36,9 @@ const carriesMedia=(data:DataTransfer)=>!data.types.includes(KEYFRAME_DRAG)&&(da
 /** Keyframe cards over a mini timeline. Drag an anchor to change its time (snapped to `positions`),
  * drag a card onto another to rearrange the pictures (times stay), hover or drop media on the timeline
  * to add a keyframe. The picture of each card is the caller's UploadSlot, so drop, paste and pick stay one component. */
-export function KeyframeStrip({frames,fps,maxFrame,disabled=false,activeSegment=-1,media,positions,insertPositions,onMove,onReorder,onInsert,onRemove,mention,onMention}:{
+export function KeyframeStrip({frames,fps,maxFrame,disabled=false,activeSegment=-1,media,positions,insertPositions,onMove,onReorder,onInsert,onRemove,mention,onMention,end}:{
+ /** One quiet control at the end of the duration line (for example the tool's info button). */
+ end?:ReactNode;
  frames:{frame:number;filled:boolean}[];fps:number;
  /** The timeline's full length in frames (the model limit). */
  maxFrame:number;disabled?:boolean;activeSegment?:number;
@@ -117,7 +119,7 @@ export function KeyframeStrip({frames,fps,maxFrame,disabled=false,activeSegment=
    {insertAt!==undefined&&!disabled&&<button type="button" className="ds-kstrip__insert" style={{left:pct(at(insertAt))}} data-show={!!ghost} aria-label={`Add a keyframe at ${keyframeSeconds(insertAt,fps)} seconds`} onClick={()=>{setGhost(null);onInsert(insertAt,null);}}><Plus size={13} strokeWidth={2.5}/></button>}
    {bubble&&<span className="ds-kstrip__bubble" style={{left:pct(bubble.x)}}>{keyframeSeconds(bubble.frame,fps)}s</span>}
   </div>
-  <label className="ds-kstrip__duration"><span>Duration</span><Slider aria-label="Duration" min={durations[0]??frames[last].frame} max={durations.at(-1)??frames[last].frame} step={1} value={frames[last].frame} disabled={disabled||durations.length<2} onChange={e=>{const next=nearest(durations,Number(e.target.value));if(next!==undefined&&next!==frames[last].frame)onMove(last,next);}}/><span className="ds-kstrip__seconds">{keyframeSeconds(frames[last].frame,fps)} sec</span></label>
+  <label className="ds-kstrip__duration"><span>Duration</span><Slider aria-label="Duration" min={durations[0]??frames[last].frame} max={durations.at(-1)??frames[last].frame} step={1} value={frames[last].frame} disabled={disabled||durations.length<2} onChange={e=>{const next=nearest(durations,Number(e.target.value));if(next!==undefined&&next!==frames[last].frame)onMove(last,next);}}/><span className="ds-kstrip__seconds">{keyframeSeconds(frames[last].frame,fps)} sec</span>{end}</label>
  </div>;
 }
 

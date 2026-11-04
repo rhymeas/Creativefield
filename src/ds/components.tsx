@@ -28,7 +28,7 @@ import {
   type PointerEventHandler,
 } from "react";
 import {createPortal} from "react-dom";
-import { AlertCircle, Trash2, ArrowLeftRight, ArrowUpRight, Repeat, Crop, Download, ImagePlus, LayoutGrid, Pencil, Grid3X3, Menu as GripIcon, Link2, Pause, Play, ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, ImageIcon, Info, Maximize2, Music2, Plus, Search, Sparkles, Video, X } from "lucide-react";
+import { AlertCircle, Trash2, ArrowLeftRight, ArrowUpRight, Repeat, Crop, Download, ImagePlus, LayoutGrid, Pencil, Grid3X3, Menu as GripIcon, Link2, Pause, Play, ArrowRight, Check, Copy, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, ImageIcon, Info, Maximize2, Music2, Plus, Search, Sparkles, Video, X } from "lucide-react";
 
 const cx = (...c: Array<string | false | null | undefined>) => c.filter(Boolean).join(" ");
 
@@ -552,7 +552,6 @@ export function UploadSlot({
             <X size={12} /> Remove
           </GlassButton>
         </span>}
-        {!disabled && <button type="button" className="ds-upload__paste" aria-label={`Paste to ${label}`} onClick={(e)=>{e.preventDefault();e.stopPropagation();void pasteFromClipboard();}}>Paste</button>}
         {(pasteError||exampleError) && <span role="status" className="ds-upload__clear">{pasteError||exampleError}</span>}
         {surface.viewer}
       </div>
@@ -3018,15 +3017,18 @@ function mediaAt(root:HTMLElement|null){
 function hasMediaNode(node:ReactNode):boolean{
   return Children.toArray(node).some(child=>isValidElement<{children?:ReactNode}>(child)&&(["img","video"].includes(String(child.type))||hasMediaNode(child.props.children)));
 }
-function useSurfacePreview<T extends HTMLElement=HTMLDivElement>(){
+/** `info` is shown beside the media in the full view (how it was made); `onOpen` runs when the full view opens. */
+function useSurfacePreview<T extends HTMLElement=HTMLDivElement>(options:{info?:ReactNode;onOpen?:()=>void}={}){
   const ref=useRef<T>(null),[source,setSource]=useState<ReturnType<typeof mediaAt>>(null),editor=useContext(mediaEditContext);
-  const open=()=>{const media=mediaAt(ref.current);ref.current?.querySelectorAll("video").forEach(video=>video.pause());setSource(media);};
+  const open=()=>{const media=mediaAt(ref.current);ref.current?.querySelectorAll("video").forEach(video=>video.pause());setSource(media);if(media)options.onOpen?.();};
   const edit=()=>{const media=mediaAt(ref.current);if(media)void Promise.resolve(editor.onEdit?.({...media,intent:"edit"})).catch(()=>setSource(media));};
-  return {ref,open,edit,canEdit:!!editor.onEdit,actions:<><IconButton label="Full view" onClick={open}><Maximize2 size={14}/></IconButton>{editor.onEdit&&<IconButton label="Edit media" onClick={edit}><Pencil size={14}/></IconButton>}</>,viewer:source&&<MediaViewer open={true} src={source?.src??""} name={source?.name??"Preview"} mediaType={source?.mediaType} onClose={()=>setSource(null)}/>};
+  return {ref,open,edit,canEdit:!!editor.onEdit,actions:<><IconButton label="Full view" onClick={open}><Maximize2 size={14}/></IconButton>{editor.onEdit&&<IconButton label="Edit media" onClick={edit}><Pencil size={14}/></IconButton>}</>,viewer:source&&<MediaViewer open={true} src={source?.src??""} name={source?.name??"Preview"} mediaType={source?.mediaType} info={options.info} onClose={()=>setSource(null)}/>};
 }
 
 /* Full preview shares image crop and the app's existing editor routes. Cropping always saves a copy. */
-export function MediaViewer({ open, src, name, onClose, actions, onActivate, mediaType = "image",onCrop,compare }: { open: boolean; src: string; name: string; onClose: () => void; actions?: ReactNode; onActivate?: () => void; mediaType?: "image" | "video";onCrop?:SaveCrop;compare?:{src:string;name:string} }) {
+export function MediaViewer({ open, src, name, onClose, actions, onActivate, mediaType = "image",onCrop,compare,info }: { open: boolean; src: string; name: string; onClose: () => void; actions?: ReactNode; onActivate?: () => void; mediaType?: "image" | "video";onCrop?:SaveCrop;compare?:{src:string;name:string};
+  /** How this was made (mode, prompt, model, quality, references), in a column beside the media. */
+  info?: ReactNode }) {
   const panel = useRef<HTMLDivElement>(null);
   const image=useRef<HTMLImageElement>(null),editor=useContext(mediaEditContext),urls=useRef<string[]>([]),start=useRef<{x:number;y:number}|null>(null);
   const [annotationOpen,setAnnotationOpen]=useState(false),[chooser,setChooser]=useState<"openIn"|"reference"|null>(null);
@@ -3097,6 +3099,7 @@ export function MediaViewer({ open, src, name, onClose, actions, onActivate, med
         <AnnotationEditor open={annotationOpen} src={current.src} onClose={()=>setAnnotationOpen(false)} onApply={async annotations=>{if(!editor.onEdit)throw new Error("Image editing is unavailable.");await editor.onEdit({...current,mediaType:"image",intent:"annotate",annotations});setAnnotationOpen(false);onClose();}}/>
       </div>
       <aside className="ds-viewer__panel" aria-label="Actions for this media">
+        {info&&<div className="ds-viewer__info">{info}</div>}
         <div className="ds-viewer__tools">
           {generationInfo?.recreate&&<Button disabled={busy} onClick={()=>void go(generationInfo.recreate!)}><Repeat size={14}/>Recreate</Button>}
           {tools?.animate&&mediaType==="image"&&<Button variant="primary" disabled={busy} onClick={()=>void go(tools.animate!)}><Video size={14}/>Animate</Button>}
@@ -3683,6 +3686,7 @@ export function HistoryItem({
   details,
   actions,
   date,
+  mode,
 }: {
   media: ReactNode;
   portrait?: boolean;
@@ -3710,12 +3714,23 @@ export function HistoryItem({
   details?: ReactNode;
   actions?: ReactNode;
   date: string;
+  /** The mode it was made in ("Image to video", "Motion transfer"): a quiet label top left. */
+  mode?: string;
 }) {
   // The details are hidden until asked for. They open over the media, so nothing shifts.
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const [removing, setRemoving] = useState(false), [deleting, setDeleting] = useState(false), [deleteError, setDeleteError] = useState("");
-  const preview=useSurfacePreview();
+  const [copied, setCopied] = useState(false);
+  // The full view tells how this was made: mode, references, prompt (copyable), model and settings, date.
+  const viewerInfo = <>
+    {mode && <span className="ds-viewer-info__mode">{mode}</span>}
+    {!!inputs?.length && <section className="ds-viewer-info__block"><span className="ds-details__label">References</span><div className="ds-details__thumbs">{inputs.map((input) => input.video ? <video key={input.label} className="ds-details__thumb" src={input.src} muted loop autoPlay playsInline aria-label={input.label} /> : <img key={input.label} className="ds-details__thumb" src={input.src} alt={input.label} />)}</div></section>}
+    {prompt.trim() && <section className="ds-viewer-info__block"><span className="ds-viewer-info__head"><span className="ds-details__label">Prompt</span><IconButton label={copied ? "Copied" : "Copy prompt"} onClick={() => { void navigator.clipboard?.writeText(prompt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }); }}>{copied ? <Check size={14} /> : <Copy size={14} />}</IconButton></span><ClampText text={prompt} lines={8} title="Prompt" /></section>}
+    <dl className="ds-details__facts">{typeof model === "string" && <div><dt>Model</dt><dd>{model}</dd></div>}{facts?.filter((fact) => fact.label !== "Model").map((fact) => <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl>
+    <span className="ds-details__date">{date}</span>
+  </>;
+  const preview=useSurfacePreview({info:viewerInfo,onOpen:onOpenDetails});
   const mediaElement=isValidElement(media)?media:undefined;
   const mediaProps=mediaElement?.props as {src?:unknown}|undefined;
   const mediaSrc=typeof mediaProps?.src==="string"?mediaProps.src:"";
@@ -3735,6 +3750,8 @@ export function HistoryItem({
       {onDelete&&<ConfirmDialog open={removing} title="Delete this result?" text="It is removed from this project for everyone." confirmLabel={deleting?"Deleting…":"Delete"} busy={deleting} error={deleteError} onCancel={()=>{setRemoving(false);setDeleteError("");}} onConfirm={()=>{setDeleting(true);setDeleteError("");void onDelete().then(()=>setRemoving(false)).catch((e:Error)=>setDeleteError(e.message)).finally(()=>setDeleting(false));}}/>}
       <div ref={preview.ref} className={cx("ds-media", portrait && "ds-media--portrait")} data-details-open={open} onClick={event=>{if(event.currentTarget.contains(event.target as Node)&&!(event.target as Element).closest("button,a,audio"))preview.open();}}>
         {media}
+        {mode && hasMediaNode(media) && <span className="ds-media__mode">{mode}</span>}
+        {onRecreate && hasMediaNode(media) && <Button variant="secondary" className="ds-media__recreate" onClick={onRecreate}><Repeat size={14} />Recreate</Button>}
         <div className="ds-media__tools">
           {hasMediaNode(media)&&preview.actions}
           <Tooltip content={<>{typeof model==="string"?model:"Media details"}<Meta>{meta}</Meta></>}><IconButton label="Media details" aria-expanded={open} aria-controls={panelId} onClick={() => { setOpen(true); onOpenDetails?.(); }}><Info size={14}/></IconButton></Tooltip>

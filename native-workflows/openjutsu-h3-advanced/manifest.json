@@ -78,7 +78,7 @@
     },
     {
       "id": "window_seconds",
-      "label": "Generation window (seconds)",
+      "label": "Processing window (seconds, not video length)",
       "type": "number",
       "min": 2.5,
       "max": 15,

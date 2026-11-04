@@ -93,16 +93,6 @@
       }
     },
     {
-      "id": "sharpen",
-      "label": "Sharpen 2x (same take, twice the size)",
-      "type": "boolean",
-      "default": false,
-      "binding": {
-        "node": "sh:on",
-        "field": "value"
-      }
-    },
-    {
       "id": "seed",
       "label": "Seed",
       "type": "integer",

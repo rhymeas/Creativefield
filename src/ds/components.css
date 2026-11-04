@@ -233,7 +233,8 @@
   transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
 }
 .ds-upload:hover, .ds-upload[data-drag="true"] { border-color: var(--accent-ring); background: var(--surface-control-hover); }
-.ds-upload__paste { position:absolute; z-index:2; top:var(--space-2); right:var(--space-2); opacity:0; pointer-events:none; border:0; border-radius:var(--radius-md); background:var(--surface-control); color:var(--text-primary); padding:var(--space-2) var(--space-3); cursor:pointer; }
+.ds-upload__paste { position:absolute; z-index:2; top:var(--space-2); right:var(--space-2); opacity:0; pointer-events:none; border:0; border-radius:var(--radius-full); background:var(--surface-subtle); color:var(--text-tertiary); padding:1px var(--space-2); font:inherit; font-size:var(--text-3xs); line-height:var(--lh-3xs); cursor:pointer; transition:opacity var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
+.ds-upload__paste:hover { color:var(--text-primary); background:var(--surface-hover); }
 .ds-upload:is(:hover,:focus-within) .ds-upload__paste { opacity:1; pointer-events:auto; }
 .ds-upload[data-drag="true"] { background: var(--accent-soft); }
 .ds-upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
@@ -526,6 +527,13 @@
 .ds-media__tools .ds-glassbtn { background: var(--surface-control); color: var(--text-primary); border-color: var(--line-strong); }
 .ds-media:hover .ds-media__tools, .ds-media:focus-within .ds-media__tools, .ds-media[data-details-open="true"] .ds-media__tools { opacity: 1; }
 .ds-media[data-details-open="true"] .ds-media__tools { display: none; }
+/* How it was made, on the tile: the mode top left; Recreate appears on hover (above a clip's own controls). */
+.ds-media__mode { position: absolute; top: var(--space-2); left: var(--space-2); z-index: 2; max-width: calc(100% - 96px); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 2px var(--space-2); border-radius: var(--radius-full); background: var(--surface-overlay); color: var(--text-primary); font-size: var(--text-2xs); line-height: var(--lh-2xs); pointer-events: none; }
+.ds-media__recreate { position: absolute; right: var(--space-2); bottom: var(--space-2); z-index: 2; opacity: 0; background: var(--surface-overlay); transition: opacity var(--dur-fast) var(--ease); }
+.ds-media:has(> video) .ds-media__recreate { bottom: calc(var(--space-2) + 44px); }
+.ds-media:is(:hover, :focus-within) .ds-media__recreate { opacity: 1; }
+/* A run still working fills its tile, whatever the tile's height. */
+.ds-media .ds-resulttile[data-develop] { position: absolute; inset: 0; min-height: 0; }
 
 /* Details panel: opens over the media, on the right. */
 .ds-details {
@@ -1565,6 +1573,15 @@ button.ds-thumb__art:disabled { opacity: 0.45; cursor: not-allowed; }
 .ds-resulttile:has(.ds-resulttile__developbar):is(:hover, :focus-within) .ds-resulttile__developtext { transform: translateY(calc(-1 * var(--space-5))); }
 .ds-resulttile__developbar .ds-btn { background: var(--surface-overlay); }
 .ds-resulttile__developdetail { display: flex; align-items: center; gap: var(--space-2); }
+/* In a small tile the orbit and the word shrink so both stay in view. */
+.ds-resulttile__develop { container-type: size; }
+@container (max-height: 170px) {
+  .ds-resulttile__orbit { width: 32px; height: 32px; }
+  .ds-resulttile__orbit::before { inset: 10px; }
+  .ds-resulttile__orbit::after { inset: -6px; }
+  .ds-resulttile__developtext { gap: var(--space-2); font-size: var(--text-xs); line-height: var(--lh-xs); }
+  .ds-resulttile__developbar { padding: var(--space-2); }
+}
 @media (prefers-reduced-motion: reduce) { .ds-resulttile__develop *, .ds-resulttile__develop *::before, .ds-resulttile__develop *::after { animation: none !important; } }
 .ds-contactsheet__status { display: flex; flex-direction: column; gap: 4px; }
 
@@ -1643,6 +1660,18 @@ button.ds-thumb__art:disabled { opacity: 0.45; cursor: not-allowed; }
 .ds-viewer__panel { flex: none; max-width: 100%; align-self: center; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-2); border-radius: var(--radius-xl); background: var(--surface-panel); }
 .ds-viewer__title { font-size: var(--text-sm); line-height: var(--lh-sm); font-weight: var(--weight-medium); color: var(--text-primary); overflow-wrap: anywhere; }
 .ds-viewer__tools { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); }
+/* With generation info the full view has two columns: the media, and a column telling how it was made. */
+.ds-viewer { --viewer-info-w: calc(320px * var(--ui-scale)); }
+.ds-viewer:has(.ds-viewer__info) { flex-direction: row; align-items: stretch; }
+.ds-viewer:has(.ds-viewer__info) .ds-viewer__frame { flex: 1 1 auto; min-width: 0; align-self: center; align-items: center; }
+.ds-viewer:has(.ds-viewer__info) .ds-viewer__frame :is(img, video) { max-width: calc(100vw - var(--viewer-info-w) - 3 * var(--pad-page)); }
+.ds-viewer:has(.ds-viewer__info) .ds-viewer__panel { width: var(--viewer-info-w); flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; align-self: stretch; overflow-y: auto; padding: var(--space-4); gap: var(--space-5); }
+.ds-viewer:has(.ds-viewer__info) .ds-viewer__tools { justify-content: flex-start; }
+.ds-viewer__info { display: grid; gap: var(--space-4); align-content: start; }
+.ds-viewer-info__mode { justify-self: start; padding: var(--pad-chip); border-radius: var(--radius-full); background: var(--surface-subtle); color: var(--text-primary); font-size: var(--text-xs); line-height: var(--lh-xs); }
+.ds-viewer-info__block { display: grid; gap: var(--space-2); }
+.ds-viewer-info__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.ds-viewer__info .ds-btn { justify-self: start; }
 
 .ds-viewer__frame { position: relative; max-width: 100%; max-height: 100%; display: flex; flex-direction:column; gap:var(--space-3); padding-top:var(--row-h); }
 .ds-viewer__frame img { display: block; max-width: calc(100vw - 2 * var(--pad-page)); max-height: calc(100dvh - 2 * var(--pad-page)); object-fit: contain; border-radius: var(--radius-xl); }

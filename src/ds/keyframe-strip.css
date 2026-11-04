@@ -8,20 +8,23 @@
 .ds-kstrip__card[data-moving="true"] { opacity: .4; }
 
 /* The card's picture is an UploadSlot; here it fills the card and keeps only what fits a thumbnail. */
-.ds-kstrip__card .ds-upload { position: absolute; inset: 0; box-sizing: border-box; min-width: 0; min-height: 0; aspect-ratio: auto; padding: 0; border: 1.5px solid var(--line-strong); border-radius: inherit; background: var(--surface-control); overflow: hidden; transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease); }
+.ds-kstrip__card .ds-upload { position: absolute; inset: 0; box-sizing: border-box; min-width: 0; min-height: 0; aspect-ratio: auto; padding: 0; border: 1.5px solid var(--line-strong); border-radius: inherit; background: var(--surface-control); overflow: visible; transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease); }
 .ds-kstrip .ds-kstrip__card .ds-upload:not(.ds-upload--filled) { min-height: 0; border-style: dashed; border-color: var(--line-hover); }
 .ds-kstrip__card .ds-upload:not(.ds-upload--filled) > div { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .ds-kstrip__card .ds-upload:not(.ds-upload--filled)::before,
 .ds-kstrip__card .ds-upload:not(.ds-upload--filled)::after { content: ""; position: absolute; left: 50%; top: 50%; width: 16px; height: 1.5px; border-radius: 1px; background: var(--text-tertiary); transform: translate(-50%, -50%); }
 .ds-kstrip__card .ds-upload:not(.ds-upload--filled)::after { transform: translate(-50%, -50%) rotate(90deg); }
-.ds-kstrip__card .ds-upload img { width: 100%; height: 100%; max-height: none; object-fit: cover; -webkit-user-drag: none; }
+.ds-kstrip__card .ds-upload img { width: 100%; height: 100%; max-height: none; object-fit: cover; border-radius: calc(var(--radius-sm) - 2px); -webkit-user-drag: none; }
 .ds-kstrip__card[data-lit="true"] .ds-upload, .ds-kstrip__card .ds-upload:hover { border-color: var(--accent-ring); }
 .ds-kstrip__card .ds-upload[data-drag="true"], .ds-kstrip__card[data-target="true"] .ds-upload { border-color: var(--accent); box-shadow: var(--accent-glow); }
 .ds-kstrip__card .ds-upload__tools { display: none; }
-.ds-kstrip__card .ds-upload__remove, .ds-kstrip__remove { position: absolute; top: var(--space-1); right: var(--space-1); z-index: 3; width: 20px; height: 20px; min-width: 20px; min-height: 20px; border-radius: var(--radius-full); background: var(--surface-overlay); color: var(--text-primary); }
+.ds-kstrip__card .ds-upload__remove, .ds-kstrip__card .ds-kstrip__remove { position: absolute; top: -7px; right: -7px; z-index: 3; width: 18px; height: 18px; min-width: 18px; min-height: 18px; border-radius: var(--radius-full); border: 1px solid var(--line-strong); background: var(--surface-control-hover); color: var(--text-secondary); }
+.ds-kstrip__card :is(.ds-upload__remove, .ds-kstrip__remove):hover { color: var(--text-primary); }
+.ds-kstrip__card :is(.ds-upload__remove, .ds-kstrip__remove) svg { width: 10px; height: 10px; }
 .ds-kstrip__remove { opacity: 0; pointer-events: none; }
 .ds-kstrip__card:is(:hover, :focus-within) .ds-kstrip__remove { opacity: 1; pointer-events: auto; }
-.ds-kstrip__card .ds-upload__paste { top: auto; right: auto; bottom: var(--space-1); left: var(--space-1); padding: 2px var(--space-2); border-radius: var(--radius-xs); background: var(--surface-overlay); font-size: var(--text-3xs); line-height: var(--lh-3xs); }
+/* A card is too small for a paste chip; Ctrl+V and drops still fill it. */
+.ds-kstrip__card .ds-upload__paste { display: none; }
 .ds-kstrip__time { position: absolute; z-index: 3; top: var(--space-1); left: var(--space-1); padding: 1px var(--space-1); border-radius: var(--radius-xs); background: var(--surface-overlay); color: var(--text-primary); font-size: var(--text-2xs); line-height: var(--lh-2xs); font-variant-numeric: tabular-nums; pointer-events: none; }
 .ds-kstrip__mention { position: absolute; z-index: 3; right: var(--space-1); bottom: var(--space-1); padding: 1px var(--space-1); border: 1px solid var(--accent-ring); border-radius: var(--radius-xs); background: var(--surface-overlay); color: var(--accent); font: inherit; font-size: var(--text-3xs); line-height: var(--lh-3xs); white-space: nowrap; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity var(--dur-fast) var(--ease); }
 .ds-kstrip__card:is(:hover, :focus-within) .ds-kstrip__mention { opacity: 1; pointer-events: auto; }
@@ -50,7 +53,7 @@
 .ds-kstrip__insert[data-show="true"], .ds-kstrip__insert:focus-visible { opacity: 1; pointer-events: auto; transform: scale(1); }
 .ds-kstrip__insert:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .ds-kstrip__bubble { position: absolute; top: calc(var(--kstrip-track) - 40px); z-index: 4; padding: var(--pad-chip); border: 1px solid var(--line-strong); border-radius: var(--radius-xs); background: var(--surface-control); color: var(--text-primary); font-size: var(--text-xs); line-height: var(--lh-xs); font-variant-numeric: tabular-nums; white-space: nowrap; transform: translateX(-50%); box-shadow: var(--shadow-lift); pointer-events: none; }
-.ds-kstrip__duration { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); color: var(--text-secondary); font-size: var(--text-sm); line-height: var(--lh-sm); }
+.ds-kstrip__duration { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: var(--space-3); color: var(--text-secondary); font-size: var(--text-sm); line-height: var(--lh-sm); }
 .ds-kstrip__seconds { min-width: 4.5em; color: var(--text-primary); text-align: right; font-variant-numeric: tabular-nums; }
 
 /* KeyframeSegment */

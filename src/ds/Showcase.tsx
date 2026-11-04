@@ -18,6 +18,7 @@ import {CompareWipe,MaskOverlay,DriftOverlay} from "./PrecisionCompare";
 import {WelcomeDialog} from "./WelcomeDialog";
 import {KeyframeOptions,KeyframeSegment,KeyframeStrip,PanelCrumb} from "./KeyframeStrip";
 import {ShotFrame} from "./ShotFrame";
+import {MosaicGrid,MosaicTile,mosaicAccent} from "./MosaicGrid";
 import {CameraPoseField,CameraPoseStage,describeCameraPose,type CameraPose} from "./CameraMovePicker";
 import welcomeLogo from "../assets/creativefield-logo-trim.png";
 import { ArrowUp, Lock, Undo2, Download, Pencil, Maximize2, Camera, Plus, Search, Clock, Dices, LogOut, Settings, Video, History, Image, Info, MinusCircle, RectangleHorizontal, Sparkles, Brush, UserRound } from "lucide-react";
@@ -555,6 +556,11 @@ export default function Showcase() {
         </div>
       </Section>
 
+      <Section title="Mosaic feed (shared results: real shapes, mixed sizes, dense packing)">
+        <MosaicGrid label="All videos in this project" head={{start:"All videos in this project",end:<SegmentedTabs quiet label="Show" value="all" onChange={()=>{}} items={[{id:"all",label:"All"},{id:"app",label:"This app"}]}/>}}>
+          {["/reels/wan22-i2v-14b.png","/reels/wan22-flf-14b.png","/reels/wan22-i2v-5b.png","/reels/wan22-i2v-14b.png","/reels/wan22-flf-14b.png","/reels/wan22-i2v-5b.png","/reels/wan22-i2v-14b.png"].map((src,i)=><MosaicTile key={i} accent={mosaicAccent(i)} current={i%3===0}><ResultTile caption={`Result ${i+1}`}><img src={src} alt="" style={i%4===2?{aspectRatio:"9 / 16",objectFit:"cover"}:undefined}/></ResultTile></MosaicTile>)}
+        </MosaicGrid>
+      </Section>
       <Section title="Shot strip (drag tiles to reorder, drop pictures to add shots)">
         <ShotStripDemo/>
       </Section>

@@ -14,3 +14,4 @@ export {TransformHandles} from "./TransformHandles";
 export { DockStack } from "./DockStack";
 export {CompareWipe,MaskOverlay,DriftOverlay} from "./PrecisionCompare";
 export {WelcomeDialog} from "./WelcomeDialog";
+export {MosaicGrid,MosaicTile,mosaicAccent,mosaicSpan} from "./MosaicGrid";

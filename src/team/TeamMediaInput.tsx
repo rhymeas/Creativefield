@@ -32,14 +32,6 @@ export function TeamMediaInput({label,type,representation,hint,accept,uploadLabe
     document.addEventListener("paste",handle,true);
     return()=>document.removeEventListener("paste",handle,true);
   },[shown,allowed,accepted,onFile,physical]);
-  async function pasteFromClipboard(){
-    const current=++exampleRequest.current;
-    try{
-      if(!navigator.clipboard?.read)throw new Error("Clipboard access is unavailable. Use Ctrl+V instead.");
-      for(const item of await navigator.clipboard.read())for(const type of item.types){const blob=await item.getType(type),next=new File([blob],`pasted-${Date.now()}.${type.split('/')[1]?.replace('jpeg','jpg')||'bin'}`,{type});if(acceptsFile(accepted,next)){if(current===exampleRequest.current)pasteFile(next);return;}}
-      throw new Error("No compatible media found in the clipboard.");
-    }catch(error){if(current===exampleRequest.current)setDropError((error as Error).name==="NotAllowedError"?"Clipboard access was denied. Use Ctrl+V instead.":(error as Error).message);}
-  }
   /* A dropped Library asset fills this port, just like picking it in the pill below. */
   const useExample=(path:string)=>{if(!allowed)return;const request=++exampleRequest.current;setDropError("");void readExampleFile(path,accept??`${physical}/*`).then(file=>{if(request===exampleRequest.current)onFile(file);}).catch(error=>{if(request===exampleRequest.current)setDropError((error as Error).message);});};
   const dropAsset=(event:DragEvent)=>{if(!allowed)return;const example=event.dataTransfer.getData(EXAMPLE_DRAG);if(example){event.preventDefault();event.stopPropagation();useExample(example);return;}const id=event.dataTransfer.getData(ASSET_DRAG);if(id){event.preventDefault();event.stopPropagation();const current=++exampleRequest.current,asset=options.find(item=>item.id===id),accepted=accept??`${physical}/*`;setDropError("");const choose=(actual:Asset)=>{if(current!==exampleRequest.current)return;if(projectId&&actual.project_id!==projectId){setDropError("Choose media from this project.");return;}if(!acceptsMediaType(accepted,actual.content_type)){setDropError("This media does not match the input. Choose a compatible file.");return;}if(file)onFile(null);onSelect(id);};if(asset)choose(asset);else void request<Asset>(workspacePath(workspace,`assets/${encodeURIComponent(id)}`)).then(choose).catch(()=>{if(current===exampleRequest.current)setDropError("Could not load this media. Try again.");});return;}const files=Array.from(event.dataTransfer.files);if(shown&&physical!=="audio"&&files.length){event.preventDefault();event.stopPropagation();const accepted=accept??(physical==="image"?"image/png,image/jpeg,image/webp":"video/mp4,video/webm,video/quicktime");if(files.length!==1||!acceptsFile(accepted,files[0])){setDropError("This media does not match the input. Choose a compatible file.");return;}setDropError("");exampleRequest.current++;onFile(files[0]);}};
@@ -55,7 +47,7 @@ export function TeamMediaInput({label,type,representation,hint,accept,uploadLabe
           {allowed&&<IconButton label={`Remove ${label.toLowerCase()}`} onClick={clear}><X size={14}/></IconButton>}
         </>}/>
         :<UploadSlot label={label} hint={hint??"Drop a file or choose from this device"} accept={accept??(physical==="audio"?"audio/*":physical==="image"?"image/png,image/jpeg,image/webp":"video/mp4,video/webm,video/quicktime")} kinds={[physical]} previewKind={physical} preview={shown} disabled={disabled||!canUpload} removeLabel={`Remove ${label.toLowerCase()}`} onFile={f=>{if(!allowed)return;exampleRequest.current++;setDropError("");onFile(f);if(!f)onSelect("");}}/>}
-    </DropTarget>{shown&&allowed&&physical!=="audio"&&<Button variant="secondary" className="ds-media-input__paste" aria-label={`Paste to ${label}`} onClick={()=>void pasteFromClipboard()}>Paste</Button>}</div>
+    </DropTarget></div>
     {dropError&&<Meta>{dropError}</Meta>}
     {element&&<Meta>{element.name}</Meta>}
     {canUpload&&file&&<Button variant="secondary" disabled={disabled} onClick={onUpload}>{uploadLabel??"Upload to project"}</Button>}

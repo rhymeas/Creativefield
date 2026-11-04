@@ -99,7 +99,7 @@ export function CloudRenderStudio({feature,workspace,project,user,call,version,c
    </>}
    {!model&&<EmptyState title="No compatible cloud model connected for this tool" text="This tool has no verified Comfy Router integration yet. Your local workflow remains available." action={<Button variant="secondary" onClick={onLocal}>Use this computer</Button>}/>}
   </div>
- </Panel><Block><TeamRuns examples="video" workspace={workspace} project={project} user={user} call={call} canEdit={canEdit} authorized version={version} titles={titles} capabilityId={models.map(m=>m.id)}/></Block></Split>
+ </Panel><Block><TeamRuns examples="video" workspace={workspace} project={project} user={user} call={call} canEdit={canEdit} authorized version={version} titles={titles} capabilityId={models.map(m=>m.id)} feed={{kind:"video",capabilities:[...models.map(m=>m.id)],current:models.map(m=>m.id)}}/></Block></Split>
  <ConfirmDialog open={confirm} title={`Render with ${model?.title??'Comfy Router'}?`} text="This sends the selected media to Comfy Router and its model provider, and spends your Comfy workspace credits. The cost estimate is unavailable. Only continue if you accept the current provider price." confirmLabel="Use credits and render" onCancel={()=>setConfirm(false)} onConfirm={()=>void queue()}/>
  </Page>;
 }

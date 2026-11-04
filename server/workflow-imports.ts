@@ -39,7 +39,8 @@ type Worker = { id: string; origin: string; api_prefix: string; workspace_id: st
 
 async function workerFor(pool: Pool, workspaceId: string, workerId?: string): Promise<Worker> {
   const worker = (await pool.query(
-    "SELECT * FROM workers WHERE workspace_id=$1 AND enabled=true AND ($2::uuid IS NULL OR id=$2) ORDER BY (kind='cloud') ASC, checked_at DESC NULLS LAST, id LIMIT 1",
+    // An offline local worker checked more recently must not win over the one that answers.
+    "SELECT * FROM workers WHERE workspace_id=$1 AND enabled=true AND ($2::uuid IS NULL OR id=$2) ORDER BY (kind='cloud') ASC, (COALESCE(inventory->>'online','false')='true') DESC, checked_at DESC NULLS LAST, id LIMIT 1",
     [workspaceId, workerId ?? null],
   )).rows[0] as Worker | undefined;
   if (!worker) throw new HttpError(422, "No enabled ComfyUI worker is available");
@@ -47,7 +48,9 @@ async function workerFor(pool: Pool, workspaceId: string, workerId?: string): Pr
 }
 
 async function comfyJson<T>(worker: Worker, path: string): Promise<T> {
-  const response = await fetch(`${worker.origin}${path}`, { signal: AbortSignal.timeout(30_000), redirect: "error" });
+  let response: Response;
+  try { response = await fetch(`${worker.origin}${path}`, { signal: AbortSignal.timeout(30_000), redirect: "error" }); }
+  catch { throw new HttpError(502, "ComfyUI is not answering on this worker"); }
   if (!response.ok) throw new HttpError(502, `ComfyUI answered ${response.status} for ${path}`);
   return await response.json() as T;
 }
