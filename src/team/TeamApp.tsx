@@ -16,7 +16,8 @@ import {ApiError,assetUrl,composerAssets,composerResultAssets,mergeAssets,reques
 import {TeamComposer} from "./TeamComposer";
 import {TransformVideo} from "./TransformVideo";
 import {TeamLibrary,TeamRuns} from "./TeamLibrary";
-import {feedScope} from "./media-feed";
+import {feedMode,feedScope} from "./media-feed";
+import {runLocation} from "./job-queue";
 import {JobQueueIndicator} from "./JobQueueIndicator";
 import {TeamSettings} from "./TeamSettings";
 import {ChatgptImageStudio} from './ChatgptImageStudio';
@@ -525,11 +526,11 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   }
   /* Where a picture or clip can go from the full view. A tool that is not ready here is never offered (rule 26). */
   const mediaTools=(media:{src:string;name:string;mediaType:"image"|"video"}):MediaToolSet|undefined=>{
-    if(!canCreate||!project)return undefined;
+    if(!project)return undefined;
     const image=media.mediaType==="image";
-    const animateTarget=image?routeImageToVideo(readyManifests.filter(isCreateVideoWorkflow)):undefined;
+    const animateTarget=canCreate&&image?routeImageToVideo(readyManifests.filter(isCreateVideoWorkflow)):undefined;
     const motionTarget=selectTransformManifest(catalogue,statuses,"motion"),restyleTarget=selectTransformManifest(catalogue,statuses,"restyle");
-    const motionReady=!!motionTarget&&statuses[motionTarget.id]?.state==="ready"&&motionTarget.category==="motion",restyleReady=!!restyleTarget&&statuses[restyleTarget.id]?.state==="ready"&&capabilitySurface(restyleTarget)==="video-effect";
+    const motionReady=canCreate&&!!motionTarget&&statuses[motionTarget.id]?.state==="ready"&&motionTarget.category==="motion",restyleReady=canCreate&&!!restyleTarget&&statuses[restyleTarget.id]?.state==="ready"&&capabilitySurface(restyleTarget)==="video-effect";
     const send=(target:Catalogue[number],port:string,hash:string,mode?:typeof videoMode)=>async()=>{
       const id=await mediaAssetId(media);presetTool(target,{[port]:id});setCapabilityId(target.id);if(mode)setVideoMode(mode);location.hash=hash;
     };
@@ -540,7 +541,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       ...(toMotion?[{id:"motion",label:"Motion transfer",note:image?"As the character picture":"As the driving video",icon:<Footprints size={16}/>,run:toMotion}]:[]),
       ...(!image&&restyleReady?[{id:"restyle",label:"Restyle",note:"As the source clip",icon:<Palette size={16}/>,run:send(restyleTarget!,"source_video","video/transform/restyle","transform")}]:[]),
     ];
-    const upscaleTarget=!image&&vfxRoute?vfxRoute.manifest:undefined;
+    const upscaleTarget=canCreate&&!image&&vfxRoute?vfxRoute.manifest:undefined;
     const known=(()=>{try{const url=new URL(media.src,location.href);return url.origin===location.origin&&url.pathname.startsWith(`/api/v1${workspacePath(workspace.id,"assets/")}`)?url.pathname.slice(`/api/v1${workspacePath(workspace.id,"assets/")}`.length).match(/^([^/]+)\/content$/)?.[1]:undefined;}catch{return undefined;}})();
     return {
       ...(animate?{animate}:{}),
@@ -559,10 +560,17 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
         if(typeof runId!=="string")return undefined;
         const run=await call<Run>(workspacePath(workspace.id,`runs/${encodeURIComponent(runId)}`));
         if(!run.output_ids.includes(known))return undefined;
-        const model=catalogue.find(item=>item.id===run.capability_id)?.title??run.capability_id;
+        const manifest=catalogue.find(item=>item.id===run.capability_id),model=manifest?.title??run.capability_id;
         const controls=run.invocation?.controls??{};
-        const facts=Object.entries(controls).filter(([id,value])=>["seed","resolution","width","height","steps","aspect_ratio","seconds"].includes(id)&&["string","number","boolean"].includes(typeof value)).map(([id,value])=>({label:id.replaceAll("_"," "),value:String(value)}));
-        return {model,prompt:typeof controls.prompt==="string"?controls.prompt:undefined,facts,recreate:recreate(run)};
+        const facts=[
+          ...(typeof controls.width==="number"&&typeof controls.height==="number"?[{label:"Quality",value:`${controls.width} × ${controls.height}`}]:controls.megapixels!==undefined?[{label:"Quality",value:`${controls.megapixels} MP`}]:controls.resolution!==undefined?[{label:"Quality",value:String(controls.resolution)}]:[]),
+          ...(controls.aspect_ratio!==undefined?[{label:"Format",value:String(controls.aspect_ratio).replace(/ \(.*\)$/ ,"")}]:[]),
+          ...(controls.length!==undefined?[{label:"Length",value:`${controls.length} s`}]:[]),
+          ...(controls.seed!==undefined?[{label:"Seed",value:String(controls.seed)}]:[]),
+          {label:"Ran on",value:runLocation(run.transport,!!workers.find(worker=>worker.id===run.worker_id&&isCloudWorker(worker)))},
+        ];
+        const inputs=Object.entries(run.invocation?.inputs??{}).filter((entry):entry is [string,string]=>typeof entry[1]==="string"&&!!entry[1]).map(([port,id])=>({src:assetUrl(workspace.id,id),label:port.replaceAll("_"," "),video:/video|clip/i.test(port)}));
+        return {model,mode:manifest?feedMode(manifest):undefined,prompt:typeof controls.prompt==="string"?controls.prompt:undefined,facts,inputs,date:new Date(run.created_at).toLocaleString(),recreate:canCreate?recreate(run):undefined};
       }}:{}),
     };
   };
@@ -607,7 +615,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     <Welcome tools={startTasks(listedTools)} onOpen={openStartTask}/>
     <ScrollFades/><Reveal/>
     <TopBar brand={<img className="ds-topbar__brand-image" src={logo} alt="CreativeField"/>} current={topCurrent} items={[{label:"Video",href:"#video",menu:videoMenu},{label:"Image",href:"#image",menu:imageMenu},{label:"FotoField",href:"#imageedit",featured:true},{label:"3D",href:"#3d",menu:canCreate?threeDMenu:undefined},{label:"Audio",href:"#audio"},{label:"All tools",href:"#make"},{label:"Models",href:"#catalogue",onSelect:openModels},{label:"Nodes",href:"#nodes"}]} secondary={[{label:"Library",href:"#library"},{label:"Projects",href:"#projects",suffix:project?.name,dropdown:{items:projects.map(p=>({id:p.id,title:p.name,onSelect:()=>setProjectId(p.id)})),selectedId:projectId,footer:{id:"add",icon:<Plus size={14}/>,title:"Add project",onSelect:()=>setCreatingProject(true)}}}]} end={<>{route!=="openjutsu"&&<ExpandToggle icon={<Sparkles size={16}/>} label="Free input" on={intentMode} onChange={setIntentMode}/>} {canCreate&&runChoices&&<TeamChoice label="Run on" variant="pill" display={route==="openjutsu"?(openjutsuUsesLocal?"This computer":"Comfy Router"):runOn==="chatgpt"?"ChatGPT":runOn==="router"?"Comfy Router":runOn==="cloud"?"Comfy Cloud":"This computer"} value={route==="openjutsu"?(openjutsuUsesLocal?"local":"router"):runOn} onChange={route==="openjutsu"?value=>{if(value==="local"&&openjutsuLocal){setRunOn("local");location.hash="openjutsu";}else if(value==="router"){setRunOn("router");location.hash="openjutsu/cloud";}}:pickRunOn} options={route==="openjutsu"?runChoices.filter(c=>c.value==="router"||c.value==="local"&&!!openjutsuLocal):runChoices}/>} {workspaces.length>1&&<div className="cf-workspace-picker"><TeamChoice label="Workspace" variant="pill" display={workspace.name} value={workspace.id} onChange={onWorkspace} options={workspaces.map(w=>({value:w.id,label:w.name,note:w.role}))}/></div>}<JobQueueIndicator version={version} workspace={workspace} call={call} authorized={authorized} titles={catalogueTitles(catalogue)} onOpenRun={run=>{setProjectId(run.project_id);location.hash=`library/runs/${run.id}`;}}/><UserMenu initials={(account?.name??user.email).slice(0,1).toUpperCase()} name={account?.name??user.email} meta={<Meta parts={account?.connected?[account.email,account.workspace]:workspaceFacts(audienceOf(user),workspace)}/>} extra={account?.connected&&typeof account.credits==="number"?<><Meta parts={[`${account.credits.toLocaleString()} credits`,account.canSubmit===false?"plan cannot run jobs from ComfyField":undefined]}/>{account.addCreditsUrl&&<LinkButton variant="ghost" href={account.addCreditsUrl} target="_blank" rel="noreferrer">Add credits</LinkButton>}</>:undefined} items={[{id:"settings",label:settingsLabel(audienceOf(user)),icon:<Settings size={14}/>,onSelect:()=>setSettings(true)},...(user.localSingleUser?[]:[{id:"out",label:"Sign out",icon:<LogOut size={14}/>,onSelect:()=>void onSignOut()}])]}/></>}/>
-    <WorkflowInfoProvider><MediaEditProvider canAnnotate={!!editRoute} onEdit={canCreate?editPreview:undefined} saveCrop={canCreate?savePreviewCrop:undefined} tools={canCreate?mediaTools:undefined}><RecreateProvider value={recreate}><AmbientReelProvider src={reelForSection(section)}>
+    <WorkflowInfoProvider><MediaEditProvider canAnnotate={!!editRoute} onEdit={canCreate?editPreview:undefined} saveCrop={canCreate?savePreviewCrop:undefined} tools={mediaTools}><RecreateProvider value={recreate}><AmbientReelProvider src={reelForSection(section)}>
     <div className="cf-team__body">
     <div className="cf-team__main ds-canvas">
     {section!=="catalogue"&&section!=="nodes"&&section!=="3d"&&<WorkspaceBar density={route!=="imageedit"}

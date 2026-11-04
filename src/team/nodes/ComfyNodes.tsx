@@ -80,6 +80,7 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
   const [feature,setFeature]=useState<string|null>(featureFromHash);
   const [run,setRun]=useState<string|null>(()=>runFromHash(location.hash));
   const [featureResult,setFeatureResult]=useState<FeatureResult|null>(null);
+  const frameRef=useRef<HTMLIFrameElement>(null);
   useEffect(()=>{const sync=()=>{setFeature(featureFromHash());setRun(runFromHash(location.hash));setFeatureResult(null);};window.addEventListener("hashchange",sync);return()=>window.removeEventListener("hashchange",sync);},[]);
   const showShelf=!tool||tool==="workflows";
   const shelfPath=workspacePath(workspace.id,"workflow-imports");
@@ -139,11 +140,26 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
     }catch(cause){setShelfError((cause as Error).message);}
     finally{setShelfBusy("");}
   }
-  async function useEdited(result:FeatureResult){
-    if(!result.workflowId||!result.revisionId)return;
-    setShelfBusy("feature");setShelfError("");
-    try{await request(`${shelfPath}/${result.workflowId}/publish`,"POST",{revisionId:result.revisionId});setShelfNotice("The feature now runs your edited graph. Restore the original from Saved workflows at any time.");setFeatureResult(null);await loadShelf();}
-    catch(cause){setShelfError((cause as Error).message);}
+  async function saveFeature(capabilityId:string){
+    const frame=frameRef.current?.contentWindow;
+    if(!frame||!src)return;
+    setShelfBusy("feature");setShelfError("");setShelfNotice("");setFeatureResult(null);
+    try{
+      const origin=new URL(src,location.href).origin, id=crypto.randomUUID();
+      const workflow=await new Promise<unknown>((resolve,reject)=>{
+        const timeout=window.setTimeout(()=>{window.removeEventListener("message",receive);reject(new Error("The node editor did not answer. Wait for it to finish loading and try again."));},10000);
+        function receive(event:MessageEvent){
+          if(event.origin!==origin||event.source!==frame||event.data?.type!=="comfyfield:feature-export"||event.data.id!==id)return;
+          window.clearTimeout(timeout);window.removeEventListener("message",receive);
+          if(event.data.error)reject(new Error(String(event.data.error)));else resolve(event.data.workflow);
+        }
+        window.addEventListener("message",receive);
+        frame.postMessage({type:"comfyfield:export-feature",id,feature:capabilityId},origin);
+      });
+      const result=await request<FeatureResult>(`${shelfPath}/feature-edit`,"POST",{capabilityId,json:JSON.stringify(workflow),...(worker?{workerId:worker.id}:{})});
+      setFeatureResult(result);
+      if(result.applied){setShelfNotice("Your version is saved and active. Restore the original from Your workflows.");await loadShelf();}
+    }catch(cause){setShelfError((cause as Error).message);}
     finally{setShelfBusy("");}
   }
   async function publish(item:SavedWorkflow,published:boolean){
@@ -258,12 +274,10 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
         <div className="cf-nodes__shelf-head">
           <SectionHeader title={`Edit the ${feature} app`} />
         </div>
-        <Steps items={[{ title: "Change the graph", text: "in the editor below" }, { title: "Save it", text: `Press Ctrl+S and keep the name “CreativeField - ${feature}”` }, { title: "Apply", text: "We check it and keep it as a draft", action: <Button disabled={!!shelfBusy} onClick={() => void applyFeature(feature)}>Apply edits</Button> }]} />
-        {featureResult&&!featureResult.applied&&<Notice inline priority={30} title="These edits cannot be used yet">{(featureResult.errors??[]).join(" ")} Fix the graph, then press Apply edits again.</Notice>}
-        {featureResult?.applied&&<>
-          <StatusText tone="ok">{`Draft ${featureResult.version} saved · ${featureResult.changes.changed.length} changed, ${featureResult.changes.added.length} added, ${featureResult.changes.removed.length} removed`}</StatusText>
-          <Button disabled={!!shelfBusy} onClick={() => void useEdited(featureResult)}>Use edited version</Button>
-        </>}
+        <Steps items={[{ title: "Change the graph", text: "in the editor below" }, { title: "Save your version", text: "We check the app inputs and outputs before using it", action: <Button disabled={!!shelfBusy||!loaded} onClick={() => void saveFeature(feature)}>Save my version</Button> }]} />
+        {shelfError&&<Notice inline priority={30} title="Could not save this version" details={shelfError}>Check the editor and try again.</Notice>}
+        {featureResult&&!featureResult.applied&&<Notice inline priority={30} title="These edits cannot be used yet">{(featureResult.errors??[]).join(" ")} Fix the graph, then save again.</Notice>}
+        {featureResult?.applied&&<StatusText tone="ok">{`Version ${featureResult.version} saved · ${featureResult.changes.changed.length} changed, ${featureResult.changes.added.length} added, ${featureResult.changes.removed.length} removed`}</StatusText>}
       </div>}
       {run&&!feature&&<div className="cf-nodes__shelf">
         <div className="cf-nodes__shelf-head">
@@ -280,7 +294,7 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
           </div>
           {canEdit && <Button variant="secondary" onClick={() => { setShelfOpen(true); setShelfError(""); setShelfNotice(""); }}>Import a workflow</Button>}
         </div>
-        {shelfError && !shelfOpen && <Notice priority={30} title="Saved workflows didn't load" actions={<Button variant="secondary" onClick={() => { setShelfOpen(true); setShelfError(""); }}>Open the import dialog</Button>} details={shelfError}>The saved list could not be read. Opening the import dialog checks the worker's saved workflows again.</Notice>}
+        {shelfError && !shelfOpen && !feature && <Notice priority={30} title="Saved workflows didn't load" actions={<Button variant="secondary" onClick={() => { setShelfOpen(true); setShelfError(""); }}>Open the import dialog</Button>} details={shelfError}>The saved list could not be read. Opening the import dialog checks the worker's saved workflows again.</Notice>}
         {shelfNotice && <StatusText tone="ok">{shelfNotice}</StatusText>}
         {saved.length ? <Collapsible title={`${saved.length} saved workflow${saved.length === 1 ? "" : "s"} · ${saved.filter(item => item.published || item.published_revision_id).length} published`}><div className="cf-nodes__saved">{saved.map(item => <div className="ds-card cf-nodes__saved-item" key={item.id}>
           <span className="cf-nodes__saved-name">{item.label}</span>
@@ -315,6 +329,7 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
           </div>
         )}
         {src&&<iframe
+          ref={frameRef}
           key={version}
           className="cf-nodes__frame"
           src={src}

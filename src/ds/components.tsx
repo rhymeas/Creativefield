@@ -3002,7 +3002,7 @@ type SaveCrop=(file:File)=>Promise<CropResult|void>|CropResult|void;
 /** One place a picture or clip can go from the full view; `run` fills that tool and opens it. */
 export type MediaToolChoice={id:string;label:string;note?:string;icon?:ReactNode;run:()=>Promise<void>|void};
 /** What the app can do with one picture or clip. A button is drawn only for what is present (rule 26). */
-export type MediaGenerationInfo={model:string;prompt?:string;facts?:Array<{label:string;value:string}>;recreate?:()=>Promise<void>|void};
+export type MediaGenerationInfo={model:string;prompt?:string;facts?:Array<{label:string;value:string}>;inputs?:Array<{src:string;label:string;video?:boolean}>;date?:string;mode?:string;recreate?:()=>Promise<void>|void};
 export type MediaToolSet={animate?:()=>Promise<void>|void;openIn?:MediaToolChoice[];reference?:MediaToolChoice[];upscale?:()=>Promise<void>|void;downloadHref?:string;generation?:()=>Promise<MediaGenerationInfo|undefined>};
 type MediaToolMedia={src:string;name:string;mediaType:"image"|"video"};
 const mediaEditContext=createContext<{onEdit?:(source:MediaEditSource)=>Promise<void>|void;saveCrop?:SaveCrop;canAnnotate?:boolean;tools?:(media:MediaToolMedia)=>MediaToolSet|undefined}>({});
@@ -3010,6 +3010,17 @@ export function MediaEditProvider({children,onEdit,saveCrop,canAnnotate=false,to
   return <mediaEditContext.Provider value={{onEdit,saveCrop,canAnnotate,tools}}>{children}</mediaEditContext.Provider>;
 }
 export function useMediaEditor(){return useContext(mediaEditContext);}
+/** The same full-view information used by result cards and individual media. */
+function MediaViewerInfo({mode,inputs,prompt="",model,facts,date}:{mode?:string;inputs?:Array<{src:string;label:string;video?:boolean}>;prompt?:string;model?:string;facts?:Array<{label:string;value:ReactNode}>;date?:string}){
+  const [copied,setCopied]=useState(false);
+  return <>
+    {mode&&<span className="ds-viewer-info__mode">{mode}</span>}
+    {!!inputs?.length&&<section className="ds-viewer-info__block"><span className="ds-details__label">References</span><div className="ds-details__thumbs">{inputs.map(input=>input.video?<video key={input.label} className="ds-details__thumb" src={input.src} muted loop autoPlay playsInline aria-label={input.label}/>:<img key={input.label} className="ds-details__thumb" src={input.src} alt={input.label}/>)}</div></section>}
+    {prompt.trim()&&<section className="ds-viewer-info__block"><span className="ds-viewer-info__head"><span className="ds-details__label">Prompt</span><IconButton label={copied?"Copied":"Copy prompt"} onClick={()=>{void navigator.clipboard?.writeText(prompt).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),1500);});}}>{copied?<Check size={14}/>:<Copy size={14}/>}</IconButton></span><ClampText text={prompt} lines={8} title="Prompt"/></section>}
+    {(model||!!facts?.length)&&<dl className="ds-details__facts">{model&&<div><dt>Model</dt><dd>{model}</dd></div>}{facts?.filter(fact=>fact.label!=="Model").map(fact=><div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl>}
+    {date&&<span className="ds-details__date">{date}</span>}
+  </>;
+}
 function mediaAt(root:HTMLElement|null){
   const media=root?.querySelector<HTMLImageElement|HTMLVideoElement>("img,video");
   return media?.getAttribute("src")?{src:media.getAttribute("src")!,name:media.getAttribute("alt")||media.getAttribute("aria-label")||"Preview",mediaType:media.tagName==="VIDEO"?"video" as const:"image" as const}:null;
@@ -3074,7 +3085,7 @@ export function MediaViewer({ open, src, name, onClose, actions, onActivate, med
   if (!open) return null;
   return createPortal(
     <div className="ds-viewer" role="dialog" aria-modal="true" aria-label={name} tabIndex={-1} ref={panel} onClick={event=>event.stopPropagation()} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="ds-viewer__frame">
+      <div className="ds-viewer__frame" onMouseDown={event=>{if(event.target===event.currentTarget)onClose();}}>
         {mediaType === "video" ? compare?<div className="ds-viewer__video-pair"><figure><figcaption>{compare.name}</figcaption><video ref={reference} src={compare.src} aria-label={compare.name} controls muted playsInline preload="metadata"/></figure><figure><figcaption>Result</figcaption><video ref={primary} src={current.src} aria-label="Comparison result" controls playsInline preload="metadata"/></figure></div>:<video ref={primary} src={current.src} aria-label={current.name} controls autoPlay playsInline onDoubleClick={onActivate} /> : <div className="ds-viewer__image" data-cropping={!!crop||undefined}
           onPointerDown={event=>{if(!crop||busy)return;event.preventDefault();start.current=point(event);event.currentTarget.setPointerCapture(event.pointerId);setCrop({...start.current,w:0,h:0});}}
           onPointerMove={event=>{if(!crop||!start.current)return;const end=point(event),a=start.current;setCrop({x:Math.min(a.x,end.x),y:Math.min(a.y,end.y),w:Math.abs(a.x-end.x),h:Math.abs(a.y-end.y)});}}
@@ -3087,7 +3098,6 @@ export function MediaViewer({ open, src, name, onClose, actions, onActivate, med
           {mediaType==="image"&&<Button disabled={busy} onClick={()=>setCrop({x:.05,y:.05,w:.9,h:.9})}><Crop size={14}/>Quick crop</Button>}
           {mediaType==="image"&&editor.onEdit&&editor.canAnnotate&&<Button disabled={busy} onClick={()=>setAnnotationOpen(true)}>Annotate</Button>}
           {mediaType==="image"&&editor.onEdit&&<Button disabled={busy} onClick={()=>void edit("modify")}><Sparkles size={14}/>Modify with AI</Button>}
-          {generationInfo&&<InfoButton title="Generation info"><p>Model: {generationInfo.model}</p>{generationInfo.prompt&&<p>Prompt: {generationInfo.prompt}</p>}{generationInfo.facts?.map(fact=><p key={fact.label}>{fact.label}: {fact.value}</p>)}</InfoButton>}
           {mediaType==="video"&&compare&&<Tooltip content={playbackHint||"Playback is linked by elapsed time over the shared duration. Unlink to inspect each clip independently."}><Button aria-pressed={linked} onClick={()=>setLinked(value=>!value)}><Link2 size={14}/>{linked?"Unlink playback":"Link playback"}</Button></Tooltip>}
           {result&&<LinkButton href={result.src} download={result.name}>Download crop</LinkButton>}
           {actions}
@@ -3098,8 +3108,8 @@ export function MediaViewer({ open, src, name, onClose, actions, onActivate, med
         {error&&<div className="ds-viewer__hint" role="alert">{error}</div>}
         <AnnotationEditor open={annotationOpen} src={current.src} onClose={()=>setAnnotationOpen(false)} onApply={async annotations=>{if(!editor.onEdit)throw new Error("Image editing is unavailable.");await editor.onEdit({...current,mediaType:"image",intent:"annotate",annotations});setAnnotationOpen(false);onClose();}}/>
       </div>
-      <aside className="ds-viewer__panel" aria-label="Actions for this media">
-        {info&&<div className="ds-viewer__info">{info}</div>}
+      <aside className="ds-viewer__panel" aria-label="Actions for this media" onMouseDown={event=>{if(event.target===event.currentTarget)onClose();}}>
+        <div className="ds-viewer__info" onMouseDown={event=>{if(event.target===event.currentTarget)onClose();}}>{info??(generationInfo?<MediaViewerInfo {...generationInfo}/>:<MediaViewerInfo facts={[{label:"Name",value:current.name}]}/>)}</div>
         <div className="ds-viewer__tools">
           {generationInfo?.recreate&&<Button disabled={busy} onClick={()=>void go(generationInfo.recreate!)}><Repeat size={14}/>Recreate</Button>}
           {tools?.animate&&mediaType==="image"&&<Button variant="primary" disabled={busy} onClick={()=>void go(tools.animate!)}><Video size={14}/>Animate</Button>}
@@ -3721,15 +3731,8 @@ export function HistoryItem({
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const [removing, setRemoving] = useState(false), [deleting, setDeleting] = useState(false), [deleteError, setDeleteError] = useState("");
-  const [copied, setCopied] = useState(false);
   // The full view tells how this was made: mode, references, prompt (copyable), model and settings, date.
-  const viewerInfo = <>
-    {mode && <span className="ds-viewer-info__mode">{mode}</span>}
-    {!!inputs?.length && <section className="ds-viewer-info__block"><span className="ds-details__label">References</span><div className="ds-details__thumbs">{inputs.map((input) => input.video ? <video key={input.label} className="ds-details__thumb" src={input.src} muted loop autoPlay playsInline aria-label={input.label} /> : <img key={input.label} className="ds-details__thumb" src={input.src} alt={input.label} />)}</div></section>}
-    {prompt.trim() && <section className="ds-viewer-info__block"><span className="ds-viewer-info__head"><span className="ds-details__label">Prompt</span><IconButton label={copied ? "Copied" : "Copy prompt"} onClick={() => { void navigator.clipboard?.writeText(prompt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }); }}>{copied ? <Check size={14} /> : <Copy size={14} />}</IconButton></span><ClampText text={prompt} lines={8} title="Prompt" /></section>}
-    <dl className="ds-details__facts">{typeof model === "string" && <div><dt>Model</dt><dd>{model}</dd></div>}{facts?.filter((fact) => fact.label !== "Model").map((fact) => <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl>
-    <span className="ds-details__date">{date}</span>
-  </>;
+  const viewerInfo = <MediaViewerInfo mode={mode} inputs={inputs} prompt={prompt} model={typeof model==="string"?model:undefined} facts={facts} date={date}/>;
   const preview=useSurfacePreview({info:viewerInfo,onOpen:onOpenDetails});
   const mediaElement=isValidElement(media)?media:undefined;
   const mediaProps=mediaElement?.props as {src?:unknown}|undefined;

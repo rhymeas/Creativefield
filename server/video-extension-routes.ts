@@ -15,7 +15,8 @@ import {VideoExtensionService} from "./video-extension-execution";
 
 const base="/api/v1/workspaces/:workspaceId",ws=z.object({workspaceId:z.uuid()}),item=ws.extend({id:z.uuid()});
 const planRequest=videoExtensionIntentSchema.omit({contractVersion:true}).strict();
-const prepareRequest=z.object({projectId:z.uuid(),assetId:z.uuid(),clean:z.boolean().optional(),fps:z.number().int().min(8).max(60).optional()}).strict();
+const cropRect=z.object({x:z.number().int().nonnegative(),y:z.number().int().nonnegative(),width:z.number().int().min(2),height:z.number().int().min(2)}).strict();
+const prepareRequest=z.object({projectId:z.uuid(),assetId:z.uuid(),clean:z.boolean().optional(),fps:z.number().int().min(8).max(60).optional(),crop:cropRect.optional()}).strict().refine(value=>!(value.clean&&value.crop),"Choose either automatic cleaning or a manual crop");
 const createRequest=planRequest.extend({workerId:z.uuid().optional(),idempotencyKey:z.string().min(8).max(128),controls:scalarControls.default({})}).strict();
 const columns="id,project_id,source_asset_id,worker_id,created_by,plan,state,error,output_asset_id,created_at,updated_at";
 

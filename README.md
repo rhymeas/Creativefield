@@ -58,15 +58,13 @@ It is an early preview, not a Photoshop clone. FotoField covers the everyday lay
 
 ## Screenshots
 
-![All tools](docs/screens/creativefield/all-tools.png)
-
-![Create Video with a camera move](docs/screens/creativefield/create-video-camera.png)
-
-![3D](docs/screens/creativefield/3d.png)
-
-![Keyframes workspace in the public preview](docs/screens/creativefield/keyframes-preview.webp)
-
-![Node design preview](docs/screens/creativefield/nodes-preview.webp)
+| All tools | Create Video |
+| --- | --- |
+| ![All tools](docs/screens/creativefield/all-tools.png) | ![Create Video with a camera move](docs/screens/creativefield/create-video-camera.png) |
+| **FotoField editor** | **Keyframes workspace** |
+| ![FotoField editor](docs/screens/creativefield/fotofield-editor.png) | ![Keyframes workspace](docs/screens/creativefield/keyframes-preview.webp) |
+| **3D workspace** | **Nodes design preview** |
+| ![3D workspace](docs/screens/creativefield/3d.png) | ![Node design preview](docs/screens/creativefield/nodes-preview.webp) |
 
 The node screenshot is a design preview; the remaining screenshots show the real application in a demo project. They show the interface, not a claim about output quality.
 

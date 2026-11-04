@@ -123,7 +123,7 @@ async function overlayWorker(db:{query:PrepareQuery},workspaceId:string):Promise
 }
 
 async function readyAsset(db:{query:PrepareQuery},workspaceId:string,projectId:string,sourceSha256:string,clean:boolean,fps?:number):Promise<VideoAssetRow|undefined>{
-  return (await db.query(`SELECT ${assetColumns} FROM assets WHERE workspace_id=$1 AND project_id=$2 AND media_type='video' AND metadata->'videoPrepare'->>'sourceSha256'=$3 AND COALESCE(metadata->'videoPrepare'->>'clean','false')=$4 AND COALESCE(metadata->'videoPrepare'->>'fps','')=$5 AND (COALESCE(metadata->'videoPrepare'->>'clean','false')<>'true' OR (COALESCE(metadata->'videoPrepare'->>'cleanVersion','')=$6 AND metadata->'videoPrepare'->'overlay'->>'state' IN ('removed','none'))) ORDER BY created_at LIMIT 1`,[workspaceId,projectId,sourceSha256,String(clean),fps===undefined?"":String(fps),String(CLEAN_REGION_VERSION)])).rows[0];
+  return (await db.query(`SELECT ${assetColumns} FROM assets WHERE workspace_id=$1 AND project_id=$2 AND media_type='video' AND metadata->'videoPrepare'->>'sourceSha256'=$3 AND NOT (metadata ? 'manualVideoCrop') AND COALESCE(metadata->'videoPrepare'->>'clean','false')=$4 AND COALESCE(metadata->'videoPrepare'->>'fps','')=$5 AND (COALESCE(metadata->'videoPrepare'->>'clean','false')<>'true' OR (COALESCE(metadata->'videoPrepare'->>'cleanVersion','')=$6 AND metadata->'videoPrepare'->'overlay'->>'state' IN ('removed','none'))) ORDER BY created_at LIMIT 1`,[workspaceId,projectId,sourceSha256,String(clean),fps===undefined?"":String(fps),String(CLEAN_REGION_VERSION)])).rows[0];
 }
 
 /** What a clean clip says about the overlays that sat on it: gone, none found, not this time. */
@@ -176,7 +176,8 @@ async function overlayFree(db:PrepareDb,store:DiskStore,workspaceId:string,cache
  * it keeps its own rate. `createdBy` names the person a derived asset belongs to; without
  * it the source's own owner is used, because a run does not choose an owner.
  */
-async function prepareVideoAsset(db:PrepareDb,store:DiskStore,workspaceId:string,input:{projectId:string;assetId:string;clean?:boolean;fps?:number;createdBy?:string},cancel?:AbortSignal):Promise<PreparedVideoSource>{
+type ManualCrop={x:number;y:number;width:number;height:number};
+async function prepareVideoAsset(db:PrepareDb,store:DiskStore,workspaceId:string,input:{projectId:string;assetId:string;clean?:boolean;fps?:number;crop?:ManualCrop;createdBy?:string},cancel?:AbortSignal):Promise<PreparedVideoSource>{
   return withPrepareSlot(async()=>{
     cancel?.throwIfAborted();
     const signal=cancel?AbortSignal.any([cancel,AbortSignal.timeout(PREPARE_TIMEOUT_MS)]):AbortSignal.timeout(PREPARE_TIMEOUT_MS),clean=input.clean===true;
@@ -189,6 +190,12 @@ async function prepareVideoAsset(db:PrepareDb,store:DiskStore,workspaceId:string
     const hash=await fileSha256AndBytes(file).catch(()=>unreadable());
     if(hash.sha256!==source.sha256||hash.bytes!==Number(source.bytes))throw new HttpError(422,"The stored clip does not match this asset.");
     let region=clean?await cleanRegion(file,signal):null;
+    if(input.crop){
+      const frame=await inspectNormalizedVideo(file,signal).catch(()=>{throw new HttpError(422,"Prepare the video before cropping it.");});
+      const {x,y,width,height}=input.crop;
+      if([x,y,width,height].some(value=>!Number.isInteger(value)||value%2!==0)||x<0||y<0||width<2||height<2||x+width>frame.width||y+height>frame.height)throw new HttpError(422,"Choose an even-sized crop inside the video frame.");
+      region={x,y,width,height,aspect:"custom",frame:{width:frame.width,height:frame.height}};
+    }
     // Already-cropped screen recordings have no outer chrome for the finder to
     // rediscover. Their recorded crop is evidence to check the remaining overlays.
     if(clean&&!region&&source.metadata?.videoPrepare){
@@ -200,7 +207,7 @@ async function prepareVideoAsset(db:PrepareDb,store:DiskStore,workspaceId:string
     // A requested rate only applies when the clip is faster than it; an equal or slower clip keeps its own rate.
     const forced=input.fps===undefined?undefined:(await probeOnce()).averageRate>input.fps?input.fps:undefined;
     if(!region&&!forced&&await inspectSource(file,signal))return assetView(source);
-    const earlier=await readyAsset(db,workspaceId,input.projectId,hash.sha256,clean,forced);
+    const earlier=input.crop?undefined:await readyAsset(db,workspaceId,input.projectId,hash.sha256,clean,forced);
     if(earlier)return region?{...earlier,cleaned:true}:earlier;
     const sourceProbe=await probeOnce(),fps=forced??readyFrameRate(sourceProbe.averageRate),tools=await videoExtensionReadiness();
     if(tools.state!=="ready")throw new HttpError(503,"The server cannot make clips ready right now.");
@@ -231,7 +238,7 @@ async function prepareVideoAsset(db:PrepareDb,store:DiskStore,workspaceId:string
         throw new HttpError(422,"This clip could not be made ready. It may be too long or damaged.");
       });
       // The crop keeps the picture; what is painted on the picture is taken out before any tool runs.
-      const overlay=region?await overlayFree(db,store,workspaceId,hash.sha256,{cropped:target,painted:path.join(dir,"painted.mp4"),facts,fps,audio:sourceProbe.audio,signal}):undefined;
+      const overlay=clean&&region?await overlayFree(db,store,workspaceId,hash.sha256,{cropped:target,painted:path.join(dir,"painted.mp4"),facts,fps,audio:sourceProbe.audio,signal}):undefined;
       // Never publish/cache a cropped-but-still-dirty asset under a clean receipt.
       // Partial windows remain in the bounded overlay cache for an explicit later retry.
       if(overlay&&(overlay.state==="unavailable"||overlay.state==="incomplete")){
@@ -245,29 +252,29 @@ async function prepareVideoAsset(db:PrepareDb,store:DiskStore,workspaceId:string
       if(unchanged.sha256!==hash.sha256)throw new HttpError(422,"The source clip changed while it was made ready.");
       saved=await store.put(workspaceId,createReadStream(delivered)).catch(()=>{throw new HttpError(422,"The ready clip could not be stored.");});
       if(saved.sha256!==encoded.sha256||saved.bytes!==encoded.bytes)throw new HttpError(422,"The ready clip changed while it was stored.");
-      const metadata={validationVersion:1,videoPrepare:{version:1,sourceAssetId:source.id,sourceSha256:hash.sha256,sourceBytes:hash.bytes,
+      const metadata={validationVersion:1,...(input.crop?{manualVideoCrop:input.crop}:{}),videoPrepare:{version:1,sourceAssetId:source.id,sourceSha256:hash.sha256,sourceBytes:hash.bytes,
         ...(forced?{fps:forced}:{}),
-        ...(region?{clean:true,cleanVersion:CLEAN_REGION_VERSION,region:{x:region.x,y:region.y,width:region.width,height:region.height,aspect:region.aspect},
+        ...(region&&clean?{clean:true,cleanVersion:CLEAN_REGION_VERSION,region:{x:region.x,y:region.y,width:region.width,height:region.height,aspect:region.aspect},
           ...(overlay?{overlay:{state:overlay.state,...(overlay.coverage!==undefined?{coverage:overlay.coverage}:{}),...(overlay.regions?.length?{regions:overlay.regions}:{})}}:{})}:{}),output:finalFacts}},
-        suffix=region?"(clean)":forced?`(ready ${forced} fps)`:"(ready)",assetId=newId();
+        suffix=input.crop?"(cropped)":region?"(clean)":forced?`(ready ${forced} fps)`:"(ready)",assetId=newId();
       let row:VideoAssetRow|undefined;
       try{
         row=await db.transaction(async client=>{
           await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`video-prepare:${workspaceId}/${input.projectId}/${hash.sha256}`]);
           if(!(await client.query("SELECT id FROM projects WHERE workspace_id=$1 AND id=$2",[workspaceId,input.projectId])).rows.length)throw new HttpError(404,"Project not found");
-          const existing=await readyAsset(client,workspaceId,input.projectId,hash.sha256,clean,forced);
+          const existing=input.crop?undefined:await readyAsset(client,workspaceId,input.projectId,hash.sha256,clean,forced);
           if(existing)return existing;
           return (await client.query(`INSERT INTO assets(id,workspace_id,project_id,name,media_type,content_type,storage_key,sha256,bytes,created_by,parent_id,metadata) VALUES($1,$2,$3,$4,'video','video/mp4',$5,$6,$7,$8,$9,$10) RETURNING ${assetColumns}`,[assetId,workspaceId,input.projectId,`${String(source.name).slice(0,200)} ${suffix}`,saved!.key,saved!.sha256,saved!.bytes,createdBy,source.id,JSON.stringify(metadata)])).rows[0] as VideoAssetRow;
         });
       }catch(error){await store.remove(workspaceId,saved.key).catch(()=>{});throw error;}
       if(row.id!==assetId)await store.remove(workspaceId,saved.key).catch(()=>{});
-      return region?{...row,cleaned:true}:row;
+      return clean&&region?{...row,cleaned:true}:row;
     }finally{await rm(dir,{recursive:true,force:true}).catch(()=>{});}
   });
 }
 
 /** The trim route's entry: a pooled connection, and the signed-in person as the copy's owner. */
-export async function prepareVideoSource(pool:Pool,store:DiskStore,workspaceId:string,userId:string,input:{projectId:string;assetId:string;clean?:boolean;fps?:number},cancel?:AbortSignal):Promise<PreparedVideoSource>{
+export async function prepareVideoSource(pool:Pool,store:DiskStore,workspaceId:string,userId:string,input:{projectId:string;assetId:string;clean?:boolean;fps?:number;crop?:ManualCrop},cancel?:AbortSignal):Promise<PreparedVideoSource>{
   return prepareVideoAsset({query:(text,values)=>pool.query(text,values),transaction:work=>transaction(pool,work)},store,workspaceId,{...input,createdBy:userId},cancel);
 }
 

@@ -75,6 +75,19 @@ export function showFeatureError(doc, message) {
   doc.body.append(notice);
 }
 
+export function featureExportHandler(app, feature, ids, parent, parentOrigin) {
+  return (event) => {
+    if (!parentOrigin || event.source !== parent || event.origin !== parentOrigin || event.data?.type !== "comfyfield:export-feature" || event.data.feature !== feature || typeof event.data.id !== "string") return;
+    try {
+      const current = app.graph.serialize();
+      if (JSON.stringify(current.extra?.comfyfield?.ids ?? null) !== ids) throw new Error("Open the requested feature graph before saving.");
+      event.source.postMessage({ type: "comfyfield:feature-export", id: event.data.id, workflow: current }, event.origin);
+    } catch (error) {
+      event.source.postMessage({ type: "comfyfield:feature-export", id: event.data.id, error: error.message }, event.origin);
+    }
+  };
+}
+
 async function open() {
   const feature = parseFeature(location.search), workspace = workspaceFromPath(location.pathname);
   if (!feature || !workspace) return;
@@ -87,6 +100,11 @@ async function open() {
   // The editor restores the previous session's tabs after start-up; loading before that finishes loses our tab.
   await settled(app);
   await loadFeatureGraph(app, workflow, name);
+  // Only the embedding CreativeField page may request the active graph. Refuse a
+  // different editor tab: otherwise Save could replace an app with another graph.
+  const parentOrigin = document.referrer ? new URL(document.referrer).origin : null;
+  const ids = JSON.stringify(workflow.extra?.comfyfield?.ids ?? null);
+  window.addEventListener("message", featureExportHandler(app, feature, ids, window.parent, parentOrigin));
 }
 
 if (typeof window !== "undefined") open().catch((error) => { console.warn("[ComfyField]", error.message); showFeatureError(document, error.message); });

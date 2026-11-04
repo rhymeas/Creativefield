@@ -604,7 +604,6 @@ export class ExecutionService {
       const pinned=(await this.pool.query("SELECT id,sha256,manifest,graph FROM workflow_revisions WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.workflow_revision_id])).rows[0];
       const bundle=pinned?{manifest:pinned.manifest,template:pinned.graph} as CapabilityBundle:undefined;
       if(!bundle||bundle.manifest.version!==run.capability_version)throw new Error("Capability revision unavailable");
-      const inputs:Record<string,string>={};
       const assets=(await this.pool.query("SELECT a.*,r.role FROM run_inputs r JOIN assets a ON a.workspace_id=r.workspace_id AND a.id=r.asset_id WHERE r.workspace_id=$1 AND r.run_id=$2",[run.workspace_id,run.id])).rows;
       await verifyEffectInputs(bundle.manifest.id,run.invocation,assets,run.project_id,key=>this.store.file(run.workspace_id,key));
       await verifyVoiceInput(bundle.manifest,run.invocation,assets,run.project_id,key=>this.store.file(run.workspace_id,key));
@@ -629,12 +628,7 @@ export class ExecutionService {
         }
       }
       const sourceFrames=await this.replaceSourceFrames(run,assets,bundle.manifest);
-      for(const asset of assets) {
-        const filename=`comfyfield-${run.id}-${asset.id}.${extension(asset.content_type)}`;
-        if(Object.values(inputs).includes(filename)){inputs[asset.role]=filename;continue;}
-        const data=await openAsBlob(await this.store.file(run.workspace_id,asset.storage_key),{type:asset.content_type});
-        inputs[asset.role]=await this.uploadInput(worker,filename,data,asset.role);
-      }
+      const inputs=await this.uploadInputs(run,worker,assets,undefined,["h3-object-swap","openjutsu-h3-advanced"].includes(bundle.manifest.id));
       const graph=compileRunGraph(bundle,run.invocation,inputs,sourceFrames);
       // A cancellation before prompt submission can complete without touching the worker queue.
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];

@@ -245,16 +245,22 @@ export async function workflowImportRoutes(app: FastifyInstance, pool: Pool) {
      file name. The feature keeps its own manifest; the edited graph is stored as a draft until it is published. */
   app.post(`${base}/feature-edit`, async (request) => {
     const { workspaceId } = z.object({ workspaceId: z.uuid() }).parse(request.params);
-    const body = z.object({ capabilityId: z.string().regex(/^[a-z0-9][a-z0-9-]{0,79}$/), workerId: z.uuid().optional() }).strict().parse(request.body);
+    const body = z.object({ capabilityId: z.string().regex(/^[a-z0-9][a-z0-9-]{0,79}$/), workerId: z.uuid().optional(), json: z.string().min(2).max(5_000_000).optional() }).strict().parse(request.body);
     const user = await member(pool, request, workspaceId, "creator");
     const native = (await loadServerCatalogue()).find((bundle) => bundle.manifest.id === body.capabilityId);
     if (!native?.template) throw new HttpError(404, "This feature has no editable graph");
     const worker = await workerFor(pool, workspaceId, body.workerId);
-    const listing = await comfyJson<unknown>(worker, "/api/userdata?dir=workflows&full_info=true");
-    const files = Array.isArray(listing) ? listing.filter((item): item is { path: string; modified?: number } => !!item && typeof item === "object" && typeof (item as { path?: unknown }).path === "string") : [];
-    const name = newestFeatureFile(body.capabilityId, files);
-    if (!name) throw new HttpError(404, `Save the workflow in the node editor as “${featureFileName(body.capabilityId)}” first (Ctrl+S).`);
-    const input = await source(worker, name);
+    let name = featureFileName(body.capabilityId);
+    let input: { ui: UiWorkflow; raw: string };
+    if (body.json) input = { ui: parseWorkflow(body.json), raw: body.json };
+    else {
+      const listing = await comfyJson<unknown>(worker, "/api/userdata?dir=workflows&full_info=true");
+      const files = Array.isArray(listing) ? listing.filter((item): item is { path: string; modified?: number } => !!item && typeof item === "object" && typeof (item as { path?: unknown }).path === "string") : [];
+      const saved = newestFeatureFile(body.capabilityId, files);
+      if (!saved) throw new HttpError(404, `Save the workflow in the node editor as “${name}” first (Ctrl+S).`);
+      name = saved;
+      input = await source(worker, name);
+    }
     const objectInfo = await comfyJson<ObjectInfo>(worker, "/object_info");
     let graph: ApiGraph;
     try { graph = restoreFeatureIds(uiToApi(input.ui, objectInfo) as ApiGraph, (input.ui as { extra?: { comfyfield?: { ids?: Record<string, string> } } }).extra?.comfyfield?.ids); }
@@ -273,10 +279,11 @@ export async function workflowImportRoutes(app: FastifyInstance, pool: Pool) {
       }
       const current = (await client.query("SELECT version FROM user_workflow_revisions WHERE workspace_id=$1 AND workflow_id=$2 ORDER BY version DESC LIMIT 1", [workspaceId, workflow.id])).rows[0];
       const version = Number(current?.version ?? 0) + 1, revisionId = newId();
+      if (body.json) await client.query("UPDATE user_workflow_revisions SET published=false WHERE workspace_id=$1 AND workflow_id=$2", [workspaceId, workflow.id]);
       await client.query(
         `INSERT INTO user_workflow_revisions(id,workspace_id,workflow_id,version,manifest,template,mapping,source_name,source_sha256,graph_sha256,published,created_by)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,false,$11)`,
-        [revisionId, workspaceId, workflow.id, version, native.manifest, graph, mapping, name, sha256(input.raw), sha256(JSON.stringify(graph)), user.id],
+         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+        [revisionId, workspaceId, workflow.id, version, native.manifest, graph, mapping, name, sha256(input.raw), sha256(JSON.stringify(graph)), !!body.json, user.id],
       );
       await client.query("UPDATE user_workflows SET updated_at=now() WHERE id=$1 AND workspace_id=$2", [workflow.id, workspaceId]);
       return { workflowId: workflow.id, revisionId, version };
