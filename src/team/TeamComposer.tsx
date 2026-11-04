@@ -93,7 +93,6 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const [addingReference,setAddingReference]=useState(false);
   const [trimInput,setTrimInput]=useState<{role:string;assetId:string}|null>(null);
   const cameraMove=draft.cameraMove??"";
-  function setCameraMove(move:string){setDraft(d=>({...d,cameraMove:CAMERA_MOVES.some(option=>option.id===move)?move:undefined,cameraPose:cameraMovePose(move)??undefined}));}
   const [voiceConsent,setVoiceConsent]=useState(false);
   const [requirements,setRequirements]=useState<{state:string;missing:string[];instructions:string}|null>(null);
   const [drivingSeconds,setDrivingSeconds]=useState<number|null>(null);
@@ -239,7 +238,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
     const path=cameraMove&&cameraPathModel&&!draft.inputs.end_image?cameraPathRoute(cameraPathModel,cameraMove,draft.inputs,controls):undefined;
     const intent=pending??submissionIntent({projectId:project.id,workerId,...(path?{capabilityId:path.capabilityId,version:path.version,inputs:path.inputs}:(({capabilityId,version,inputs})=>({capabilityId,version,inputs}))(endFrameRoute(manifest,endPair,draft.inputs))),routeId:"local",elementInputs:draft.elementInputs,controls:path?path.controls:cameraInstruction?{...controls,prompt:`${cameraInstruction}\n\n${String(controls.prompt??"").trim()}`.trim()}:controls,...(draft.presetId?{presetId:draft.presetId}:{}),audioPolicy:draft.audioPolicy,...(Object.keys(consent).length?{consent}:{})});
     saveIntent(intent);
-    try {const result=await call<{id:string}>(workspacePath(workspace.id,"runs"),"POST",intent);saveIntent(null);setSaved(`Request recorded: ${result.id}`);setRunVersion(v=>v+1);onQueued();}
+    try {await call<{id:string}>(workspacePath(workspace.id,"runs"),"POST",intent);saveIntent(null);setSaved(`Started · ${new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}`);setRunVersion(v=>v+1);onQueued();}
     catch(e){setError((e as Error).message);if(e instanceof ApiError&&e.status>=400&&e.status<500&&e.status!==401&&e.status!==409)saveIntent(null);}
     finally{setBusy("");}
   }
@@ -379,17 +378,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
           <CameraPathPreview src={cameraSource?assetUrl(workspace.id,cameraSource.id):undefined} alt="Start frame moving along the chosen camera path" pose={String(draft.controls.camera_pose??"Static")} speed={Number(draft.controls.speed??1)} seconds={Number(draft.controls.length??1)}/>
         </div>}
         {cameraRoute&&<div className="cf-form">
-          <CameraPoseField label="Camera move" value={draft.cameraPose??cameraMovePose(cameraMove)} presets={cameraPathModel?cameraMoves.map(move=>cameraMovePose(move.id)!):undefined} src={draft.inputs.start_image?assetUrl(workspace.id,draft.inputs.start_image):undefined} disabled={locked} onChange={pose=>setDraft(d=>({...d,cameraMove:pose?cameraPoseMove(pose):undefined,cameraPose:pose??undefined}))}/>
-          <GestureStage
-            src={cameraSource?assetUrl(workspace.id,cameraSource.id):undefined}
-            alt="Selected start frame for the camera move"
-            value={cameraMove}
-            moves={cameraMoves.map(move=>({id:move.id,label:move.label}))}
-            onChange={setCameraMove}
-            disabled={locked}
-            instruction={cameraPathModel&&!draft.inputs.end_image?"Pick a move: the camera follows it on a fixed path (640×640, up to 5 s)":"The move is added to the start of your prompt. The model interprets it; the path is not guaranteed."}
-          />
-          {cameraInstruction&&(cameraPathModel&&!draft.inputs.end_image?<Meta>Runs on the camera model: the path is followed, the prompt only describes the scene</Meta>:<Meta>{cameraInstruction}</Meta>)}
+          <CameraPoseField inline label="Camera move" value={draft.cameraPose??cameraMovePose(cameraMove)} presets={cameraPathModel?cameraMoves.map(move=>cameraMovePose(move.id)!):undefined} src={draft.inputs.start_image?assetUrl(workspace.id,draft.inputs.start_image):undefined} disabled={locked} onChange={pose=>setDraft(d=>({...d,cameraMove:pose?cameraPoseMove(pose):undefined,cameraPose:pose??undefined}))}/>
         </div>}
         <span className="cf-scroll-reserve" aria-hidden/>
       </fieldset>

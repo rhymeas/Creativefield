@@ -2354,15 +2354,6 @@ export function GestureStage({ src, alt = "", value, moves, onChange, label = "C
     }, 36);
     return () => window.clearInterval(timer);
   }, [playing, path]);
-  const download = () => {
-    const blob = new Blob([JSON.stringify({ move: value || null, path, recordedAt: new Date().toISOString() }, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `camera-gesture-${value || "none"}.json`;
-    anchor.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 2000);
-  };
   return (
     <div className="ds-gesture">
       <div
@@ -2402,11 +2393,10 @@ export function GestureStage({ src, alt = "", value, moves, onChange, label = "C
       </div>
       <div className="ds-gesture__readout">
         <Meta parts={[chosen ? `You did: ${chosen.label}` : "No move yet", instruction]} />
-        <div className="ds-gesture__actions">
-          <Button variant="secondary" disabled={disabled || path.length < 2} onClick={() => { setPlayhead(path[0] ?? null); setPlaying(true); }}>Replay gesture</Button>
-          <Button variant="secondary" disabled={disabled || path.length < 2} onClick={download}>Download gesture</Button>
+        {(path.length > 1 || value) && <div className="ds-gesture__actions">
+          {path.length > 1 && <Button variant="secondary" disabled={disabled} onClick={() => { setPlayhead(path[0] ?? null); setPlaying(true); }}>Replay gesture</Button>}
           {value && <Button variant="ghost" disabled={disabled} onClick={() => { onChange(""); setPath([]); pathRef.current = []; setPlayhead(null); }}>Clear move</Button>}
-        </div>
+        </div>}
       </div>
     </div>
   );

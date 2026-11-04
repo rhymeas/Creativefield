@@ -1753,7 +1753,7 @@ button.ds-thumb__art:disabled { opacity: 0.45; cursor: not-allowed; }
 .ds-gesture__label { position: absolute; left: var(--space-2); top: var(--space-2); padding: 2px var(--space-2); border-radius: var(--radius-full); background: var(--surface-glass); color: var(--text-secondary); font-family: var(--font-mono); font-size: var(--text-3xs); letter-spacing: .06em; text-transform: uppercase; pointer-events: none; }
 .ds-gesture__hint { position: absolute; right: var(--space-2); bottom: var(--space-2); color: var(--text-tertiary); font-family: var(--font-mono); font-size: var(--text-3xs); letter-spacing: .08em; pointer-events: none; }
 .ds-gesture__readout { display: flex; flex-direction: column; gap: var(--gap-inline); }
-.ds-gesture__actions { display: flex; flex-wrap: wrap; gap: var(--gap-inline); }
+.ds-gesture__actions { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--gap-inline); min-width: 0; }
 /* InbetweenRail: ghost frame slots between a first and last still. */
 .ds-inbetween { display: flex; flex-direction: column; gap: var(--gap-stack); }
 .ds-inbetween__rail { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: var(--space-1); padding: var(--space-2); background: var(--surface-subtle); border: 1px solid var(--line-soft); border-radius: var(--radius-md); }
