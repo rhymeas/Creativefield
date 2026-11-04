@@ -2,6 +2,7 @@ import type {FastifyInstance} from "fastify";
 import type {Pool,PoolClient} from "pg";
 import {z} from "zod";
 import type {CapabilityBundle} from "../src/capabilities/types";
+import {storyboardImageSibling} from "../src/capabilities/storyboard-image-route";
 import {member,HttpError} from "./auth";
 import {transaction} from "./db";
 import {hashToken,newId} from "./crypto";
@@ -136,7 +137,7 @@ export async function storyboardExecutionRoutes(app:FastifyInstance,pool:Pool,st
           if(!b.manifest.inputs.some(p=>p.id==="start_image"&&p.type==="image")){
             /* A text-to-video shot can still animate its approved still when the same family has
                an image-to-video sibling; resolve it here because this is where the run is prepared. */
-            const base=g.capabilityId.endsWith("-t2v")?g.capabilityId.slice(0,-4):undefined;
+            const base=storyboardImageSibling(g.capabilityId);
             const sibling=base?catalogue.find(x=>x.manifest.id===base&&x.manifest.inputs.some(p=>p.id==="start_image"&&p.type==="image")&&x.manifest.controls.some(c=>c.id==="length")&&!x.manifest.timing?.sourceTimed):undefined;
             if(!sibling)throw new HttpError(422,"Animate approved requires a workflow with a start image input");
             b=sibling;g={...g,capabilityId:sibling.manifest.id,version:sibling.manifest.version};

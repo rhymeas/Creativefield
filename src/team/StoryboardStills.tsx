@@ -2,6 +2,7 @@ import {useEffect,useMemo,useState} from "react";
 import {Button,Dialog,Notice,TextField} from "../ds";
 import {ShotFrame,type ShotFrameState} from "../ds/ShotFrame";
 import type {CapabilityManifestV2} from "../capabilities/types";
+import {storyboardImageSibling} from "../capabilities/storyboard-image-route";
 import {ApiError,assetUrl,workspacePath,type Call,type Run,type Worker} from "./api";
 import {activeRun,defaultDraft,draftErrors,workerReadiness} from "./state";
 import {plainProblem} from "./problems";
@@ -42,7 +43,7 @@ export function StoryboardStills({boardId,workspace,revision,shots,selected,fram
   const current=shots.find(s=>s.key===selected),candidates=takes.filter(t=>t.plan_key===selected&&t.prompt===current?.prompt),candidate=candidates.find(t=>t.id===candidateId)??candidates[0],approved=approvedTakes(shots,takes),accepted=approved[selected];
   /* A failed frame is said in everyday words; the raw message waits behind Details. */
   const candidateProblem=candidate?.error?plainProblem(candidate.error):null,takeProblem=error?plainProblem(error):null;
-  const blockedStills=shots.filter(s=>{const approval=approvedTakes([s],takes)[s.key];if(!approval)return false;const cap=catalogue.find(m=>m.id===s.settings.generation?.capabilityId);if(!cap||cap.inputs.some(p=>p.id==="start_image"))return false;const base=cap.id.endsWith("-t2v")?cap.id.slice(0,-4):undefined;const sibling=base?catalogue.find(m=>m.id===base&&m.inputs.some(p=>p.id==="start_image")):undefined;return !sibling;});
+  const blockedStills=shots.filter(s=>{const approval=approvedTakes([s],takes)[s.key];if(!approval)return false;const cap=catalogue.find(m=>m.id===s.settings.generation?.capabilityId);if(!cap||cap.inputs.some(p=>p.id==="start_image"))return false;const base=storyboardImageSibling(cap.id);const sibling=base?catalogue.find(m=>m.id===base&&m.inputs.some(p=>p.id==="start_image")):undefined;return !sibling;});
   async function approve(){if(!candidate||busy||!canEdit||disabled)return;setBusy(true);setError("");try{await call(workspacePath(workspace,`storyboards/${boardId}/stills/${candidate.id}/approve`),"POST",{});setRefresh(v=>v+1);}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
   async function reject(){if(!candidate||busy||!canEdit||disabled)return;setBusy(true);setError("");try{await call(workspacePath(workspace,`storyboards/${boardId}/stills/${candidate.id}/reject`),"POST",{});setRefresh(v=>v+1);}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
   async function cancel(){if(!candidate||busy||!canEdit)return;setBusy(true);try{await call(workspacePath(workspace,`runs/${candidate.child_run_id}/cancel`),"POST",{});setRefresh(v=>v+1);}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
