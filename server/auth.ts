@@ -14,7 +14,11 @@ export async function principal(pool: Pool, request: FastifyRequest): Promise<Pr
   const result = await pool.query("SELECT u.id,u.email FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now()", [hashToken(token)]);
   if (!result.rows[0]) throw new HttpError(401, "Session expired");
   /* A hosted try-out (GUEST_PER_BROWSER=1) only knows guests: a session from the old shared demo starts over as a guest. */
-  if (process.env.GUEST_PER_BROWSER === "1" && !String(result.rows[0].email).endsWith(GUEST_DOMAIN)) throw new HttpError(401, "Session expired");
+  if (process.env.GUEST_PER_BROWSER === "1") {
+    if (!String(result.rows[0].email).endsWith(GUEST_DOMAIN)) throw new HttpError(401, "Session expired");
+    /* An idle guest is deleted after a day (guest-cleanup.ts); a visit counts, marked at most every five minutes. */
+    await pool.query("UPDATE users SET last_seen_at=now() WHERE id=$1 AND (last_seen_at IS NULL OR last_seen_at<now()-interval '5 minutes')", [result.rows[0].id]);
+  }
   return result.rows[0];
 }
 export async function ensureLocalUser(pool: Pool): Promise<Principal> {

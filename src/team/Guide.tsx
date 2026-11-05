@@ -48,7 +48,7 @@ export function Guide({hosted,cloudConnected,onClose,onCloudSignIn,onOpenWorkers
         steps={hosted
           ?[{icon:<KeyRound size={20}/>,title:"Your Comfy Cloud key",text:"Saved in this browser only. The site holds it in memory while you use it and forgets it when it restarts; it is never written to disk or a database."},
             {icon:<Monitor size={20}/>,title:"Drafts and choices",text:"Prompt drafts and choices such as this guide stay in this browser."},
-            {icon:<ImageIcon size={20}/>,title:"Pictures and videos",text:"Files you add and results you make sit in your own private workspace on this site, because Comfy Cloud needs them to render. No other visitor can open it. The downloaded app keeps every file on your computer."}]
+            {icon:<ImageIcon size={20}/>,title:"Pictures and videos",text:"Files you add and results you make sit in your own private workspace on this site, because Comfy Cloud needs them to render. No other visitor can open it, and everything is deleted after a day without a visit. Download what you want to keep; the downloaded app keeps every file on your computer."}]
           :[{icon:<Monitor size={20}/>,title:"On this computer",text:"Projects, pictures, videos and keys are stored on this computer. Prompt drafts stay in this browser."},
             {icon:<Cloud size={20}/>,title:"Cloud runs",text:"Only when you pick Comfy Cloud, Comfy Router or ChatGPT is a run's input sent to that service, on your own account."}]}/>}
       {section==="download"&&<>

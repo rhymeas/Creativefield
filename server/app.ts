@@ -53,6 +53,7 @@ import {CLOUD_KEY_REFUSED_REASON,cloudAccountFor} from "./cloud-account";
 import {ROUTER_MODELS} from '../src/capabilities/router-models';
 import {cloudReadiness} from "./cloud-readiness";
 import {chatgptImageRoutes} from './chatgpt-images';
+import { startGuestCleanup } from "./guest-cleanup";
 import type {ChatgptNative} from './chatgpt-native';
 import {ExportProfileError,exportProfile,exportReadiness,exportVideo,type ExportResult} from "./export-profiles";
 import {managedLocalComfyOrigin,startLocalComfy,type LocalComfyStarter} from "./local-comfy-start";
@@ -375,6 +376,7 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
   const execution = await executionRoutes(app,pool,store,catalogue,registry,(workspace,id)=>chatgptImages.cancel(workspace,id));
   const directExecution=new DirectExecutionService(pool,store,config.masterKey,{...dependencies,registry});
   app.addHook("onClose",()=>directExecution.close());
+  if (config.guestPerBrowser) { const guestCleanup = startGuestCleanup(pool, config.storageRoot); app.addHook("onClose", async () => guestCleanup.close()); }
   await videoFrameInspectionRoutes(app,pool,store);
   const storyboards=await storyboardExecutionRoutes(app,pool,store,catalogue);
   await storyboardPlanRoutes(app,pool);
