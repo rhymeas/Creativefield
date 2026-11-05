@@ -598,5 +598,32 @@
     "_meta": {
       "title": "Output size"
     }
+  },
+  "cf-ref-1": {
+    "inputs": {
+      "image": "placeholder.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Additional reference 1"
+    }
+  },
+  "cf-ref-2": {
+    "inputs": {
+      "image": "placeholder.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Additional reference 2"
+    }
+  },
+  "cf-ref-3": {
+    "inputs": {
+      "image": "placeholder.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Additional reference 3"
+    }
   }
 }

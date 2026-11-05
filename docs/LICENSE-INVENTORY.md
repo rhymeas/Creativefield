@@ -85,7 +85,7 @@ Optional Windows system speech/installed voices are external OS resources, not b
 
 ## Hunyuan3D 2.1 (`hunyuan3d-21`, added 2026-10-23)
 
-- File: `hunyuan_3d_v2.1.safetensors` (7,365,943,290 bytes) in `<your ComfyUI_windows_portable folder>/ComfyUI/models/checkpoints/`, from https://huggingface.co/Comfy-Org/hunyuan3D_2.1_repackaged (repackaging of tencent/Hunyuan3D-2.1).
+- File: `hunyuan_3d_v2.1.safetensors` (7,365,943,290 bytes) in `G:/AI/ComfyUI-Qwen/ComfyUI_windows_portable/ComfyUI/models/checkpoints/`, from https://huggingface.co/Comfy-Org/hunyuan3D_2.1_repackaged (repackaging of tencent/Hunyuan3D-2.1).
 - License: Tencent Hunyuan 3D 2.1 Community License. It does not apply in the European Union, the United Kingdom or South Korea; use and distribution are limited to the remaining territory. The operator confirmed use outside those regions (2026-10-23). Do not ship this route to users in the excluded territories.
 - Workflow source: Comfy-Org workflow_templates `templates/3d_hunyuan3d-v2.1.json` (all nodes are ComfyUI core nodes).
 

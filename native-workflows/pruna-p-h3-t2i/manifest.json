@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 2,
+  "id": "pruna-p-h3-t2i",
+  "version": "0.1.0",
+  "title": "Pruna P-H3 text to image",
+  "category": "image",
+  "description": "P-H3 Image on MiniMax H3. Local test workflow; Powered by MiniMax H3.",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "image",
+      "label": "Image",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Prompt",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "6",
+        "field": "prompt"
+      }
+    },
+    {
+      "id": "aspect_ratio",
+      "label": "Resolution",
+      "type": "select",
+      "default": "1:1 (Square)",
+      "options": [
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)"
+      ],
+      "binding": {
+        "node": "17",
+        "field": "aspect_ratio"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 42,
+      "binding": {
+        "node": "11",
+        "field": "noise_seed"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "pruna-p-h3-t2i",
+      "requirements": [
+        {
+          "id": "node:BasicGuider",
+          "kind": "node",
+          "name": "BasicGuider",
+          "instructions": "Use a ComfyUI build with native P-H3 Image support."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Use a ComfyUI build with native P-H3 Image support."
+        },
+        {
+          "id": "node:KSamplerSelect",
+          "kind": "node",
+          "name": "KSamplerSelect",
+          "instructions": "Use a ComfyUI build with native P-H3 Image support."
+        },
+        {
+          "id": "node:LoraLoaderBypassModelOnly",
+          "kind": "node",
+          "name": "LoraLoaderBypassModelOnly",
+          "instructions": "Use a ComfyUI build with native P-H3 Image support."
+        },
+        {
+          "id": "node:ManualSigmas",
+          "kind": "node",
+          "name": "ManualSigmas",
+          "instructions": "Use a ComfyUI build with native P-H3 Image support."
+        },
+        {
+          "id": "node:MiniMaxH3SigmaShift",
+          "kind": "node",
+          "name": "MiniMaxH3SigmaShift",
+          "instructions": "Use a ComfyUI build with native P-H3 Image support."
+        },
+        {
+          "id": "node:PH3ImageConditioning",
+          "kind": "node",
+          "name": "PH3ImageConditioning",
+          "instructions": "Use a ComfyUI build with native P-H3 Image support."
+        },
+        {
+          "id": "node:RandomNoise",
+          "kind": "node",
+          "name": "RandomNoise",
+          "instructions": "Use a ComfyUI build with native P-H3 Image support."
+        },
+        {
+          "id": "node:SamplerCustomAdvanced",
+          "kind": "node",
+          "name": "SamplerCustomAdvanced",
+          "instructions": "Use a ComfyUI build with native P-H3 Image support."
+        },
+        {
+          "id": "node:SaveImage",
+          "kind": "node",
+          "name": "SaveImage",
+          "instructions": "Use a ComfyUI build with native P-H3 Image support."
+        },
+        {
+          "id": "node:TextGenerate",
+          "kind": "node",
+          "name": "TextGenerate",
+          "instructions": "Use a ComfyUI build with native P-H3 Image support."
+        },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Use a ComfyUI build with native P-H3 Image support."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Use a ComfyUI build with native P-H3 Image support."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Use a ComfyUI build with native P-H3 Image support."
+        },
+        {
+          "id": "model:minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+          "kind": "model",
+          "name": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "source": "https://huggingface.co/PrunaAI/P-H3-Image-Comfy",
+          "instructions": "Install the corresponding P-H3 Image component in the ComfyUI models folder."
+        },
+        {
+          "id": "model:p-h3-image_lora_bf16.safetensors",
+          "kind": "model",
+          "name": "p-h3-image_lora_bf16.safetensors",
+          "location": "loras",
+          "source": "https://huggingface.co/PrunaAI/P-H3-Image-Comfy",
+          "instructions": "Install the corresponding P-H3 Image component in the ComfyUI models folder."
+        },
+        {
+          "id": "model:p-h3-image_text_encoder_w4a8.safetensors",
+          "kind": "model",
+          "name": "p-h3-image_text_encoder_w4a8.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/PrunaAI/P-H3-Image-Comfy",
+          "instructions": "Install the corresponding P-H3 Image component in the ComfyUI models folder."
+        },
+        {
+          "id": "model:p-h3-image_prompt_upsampler_w4a8.safetensors",
+          "kind": "model",
+          "name": "p-h3-image_prompt_upsampler_w4a8.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/PrunaAI/P-H3-Image-Comfy",
+          "instructions": "Install the corresponding P-H3 Image component in the ComfyUI models folder."
+        },
+        {
+          "id": "model:p-h3-image_vae_int8_convrot.safetensors",
+          "kind": "model",
+          "name": "p-h3-image_vae_int8_convrot.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/PrunaAI/P-H3-Image-Comfy",
+          "instructions": "Install the corresponding P-H3 Image component in the ComfyUI models folder."
+        },
+        {
+          "id": "node:ResolutionSelector",
+          "kind": "node",
+          "name": "ResolutionSelector",
+          "instructions": "Use a ComfyUI build with ResolutionSelector."
+        }
+      ],
+      "evidence": [
+        "Adapted from the official Pruna P-H3 Image LoRA workflow; local API graph produced an image. App execution not yet verified."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core GPL-3.0; Pruna workflow is external.",
+    "weights": [
+      {
+        "name": "MiniMax H3 and P-H3 Image",
+        "license": "MiniMax H3 Community License Agreement; use is subject to its terms.",
+        "source": "https://huggingface.co/PrunaAI/P-H3-Image-Comfy"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://huggingface.co/PrunaAI/P-H3-Image-Comfy",
+      "observedAt": "2026-11-05",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

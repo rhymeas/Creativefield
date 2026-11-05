@@ -3,6 +3,7 @@
 const IMAGE_MODEL_WORKFLOWS=new Set([
   'flux2-klein-t2i','flux2-klein-edit','flux2-klein-angles','flux2-klein-relight',
   'qwen-image-21-t2i','qwen-image-21-edit','qwen-image-21-angles','fibo2-edit',
+  'pruna-p-h3-t2i','pruna-p-h3-edit',
 ]);
 
 export function isSelectedImageModel(id:string):boolean { return IMAGE_MODEL_WORKFLOWS.has(id); }

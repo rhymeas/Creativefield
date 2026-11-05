@@ -79,6 +79,41 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
       graph[also.node].inputs[also.field] = value;
     }
   }
+  // P-H3's prompt upsampler requires the image marker and chat framing for edits.
+  // Keep the user's instruction intact inside the official single-image format.
+  if (manifest.id === "pruna-p-h3-t2i") {
+    const ratio = String(graph["17"].inputs.aspect_ratio).split(" ")[0];
+    graph["6"].inputs.prompt = `Aspect ratio: ${ratio}\nRequest: ${String(graph["6"].inputs.prompt)}`;
+  } else if (manifest.id === "pruna-p-h3-edit") {
+    const refs = ["reference_image", "reference_image_2", "reference_image_3"].map((port,i) => ({file:invocation.inputs[port],id:String(21+i)})).filter(ref => !!ref.file);
+    for (const id of ["21","22","23"]) if (!refs.some(ref=>ref.id===id)) delete graph[id];
+    const batch: Record<string, unknown> = {"images.image0": ["16", 0]};
+    for (let i = 0; i < 3; i++) {
+      const id = refs[i]?.id, field = `images.image_${i + 2}`;
+      if (refs[i]) {
+        graph["8"].inputs[field] = [id!, 0];
+        batch[`images.image${i + 1}`] = [id!, 0];
+      } else {
+        delete graph["8"].inputs[field];
+      }
+    }
+    if (refs.length) graph["24"].inputs = batch;
+    else { delete graph["24"]; graph["6"].inputs.image = ["16", 0]; }
+    const prompt = String(graph["6"].inputs.prompt);
+    const markers = Array.from({length:refs.length + 1}, (_, i) => `<Picture ${i + 1}>: <|vision_start|><|image_pad|><|vision_end|>`).join("");
+    graph["6"].inputs.prompt = `<|im_start|>user\n${markers}Edit <Picture 1>. ${prompt}<|im_end|>\n<|im_start|>assistant\n<think>\n`;
+  }
+  if (manifest.id === "flux2-klein-edit") {
+    const refs = ["reference_image", "reference_image_2", "reference_image_3"].map((port,i) => ({file:invocation.inputs[port],id:`cf-ref-${i+1}`})).filter(ref=>!!ref.file);
+    for (let i=1;i<=3;i++) if (!refs.some(ref=>ref.id===`cf-ref-${i}`)) delete graph[`cf-ref-${i}`];
+    for (let i=0;i<3;i++) {
+      const id=refs[i]?.id;
+      if (refs[i]) {
+        graph["128:136"].inputs[`images.image${i+1}`]=[id!,0];
+        graph["127:146"].inputs[`images.image${i+1}`]=[id!,0];
+      }
+    }
+  }
   if (manifest.id === "openjutsu-h3-advanced") {
     const ports = ["reference_image", "reference_image_2", "reference_image_3", "reference_image_4"];
     const filenames: string[] = [];

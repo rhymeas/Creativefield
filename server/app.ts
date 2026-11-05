@@ -88,7 +88,10 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
   app.addHook("onRequest", async (request, reply) => {
     reply.header("X-Content-Type-Options", "nosniff");
     reply.header("Cache-Control", "no-store");
-    if (!["GET", "HEAD", "OPTIONS"].includes(request.method) && request.headers.origin !== config.publicOrigin) throw new HttpError(403, "Request origin is not allowed");
+    /* The hosted site answers on its Railway address and on a custom domain, while PUBLIC_ORIGIN names only one of
+       them. There a write is also allowed from the address it was sent to; another site's origin never matches. */
+    const sameSite = config.guestPerBrowser && !!request.headers.host && request.headers.origin === `https://${request.headers.host}`;
+    if (!["GET", "HEAD", "OPTIONS"].includes(request.method) && request.headers.origin !== config.publicOrigin && !sameSite) throw new HttpError(403, "Request origin is not allowed");
   });
   /* A browser that signed in to Comfy Cloud sends its key with every request. After a restart the
      server has forgotten it, so the next request from a member of that workspace hands it back. */

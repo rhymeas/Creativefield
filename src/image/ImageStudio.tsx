@@ -86,7 +86,8 @@ export function mergeImageRuns(listed:Run[],known:Run[],capabilityId:string):Run
   return [...result.values()];
 }
 
-export function createStartTarget(fileCount:number,models:TeamChoiceOption[]):string|null{
+export function createStartTarget(fileCount:number,models:TeamChoiceOption[],currentModel?:string):string|null{
+  if(fileCount>0&&fileCount<=4&&currentModel?.startsWith("pruna-p-h3-")&&models.some(option=>option.value==="pruna-p-h3-edit"))return "pruna-p-h3-edit";
   // Several pictures need reference inputs, which only Fibo has; one picture takes the routed editor.
   const target=fileCount>1?models.find(option=>option.value==="fibo2-edit")?.value:routeTask("image.edit",models.map(option=>({id:option.value})))?.pack.id;
   return fileCount>0&&target?target:null;
@@ -233,7 +234,7 @@ export function ImageStudio({
   const busy=externalBusy||batchBusy;
   async function startFromAssets(assetIds:string[],additional:Asset[]=[]){
     if(!onModel||!assetIds.length)return;
-    const target=createStartTarget(assetIds.length,modelOptions??[]);
+    const target=createStartTarget(assetIds.length,modelOptions??[],manifest.id);
     if(!target){toast(assetIds.length>1?"The available image models cannot use multiple references.":"Image editing is unavailable right now.");return;}
     const request=beginRequest('create'),originalScope=scope.current;
     try{
@@ -248,7 +249,7 @@ export function ImageStudio({
     if(!batchContext||!onModel)return;
     const files=chosen.slice(0,4);
     if(!files.length)return;
-    const target=createStartTarget(files.length,modelOptions??[]);
+    const target=createStartTarget(files.length,modelOptions??[],manifest.id);
     if(!target){toast(files.length>1?"The available image models cannot use multiple references.":"Image editing is unavailable right now.");return;}
     setBatchBusy(true);
     try{

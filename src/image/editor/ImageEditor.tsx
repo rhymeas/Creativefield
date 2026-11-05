@@ -131,6 +131,8 @@ const toPng = (canvas: HTMLCanvasElement) => new Promise<Blob>((resolve, reject)
 
 export function ImageEditor({ workspace, project, userId, call, canEdit, authorized, inpaint, edit: defaultEdit, editOptions = [], segment, precision, maskedEdit, upscale, openAssetId, freeInput = false, onOpenModels }: { workspace: Workspace; project: Project; userId:string; call: Call; canEdit: boolean; authorized: boolean; inpaint?: InpaintRoute; edit?: InpaintRoute; editOptions?: InpaintRoute[]; /** SAM 3.1: select parts by name. */ segment?: InpaintRoute; precision?: InpaintRoute; maskedEdit?: InpaintRoute; upscale?: InpaintRoute; /** An image from the Library to open right away (from Create Image). */ openAssetId?: string; freeInput?: boolean; onOpenModels?:()=>void }) {
   const [editModelId,setEditModelId]=useState(defaultEdit?.manifest.id ?? editOptions[0]?.manifest.id ?? "");
+  const editModelChosen=useRef(false);
+  useEffect(()=>{if(!editModelChosen.current&&defaultEdit)setEditModelId(defaultEdit.manifest.id);},[defaultEdit?.manifest.id]);
   const edit=editOptions.find(option=>option.manifest.id===editModelId) ?? defaultEdit;
   const [modelPicker,setModelPicker]=useState(false),[referenceTray,setReferenceTray]=useState(false);
   const referenceAnchor=useRef<HTMLSpanElement>(null);
@@ -842,7 +844,7 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
       const { bitmap } = await loadBitmap(assetUrl(workspace.id, out));
       // Qwen scales each source dimension to its latent grid without cropping.
       // Map the complete generated frame back to the source crop accordingly.
-      const sourceAligned=edit.manifest.id==="qwen-image-21-edit";
+      const sourceAligned=edit.manifest.id==="qwen-image-21-edit"||edit.manifest.id==="pruna-p-h3-edit";
       const fiboCrop=runEdit.manifest.id==="fibo2-edit";
       const result = matte?cutoutModifiedResult(bitmap,region,matte,sourceAligned,fiboCrop):blankCanvas(snapshot.width, snapshot.height);
       const rc = result.getContext("2d")!;
@@ -2344,7 +2346,7 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
         <ThumbGrid label="References">{[aiReference,...extraReferences].map((asset,index)=>asset&&<Thumb key={`${index}:${asset.id}`} src={assetUrl(workspace.id,asset.id)} label={`Reference ${index+1} · insert @Image ${index+1}`} onActivate={()=>mentionReference(index)} onRemove={()=>{if(index===0)setAiReference(null);else setExtraReferences(old=>old.map((value,i)=>i===index-1?null:value));}}/>)}</ThumbGrid>
         <Button variant="secondary" disabled={referenceBusy||!edit?.manifest.inputs.some(input=>input.id==="reference_image")||[aiReference,...extraReferences].every(Boolean)} onClick={()=>{setReferenceSlot([aiReference,...extraReferences].findIndex(asset=>!asset));setReferencePicker(true);}}>Add another</Button>
       </FloatingPanel>
-      <ChoiceDialog open={modelPicker} title="Edit model" value={edit?.manifest.id} options={editOptions.map(option=>({value:option.manifest.id,label:option.manifest.title,note:option.manifest.inputs.some(input=>input.id==="reference_image")?undefined:"This workflow does not accept additional references."}))} onPick={id=>{setEditModelId(id);setModelPicker(false);}} onClose={()=>setModelPicker(false)}/>
+      <ChoiceDialog open={modelPicker} title="Edit model" value={edit?.manifest.id} options={editOptions.map(option=>({value:option.manifest.id,label:option.manifest.title,note:option.manifest.inputs.some(input=>input.id==="reference_image")?undefined:"This workflow does not accept additional references."}))} onPick={id=>{editModelChosen.current=true;setEditModelId(id);setModelPicker(false);}} onClose={()=>setModelPicker(false)}/>
     </div>
   );
 }
