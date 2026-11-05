@@ -382,8 +382,9 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
      Trim keeps its mode: an unready `#video/trim` names what is missing instead of switching. */
   useEffect(()=>{
     if(!catalogue.length)return;
-    if((videoMode==="effects"&&!readyEffects))setVideoMode("create");
-  },[videoMode,readyEdit,readyEffects,catalogue.length,capabilityId,route]);
+    /* On Comfy Router the effects run on MiniMax H3, without the local pack. */
+    if((videoMode==="effects"&&!readyEffects&&!(runOn==="router"&&routerModelsFor("effects").length)))setVideoMode("create");
+  },[videoMode,readyEdit,readyEffects,catalogue.length,capabilityId,route,runOn]);
   const choose=(id:string)=>{const selected=catalogue.find(m=>m.id===id);if(!selected||statuses[id]?.state!=="ready")return;setCapabilityId(id);if(isImageCapability(selected))setImageDraft(defaultImageDraft(selected));setVideoMode(videoWorkflowMode(selected));location.hash=nativeWorkflowHash(selected);};
   /** A workflow picked on the video screen takes its place in the address, so reload and back keep it. */
   const chooseWorkflow=(id:string)=>{setCapabilityId(id);if(route==="video"&&(videoMode==="create"||videoMode==="workflow"))location.hash=videoWorkflowHash(id);};
