@@ -104,9 +104,13 @@ export const APPROVED_LOCAL_CLASSES = new Set([
 ]);
 const banned = /higgs[\W_]*field|genjutsu|pryx/i;
 export function forbiddenProvider(value: string): boolean { return banned.test(value); }
+/* User direction (2026-11-05): online, Comfy Router may offer every good provider it carries; the local
+   version stays with the reviewed best. So a Router route's upstream provider is checked only against the
+   banned list; every other route and the provider itself still need APPROVED_PROVIDERS. */
 export function assertIndependentProvider(provider: string, upstream: string[] = []): void {
   for (const id of [provider, ...upstream]) {
-    if (forbiddenProvider(id) || !APPROVED_PROVIDERS.has(id)) throw new Error(`Execution provider is not approved: ${id}`);
+    const throughRouter = provider === "comfy-router" && id !== provider && /^[a-z0-9][a-z0-9_-]*$/.test(id);
+    if (forbiddenProvider(id) || !(APPROVED_PROVIDERS.has(id) || throughRouter)) throw new Error(`Execution provider is not approved: ${id}`);
   }
 }
 export function assertWorkerUrl(value: string): URL {
