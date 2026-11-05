@@ -82,7 +82,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const endPair=useMemo(()=>endFramePair(chosenManifest,catalogue),[chosenManifest,catalogue]);
   const manifest=useMemo(()=>withOptionalEndImage(chosenManifest,endPair),[chosenManifest,endPair]);
   const key=draftKey(user.id,workspace.id,project.id,manifest.id);
-  /* The one person on this PC has Settings; a shared workspace calls it Team settings (TASK-473). */
+  /* The one person on this PC has Settings; a shared workspace calls it Team settings. */
   const settingsPlace=settingsLabel(audienceOf(user));
   const [draft,setDraft]=useState<Draft>(()=>{const d=readDraft(key,manifest);return initialInputs&&!readIntent(key)?{...d,inputs:{...d.inputs,...initialInputs}}:d;}),[pending,setPending]=useState<Intent|null>(()=>readIntent(key)),[workerId,setWorkerId]=useState(()=>soleReadyWorker(manifest,workers,draft.presetId));
   const [files,setFiles]=useState<Record<string,File|null>>({}),[assets,setAssets]=useState<Asset[]>([]),[elements,setElements]=useState<ReusableElement[]>([]),[error,setError]=useState(""),[busy,setBusy]=useState(""),[runVersion,setRunVersion]=useState(0),[saved,setSaved]=useState("");
@@ -381,6 +381,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
         </div>}
         {cameraRoute&&<div className="cf-form">
           <CameraPoseField inline label="Camera move" value={draft.cameraPose??cameraMovePose(cameraMove)} presets={cameraPathModel?cameraMoves.map(move=>cameraMovePose(move.id)!):undefined} src={draft.inputs.start_image?assetUrl(workspace.id,draft.inputs.start_image):undefined} disabled={locked} onChange={pose=>setDraft(d=>({...d,cameraMove:pose?cameraPoseMove(pose):undefined,cameraPose:pose??undefined}))}/>
+          <Meta>The move is added to the start of your prompt; the model interprets it.</Meta>
         </div>}
         <span className="cf-scroll-reserve" aria-hidden/>
       </fieldset>

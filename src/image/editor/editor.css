@@ -7,8 +7,6 @@
 .cf-editor .ds-panel { max-height: 100%; }
 .cf-editor .ds-canvas__body { display: flex; min-height: 0; }
 .cf-editor-canvas { cursor: crosshair; }
-.cf-editor .cf-layer-rename { flex: 1; width: 100%; padding: var(--space-1); border: 1px solid var(--accent); border-radius: var(--radius-sm); color: var(--text-primary); background: var(--surface-page); }
-.ds-stage > canvas.cf-editor-outline { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; background: transparent; border-radius: 0; pointer-events: none; }
 
 .cf-editor-canvas[data-tool="move"] { cursor: grab; }
 .cf-editor-canvas[data-tool="eyedropper"] {
@@ -18,13 +16,11 @@
 .cf-editor-start__inputs { display: flex; flex-direction: column; gap: var(--gap-block); width: 100%; max-width: var(--panel-w); }
 .cf-editor .ds-empty--stage:has(.cf-editor-recent) { justify-content: flex-start; max-width: calc(var(--panel-w) * 3.5); }
 .cf-editor-recent { width: 100%; }
-.cf-editor-recent h2 { font-size: var(--text-sm); margin: var(--gap-block) 0; }
 .cf-editor-recent__grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--gap-block); }
 .cf-editor-recent__grid .ds-mediacard__media { aspect-ratio: 16 / 9; }
 @media (max-width: 1000px) { .cf-editor-recent__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .cf-editor-recent__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .cf-editor-recent__grid img { width: 100%; height: 100%; object-fit: cover; }
-.cf-editor-recent__placeholder { display: grid; place-items: center; width: 100%; height: 100%; color: var(--text-muted); }
 .cf-editor-rail { display: flex; flex-direction: column; gap: var(--gap-section); align-self: center; align-items: center; }
 .cf-editor-side { flex: none; display: flex; flex-direction: column; gap: var(--gap-block); min-height: 0; max-height: 100%; overflow-y: auto; overflow-x: hidden; }
 .cf-editor-side .ds-panel { align-self: stretch; max-height: none; }
@@ -70,11 +66,3 @@
   max-width: calc(100% - var(--space-8) - var(--space-8) - var(--space-2));
   max-height: calc(100% - var(--space-8) - var(--space-8) - var(--space-2));
 }
-.cf-editor-ai-actions { flex-wrap: nowrap; gap: 6px; }
-.cf-editor-ai-actions .ds-btn { min-width: 0; padding-inline: 10px; font-size: var(--text-xs); white-space: nowrap; }
-.cf-editor-ai-actions .cf-modify-reference { min-width: 0; }
-.ds-prompt--label-outside .ds-prompt__editor--tokens { border-radius: var(--radius-xl); background: var(--surface-input); }
-.ds-prompt--label-outside .ds-prompt__editor--tokens .ds-prompt__highlight { padding: var(--pad-field); }
-.ds-prompt--label-outside .ds-prompt__editor--tokens textarea,
-.ds-prompt--label-outside .ds-prompt__editor--tokens textarea:hover,
-.ds-prompt--label-outside .ds-prompt__editor--tokens textarea:focus { background: transparent; }

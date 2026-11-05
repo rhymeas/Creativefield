@@ -140,7 +140,10 @@ export async function storyboardExecutionRoutes(app:FastifyInstance,pool:Pool,st
             const base=storyboardImageSibling(g.capabilityId);
             const sibling=base?catalogue.find(x=>x.manifest.id===base&&x.manifest.inputs.some(p=>p.id==="start_image"&&p.type==="image")&&x.manifest.controls.some(c=>c.id==="length")&&!x.manifest.timing?.sourceTimed):undefined;
             if(!sibling)throw new HttpError(422,"Animate approved requires a workflow with a start image input");
-            b=sibling;g={...g,capabilityId:sibling.manifest.id,version:sibling.manifest.version};
+            const supported=new Set(sibling.manifest.controls.map(control=>control.id));
+            const previous=new Set(b.manifest.controls.map(control=>control.id));
+            const controls=Object.fromEntries(Object.entries(g.controls).filter(([key])=>supported.has(key)||!previous.has(key)));
+            b=sibling;g={...g,controls,capabilityId:sibling.manifest.id,version:sibling.manifest.version};
           }
           const still=await approvedStoryboardStill(client,workspaceId,board,shot,body.approvedStillTakes[shot.plan_key]);
           inputs.start_image=still.approved_asset_id;delete elementInputs.start_image;
