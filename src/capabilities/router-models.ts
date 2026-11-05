@@ -1,7 +1,7 @@
 import type {CapabilityManifestV2,Control,Port} from './types';
 
-export type CloudFeature='keyframes'|'image-create'|'image-edit'|'image-angles'|'image-relight'|'video-create'|'video-edit'|'replace-character'|'motion-transfer'|'restyle'|'object-swap'|'openjutsu'|'unsupported';
-export type RouterModel={id:string;model:string;title:string;features:CloudFeature[];kind:'flux'|'seedance'|'kling-edit'|'kling-motion'|'h3-reference';output:'image'|'video';inputs:Port[];controls:Control[]};
+export type CloudFeature='keyframes'|'video-upscale'|'image-create'|'image-edit'|'image-angles'|'image-relight'|'video-create'|'video-edit'|'replace-character'|'motion-transfer'|'restyle'|'object-swap'|'openjutsu'|'unsupported';
+export type RouterModel={id:string;model:string;title:string;features:CloudFeature[];kind:'flux'|'seedance'|'kling-edit'|'kling-motion'|'h3-reference'|'bfl-video-upscale';output:'image'|'video';inputs:Port[];controls:Control[]};
 const prompt:Control={id:'prompt',label:'Prompt',type:'string',default:'',apiField:'prompt'};
 const seed:Control={id:'seed',label:'Seed',type:'integer',default:1,min:0,max:2147483647,apiField:'seed'};
 const image=(id:string,label:string,required=false):Port=>({id,label,type:'image',required});
@@ -14,6 +14,8 @@ export const ROUTER_MODELS:RouterModel[]=[
  {id:'router-h3-reference',model:'minimax/minimax-h3',title:'MiniMax H3 Reference',features:['openjutsu'],kind:'h3-reference',output:'video',inputs:[video,image('reference_image','Character',true),image('reference_image_2','Scene reference (optional)')],controls:[{...prompt,default:'Keep the reference performance, camera and scene.'},{id:'duration',label:'Seconds',type:'integer',default:5,min:5,max:15,apiField:'duration'},{id:'resolution',label:'Quality',type:'select',options:['768P'],default:'768P',apiField:'resolution'},{...seed,max:4294967295}]},
  {id:'router-flux-create',model:'bfl/flux-2-pro',title:'FLUX 2 Pro',features:['image-create'],kind:'flux',output:'image',inputs:[],controls:fluxControls},
  {id:'router-flux-edit',model:'bfl/flux-2-pro',title:'FLUX 2 Pro',features:['image-edit','image-angles','image-relight'],kind:'flux',output:'image',inputs:[image('source_image','Your image',true),...reference],controls:fluxControls},
+ /* Upscalers, from each model's Router OpenAPI document (GET /v2/models/<id>/openapi.json). BFL takes up to 20 s and 50 MB of video. */
+ {id:'router-video-upscale',model:'bfl/video-upscale-v1',title:'FLUX Video Upscale',features:['video-upscale'],kind:'bfl-video-upscale',output:'video',inputs:[video],controls:[{...prompt,label:'Describe the clip (optional)'},{id:'upscale_factor',label:'Scale',type:'select',options:[1.5,2,3],default:2,apiField:'upscale_factor'},{id:'creativity',label:'Detail',type:'select',options:[0,1],default:0,apiField:'creativity'}]},
  /* First and last frame of one keyframe segment: Seedance takes both as content images with these roles. */
  {id:'router-seedance-keyframes',model:'byteplus/dreamina-seedance-2-5-260628',title:'Seedance 2.5 · first and last frame',features:['keyframes'],kind:'seedance',output:'video',inputs:[image('start_image','First frame',true),image('end_image','Last frame',true)],controls:[prompt,{id:'duration',label:'Seconds',type:'integer',min:4,max:30,default:5,apiField:'duration'},{id:'resolution',label:'Size',type:'select',options:['480p','720p','1080p'],default:'720p',apiField:'resolution'},seed]},
  {id:'router-seedance-create',model:'byteplus/dreamina-seedance-2-5-260628',title:'Seedance 2.5',features:['video-create'],kind:'seedance',output:'video',inputs:[image('start_image','First frame')],controls:[prompt,{id:'duration',label:'Seconds',type:'integer',min:4,max:30,default:5,apiField:'duration'},{id:'resolution',label:'Size',type:'select',options:['480p','720p','1080p'],default:'480p',apiField:'resolution'},seed]},
@@ -39,6 +41,8 @@ export function routerInputProblem(m:RouterModel,assets:Record<string,{content_t
     if(!['video/mp4','video/quicktime','video/webm'].includes(a.content_type)||(meta.durationSeconds!==undefined&&(!Number.isFinite(duration)||duration<=0))||(meta.width!==undefined&&(!Number.isFinite(Number(meta.width))||Number(meta.width)<=0))||(meta.height!==undefined&&(!Number.isFinite(Number(meta.height))||Number(meta.height)<=0))||(meta.frameRate!==undefined&&(!Number.isFinite(fps)||fps<=0)))return 'H3 needs a readable video with at least one frame.';
     continue;
    }
+   /* FLUX Video Upscale is for small clips: any size, the first 20 s are sent, the file at most 50 MB. */
+   if(m.kind==='bfl-video-upscale'){if(!['video/mp4','video/quicktime'].includes(a.content_type)||Number(a.bytes)>50*1024*1024)return 'FLUX Video Upscale takes an MP4 or MOV of up to 50 MB; longer clips are cut to their first 20 seconds.';continue;}
    if(!['video/mp4','video/quicktime'].includes(a.content_type)||Number(a.bytes)>200*1024*1024||!Number.isFinite(duration)||duration<3||!Number.isFinite(edge)||edge<720||edge>2160||!Number.isFinite(fps)||fps<24||fps>60)return Number.isFinite(edge)&&Number.isFinite(fps)&&Number.isFinite(duration)?`Kling needs an MP4 or MOV of at least 3 seconds (longer clips are cut to the first 10), 720p–2160p, 24–60 fps, up to 200 MB. This clip is ${Number(meta.width)}×${Number(meta.height)}, ${Math.round(fps*100)/100} fps, ${Math.round(duration*10)/10} s.`:'Kling needs a measured MP4 or MOV: at least 3 seconds (longer clips are cut to the first 10), 720p–2160p, 24–60 fps, up to 200 MB. Upload a compatible clip first.';
   }
  }
@@ -60,7 +64,7 @@ export function cloudFeature(route:string,videoMode:string,imageTab:string,chang
  if(route==='video'||route==='motion'){
   if(videoMode==='create')return 'video-create';
   if(videoMode==='replace')return 'replace-character';
-  if(videoMode==='transform')return changeChoice==='person'?'replace-character':changeChoice==='motion'?'motion-transfer':changeChoice==='swap'||changeChoice==='object'?'object-swap':'restyle';
+  if(videoMode==='transform')return changeChoice==='person'?'replace-character':changeChoice==='motion'?'motion-transfer':changeChoice==='swap'||changeChoice==='object'?'object-swap':changeChoice==='upscale'?'video-upscale':'restyle';
   if(videoMode==='edit')return 'video-edit';
  }
  return 'unsupported';
