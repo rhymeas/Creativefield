@@ -3,7 +3,7 @@ import type { RouteDefinition } from "./types";
 
 // This is a reviewed-template policy, not a network sandbox. Audit custom node code
 // and use OS/network isolation before claiming a route has no network access.
-export const APPROVED_PROVIDERS = new Set(["comfy-local", "comfy-cloud", "comfy-partner", "comfy-router", "bfl", "byteplus", "wan", "kling", "minimax", "ltx", "google-veo", "beeble"]);
+export const APPROVED_PROVIDERS = new Set(["comfy-local", "comfy-cloud", "comfy-partner", "comfy-router", "bfl", "byteplus", "wan", "kling", "minimax", "ltx", "google-veo", "beeble", "bria"]);
 export const APPROVED_LOCAL_CLASSES = new Set([
   // ComfyUI core comfy_extras/nodes_audio.py: allocates a silent audio tensor only.
   "EmptyAudio",

@@ -101,7 +101,7 @@ export function CloudRunConsent({onUse,onKeep}:{onUse:()=>void;onKeep:()=>void})
 
 /* The image workspace: Create and Edit, plus the picture tools that have a ready workflow of their own.
    Angles and Relight are tabs of this screen, so switching between them keeps the picture already chosen. */
-export type ImageTab="create"|"angles"|"relight"|"edit";
+export type ImageTab="create"|"angles"|"relight"|"edit"|"upscale";
 /** Replace character on Comfy Cloud, in the order the Model row offers them. */
 const CLOUD_REPLACE_MODELS=["scail2-character-replace","cloud-h3-character-swap","cloud-kling-omni-edit","cloud-seedance2-reference"];
 const ANGLE_WORKFLOWS=taskPacks("image.angles"),RELIGHT_WORKFLOW="flux2-klein-relight";
@@ -371,7 +371,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const chatgptUnsupported=runOn==="chatgpt"&&["video","motion","3d","audio","characters","influencer"].includes(route);
   const chatgptPage=runOn==="chatgpt"&&(route==="image"||route==="imageedit");
   const routerPage=runOn==="router"&&!(route==="video"&&videoMode==="keyframes")&&["video","motion","image","imageedit","3d","audio","characters","influencer"].includes(route);
-  const imageTabItems=runOn==="chatgpt"?[{id:"angles" as const,label:"Angles"},{id:"relight" as const,label:"Relight"}]:runOn==="router"?[{id:"create" as const,label:"Create"},{id:"angles" as const,label:"Angles"},{id:"relight" as const,label:"Relight"}]:imageTabs(shownImages),wantedImageTab=imageTabFor(manifest?.id,route),imageTab=imageTabItems.some(item=>item.id===wantedImageTab)?wantedImageTab:imageTabItems[0]?.id??"create";
+  const imageTabItems=runOn==="chatgpt"?[{id:"angles" as const,label:"Angles"},{id:"relight" as const,label:"Relight"}]:runOn==="router"?[{id:"create" as const,label:"Create"},{id:"angles" as const,label:"Angles"},{id:"relight" as const,label:"Relight"},...(routerModelsFor("image-upscale").length?[{id:"upscale" as const,label:"Upscale"}]:[])]:imageTabs(shownImages),wantedImageTab=imageTabFor(manifest?.id,route),imageTab=imageTabItems.some(item=>item.id===wantedImageTab)?wantedImageTab:imageTabItems[0]?.id??"create";
   /* Block a shot hands its grey layout to Grey-block to video when that is ready here. */
   const previsTarget=routeTask("video.previs",readyManifests)?.pack;
   const intentImage=imageTabTarget("create",readyImages),intentVideo=routeTask("video.create",readyManifests)?.pack,intentMotion=readyManifests.find(m=>m.category==="motion");

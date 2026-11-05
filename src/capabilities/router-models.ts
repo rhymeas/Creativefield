@@ -1,7 +1,7 @@
 import type {CapabilityManifestV2,Control,Port} from './types';
 
-export type CloudFeature='keyframes'|'video-upscale'|'image-create'|'image-edit'|'image-angles'|'image-relight'|'video-create'|'video-edit'|'replace-character'|'motion-transfer'|'restyle'|'object-swap'|'openjutsu'|'unsupported';
-export type RouterModel={id:string;model:string;title:string;features:CloudFeature[];kind:'flux'|'seedance'|'kling-edit'|'kling-motion'|'h3-reference'|'bfl-video-upscale';output:'image'|'video';inputs:Port[];controls:Control[]};
+export type CloudFeature='keyframes'|'video-upscale'|'image-upscale'|'image-create'|'image-edit'|'image-angles'|'image-relight'|'video-create'|'video-edit'|'replace-character'|'motion-transfer'|'restyle'|'object-swap'|'openjutsu'|'unsupported';
+export type RouterModel={id:string;model:string;title:string;features:CloudFeature[];kind:'flux'|'seedance'|'kling-edit'|'kling-motion'|'h3-reference'|'bfl-video-upscale'|'bria-upscale';output:'image'|'video';inputs:Port[];controls:Control[]};
 const prompt:Control={id:'prompt',label:'Prompt',type:'string',default:'',apiField:'prompt'};
 const seed:Control={id:'seed',label:'Seed',type:'integer',default:1,min:0,max:2147483647,apiField:'seed'};
 const image=(id:string,label:string,required=false):Port=>({id,label,type:'image',required});
@@ -16,6 +16,7 @@ export const ROUTER_MODELS:RouterModel[]=[
  {id:'router-flux-edit',model:'bfl/flux-2-pro',title:'FLUX 2 Pro',features:['image-edit','image-angles','image-relight'],kind:'flux',output:'image',inputs:[image('source_image','Your image',true),...reference],controls:fluxControls},
  /* Upscalers, from each model's Router OpenAPI document (GET /v2/models/<id>/openapi.json). BFL takes up to 20 s and 50 MB of video. */
  {id:'router-video-upscale',model:'bfl/video-upscale-v1',title:'FLUX Video Upscale',features:['video-upscale'],kind:'bfl-video-upscale',output:'video',inputs:[video],controls:[{...prompt,label:'Describe the clip (optional)'},{id:'upscale_factor',label:'Scale',type:'select',options:[1.5,2,3],default:2,apiField:'upscale_factor'},{id:'creativity',label:'Detail',type:'select',options:[0,1],default:0,apiField:'creativity'}]},
+ {id:'router-image-upscale',model:'bria/image-edit-increase-resolution',title:'Bria Upscale',features:['image-upscale'],kind:'bria-upscale',output:'image',inputs:[image('source_image','Your image',true)],controls:[{id:'desired_increase',label:'Scale',type:'select',options:[2,4],default:2,apiField:'desired_increase'}]},
  /* First and last frame of one keyframe segment: Seedance takes both as content images with these roles. */
  {id:'router-seedance-keyframes',model:'byteplus/dreamina-seedance-2-5-260628',title:'Seedance 2.5 · first and last frame',features:['keyframes'],kind:'seedance',output:'video',inputs:[image('start_image','First frame',true),image('end_image','Last frame',true)],controls:[prompt,{id:'duration',label:'Seconds',type:'integer',min:4,max:30,default:5,apiField:'duration'},{id:'resolution',label:'Size',type:'select',options:['480p','720p','1080p'],default:'720p',apiField:'resolution'},seed]},
  {id:'router-seedance-create',model:'byteplus/dreamina-seedance-2-5-260628',title:'Seedance 2.5',features:['video-create'],kind:'seedance',output:'video',inputs:[image('start_image','First frame')],controls:[prompt,{id:'duration',label:'Seconds',type:'integer',min:4,max:30,default:5,apiField:'duration'},{id:'resolution',label:'Size',type:'select',options:['480p','720p','1080p'],default:'480p',apiField:'resolution'},seed]},
@@ -59,7 +60,7 @@ export function h3ReferenceDurationNote(value:unknown):string|undefined {
 export function cloudFeature(route:string,videoMode:string,imageTab:string,changeChoice='person'):CloudFeature{
  if(route==='openjutsu')return 'openjutsu';
  if(route==='motion')return 'motion-transfer';
- if(route==='image')return imageTab==='create'?'image-create':imageTab==='angles'?'image-angles':imageTab==='relight'?'image-relight':'image-edit';
+ if(route==='image')return imageTab==='create'?'image-create':imageTab==='upscale'?'image-upscale':imageTab==='angles'?'image-angles':imageTab==='relight'?'image-relight':'image-edit';
  if(route==='imageedit')return 'image-edit';
  if(route==='video'||route==='motion'){
   if(videoMode==='create')return 'video-create';
