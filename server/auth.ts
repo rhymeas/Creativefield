@@ -33,6 +33,18 @@ export async function ensureLocalUser(pool: Pool): Promise<Principal> {
     return { id: userId, email: "local@comfyfield.local" };
   });
 }
+/** A hosted try-out gives every browser its own guest: its own workspace and project, so one visitor
+ *  never sees another one's files, runs or Comfy Cloud account. The guest has no password to sign in with. */
+export async function createGuest(pool: Pool): Promise<Principal> {
+  return transaction(pool, async client => {
+    const userId = newId(), workspaceId = newId(), email = `guest-${userId}@guest.creativefield`;
+    await client.query("INSERT INTO users(id,email,password_hash) VALUES($1,$2,$3)", [userId, email, await hashPassword(generateLocalSecret())]);
+    await client.query("INSERT INTO workspaces(id,name) VALUES($1,'My studio')", [workspaceId]);
+    await client.query("INSERT INTO memberships(workspace_id,user_id,role) VALUES($1,$2,'admin')", [workspaceId, userId]);
+    await client.query("INSERT INTO projects(id,workspace_id,name,created_by) VALUES($1,$2,'First project',$3)", [newId(), workspaceId, userId]);
+    return { id: userId, email };
+  });
+}
 function generateLocalSecret(): string { return newId() + newId() + newId(); }
 export async function member(pool: Pool, request: FastifyRequest, workspaceId: string, minimum: Role = "viewer"): Promise<Principal & { role: Role }> {
   const user = await principal(pool, request);

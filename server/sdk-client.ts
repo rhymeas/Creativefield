@@ -2,10 +2,10 @@ import type {CapabilityManifestV2} from "../src/capabilities/types";
 import type {ApiGraph} from "../src/workflow/build";
 import { readFile } from "node:fs/promises";
 import { Comfy } from "@comfyorg/sdk";
-import { comfyCloudKey } from "./config";
+import { cloudKeyFor } from "./cloud-keys";
 
 /** The facts the transport needs about a worker: where it is and whether it is Comfy Cloud. */
-export type SdkWorker = { origin: string; kind?: string | null };
+export type SdkWorker = { origin: string; kind?: string | null; workspace_id?: string };
 /** Where a worker's v2 client points and the key it presents. */
 export type SdkTarget = { base: string; apiKey?: string };
 
@@ -24,7 +24,7 @@ export function sdkTarget(worker?: string | SdkWorker): SdkTarget | undefined {
     let base: string;
     try { base = new URL(origin).origin; } catch { return undefined; }
     // Without a key nothing can authenticate, so this worker keeps its native path.
-    const apiKey = comfyCloudKey();
+    const apiKey = cloudKeyFor(worker.workspace_id);
     return apiKey ? { base, apiKey } : undefined;
   }
   const base = process.env.COMFY_SDK_BASE_URL?.trim();

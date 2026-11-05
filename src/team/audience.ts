@@ -8,8 +8,9 @@
  */
 export type Audience = "solo" | "team";
 
-export function audienceOf(user: { localSingleUser?: boolean } | null | undefined): Audience {
-  return user?.localSingleUser ? "solo" : "team";
+/** A hosted guest is one person too: their own workspace, nobody to invite. */
+export function audienceOf(user: { localSingleUser?: boolean; guest?: boolean } | null | undefined): Audience {
+  return user?.localSingleUser || user?.guest ? "solo" : "team";
 }
 
 /** The dialog that holds workers, providers, members and keys. One person has no team to name. */

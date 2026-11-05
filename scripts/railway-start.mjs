@@ -24,12 +24,13 @@ if (!env.MASTER_KEY) {
   if (!existsSync(keyFile)) writeFileSync(keyFile, randomBytes(32).toString("base64"), { mode: 0o600 });
   env.MASTER_KEY = readFileSync(keyFile, "utf8").trim();
 }
-/* Open only when the operator sets OPEN_ACCESS=1: every visitor is then signed in automatically to one shared demo workspace
-   (single-user mode). Otherwise BOOTSTRAP_EMAIL / BOOTSTRAP_PASSWORD create a guest account behind the sign-in wall. Workers pointing inside the host stay refused
+/* Open only when the operator sets OPEN_ACCESS=1: every browser then gets its own guest workspace, without a password, and
+   renders on the visitor's own Comfy Cloud account once they sign in with their key (the key stays in their browser). Otherwise BOOTSTRAP_EMAIL / BOOTSTRAP_PASSWORD create a guest account behind the sign-in wall. Workers pointing inside the host stay refused
    either way (COMFYFIELD_PUBLIC_TRYOUT). */
 const open = env.OPEN_ACCESS === "1";
 if (!open && !(env.BOOTSTRAP_EMAIL && env.BOOTSTRAP_PASSWORD)) { console.error("Choose: OPEN_ACCESS=1 (no sign-in, shared demo) or BOOTSTRAP_EMAIL + BOOTSTRAP_PASSWORD (guest account). See docs/RAILWAY.md."); process.exit(1); }
-if (open) env.LOCAL_SINGLE_USER = "1"; else delete env.LOCAL_SINGLE_USER;
+delete env.LOCAL_SINGLE_USER;
+if (open) { env.GUEST_PER_BROWSER = "1"; env.COMFYFIELD_PUBLIC_TRYOUT = "1"; } else delete env.GUEST_PER_BROWSER;
 
 const run = (args, extra = {}) => new Promise((resolve) => { const c = spawn(process.execPath, args, { env: { ...env, ...extra }, stdio: "inherit" }); c.on("exit", (code) => resolve(code ?? 1)); });
 
@@ -44,7 +45,8 @@ for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => server.kill(sig))
 
 /* First start only: upload the examples into the guest's library so FotoField and the tools have something to pick. */
 const marker = path.join(env.STORAGE_ROOT, ".seeded");
-if (!existsSync(marker) && (open || (env.BOOTSTRAP_EMAIL && env.BOOTSTRAP_PASSWORD))) {
+/* Open mode has no shared library to fill: each guest starts with the bundled examples on every screen. */
+if (!existsSync(marker) && !open && env.BOOTSTRAP_EMAIL && env.BOOTSTRAP_PASSWORD) {
   const api = `http://127.0.0.1:${env.PORT}/api/v1`, origin = new URL(env.PUBLIC_ORIGIN).origin;
   for (let i = 0; i < 90; i++) { try { if ((await fetch(`${api}/health`)).ok) break; } catch { /* not up yet */ } await new Promise((r) => setTimeout(r, 1000)); }
   try {

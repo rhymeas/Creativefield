@@ -5,7 +5,8 @@ import multipart from "@fastify/multipart";
 import type { Pool } from "pg";
 import { z, ZodError } from "zod";
 import type { ServerConfig } from "./config";
-import { HttpError, member, principal, ensureLocalUser } from "./auth";
+import { HttpError, member, principal, ensureLocalUser, createGuest } from "./auth";
+import { CLOUD_KEY_HEADER, browserCloudKey, forgetBrowserCloudKey, plausibleCloudKey, rememberBrowserCloudKey } from "./cloud-keys";
 import { generateOpaqueToken, hashToken, hashPassword, verifyPassword, newId, encryptProviderSecret } from "./crypto";
 import { guardPool, queryWithRetry, transaction } from "./db";
 import { DiskStore } from "./storage";
@@ -48,7 +49,7 @@ import {marketingRoutes} from "./marketing/routes";
 import {motionClipCheckRoutes} from "./motion-clip-check";
 import {blockShotRoutes} from "./stage/routes";
 import {replaceClipCheckRoutes} from "./replace-clip-check";
-import {cloudAccountFor} from "./cloud-account";
+import {CLOUD_KEY_REFUSED_REASON,cloudAccountFor} from "./cloud-account";
 import {ROUTER_MODELS} from '../src/capabilities/router-models';
 import {cloudReadiness} from "./cloud-readiness";
 import {chatgptImageRoutes} from './chatgpt-images';
@@ -88,6 +89,13 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
     reply.header("Cache-Control", "no-store");
     if (!["GET", "HEAD", "OPTIONS"].includes(request.method) && request.headers.origin !== config.publicOrigin) throw new HttpError(403, "Request origin is not allowed");
   });
+  /* A browser that signed in to Comfy Cloud sends its key with every request. After a restart the
+     server has forgotten it, so the next request from a member of that workspace hands it back. */
+  app.addHook("preHandler", async request => {
+    const key = request.headers[CLOUD_KEY_HEADER], workspaceId = /^\/api\/v1\/workspaces\/([^/?]+)/.exec(request.url)?.[1];
+    if (!workspaceId || !plausibleCloudKey(key) || browserCloudKey(workspaceId) === key) return;
+    try { await member(pool, request, workspaceId, "creator"); rememberBrowserCloudKey(workspaceId, key); } catch { /* The route answers for itself. */ }
+  });
   app.get("/api/v1/health", async () => { await queryWithRetry(pool, "SELECT 1"); return { status: "ready", mode: "team", storage: "disk", database: "postgresql" }; });
 
   const attempts = new Map<string, { count: number; until: number }>();
@@ -114,14 +122,22 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
     reply.clearCookie("cf_session", { path: "/" }); return { signedOut: true };
   });
   app.get("/api/v1/auth/me", async (request, reply) => {
-    try { const user = await principal(pool, request); return config.localSingleUser ? { ...user, localSingleUser: true } : user; }
+    /* A hosted guest is told so: the app then offers Comfy Cloud sign-in and no team sign-out. */
+    const facts = config.guestPerBrowser ? { guest: true } : { localSingleUser: true };
+    try {
+      const user = await principal(pool, request);
+      /* A session from before guests (the old shared demo account) gets its own guest instead. */
+      if (config.guestPerBrowser && !user.email.endsWith("@guest.creativefield")) throw new HttpError(401, "Session expired");
+      return config.localSingleUser || config.guestPerBrowser ? { ...user, ...facts } : user;
+    }
     catch (error) {
-      if (!config.localSingleUser || !(error instanceof HttpError) || error.statusCode !== 401) throw error;
-      const user = await ensureLocalUser(pool);
+      if (!(config.localSingleUser || config.guestPerBrowser) || !(error instanceof HttpError) || error.statusCode !== 401) throw error;
+      if (config.guestPerBrowser) throttle(request.ip);
+      const user = config.guestPerBrowser ? await createGuest(pool) : await ensureLocalUser(pool);
       const token = generateOpaqueToken();
       await pool.query("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+($3 * interval '1 hour'))", [hashToken(token), user.id, config.sessionTtlHours]);
       reply.setCookie("cf_session", token, { path: "/", httpOnly: true, sameSite: "strict", secure: config.cookieSecure, maxAge: config.sessionTtlHours * 3600 });
-      return { ...user, localSingleUser: true };
+      return { ...user, ...facts };
     }
   });
   app.get("/api/v1/workspaces", async request => {
@@ -189,7 +205,7 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
     if (input.kind === "cloud") {
       /* The cloud key is sent to this address, so it may only be Comfy Cloud itself. */
       if (origin !== "https://cloud.comfy.org" || input.apiPrefix !== "/api") throw new HttpError(400, "Comfy Cloud workers use https://cloud.comfy.org with the /api prefix");
-      if (!config.comfyCloudApiKey) throw new HttpError(400, "Set COMFY_CLOUD_API_KEY or COMFY_CLOUD_API_KEY_FILE before adding a Comfy Cloud worker");
+      if (!browserCloudKey(workspaceId) && !config.comfyCloudApiKey) throw new HttpError(400, "Set COMFY_CLOUD_API_KEY or COMFY_CLOUD_API_KEY_FILE before adding a Comfy Cloud worker");
     }
     return (await pool.query("INSERT INTO workers(id,workspace_id,name,origin,kind,api_prefix) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,name,origin,kind", [newId(),workspaceId,input.name,origin,input.kind,input.apiPrefix])).rows[0];
   });
@@ -230,7 +246,33 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
      credits, beside the local one. Read-only — no job and no credits — and the key stays here. */
   app.get(`${base}/cloud-account`, async request => {
     const { workspaceId } = workspaceParam.parse(request.params); await member(pool, request, workspaceId);
-    return cloudAccountFor(pool, workspaceId, config.comfyCloudApiKey);
+    return cloudAccountFor(pool, workspaceId, browserCloudKey(workspaceId) ?? config.comfyCloudApiKey);
+  });
+  /* Sign in with your own Comfy Cloud key. The browser keeps the key and sends it with each request;
+     the server holds it in memory only. The key is checked with Comfy's account read (no job, no
+     credits), the workspace gets its Comfy Cloud worker, and that worker is probed once. */
+  app.post(`${base}/cloud-key`, async request => {
+    const { workspaceId } = workspaceParam.parse(request.params); await member(pool, request, workspaceId, "admin");
+    const { key } = z.object({ key: z.string().trim().max(512) }).strict().parse(request.body);
+    if (!plausibleCloudKey(key)) throw new HttpError(400, "Paste the whole Comfy Cloud API key, without spaces.");
+    const previous = browserCloudKey(workspaceId);
+    let worker = (await pool.query("SELECT * FROM workers WHERE workspace_id=$1 AND kind='cloud' AND enabled=true ORDER BY id LIMIT 1", [workspaceId])).rows[0];
+    const added = !worker;
+    if (added) worker = (await pool.query("INSERT INTO workers(id,workspace_id,name,origin,kind,api_prefix) VALUES($1,$2,'Comfy Cloud','https://cloud.comfy.org','cloud','/api') RETURNING *", [newId(), workspaceId])).rows[0];
+    rememberBrowserCloudKey(workspaceId, key);
+    const account = await cloudAccountFor(pool, workspaceId, key);
+    if (!account.connected) {
+      if (previous) rememberBrowserCloudKey(workspaceId, previous); else forgetBrowserCloudKey(workspaceId);
+      if (added) await pool.query("DELETE FROM workers WHERE workspace_id=$1 AND id=$2", [workspaceId, worker.id]);
+      throw new HttpError(400, account.reason === CLOUD_KEY_REFUSED_REASON || !account.reason ? "Comfy Cloud did not accept this key. Copy the whole key from your Comfy account and try again." : account.reason);
+    }
+    await probeWorker(pool, catalogue, worker).catch(() => undefined);
+    return cloudAccountFor(pool, workspaceId, key);
+  });
+  app.delete(`${base}/cloud-key`, async request => {
+    const { workspaceId } = workspaceParam.parse(request.params); await member(pool, request, workspaceId, "admin");
+    forgetBrowserCloudKey(workspaceId);
+    return { signedOut: true };
   });
   app.get(`${base}/workers/:id/library`, async request => {
     const { workspaceId,id } = idParam.parse(request.params); await member(pool, request, workspaceId);

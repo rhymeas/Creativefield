@@ -14,6 +14,8 @@ export type ServerConfig = {
   maxUploadBytes: number;
   cookieSecure: boolean;
   localSingleUser?: boolean;
+  /** Hosted try-out: every browser without a session gets its own guest workspace (GUEST_PER_BROWSER=1). */
+  guestPerBrowser?: boolean;
   serveUi?: boolean;
   uiRoot?: string;
   /** Same hostname on a different port: host-only session cookies work, SOP isolates extensions. */
@@ -198,6 +200,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     maxUploadBytes: maxUploadMb * 1024 * 1024,
     cookieSecure: new URL(publicOrigin).protocol === "https:",
     localSingleUser: env.LOCAL_SINGLE_USER === "1",
+    guestPerBrowser: env.GUEST_PER_BROWSER === "1",
     serveUi: env.SERVE_UI === "1",
     uiRoot: path.resolve(env.UI_ROOT ?? "dist"),
   };

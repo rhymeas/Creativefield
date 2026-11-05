@@ -24,7 +24,8 @@ import {applyStoredRunGraphEdits} from "./run-graph-edits";
 import {editedRunRoutes} from "./edited-run";
 import {sdkClient,sdkTransportConfigured,sdkSupportsManifest,cloudInputs,sdkFailureReason} from "./sdk-client";
 import {measurePreservation} from "./edit-preservation";
-import {comfyCloudKey,scailChunksEnabled} from "./config";
+import {scailChunksEnabled} from "./config";
+import {cloudKeyFor} from "./cloud-keys";
 import {ComfyError} from "@comfyorg/sdk";
 import type {Job,Output} from "@comfyorg/sdk";
 import { firstOutputFile, type HistoryEntry, type RawQueueItem } from "../src/comfy/client";
@@ -224,9 +225,9 @@ function sdkFailure(job:Job):string{
 /** Comfy Cloud answers the same calls as a local ComfyUI but wants the key in a header on every one.
  *  A local worker sends no header at all, exactly as before; without a key nothing is sent, so the
  *  worker answers 401 instead of the request quietly looking anonymous. */
-export function workerRequestHeaders(worker:{kind?:string|null},headers?:HeadersInit):HeadersInit|undefined{
+export function workerRequestHeaders(worker:{kind?:string|null;workspace_id?:string},headers?:HeadersInit):HeadersInit|undefined{
   if(worker?.kind!=="cloud")return headers;
-  const key=comfyCloudKey();
+  const key=cloudKeyFor(worker.workspace_id);
   if(!key)return headers;
   const merged=new Headers(headers);
   merged.set("X-API-Key",key);

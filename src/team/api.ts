@@ -1,5 +1,9 @@
 ﻿import type {CapabilityManifestV2,Invocation,WorkerInventory} from "../capabilities/types";
-export type User={id:string;email:string;localSingleUser?:boolean};
+export type User={id:string;email:string;localSingleUser?:boolean;/** A hosted try-out visitor: their own guest workspace, no password, Comfy Cloud with their own key. */guest?:boolean};
+/** A visitor's own Comfy Cloud key stays in this browser. It goes with every API call in one header and the server only holds it in memory. */
+export const CLOUD_KEY_STORAGE="creativefield.comfy-cloud-key";
+export function storedCloudKey():string{try{return localStorage.getItem(CLOUD_KEY_STORAGE)??"";}catch{return "";}}
+export function storeCloudKey(key:string){try{if(key)localStorage.setItem(CLOUD_KEY_STORAGE,key);else localStorage.removeItem(CLOUD_KEY_STORAGE);}catch{/* storage may be unavailable */}}
 export type Workspace={id:string;name:string;role:"admin"|"creator"|"viewer"};
 export type Project={id:string;name:string;description?:string};
 export type Asset={id:string;project_id:string|null;name:string;media_type:string;content_type:string;sha256?:string;bytes:string;created_at:string;parent_id:string|null;metadata?:Record<string,unknown>};
@@ -12,11 +16,16 @@ export type Worker={id:string;name:string;enabled:boolean;origin:string;checked_
 export type Run={id:string;project_id:string;worker_id?:string|null;created_by:string;capability_id:string;capability_version:string;state:string;error:string|null;remote_id?:string|null;transport?:string;output_ids:string[];output_content_type?:string|null;scene?:number|null;shot?:number|null;take?:number|null;created_at:string;updated_at:string;invocation?:Pick<Invocation,"controls"|"inputs"> & Partial<Omit<Invocation,"controls"|"inputs">>};
 export class ApiError extends Error {constructor(readonly status:number,message:string){super(message);}}
 export type RequestOptions={signal?:AbortSignal;timeoutMs?:number};
+/** JSON bodies say so; a browser signed in to Comfy Cloud sends its key. Nothing else is added. */
+function requestHeaders(body:unknown):Record<string,string>|undefined{
+  const key=storedCloudKey(),headers:Record<string,string>={...(body===undefined||body instanceof FormData?{}:{"Content-Type":"application/json"}),...(key?{"X-Comfy-Cloud-Key":key}:{})};
+  return Object.keys(headers).length?headers:undefined;
+}
 export async function request<T>(path:string,method="GET",body?:unknown,options:AbortSignal|RequestOptions={}):Promise<T>{
   if(!path.startsWith("/")||path.startsWith("//"))throw new Error("Use a same-origin API path");
   const config:RequestOptions=options instanceof AbortSignal?{signal:options}:options;
   let response:Response;
-  try {response=await fetch(`/api/v1${path}`,{method,credentials:"same-origin",headers:body===undefined||body instanceof FormData?undefined:{"Content-Type":"application/json"},body:body instanceof FormData?body:body===undefined?undefined:JSON.stringify(body),signal:config.signal??AbortSignal.timeout(config.timeoutMs??30000)});}
+  try {response=await fetch(`/api/v1${path}`,{method,credentials:"same-origin",headers:requestHeaders(body),body:body instanceof FormData?body:body===undefined?undefined:JSON.stringify(body),signal:config.signal??AbortSignal.timeout(config.timeoutMs??30000)});}
   catch(e){if(config.signal?.aborted)throw e;throw new ApiError(0,"Team server unavailable. No job is submitted to another service.");}
   const content=await response.json().catch(()=>null);
   if(!response.ok)throw new ApiError(response.status,content?.error??`Request failed (${response.status})`);

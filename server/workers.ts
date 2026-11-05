@@ -4,7 +4,7 @@ import type {CapabilityBundle,WorkerInventory} from "../src/capabilities/types";
 import type {ProbedInventory} from "../src/capabilities/readiness";
 import {parseWorkerHardware} from "../src/capabilities/hardware";
 import {MIN_FREE_RAM_SHARE} from "./memory-guard";
-import {comfyCloudKey} from "./config";
+import {cloudKeyFor} from "./cloud-keys";
 import {hashToken} from "./crypto";
 import type {CloudSubmitAccess} from "./cloud-readiness";
 
@@ -33,12 +33,12 @@ export function cloudModelFiles(info:unknown):string[]|undefined{
   return files.size?[...files].sort():undefined;
 }
 
-/** The key from the environment, or nothing when it is unset. The key is never stored here. */
-function cloudKey():string|undefined{
-  try{return comfyCloudKey()||undefined;}catch{return undefined;}
+/** The visitor's own key for this workspace, else the one from the environment, else nothing. The key is never stored here. */
+function cloudKey(workspaceId?:string):string|undefined{
+  try{return cloudKeyFor(workspaceId)||undefined;}catch{return undefined;}
 }
-function cloudHeaders():Record<string,string>{
-  const key=cloudKey();
+function cloudHeaders(workspaceId?:string):Record<string,string>{
+  const key=cloudKey(workspaceId);
   return key?{Authorization:`Bearer ${key}`}:{};
 }
 
@@ -79,15 +79,15 @@ const submitAccessCache=new Map<string,{at:number;access:CloudSubmitAccess}>();
  * rather than guessing, and the caller keeps what it knew before. Only a real answer is kept, so
  * a blip is retried on the next probe.
  */
-export async function probeSubmitAccess(worker:{origin:string;api_prefix:string}):Promise<CloudSubmitAccess>{
-  const key=cloudKey();
+export async function probeSubmitAccess(worker:{origin:string;api_prefix:string;workspace_id?:string}):Promise<CloudSubmitAccess>{
+  const key=cloudKey(worker.workspace_id);
   if(!key)return {};
   const cacheKey=`${worker.origin}\u0000${worker.api_prefix}\u0000${hashToken(key)}`;
   const cached=submitAccessCache.get(cacheKey);
   if(cached&&Date.now()-cached.at<SUBMIT_ACCESS_MS)return cached.access;
   let response:Response;
   try{
-    response=await fetch(`${worker.origin}${worker.api_prefix}/prompt`,{method:"POST",headers:{...cloudHeaders(),"X-API-KEY":key,"Content-Type":"application/json"},body:JSON.stringify({prompt:SUBMIT_PROBE_GRAPH}),signal:AbortSignal.timeout(15000),redirect:"error"});
+    response=await fetch(`${worker.origin}${worker.api_prefix}/prompt`,{method:"POST",headers:{...cloudHeaders(worker.workspace_id),"X-API-KEY":key,"Content-Type":"application/json"},body:JSON.stringify({prompt:SUBMIT_PROBE_GRAPH}),signal:AbortSignal.timeout(15000),redirect:"error"});
   }catch{return {};}
   const text=await response.text().catch(()=>"");
   const access:CloudSubmitAccess|undefined=response.status===403
@@ -112,7 +112,7 @@ export async function probeWorker(pool:Pool,catalogue:CapabilityBundle[],worker:
   const inventory:ProbedCloudInventory={online:false,nodes:[],models:[],credentials:[],objectInfoChecked:false,checkedModelFolders:[],inventoryIssues:[],...(cloud?{modelInventory:"cloud" as const}:{})};
   try {
     if(blocked)throw new Error("This address is not allowed on a public try-out.");
-    const response=await fetch(`${worker.origin}${worker.api_prefix}/object_info`,{signal:AbortSignal.timeout(15000),redirect:"error",...(cloud?{headers:cloudHeaders()}:{})});
+    const response=await fetch(`${worker.origin}${worker.api_prefix}/object_info`,{signal:AbortSignal.timeout(15000),redirect:"error",...(cloud?{headers:cloudHeaders(worker.workspace_id)}:{})});
     if(!response.ok)throw new Error("request_failed");const info:unknown=await response.json();
     if(!info||typeof info!=="object"||Array.isArray(info))throw new Error("invalid_response");
     inventory.nodes=Object.keys(info);inventory.objectInfoChecked=true;inventory.online=true;inventory.probeFailures=0;
