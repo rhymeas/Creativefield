@@ -93,8 +93,9 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
      server has forgotten it, so the next request from a member of that workspace hands it back. */
   app.addHook("preHandler", async request => {
     const key = request.headers[CLOUD_KEY_HEADER], workspaceId = /^\/api\/v1\/workspaces\/([^/?]+)/.exec(request.url)?.[1];
-    if (!workspaceId || !plausibleCloudKey(key) || browserCloudKey(workspaceId) === key) return;
-    try { await member(pool, request, workspaceId, "creator"); rememberBrowserCloudKey(workspaceId, key); } catch { /* The route answers for itself. */ }
+    /* Only a lost key is handed back, by someone who may sign in; a different key needs the sign-in itself. */
+    if (!workspaceId || !plausibleCloudKey(key) || browserCloudKey(workspaceId)) return;
+    try { await member(pool, request, workspaceId, "admin"); rememberBrowserCloudKey(workspaceId, key); } catch { /* The route answers for itself. */ }
   });
   app.get("/api/v1/health", async () => { await queryWithRetry(pool, "SELECT 1"); return { status: "ready", mode: "team", storage: "disk", database: "postgresql" }; });
 
@@ -205,7 +206,7 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
     if (input.kind === "cloud") {
       /* The cloud key is sent to this address, so it may only be Comfy Cloud itself. */
       if (origin !== "https://cloud.comfy.org" || input.apiPrefix !== "/api") throw new HttpError(400, "Comfy Cloud workers use https://cloud.comfy.org with the /api prefix");
-      if (!browserCloudKey(workspaceId) && !config.comfyCloudApiKey) throw new HttpError(400, "Set COMFY_CLOUD_API_KEY or COMFY_CLOUD_API_KEY_FILE before adding a Comfy Cloud worker");
+      if (!browserCloudKey(workspaceId) && (config.guestPerBrowser || !config.comfyCloudApiKey)) throw new HttpError(400, "Set COMFY_CLOUD_API_KEY or COMFY_CLOUD_API_KEY_FILE before adding a Comfy Cloud worker");
     }
     return (await pool.query("INSERT INTO workers(id,workspace_id,name,origin,kind,api_prefix) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,name,origin,kind", [newId(),workspaceId,input.name,origin,input.kind,input.apiPrefix])).rows[0];
   });
@@ -246,7 +247,7 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
      credits, beside the local one. Read-only — no job and no credits — and the key stays here. */
   app.get(`${base}/cloud-account`, async request => {
     const { workspaceId } = workspaceParam.parse(request.params); await member(pool, request, workspaceId);
-    return cloudAccountFor(pool, workspaceId, browserCloudKey(workspaceId) ?? config.comfyCloudApiKey);
+    return cloudAccountFor(pool, workspaceId, browserCloudKey(workspaceId) ?? (config.guestPerBrowser ? undefined : config.comfyCloudApiKey));
   });
   /* Sign in with your own Comfy Cloud key. The browser keeps the key and sends it with each request;
      the server holds it in memory only. The key is checked with Comfy's account read (no job, no

@@ -22,7 +22,10 @@ export function browserCloudKey(workspaceId: string | undefined): string | undef
   return workspaceId ? browserKeys.get(workspaceId) : undefined;
 }
 
-/** The key a workspace's cloud worker uses: the visitor's own, else the server's. */
+/** A hosted try-out (GUEST_PER_BROWSER=1) never lends the server's own key to a guest. */
+export const guestsOnly = () => process.env.GUEST_PER_BROWSER === "1";
+
+/** The key a workspace's cloud worker uses: the visitor's own, else (not on a hosted try-out) the server's. */
 export function cloudKeyFor(workspaceId: string | undefined): string | undefined {
-  return browserCloudKey(workspaceId) ?? comfyCloudKey();
+  return browserCloudKey(workspaceId) ?? (guestsOnly() ? undefined : comfyCloudKey());
 }
