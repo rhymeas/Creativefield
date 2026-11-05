@@ -27,13 +27,18 @@ const refs = z.array(z.uuid()).max(16).refine(a => new Set(a).size === a.length,
 /* A worker saves results under its own names (`Flux2-Klein_00032_.png`, `image-1792885667649.webp`).
    Those are number soup in a download folder, so a saved file is named after its project, the
    workflow that made it and the minute it was made, unless the stored name already reads well. */
-const poorName = /[\\/]|_\d{3,}_|\d{6,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{32}/i;
+/* provider-image-1 is how a hosted provider result (Comfy Router) is stored: no extension, no meaning. */
+const poorName = /^provider-[a-z]+-\d+$|[\\/]|_\d{3,}_|\d{6,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{32}/i;
 const extensions: Record<string,string> = {"image/png":"png","image/jpeg":"jpg","image/webp":"webp","image/gif":"gif","video/mp4":"mp4","video/webm":"webm","video/quicktime":"mov","audio/mpeg":"mp3","audio/wav":"wav","audio/x-wav":"wav","audio/ogg":"ogg","audio/mp4":"m4a","audio/flac":"flac","model/gltf-binary":"glb"};
 const slug = (value:string) => value.normalize("NFC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-+|-+$/g,"").slice(0,48);
 const asciiSlug = (value:string) => slug(value.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^\x20-\x7e]+/g," "));
 const stamp = (when:Date) => { const iso=when.toISOString(); return `${iso.slice(0,10)}-${iso.slice(11,16).replace(":","")}`; };
 export function downloadName(asset:{name:string;content_type?:string|null;created_at:Date},projectName?:string|null,madeBy?:string|null){
-  if(asset.name&&!poorName.test(asset.name))return {utf8:asset.name,ascii:asset.name.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^\x20-\x7e]+/g,"-")};
+  if(asset.name&&!poorName.test(asset.name)){
+    /* A readable name keeps its words but always ends in an extension, so the file opens. */
+    const known=extensions[asset.content_type??""],own=/\.[a-z0-9]{2,5}$/i.test(asset.name)||!known?asset.name:`${asset.name}.${known}`;
+    return {utf8:own,ascii:own.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^\x20-\x7e]+/g,"-")};
+  }
   const dot=asset.name?.lastIndexOf(".")??-1;
   const extension=(dot>0?asset.name.slice(dot+1).toLowerCase().replace(/[^a-z0-9]/g,""):"")||extensions[asset.content_type??""]||"";
   const when=stamp(asset.created_at);

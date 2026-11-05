@@ -55,6 +55,8 @@ export function KeyframeStudio({workspace,project,user,catalogue,workers,call,au
  const images=assets.filter(a=>a.media_type==='image');
  let problem='';try{if(!model)throw new Error('No first-and-last-frame model is available.');qualifyKeyframeTiming(model,planKeyframeSegments(frames,prompts),fps);}catch(e){problem=(e as Error).message;}
  const locked=!!busy||!!pending||rendering||!canEdit;
+ /* Planning keyframes works on any Run on choice; animating them needs this computer's keyframe models. */
+ const canRender=canEdit&&localEnabled;
  function mentionFrame(index:number){if(locked||activeSegment<0||index<activeSegment||index>activeSegment+1||!frames[index]?.assetId)return;const text=prompts[activeSegment]??'',area=segmentPrompt.current,result=insertReferenceMention(text,area?.selectionStart??text.length,area?.selectionEnd??text.length,`@Image ${index-activeSegment+1}`);setPrompts(old=>old.map((value,i)=>i===activeSegment?result.value:value));requestAnimationFrame(()=>{segmentPrompt.current?.focus();segmentPrompt.current?.setSelectionRange(result.caret,result.caret);});}
  const positionsFor=(index:number)=>model&&index>0?keyframePositions(frames,index,model):[];
  const insertPositions=model?keyframeInsertPositions(frames,model):[];
@@ -83,7 +85,7 @@ export function KeyframeStudio({workspace,project,user,catalogue,workers,call,au
  async function moreAssets(){if(!assetCursor||busy)return;setBusy('library');setLibraryError('');try{const page=await call<AssetPage>(workspacePath(workspace.id,`assets?projectId=${encodeURIComponent(project.id)}&cursor=${encodeURIComponent(assetCursor)}`));setAssets(old=>mergeAssets(old,page.items));setAssetCursor(page.nextCursor);}catch(e){setLibraryError((e as Error).message);}finally{setBusy('');}}
  function changeModel(id:string){if(models.some(m=>m.id===id))setModelId(id);}
  async function send(p:Pending){await call(workspacePath(workspace.id,`storyboards/${p.board.id}/renders`),'POST',p.request);setBoard(p.board);setPending(null);try{sessionStorage.removeItem(`${storageKey}:pending`);}catch{}setVersion(v=>v+1);onChanged();}
- async function generate(){if(gate.current||!canEdit)return;gate.current=true;setBusy('render');setError('');try{
+ async function generate(){if(gate.current||!canRender)return;gate.current=true;setBusy('render');setError('');try{
   if(pending){await send(pending);return;}
   if(!model||!readyWorker)return;
   const {shots,width,height}=buildKeyframeShots(model,frames,prompts,fps,{orientation:canChooseOrientation?orientation:'landscape',turbo});
@@ -98,7 +100,7 @@ export function KeyframeStudio({workspace,project,user,catalogue,workers,call,au
   current={...current,revision:saved.revision};setBoard(current);
   const next:Pending={board:current,request:{revision:current.revision,workerId:readyWorker.id,idempotencyKey:crypto.randomUUID(),assembly:{width,height,fps,audioPolicy:'mute',keyframeBoundaries:true}}};try{sessionStorage.setItem(`${storageKey}:pending`,JSON.stringify(next));}catch{throw new Error('Request tracking is unavailable; no render was submitted.');}setPending(next);await send(next);
  }catch(e){if(e instanceof ApiError&&definitiveKeyframeRejection(e.status)){setPending(null);try{sessionStorage.removeItem(`${storageKey}:pending`);}catch{}}setError((e as Error).message);}finally{gate.current=false;setBusy('');}}
- return <div className="cf-production cf-keyframes"><Panel footer={<GenerateButton busy={busy==='render'||rendering} label={pending?'Retry submission':'Animate'} disabled={!canEdit||!!busy||rendering||creationUncertain||(!pending&&(!readyWorker||!!problem))} disabledReason={!readyWorker?'A ready local model is needed':problem||undefined} onClick={()=>void generate()}/> }>
+ return <div className="cf-production cf-keyframes"><Panel footer={<GenerateButton busy={busy==='render'||rendering} label={pending?'Retry submission':'Animate'} disabled={!canRender||!!busy||rendering||creationUncertain||(!pending&&(!readyWorker||!!problem))} disabledReason={!localEnabled?'Choose This computer in the top bar to animate':!readyWorker?'A ready local model is needed':problem||undefined} onClick={()=>void generate()}/> }>
   <div className="cf-form">{!localEnabled&&<Meta>Choose This computer in the top bar to use local keyframe models.</Meta>}
    <KeyframeStrip frames={frames.map(f=>({frame:f.frame,filled:!!f.assetId}))} fps={fps} maxFrame={15*fps} disabled={locked} activeSegment={Math.min(activeSegment,frames.length-2)} positions={positionsFor} insertPositions={insertPositions} onMove={moveFrame} onReorder={reorder} onInsert={insertFrame} onRemove={frames.length>2?removeFrame:undefined} mention={mentionLabel} onMention={mentionFrame} end={<IconButton label="About keyframes" onClick={()=>setInfoOpen(true)}><Info size={16}/></IconButton>}
     media={index=><UploadSlot tile label={`Frame ${index+1}`} hint="" accept={imageTypes} kinds={['image']} preview={frames[index].assetId?assetUrl(workspace.id,frames[index].assetId):null} previewKind="image" disabled={locked} removeLabel={frames.length>2?`Remove frame ${index+1}`:`Clear frame ${index+1}`} onBrowse={()=>setPicker(index)} onFile={file=>{if(!file&&frames.length>2)removeFrame(index);else void upload(index,file);}} onAsset={id=>choose(index,id)}/>}/>
