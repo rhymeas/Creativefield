@@ -15,6 +15,36 @@
         "node": "133",
         "field": "image"
       }
+    },
+    {
+      "id": "reference_image",
+      "label": "Reference image 1",
+      "type": "image",
+      "required": false,
+      "binding": {
+        "node": "cf-ref-1",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image_2",
+      "label": "Reference image 2",
+      "type": "image",
+      "required": false,
+      "binding": {
+        "node": "cf-ref-2",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image_3",
+      "label": "Reference image 3",
+      "type": "image",
+      "required": false,
+      "binding": {
+        "node": "cf-ref-3",
+        "field": "image"
+      }
     }
   ],
   "outputs": [

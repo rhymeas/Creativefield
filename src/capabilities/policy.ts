@@ -89,6 +89,8 @@ export const APPROVED_LOCAL_CLASSES = new Set([
   "LatentUpscaleModelLoader", "MiniMaxH3LatentUpscaleWithModel", "ManualSigmas",
   // ComfyUI core 0.43 nodes of the official MiniMax H3 t2v/i2v and SeedVR2 video templates (comfy_extras/nodes_minimax_h3.py, nodes_seedvr.py; nodes.py).
   "MiniMaxH3ImageToVideo", "VAEEncodeTiled", "VAEDecodeTiled", "SeedVR2Preprocess", "SeedVR2PostProcessing", "SeedVR2Conditioning", "SeedVR2TemporalChunk", "SeedVR2TemporalMerge",
+  // Native ComfyUI P-H3 image conditioning and the model-only LoRA loader.
+  "PH3ImageConditioning", "LoraLoaderBypassModelOnly",
   // D3voz/openjutsu object swap (h3-object-swap). Partial review 2026-10-31: comfyui-h3-oneclick-swap, PromptBuilder, KJNodes, VHS read;
   // ComfyUI-MiniMaxH3-Context-Loop (108k lines, exec patches, optional cloud LLM code unused by this graph) not fully read; the user accepted that on 2026-10-31.
   "ImageScaleToMaxDimension", "TextGenerate", "VHS_LoadVideo", "H3ObjectSwapPlan", "MiniMaxH3GenerationProfile", "MiniMaxH3ChainPlanModern",
