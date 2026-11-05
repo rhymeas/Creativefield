@@ -259,7 +259,8 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const cloudWorker=workers.find(isCloudWorker),runChoices=runTargetOptions(workers,route==="image"||route==="imageedit"||runOn==="chatgpt",user.guest?{signedIn:!!account?.connected,cloudJobs:account?.canSubmit!==false}:undefined),runWorkers=targetWorkers(workers,runOn==="router"?"local":runOn),cloudConsentKey=`comfyfield.cloud-consent:v1:${user.id}:${workspace.id}`;
   useEffect(()=>{if(runOn==="cloud"&&!cloudWorker){setRunOn("local");setAskCloud(false);}},[runOn,cloudWorker]);
   /* A signed-in guest always runs on their Comfy Cloud, also after a reload. */
-  useEffect(()=>{if(!user.guest||!account?.connected)return;const cloudJobs=account.canSubmit!==false&&!!cloudWorker;if(runOn==="local"||runOn==="cloud"&&!cloudJobs)setRunOn(cloudJobs?"cloud":"router");},[user.guest,account?.connected,account?.canSubmit,cloudWorker,runOn]);
+  /* A guest never runs on this computer: before signing in Run on is Comfy Router, whose panel offers the sign-in. */
+  useEffect(()=>{if(!user.guest)return;const cloudJobs=!!account?.connected&&account.canSubmit!==false&&!!cloudWorker;if(runOn==="local"||runOn==="cloud"&&!cloudJobs)setRunOn(cloudJobs?"cloud":"router");},[user.guest,account?.connected,account?.canSubmit,cloudWorker,runOn]);
   /* The draft is set from the tab that is opening: its own earlier draft, or the picture already chosen on
      the tab being left. `imageDraft` is read once here on purpose, so it is not a dependency. */
   useEffect(()=>{if((route==="image"||route==="marketing"||route==="remix")&&manifest&&isImageCapability(manifest)){setImageDraft(imageDraftForTab(manifest,imageDraftMemory.current,imageDraft));setImageIntentKey("");}},[route,manifest?.id,manifest?.version]);
