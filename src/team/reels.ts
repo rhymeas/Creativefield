@@ -36,11 +36,18 @@ export const OPENJUTSU_SHOWCASE = Array.from({length:4},(_,index)=>{
   return {result:`/examples/showcase/result-${number}.mp4`,original:`/examples/showcase/original-${number}.mp4`,source:`/examples/showcase/source-${number}.mp4`,character:`/examples/showcase/character-${number}.png`,number};
 });
 
-/** All bundled video examples are available in the Library and media picker. */
-export const LIBRARY_EXAMPLE_VIDEOS = [...OPENJUTSU_SHOWCASE.map(item=>item.result),...POOL_VIDEOS,...[
-  "feature-effects", "feature-motion", "feature-replace", "feature-restyle", "feature-swap",
-  "wan22-flf-14b", "wan22-i2v-14b", "wan22-i2v-5b", "wan22-t2v-5b",
-].map(name=>`/reels/${name}.mp4`),...["film-studio","reshoot","ad-studio","effects-lab","persona-studio","video-studio","block-shot","copy-moves","new-look","swap-thing"].map(name=>`/examples/promo/${name}.mp4`)];
+/** The early test clips: grey-backdrop studio tests, colour gradients, the first ocean take and one plain promo.
+    They stay available, but every feed shows them last and never rotates them to the top. */
+export const LOW_PRIORITY_EXAMPLES:readonly string[] = [
+  ...["persona-studio"].map(name=>`/examples/promo/${name}.mp4`),
+  ...["feature-effects","feature-motion","feature-replace","feature-restyle","feature-swap","wan22-flf-14b","wan22-i2v-14b","wan22-i2v-5b","wan22-t2v-5b"].map(name=>`/reels/${name}.mp4`),
+];
+
+/** All bundled video examples, in the order feeds show them: the OpenJutsu renders, the best promo clips, the
+    Midjourney loops, then the early test clips. Available in the Library and media picker. */
+export const LIBRARY_EXAMPLE_VIDEOS = [...OPENJUTSU_SHOWCASE.map(item=>item.result),
+  ...["reshoot","effects-lab","copy-moves","film-studio","block-shot","swap-thing","new-look","video-studio","ad-studio"].map(name=>`/examples/promo/${name}.mp4`),
+  ...POOL_VIDEOS,...LOW_PRIORITY_EXAMPLES];
 
 /** These clips illustrate each area; they are not claims that the named workflow made the clip. */
 export function promoReelForCapability(ids?:string|string[]){

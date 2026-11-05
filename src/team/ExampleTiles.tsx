@@ -1,6 +1,6 @@
 import {useEffect,useState,type ReactNode} from "react";
 import {Block,MediaViewer,MediaViewerInfo,ResultGrid,ResultTile} from "../ds";
-import {OPENJUTSU_SHOWCASE,POOL_VIDEOS} from "./reels";
+import {LOW_PRIORITY_EXAMPLES,OPENJUTSU_SHOWCASE,POOL_VIDEOS} from "./reels";
 import {LOAD_TURN} from "./reload-turn";
 import {useRecreateMedia} from "./recreate";
 
@@ -10,7 +10,9 @@ export function ExampleTiles({kind,count,leading,leadingCount=0,videoSources,ima
   useEffect(()=>{let current=true;if(kind==="image")fetch("/examples/pool.json").then(r=>r.ok?r.json():{images:[]}).then((p:{images?:string[]})=>{if(current&&Array.isArray(p.images))setPictures(p.images.map(f=>`/examples/${f}`));}).catch(()=>{});return()=>{current=false;};},[kind]);
   const all=kind==="video"?videoSources??POOL_VIDEOS:imageSources??pictures;
   const showcases=all.some(src=>OPENJUTSU_SHOWCASE.some(item=>item.result===src))?OPENJUTSU_SHOWCASE.map(item=>item.result):[];
-  const others=all.filter(src=>!showcases.includes(src)),cut=others.length?LOAD_TURN%others.length:0,sources=[...showcases,...others.slice(cut),...others.slice(0,cut)];
+  /* OpenJutsu first, then the good examples taking turns at the top on each visit, and the early test clips always last. */
+  const others=all.filter(src=>!showcases.includes(src)&&!LOW_PRIORITY_EXAMPLES.includes(src)),late=all.filter(src=>!showcases.includes(src)&&LOW_PRIORITY_EXAMPLES.includes(src));
+  const cut=others.length?LOAD_TURN%others.length:0,sources=[...showcases,...others.slice(cut),...others.slice(0,cut),...late];
   if(!sources.length&&!leadingCount)return null;
   return <Block label="Examples"><ResultGrid count={leadingCount+Math.min(count??sources.length,sources.length)} aspect={0} label="Results and examples">{leading}{sources.slice(0,count??sources.length).map(src=><ExampleTile key={src} src={src} kind={kind} caption={caption}/>)}</ResultGrid></Block>;
 }
