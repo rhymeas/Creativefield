@@ -30,7 +30,9 @@ export function openJutsuRoles(text:string,count:number):string[] {
     if(n<0||n>=count)throw new Error(`@Image ${n+1} has no attached character reference.`);
     const start=hits[i].index!+hits[i][0].length;
     const end=hits[i+1]?.index??text.length;
-    roles[n]=text.slice(start,end).replace(/^[\s,:;\-]+|[\s,:;\-]+$/g,"");
+    const before=text.slice(i?hits[i-1].index!+hits[i-1][0].length:0,hits[i].index);
+    const replacement=before.match(/\b(?:replace|swap|and)\s+([^,;]+?)\s+with\s*$/i);
+    roles[n]=replacement?.[1]?.trim()??text.slice(start,end).replace(/^[\s,:;\-]+|[\s,:;\-]+$/g,"");
   }
   return roles;
 }

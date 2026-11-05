@@ -27,7 +27,7 @@ export type AdapterContext = {requestId:string;binding:DirectBinding;transport:A
 export interface DirectAdapter {
   readonly id:string; readonly version:string; readonly provider:string;
   readonly recovery:"lookup"|"unsupported"; readonly cancellation:"supported"|"unsupported";
-  validate(invocation:Invocation):{valid:true}|{valid:false;code:AdapterErrorCode};
+  validate(invocation:Invocation):{valid:true}|{valid:false;code:AdapterErrorCode;/** One plain sentence for the person, when the adapter can say what to change. */reason?:string};
   estimate(invocation:Invocation):Promise<Estimate>;
   prepareInputs(inputs:readonly OwnedInput[],context:AdapterContext):Promise<PreparedInputs>;
   submit(invocation:Invocation,inputs:PreparedInputs,context:AdapterContext):Promise<Submission>;

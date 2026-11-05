@@ -53,7 +53,8 @@ export async function enqueueDirect(client:PoolClient,catalogue:CapabilityBundle
   if(manifest.resolutions&&!Object.values(manifest.resolutions).some(r=>r.width===controls.width&&r.height===controls.height))throw new HttpError(400,"Unsupported resolution pair");
   const invocation:Invocation={capabilityId:manifest.id,version:manifest.version,routeId:body.routeId,inputs:resolved.inputIds,controls,audioPolicy:body.audioPolicy,...(Object.keys(resolved.elementInputSnapshots).length?{elementInputSnapshots:resolved.elementInputSnapshots}:{})};
   if(entry.binding.provider==='comfy-router')invocation.consent={cloudCredits:true};
-  try{if(entry.adapter.validate(structuredClone(invocation))?.valid!==true)throw new Error();}catch{throw new HttpError(400,"Provider rejected the input parameters");}
+  let verdict:ReturnType<typeof entry.adapter.validate>|undefined;try{verdict=entry.adapter.validate(structuredClone(invocation));}catch{verdict=undefined;}
+  if(verdict?.valid!==true)throw new HttpError(400,verdict&&!verdict.valid&&verdict.reason?verdict.reason:"Provider rejected the input parameters");
   const connection=entry.binding.provider==="comfy-router"&&guestRouterKey(workspaceId)?{id:BROWSER_KEY_CONNECTION,credential_revision:0}:(await client.query("SELECT id,credential_revision FROM provider_connections WHERE workspace_id=$1 AND provider_id=$2",[workspaceId,entry.binding.provider])).rows[0];
   if(!connection)throw new HttpError(422,"Workspace provider credentials are required");
   const id=newId();
