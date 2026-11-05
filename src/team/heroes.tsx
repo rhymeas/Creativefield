@@ -27,11 +27,11 @@ const LINES:Record<string,{title:string;text:string}>={
   create:{title:"Make a video from an idea",text:"Write what should happen, add a picture if you have one, and press Generate."},
 };
 export type HeroKind=keyof typeof LINES;
-export function ToolHero({kind,workflowId,latest}:{kind:HeroKind;workflowId?:string;/** The newest finished clip, used when the tool has no reel of its own. */latest?:string}){
+export function ToolHero({kind,workflowId,latest,compact}:{kind:HeroKind;workflowId?:string;/** Half height, title on one line: the tool has its input and the work area gets the room. */compact?:boolean;/** The newest finished clip, used when the tool has no reel of its own. */latest?:string}){
   /* Every kind starts the placeholder set at a different clip, so neighbouring areas do not open on the same loop. */
   const start=(Object.keys(LINES).indexOf(kind)+LOAD_TURN)%POOL_VIDEOS.length;
   const line=LINES[kind],reel=(workflowId?reelForManifest(workflowId):undefined)??latest;
   /* Rule 11/49: motion is off when the system asks for less. The clip stays in place as its first
      frame instead of looping, so the tool still shows what it makes. */
-  return <Hero stage title={line.title} text={line.text} media={<RotatingVideo srcs={reel?[reel,...POOL_VIDEOS.filter(v=>v!==reel)]:POOL_VIDEOS.slice(start).concat(POOL_VIDEOS.slice(0,start))}/>}/>;
+  return <Hero stage compact={compact} title={line.title} text={line.text} media={<RotatingVideo srcs={reel?[reel,...POOL_VIDEOS.filter(v=>v!==reel)]:POOL_VIDEOS.slice(start).concat(POOL_VIDEOS.slice(0,start))}/>}/>;
 }

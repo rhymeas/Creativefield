@@ -17,7 +17,7 @@ export function TeamChoice({label,display,value,options,onChange,disabled=false,
   const visual=options.length>0&&options.every(o=>o.preview),[query,setQuery]=useState("");
   const shown=visual&&query.trim()?options.filter(o=>`${o.label} ${friendlyMediaName(o.label)}`.toLowerCase().includes(query.trim().toLowerCase())):options;
   return <>
-    {variant==="model"?<ModelCard title={display} subtitle={subtitle??"Local ComfyUI"} image={image} video={video} onChange={disabled?undefined:()=>setOpen(true)}/>:variant==="pill"?<Pill quiet size={size} type="button" disabled={disabled} aria-label={prefix?label:undefined} onClick={()=>setOpen(true)}>{prefix&&<span className="ds-pill__prefix">{label}</span>}{display}<ChevronRight size={14}/></Pill>:<Row label={label} display={display} disabled={disabled} onClick={()=>setOpen(true)}/>}
+    {variant==="model"?<ModelCard title={display} subtitle={subtitle??"Local ComfyUI"} image={image} video={video} onChange={disabled?undefined:()=>setOpen(true)}/>:variant==="pill"?<Pill quiet size={size} type="button" disabled={disabled} aria-label={prefix?label:undefined} onClick={()=>setOpen(true)}>{prefix&&<span className="ds-pill__prefix">{label}</span>}{display}{size!=="lg"&&<ChevronRight size={14}/>}</Pill>:<Row label={label} display={display} disabled={disabled} onClick={()=>setOpen(true)}/>}
     {visual||!options.length
       ?<Dialog wide={visual} open={open&&!disabled} title={label} onClose={close}>
         {visual?<div className="cf-form">

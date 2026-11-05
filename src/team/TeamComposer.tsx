@@ -8,7 +8,8 @@ import {isSelectedVideoCreate} from "../capabilities/tasks";
 import {endFramePair,endFrameRoute,isEndFrameVariant,withOptionalEndImage} from "./end-frame";
 import {lazy,Suspense,useCallback,useEffect,useMemo,useRef,useState,type ReactNode} from "react";
 import { acceptsFile, Button, SegmentedTabs, UploadPair, useToast, Checkbox, TextField, Collapsible, GenerateButton, Meta, Notice, Panel, PromptField, Params, ParamButton, ReferenceTray, Row, Rule, Thumb, ToggleRow, Dialog, ShimmerText, GestureStage, CameraPathPreview, LinkButton, PresetGrid, PresetCard, HowItWorks } from "../ds";
-import {Clock,Gauge,Sparkles,Video,Volume2,WandSparkles, Maximize2} from "lucide-react";
+import {Clock,Gauge,Images,RectangleHorizontal,Sparkles,Video,Volume2,WandSparkles, Maximize2} from "lucide-react";
+import {countOptions,frameControls} from "../capabilities/frame-controls";
 import {catalogueTitles} from "./job-queue";
 import {ToolHero} from "./heroes";
 import {ProductionContent} from "./ProductionWorkspace";
@@ -58,7 +59,7 @@ export const audioChoice=(manifest:CapabilityManifestV2)=>manifest.audioPolicies
 export function sizeLabel(id:string,value:unknown){const n=Number(value);if(id==="resolution")return Number.isFinite(n)?`${n}p`:String(value);return n<=0.5?"480p":n<=1?"720p":n<=1.6?"900p":`${n} MP`;}
 /** The Advanced dialog holds the settings the panel keeps out of sight. Motion adds its pose text and its negative prompt. */
 export function advancedControls(manifest:CapabilityManifestV2,motionRoute:boolean,nativeCamera:boolean){
-  const inline=["width","height","length","seconds","prompt","seed","megapixels","resolution",...(manifest.id==="openjutsu-h3-advanced"?["roles"]:[]),...(nativeCamera?["camera_pose","speed"]:[])];
+  const inline=["width","height","length","seconds","prompt","seed","megapixels","resolution",...frameControls(manifest).ids,...(manifest.id==="openjutsu-h3-advanced"?["roles"]:[]),...(nativeCamera?["camera_pose","speed"]:[])];
   return manifest.controls.filter(control=>!inline.includes(control.id)&&(motionRoute?control.id==="motion_prompt"||control.id==="negative":control.id!=="motion_prompt"));
 }
 /** Lip sync is an audio tool, so Create Video leaves it out; a workflow already open stays in its own list. */
@@ -261,10 +262,10 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const length=manifest.controls.find(c=>c.id==="length"),seed=manifest.controls.find(c=>c.id==="seed");
   /* Output size sits next to Duration: megapixels (MiniMax H3 templates) or a short-side resolution (OpenJutsu). */
   /* Length in seconds: "length", or OpenJutsu's clip "seconds". */
-  const lengthControl=length??manifest.controls.find(c=>c.id==="seconds"&&c.type==="number"&&!c.disabledReason);
+  const frame=frameControls(manifest),lengthControl=frame.length,aspect=frame.aspect,count=frame.count;
   const lengthLabel=(value:number)=>manifest.id==="h3-effects"?`${Number((value/24).toFixed(1))}s`:`${value}s`;
   const lengthOptions=lengthControl?.options?.length?lengthControl.options.map(value=>({value:Number(value),label:lengthLabel(Number(value))})):Array.from({length:Math.floor((lengthControl?.max??10)-(lengthControl?.min??1))+1},(_,i)=>{const value=(lengthControl?.min??1)+i;return {value,label:`${value} ${value===1?"second":"seconds"}`};});
-  const size=manifest.controls.find(c=>(c.id==="megapixels"||c.id==="resolution")&&c.type==="select"&&!c.disabledReason);
+  const size=frame.size;
   function setInput(role:string,id:string){if(contract&&role===contract.sourceInput)invalidateOperation(uploadGate.current);setDraft(d=>{let inputs={...d.inputs},elementInputs={...d.elementInputs};if(contract&&role===contract.sourceInput)inputs=clearMaskForSource(inputs,manifest);if(id){inputs[role]=id;delete elementInputs[role];}else delete inputs[role];return {...d,inputs,elementInputs};});if(contract&&role===contract.sourceInput){setFiles(f=>({...f,[contract.maskInput]:null}));setBusy("");}}
   async function dropReferenceAsset(port:(typeof manifest.inputs)[number],id:string){
     const turn=beginReferenceDrop(referenceDropEpoch);setError("");
@@ -349,7 +350,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
         {promptControl&&(!optionalPrompt||promptOn)&&controlField(promptControl)}
         {manifest.id==="openjutsu-h3-advanced"&&manifest.controls.filter(c=>c.id==="roles").map(c=><div key={c.id}>{controlField(c)}</div>)}
         {manifest.controls.filter(c=>c.id==="motion_prompt"&&!motionRoute).map(c=><div key={c.id}>{controlField(c)}</div>)}
-        {(size||qualityOptions.length>0||lengthControl)&&<Params>{size?<ParamButton disabled={locked} title="Size" icon={<Maximize2 size={16}/>} label={sizeLabel(size.id,draft.controls[size.id]??size.default)} value={String(draft.controls[size.id]??size.default)} onChange={v=>changeControl(size.id,size.options?.find(o=>String(o)===v)??v)} options={(size.options??[]).map(o=>({value:String(o),label:sizeLabel(size.id,o)}))}/>:qualityOptions.length>0?<ParamButton disabled={locked} title="Size" icon={<Maximize2 size={16}/>} label={quality?.label??"Choose size"} value={selectedResolution} options={qualityOptions} onChange={id=>{if(locked)return;const selected=manifest.resolutions![id];setDraft(d=>({...d,controls:{...d.controls,width:selected.width,height:selected.height}}));}}/>:null}{lengthControl&&<ParamButton disabled={locked} title="Duration" icon={<Clock size={16}/>} label={lengthLabel(Number(draft.controls[lengthControl.id]??lengthControl.default))} value={Number(draft.controls[lengthControl.id]??lengthControl.default)} onChange={v=>changeControl(lengthControl.id,Number(v))} options={lengthOptions}/>}</Params>}
+        {(size||qualityOptions.length>0||lengthControl||aspect||count)&&<Params>{size?<ParamButton disabled={locked} title="Size" icon={<Maximize2 size={16}/>} label={sizeLabel(size.id,draft.controls[size.id]??size.default)} value={String(draft.controls[size.id]??size.default)} onChange={v=>changeControl(size.id,size.options?.find(o=>String(o)===v)??v)} options={(size.options??[]).map(o=>({value:String(o),label:sizeLabel(size.id,o)}))}/>:qualityOptions.length>0?<ParamButton disabled={locked} title="Size" icon={<Maximize2 size={16}/>} label={quality?.label??"Choose size"} value={selectedResolution} options={qualityOptions} onChange={id=>{if(locked)return;const selected=manifest.resolutions![id];setDraft(d=>({...d,controls:{...d.controls,width:selected.width,height:selected.height}}));}}/>:null}{lengthControl&&<ParamButton disabled={locked} title="Duration" icon={<Clock size={16}/>} label={lengthLabel(Number(draft.controls[lengthControl.id]??lengthControl.default))} value={Number(draft.controls[lengthControl.id]??lengthControl.default)} onChange={v=>changeControl(lengthControl.id,Number(v))} options={lengthOptions}/>}{aspect&&<ParamButton<string|number> disabled={locked} title="Aspect ratio" icon={<RectangleHorizontal size={16}/>} label={String(draft.controls[aspect.id]??aspect.default??aspect.options![0])} value={(draft.controls[aspect.id]??aspect.default??aspect.options![0]) as string|number} onChange={v=>changeControl(aspect.id,v)} options={aspect.options!.map(o=>({value:o as string|number,label:String(o)}))}/>}{count&&<ParamButton<number> disabled={locked} title="Images" icon={<Images size={16}/>} label={`${Number(draft.controls[count.id]??count.default??count.min)} ${Number(draft.controls[count.id]??count.default??count.min)===1?"image":"images"}`} value={Number(draft.controls[count.id]??count.default??count.min)} onChange={v=>changeControl(count.id,Number(v))} options={countOptions(count).map(n=>({value:n,label:String(n)}))}/>}</Params>}
         <Row subtle disabled={locked} label="Advanced settings" display="Optional controls" onClick={()=>setAdvancedOpen(true)}/>
       </fieldset>
       {canQueue&&<LinkButton variant="ghost" href={`#nodes/feature/${manifest.id}`}>Edit in nodes</LinkButton>}

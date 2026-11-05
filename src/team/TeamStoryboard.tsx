@@ -52,7 +52,7 @@ export function TeamStoryboard(props:Props){
   return <>
     {problem&&<Notice priority={60} title={problem.title||"Storyboard request failed"} actions={<Button variant="secondary" onClick={()=>setRefresh(v=>v+1)}>Check again</Button>} details={problem.details}>{problem.text}</Notice>}
     <Dialog open={removingBoard&&authorized} title="Remove this storyboard?" onClose={closeRemoveBoard} footer={<><Button variant="secondary" onClick={closeRemoveBoard}>Keep it</Button><Button disabled={!!busy} onClick={()=>void removeBoard()}>Remove from the list</Button></>}>The board and its rendered films stay in the workspace; it stops appearing in the picker.</Dialog>
-    {board&&board.id===id?<BoardEditor key={board.id} {...props} board={board} picker={picker}/>:(id?<Meta>Reading the saved revision.</Meta>:targetMissing?<EmptyState stage icon={<Clapperboard size={18}/>} title="Storyboard unavailable" text="This storyboard is not available in the current project." action={<Button variant="secondary" onClick={()=>{setTargetMissing(false);setId(boards[0]?.id??"");}}>View storyboards</Button>}/>:<EmptyState stage icon={<Clapperboard size={18}/>} title="No storyboards yet" text={elsewhere?`${elsewhere} storyboard${elsewhere===1?"":"s"} live in your other projects: switch the project in the top bar to open them. Or plan shots here and assemble one video.`:"Plan shots, render them locally and assemble one video in this shared project."} action={canEdit?<Button variant="primary" onClick={()=>setCreating(true)}>Create storyboard</Button>:undefined}/>)}
+    {board&&board.id===id?<BoardEditor key={board.id} {...props} board={board} picker={picker}/>:(id?<Meta>Reading the saved revision.</Meta>:targetMissing?<EmptyState stage icon={<Clapperboard size={18}/>} title="Storyboard unavailable" text="This storyboard is not available in the current project." action={<Button variant="secondary" onClick={()=>{setTargetMissing(false);setId(boards[0]?.id??"");}}>View storyboards</Button>}/>:<StartBoard canEdit={canEdit} busy={busy} name={name} onName={setName} onCreate={create} elsewhere={elsewhere}/>)}
     <Dialog open={creating&&authorized} title="New storyboard" onClose={close}><form className="cf-form" onSubmit={create}><TextField label="Board name" autoFocus required maxLength={120} value={name} onChange={setName} disabled={busy}/><Button type="submit" disabled={!name.trim()||busy}>Create board</Button></form></Dialog>
   </>;
 }
@@ -212,4 +212,11 @@ export function BoardEditor({board,picker,user,workspace,project,catalogue,worke
     <Dialog open={removing&&authorized} title="Remove draft shot?" onClose={closeRemove} footer={<><Button variant="secondary" onClick={closeRemove}>Keep shot</Button><Button disabled={locked} onClick={remove}>Remove from draft</Button></>}>The saved board and existing rendered media stay available until you save the edited shot list.</Dialog></div>;
 }
 
-
+/* No board in this project yet: the usual storyboard screen, with its side panel asking for the board's name and the
+   film hero beside it, instead of a full-page empty state. */
+function StartBoard({canEdit,busy,name,onName,onCreate,elsewhere}:{canEdit:boolean;busy:boolean;name:string;onName:(value:string)=>void;onCreate:(e:React.FormEvent)=>void;elsewhere:number}){
+  return <div className="cf-production cf-storyboard"><Panel header={<div className="cf-composer-heading cf-form"><SectionHeader title="New storyboard"/></div>}>
+    {canEdit?<form className="cf-form" onSubmit={onCreate}><TextField label="Storyboard name" placeholder="My short film" required maxLength={120} value={name} onChange={onName} disabled={busy}/><Button variant="primary" type="submit" disabled={!name.trim()||busy}>Create storyboard</Button></form>:<Meta>Only creators can start a storyboard.</Meta>}
+    {elsewhere>0&&<Meta>{`${elsewhere} storyboard${elsewhere===1?" is":"s are"} in your other projects. Switch the project in the top bar to open them.`}</Meta>}
+  </Panel><ProductionContent><ToolHero kind="film"/></ProductionContent></div>;
+}

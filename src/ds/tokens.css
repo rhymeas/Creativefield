@@ -48,7 +48,12 @@
      No gradients anywhere. */
   --accent: #2fa8ff;
   --brand-soft: rgba(253, 209, 0, 0.14);
-  --brand: #fdd100; /* the CreativeField logo yellow; used for the app name only */
+  --brand: #fdd100; /* the CreativeField logo yellow: the app name and the Recreate call to action (rule 67) */
+  --brand-hover: #ffe04d;
+  --brand-dim: rgba(253, 209, 0, 0.22);
+  --brand-light: #fff6c2;
+  --text-on-brand: #17140a;
+  --brand-glow: 0 0 calc(18px * var(--ui-scale)) rgba(253, 209, 0, 0.28);
   --accent-soft: rgba(47, 168, 255, 0.12);
   --accent-ring: rgba(47, 168, 255, 0.55);
   --accent-glow: 0 0 0 1px rgba(47, 168, 255, 0.45), 0 0 14px rgba(47, 168, 255, 0.35), 0 0 32px rgba(47, 168, 255, 0.18);

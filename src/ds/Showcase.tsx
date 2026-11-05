@@ -21,7 +21,7 @@ import {ShotFrame} from "./ShotFrame";
 import {MosaicGrid,MosaicTile,mosaicAccent} from "./MosaicGrid";
 import {CameraPoseField,CameraPoseStage,describeCameraPose,type CameraPose} from "./CameraMovePicker";
 import welcomeLogo from "../assets/creativefield-logo-trim.png";
-import { ArrowUp, Lock, Undo2, Download, Pencil, Maximize2, Camera, Plus, Search, Clock, Dices, LogOut, Settings, Video, History, Image, Info, MinusCircle, RectangleHorizontal, Sparkles, Brush, UserRound } from "lucide-react";
+import { ArrowUp, Repeat, Lock, Undo2, Download, Pencil, Maximize2, Camera, Plus, Search, Clock, Dices, LogOut, Settings, Video, History, Image, Info, MinusCircle, RectangleHorizontal, Sparkles, Brush, UserRound } from "lucide-react";
 import {
   Steps,
   RotatingVideo,
@@ -127,6 +127,7 @@ import {
   CommandBar,
   DensityControl,
   MediaViewer,
+  MediaViewerInfo,
   MediaEditProvider,
   Tooltip,
   TileGrid,
@@ -860,7 +861,11 @@ export default function Showcase() {
       <Section title="Density control and viewer">
         <DensityControl />
         <Tooltip content="View media details without covering the picture."><Button>Hover for details</Button></Tooltip>
-        <MediaEditProvider><MediaCard quiet media={<img src="/reels/wan22-i2v-5b.png" alt="Preview example"/>}/><MediaViewer open={false} src="" name="Picture" onClose={() => {}} /></MediaEditProvider>
+        <MediaEditProvider><MediaCard quiet onRecreate={() => {}} media={<img src="/reels/wan22-i2v-5b.png" alt="Preview example"/>}/><MediaViewer open={false} src="" name="Picture" onClose={() => {}} /></MediaEditProvider>
+      </Section>
+      <Section title="How it was made (full view column)">
+        <Meta>Every full view, results and examples alike, uses this column: mode, reference tiles side by side, prompt, model and settings.</Meta>
+        <div className="ds-viewer__info"><MediaViewerInfo mode="Character swap" model="MiniMax H3" inputs={[{src:"/reels/wan22-i2v-5b.png",label:"Reference 1"},{src:"/reels/wan22-i2v-5b.png",label:"Reference 2"}]} prompt="Replace the person in the video with the character in the picture." facts={[{label:"Quality",value:"480p · 8 steps"}]}/></div>
       </Section>
 
       <Section title="Keyboard shortcuts">
@@ -910,6 +915,7 @@ export default function Showcase() {
       <Section title="Buttons">
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <Button variant="primary">Primary</Button>
+          <Button variant="brand"><Repeat size={14} />Recreate</Button>
           <Button>Secondary</Button>
           <Button variant="ghost">Ghost</Button>
           <LinkButton variant="ghost" href="#ds">Link</LinkButton>
@@ -964,6 +970,10 @@ export default function Showcase() {
 
       <Section title="Hero stage and rotating video">
         <Hero stage accent="many" title="Turn one video into many" text="The loop fills the band, drifts slowly, and the clips take turns." media={<RotatingVideo srcs={["/reels/mj-02.mp4", "/reels/mj-01.mp4", "/reels/mj-03.mp4"]} />} />
+      </Section>
+
+      <Section title="Hero stage, compact (the tool has its input)">
+        <Hero stage compact title="Cut and extend a clip" text="Trim a take, or let the model continue where it stops." media={<RotatingVideo srcs={["/reels/mj-02.mp4"]} />} />
       </Section>
 
       <Section title="Welcome dialog (first visit)">

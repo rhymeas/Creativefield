@@ -27,7 +27,7 @@
     },
     {
       "id": "aspect_ratio",
-      "label": "Shape",
+      "label": "Resolution",
       "type": "select",
       "options": [
         "1:1 (Square)",

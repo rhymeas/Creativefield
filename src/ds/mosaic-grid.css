@@ -4,12 +4,14 @@
 .ds-mosaic__title { color: var(--text-secondary); font-size: var(--text-sm); line-height: var(--lh-sm); }
 .ds-mosaic__filter { margin-left: auto; opacity: 0; transition: opacity var(--dur-fast) var(--ease); }
 .ds-mosaic:is(:hover, :focus-within) .ds-mosaic__filter { opacity: 1; }
-.ds-mosaic__grid { display: grid; grid-template-columns: repeat(var(--mosaic-cols, 12), minmax(0, 1fr)); grid-auto-rows: var(--mosaic-row, 4px); grid-auto-flow: row dense; column-gap: var(--gap-block); min-width: 0; }
+.ds-mosaic__grid { display: grid; grid-template-columns: repeat(var(--mosaic-cols, 12), minmax(0, 1fr)); grid-auto-rows: var(--mosaic-row, 4px); column-gap: var(--gap-section); min-width: 0; }
 .ds-mosaic__cell { position: relative; min-width: 0; }
-.ds-mosaic__inner { padding-bottom: var(--gap-block); }
+.ds-mosaic__inner { padding-bottom: var(--gap-section); }
 /* Media keep their own shape inside a tile. */
 .ds-mosaic .ds-media { aspect-ratio: auto; min-height: 0; max-height: none; height: auto; }
 .ds-mosaic .ds-media > video, .ds-mosaic .ds-media > img { display: block; width: 100%; height: auto; max-height: none; object-fit: contain; background: var(--surface-page); }
 .ds-mosaic .ds-media:not(:has(> video, > img)) { aspect-ratio: 16 / 9; }
 .ds-mosaic__cell[data-current] .ds-media { box-shadow: 0 0 0 1px var(--accent-ring); }
 .ds-mosaic__cell[data-current] .ds-media::after { content: ""; position: absolute; top: var(--space-2); left: var(--space-2); z-index: 2; width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--accent); box-shadow: 0 0 8px var(--accent-ring); pointer-events: none; }
+/* A loading tile in the feed fills exactly its 16:9 box, one column wide, whatever a screen gives it elsewhere. */
+.ds-mosaic .ds-media .ds-resulttile[data-develop] { position: absolute; inset: 0; width: auto; height: auto; min-height: 0; min-width: 0; }

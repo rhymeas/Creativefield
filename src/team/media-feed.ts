@@ -1,9 +1,13 @@
 import {useEffect,useRef,useState} from "react";
 import type {CapabilityManifestV2} from "../capabilities/types";
-import {workspacePath,type Call} from "./api";
+import {workspacePath,type Asset,type Call} from "./api";
 import type {BoardRender} from "./storyboard-state";
 
 export type FeedKind="video"|"image";
+/** Include library files once, including additional outputs from a multi-image run. */
+export function libraryFeedAssets(assets:Asset[],kind:FeedKind,represented:Set<string>):Asset[]{
+  return assets.filter(asset=>asset.media_type===kind&&asset.metadata?.libraryHidden!==true&&!represented.has(asset.id));
+}
 /** Which shared feed a workflow's results belong to, by what it makes. */
 export function feedKind(manifest:Pick<CapabilityManifestV2,"outputs">|undefined):FeedKind|undefined{
   const type=manifest?.outputs?.[0]?.type;

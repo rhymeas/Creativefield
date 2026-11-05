@@ -1,5 +1,6 @@
 /* Compact advanced controls: small values share rows; descriptions and text areas retain space. */
-.ds-advanced-dialog { width:min(540px,100%); }
+/* Advanced holds a few small values: a narrow dialog, two short fields to a row, one lone field across it. */
+.ds-dialog.ds-advanced-dialog { width:min(440px,100%); }
 .ds-advanced-dialog .ds-dialog__body { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-content:start; gap:var(--gap-stack); }
 .ds-advanced-dialog .ds-dialog__body > :is(.cf-form,.cf-advanced-grid) { display:contents; }
 .ds-advanced-dialog .ds-dialog__body :is(.ds-field,.ds-row,.ds-parambutton) { min-width:0; }
@@ -12,3 +13,4 @@
 .ds-advanced-dialog .ds-check { min-height:var(--row-h); padding:var(--pad-row); padding-inline:min(var(--pad-field),48px); background:var(--surface-control); }
 .ds-advanced-dialog .ds-row { padding-inline:min(var(--pad-field),48px); }
 @media (max-width:420px) { .ds-advanced-dialog .ds-dialog__body { grid-template-columns:minmax(0,1fr); } }
+.ds-advanced-dialog .ds-dialog__body > :only-child { grid-column:1 / -1; }

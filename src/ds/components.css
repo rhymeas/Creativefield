@@ -388,7 +388,8 @@
 .ds-param--descriptive { min-height: var(--row-h); height: auto; justify-content: flex-start; padding: var(--space-2) var(--space-3); text-align: left; }
 .ds-param__copy { display: flex; flex: 1; min-width: 0; flex-direction: column; }
 .ds-param__context { font-size: var(--text-2xs); line-height: var(--lh-2xs); font-weight: var(--weight-regular); color: var(--text-meta); }
-.ds-param__value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-param__value, .ds-param__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-param__label { min-width: 0; } /* a long value never pushes the button out of its row */
 .ds-param__chev { margin-left: auto; }
 
 /* â”€â”€ Generate button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -402,14 +403,7 @@
   font-size: var(--text-md); line-height: var(--lh-md); font-weight: var(--weight-semibold);
   transition: box-shadow var(--dur-med) var(--ease), background var(--dur-med) var(--ease), border-color var(--dur-med) var(--ease), transform var(--dur-fast) var(--ease);
 }
-/* A light sweep crosses the button on hover. */
-.ds-generate::after {
-  content: ""; position: absolute; inset: 0;
-  background: linear-gradient(105deg, transparent 35%, rgba(47, 168, 255, 0.10) 50%, transparent 65%);
-  transform: translateX(-120%);
-}
 .ds-generate:hover:not(:disabled):not([aria-disabled="true"]) { box-shadow: var(--accent-glow-strong), var(--inset-glint); background: var(--button-primary-bg-hover); border-color: var(--accent); }
-.ds-generate:hover:not(:disabled):not([aria-disabled="true"])::after { transform: translateX(120%); transition: transform 700ms var(--ease); }
 .ds-generate:active:not(:disabled):not([aria-disabled="true"]) { transform: scale(0.98); }
 .ds-generate:disabled,.ds-generate[aria-disabled="true"] { opacity: 0.5; box-shadow: none; border-color: var(--line-strong); cursor:not-allowed; }
 /* A disabled main action with its reason underneath, always visible. */
@@ -427,6 +421,10 @@
 .ds-btn { text-decoration: none; }
 .ds-btn:active { transform: scale(0.97); }
 .ds-btn--primary { background: var(--button-primary-bg); color: var(--button-primary-text); font-weight: var(--weight-semibold); border: 1px solid var(--accent-ring); box-shadow: var(--accent-glow); }
+/* The yellow call to action: Recreate only (rule 67). */
+.ds-btn--brand { background: var(--brand); color: var(--text-on-brand); font-weight: var(--weight-semibold); border: 1px solid var(--brand); box-shadow: var(--brand-glow); }
+.ds-btn--brand:hover { background: var(--brand-hover); border-color: var(--brand-hover); }
+.ds-btn--brand:disabled { opacity: .5; }
 .ds-btn--primary:hover { background: var(--button-primary-bg-hover); border-color: var(--accent); box-shadow: var(--accent-glow-strong); }
 .ds-btn--secondary { background: var(--surface-subtle); color: var(--text-secondary); }
 .ds-btn--secondary:hover { background: var(--surface-hover); color: var(--text-primary); }
@@ -529,9 +527,10 @@
 .ds-media[data-details-open="true"] .ds-media__tools { display: none; }
 /* How it was made, on the tile: the mode top left; Recreate appears on hover (above a clip's own controls). */
 .ds-media__mode { position: absolute; top: var(--space-2); left: var(--space-2); z-index: 2; max-width: calc(100% - 96px); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 2px var(--space-2); border-radius: var(--radius-full); background: var(--surface-overlay); color: var(--text-primary); font-size: var(--text-2xs); line-height: var(--lh-2xs); pointer-events: none; }
-.ds-media__recreate { position: absolute; right: var(--space-2); bottom: var(--space-2); z-index: 2; opacity: 0; background: var(--surface-overlay); transition: opacity var(--dur-fast) var(--ease); }
+.ds-media__recreate { position: absolute; left: 50%; bottom: var(--space-3); z-index: 2; translate: -50% 0; opacity: 0; transition: opacity var(--dur-fast) var(--ease); }
 .ds-media:has(> video) .ds-media__recreate { bottom: calc(var(--space-2) + 44px); }
-.ds-media:is(:hover, :focus-within) .ds-media__recreate { opacity: 1; }
+.ds-media:is(:hover, :focus-within) .ds-media__recreate, :is(.ds-resulttile, .ds-mediacard__media):is(:hover, :focus-within) > .ds-media__recreate { opacity: 1; }
+.ds-resulttile:has(> video[controls]) > .ds-media__recreate, .ds-mediacard__media:has(video[controls]) > .ds-media__recreate { bottom: calc(var(--space-2) + 44px); }
 /* A run still working fills its tile, whatever the tile's height. */
 .ds-media .ds-resulttile[data-develop] { position: absolute; inset: 0; min-height: 0; }
 
@@ -1557,15 +1556,15 @@ button.ds-thumb__art:disabled { opacity: 0.45; cursor: not-allowed; }
 .ds-resulttile__develop:has(.ds-resulttile__preview) .ds-resulttile__grain { opacity: .25; }
 @keyframes ds-develop-drift { to { transform: translate(28px, 28px); } }
 .ds-resulttile__developtext { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; font-size: var(--text-sm); line-height: var(--lh-sm); color: var(--text-secondary); }
-.ds-resulttile__orbit { position: relative; width: 52px; height: 52px; border-radius: var(--radius-full); box-shadow: inset 0 0 0 1px var(--line-strong); }
-.ds-resulttile__orbit::before { content: ""; position: absolute; inset: 17px; border-radius: inherit; background: var(--accent-soft); box-shadow: 0 0 18px var(--accent-ring); animation: ds-develop-core 1.8s var(--ease) infinite alternate; }
-.ds-resulttile__orbit::after { content: ""; position: absolute; inset: -9px; border-radius: inherit; border: 1px dashed var(--line-hover); animation: ds-develop-spin 9s linear infinite reverse; }
-.ds-resulttile__orbit i { position: absolute; inset: 0; border-radius: inherit; animation: ds-develop-spin 1.4s cubic-bezier(.45, .05, .55, .95) infinite; }
-.ds-resulttile__orbit i::after { content: ""; position: absolute; top: -3.5px; left: 50%; width: 7px; height: 7px; margin-left: -3.5px; border-radius: var(--radius-full); background: var(--accent); box-shadow: 0 0 10px var(--accent), 0 0 22px var(--accent-ring); }
+/* The loader is the CreativeField logo: dim yellow letters with a light sweeping through them, breathing softly. */
+.ds-resulttile__logo { display: block; width: calc(64px * var(--ui-scale)); aspect-ratio: 1423 / 620; -webkit-mask: url("../assets/creativefield-logo-trim.png") center / contain no-repeat; mask: url("../assets/creativefield-logo-trim.png") center / contain no-repeat; background: linear-gradient(105deg, var(--brand-dim) 0 38%, var(--brand) 46%, var(--brand-light) 50%, var(--brand) 54%, var(--brand-dim) 62% 100%); background-size: 280% 100%; animation: ds-logo-sweep 1.7s var(--ease) infinite, ds-logo-breathe 3.4s var(--ease) infinite alternate; }
+@keyframes ds-logo-sweep { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@keyframes ds-logo-breathe { from { transform: scale(.97); opacity: .85; } to { transform: scale(1); opacity: 1; } }
+.ds-resulttile__develop[data-terminal] .ds-resulttile__logo { animation: none; background: var(--brand-dim); }
+@media (prefers-reduced-motion: reduce) { .ds-resulttile__logo { animation: none; background: var(--brand); } }
 @keyframes ds-develop-spin { to { transform: rotate(360deg); } }
 @keyframes ds-develop-core { from { transform: scale(.7); opacity: .6; } to { transform: scale(1.1); opacity: 1; } }
-.ds-resulttile__develop[data-terminal] .ds-resulttile__orbit i, .ds-resulttile__develop[data-terminal] .ds-resulttile__grain { display: none; }
-.ds-resulttile__develop[data-terminal] .ds-resulttile__orbit::before, .ds-resulttile__develop[data-terminal] .ds-resulttile__orbit::after { animation: none; opacity: .4; box-shadow: none; }
+.ds-resulttile__develop[data-terminal] .ds-resulttile__grain { display: none; }
 .ds-resulttile__elapsed { position: absolute; z-index: 1; top: var(--space-3); right: var(--space-3); padding: 2px var(--space-2); border-radius: var(--radius-full); background: var(--surface-overlay); color: var(--text-secondary); font-size: var(--text-2xs); line-height: var(--lh-2xs); font-variant-numeric: tabular-nums; }
 .ds-resulttile__developbar { position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-3); opacity: 0; transform: translateY(6px); transition: opacity var(--dur-fast) var(--ease), transform var(--dur-med) var(--ease); }
 .ds-resulttile:is(:hover, :focus-within) .ds-resulttile__developbar { opacity: 1; transform: none; }
@@ -1573,12 +1572,10 @@ button.ds-thumb__art:disabled { opacity: 0.45; cursor: not-allowed; }
 .ds-resulttile:has(.ds-resulttile__developbar):is(:hover, :focus-within) .ds-resulttile__developtext { transform: translateY(calc(-1 * var(--space-5))); }
 .ds-resulttile__developbar .ds-btn { background: var(--surface-overlay); }
 .ds-resulttile__developdetail { display: flex; align-items: center; gap: var(--space-2); }
-/* In a small tile the orbit and the word shrink so both stay in view. */
+/* In a small tile the logo and the word shrink so both stay in view. */
 .ds-resulttile__develop { container-type: size; }
 @container (max-height: 170px) {
-  .ds-resulttile__orbit { width: 32px; height: 32px; }
-  .ds-resulttile__orbit::before { inset: 10px; }
-  .ds-resulttile__orbit::after { inset: -6px; }
+  .ds-resulttile__logo { width: calc(44px * var(--ui-scale)); }
   .ds-resulttile__developtext { gap: var(--space-2); font-size: var(--text-xs); line-height: var(--lh-xs); }
   .ds-resulttile__developbar { padding: var(--space-2); }
 }
@@ -1659,17 +1656,25 @@ button.ds-thumb__art:disabled { opacity: 0.45; cursor: not-allowed; }
 .ds-viewer { gap: var(--gap-block); flex-direction: column; }
 .ds-viewer__panel { flex: none; max-width: 100%; align-self: center; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-2); border-radius: var(--radius-xl); background: var(--surface-panel); }
 .ds-viewer__title { font-size: var(--text-sm); line-height: var(--lh-sm); font-weight: var(--weight-medium); color: var(--text-primary); overflow-wrap: anywhere; }
-.ds-viewer__tools { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); }
+.ds-viewer__tools { display: flex; flex-wrap: nowrap; align-items: center; justify-content: center; gap: var(--space-2); }
 /* With generation info the full view has two columns: the media, and a column telling how it was made. */
 .ds-viewer { --viewer-info-w: calc(320px * var(--ui-scale)); }
 .ds-viewer:has(.ds-viewer__info) { flex-direction: row; align-items: stretch; }
-.ds-viewer:has(.ds-viewer__info) .ds-viewer__frame { flex: 1 1 auto; min-width: 0; align-self: center; align-items: center; }
+/* The frame hugs the media, centred in the free space, so the tools above it (Quick crop, Annotate) stay on the picture. */
+.ds-viewer:has(.ds-viewer__info) .ds-viewer__frame { flex: 0 1 auto; min-width: 0; margin-inline: auto; align-self: center; align-items: center; }
 .ds-viewer:has(.ds-viewer__info) .ds-viewer__frame :is(img, video) { max-width: calc(100vw - var(--viewer-info-w) - 3 * var(--pad-page)); }
 .ds-viewer:has(.ds-viewer__info) .ds-viewer__panel { width: var(--viewer-info-w); flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; align-self: stretch; overflow-y: auto; padding: var(--space-4); gap: var(--space-5); }
 .ds-viewer:has(.ds-viewer__info) .ds-viewer__tools { justify-content: flex-start; }
 .ds-viewer__info { display: grid; gap: var(--space-4); align-content: start; }
 .ds-viewer-info__mode { justify-self: start; padding: var(--pad-chip); border-radius: var(--radius-full); background: var(--surface-subtle); color: var(--text-primary); font-size: var(--text-xs); line-height: var(--lh-xs); }
 .ds-viewer-info__block { display: grid; gap: var(--space-2); }
+/* References in the full view column: three to five square tiles across the column; each opens its own full view, download on hover. */
+.ds-viewer-info__refs { display: grid; grid-template-columns: repeat(var(--refs, 5), minmax(0, 1fr)); gap: var(--space-2); }
+.ds-viewer-info__ref { position: relative; aspect-ratio: 1; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface-subtle); }
+.ds-viewer-info__ref > button { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.ds-viewer-info__ref > button > :is(img, video) { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ds-iconbtn.ds-viewer-info__download { position: absolute; top: var(--space-1); right: var(--space-1); width: calc(22px * var(--ui-scale)); height: calc(22px * var(--ui-scale)); min-width: 0; min-height: 0; padding: 0; border-radius: var(--radius-full); background: var(--surface-overlay); opacity: 0; pointer-events: none; }
+.ds-viewer-info__ref:is(:hover, :focus-within) .ds-viewer-info__download { opacity: 1; pointer-events: auto; }
 .ds-viewer-info__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .ds-viewer__info .ds-btn { justify-self: start; }
 
@@ -2014,7 +2019,7 @@ button.ds-castcard__main { cursor: pointer; }
 .ds-angle-sheet__check { position: absolute; top: var(--space-2); right: var(--space-2); display: grid; place-items: center; width: 22px; height: 22px; border-radius: var(--radius-full); background: var(--accent); color: var(--text-on-accent); }
 .ds-angle-sheet__tile:focus-visible .ds-angle-sheet__frame { outline: 2px solid var(--accent); outline-offset: 2px; }
 .ds-angle-sheet__original .ds-angle-sheet__frame { border-color: var(--line-strong); }
-.ds-angle-sheet__empty { padding: var(--space-3); text-align: center; font-size: var(--text-sm); line-height: var(--lh-sm); color: var(--text-secondary); }
+.ds-angle-sheet__empty { padding: var(--space-2); text-align: center; font-size: var(--text-2xs); line-height: var(--lh-2xs); color: var(--text-tertiary); }
 .ds-angle-sheet__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-md, var(--text-sm)); font-weight: var(--weight-medium); text-align: center; }
 
 /* Angle sweep viewer: one large view, a rail of every captured view, the original marked. */
@@ -2077,7 +2082,7 @@ button.ds-castcard__main { cursor: pointer; }
 .ds-resultgrid[data-masonry] .ds-media:not(:has(> video, > img)) { aspect-ratio: 16 / 9; }
 
 /* Hero */
-.ds-hero { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-section); padding: var(--space-4) 0 var(--space-6); }
+.ds-hero { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-section); padding: var(--space-4) 0 var(--space-6); overflow-x: clip; } /* the glow behind the media may bleed up and down, never sideways out of the page */
 .ds-hero__copy { display: flex; flex-direction: column; gap: var(--space-2); max-width: calc(480px * var(--ui-scale)); }
 .ds-hero__title { margin: 0; font-family: var(--font-display); font-weight: var(--weight-bold); font-size: var(--display-md); line-height: var(--lh-display-md); letter-spacing: var(--tracking-display); text-transform: uppercase; color: var(--text-primary); }
 .ds-hero__text { margin: 0; font-size: var(--text-sm); line-height: var(--lh-sm); color: var(--text-secondary); }
@@ -2123,8 +2128,6 @@ button.ds-castcard__main { cursor: pointer; }
 
 /* The main action stays in view: it is pinned under the scrolling panel, on a soft fade with a blue glow behind it. */
 .ds-panel__footer { position: relative; }
-.ds-panel__footer::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: calc(var(--row-h) * 1.2); pointer-events: none; background: linear-gradient(to top, var(--surface-panel), transparent); }
-.ds-panel__footer::after { content: ""; position: absolute; inset: auto 12% 0 12%; height: 60%; z-index: -1; pointer-events: none; background: radial-gradient(60% 100% at 50% 100%, var(--accent-soft), transparent 70%); filter: blur(12px); }
 
 /* Collapsible with the arrow at the right edge: it reads like a Row that opens. */
 .ds-collapse--end > summary { flex-direction: row-reverse; justify-content: space-between; padding-right: var(--pad-row); background: var(--surface-control); border-radius: var(--radius-md); color: var(--text-primary); }
@@ -2203,3 +2206,11 @@ button.ds-castcard__main { cursor: pointer; }
 .ds-uploadpair .ds-mediacard__media { aspect-ratio: auto; height: 100%; }
 .ds-uploadpair :is(.ds-mediacard__media, .ds-upload--filled) :is(img, video) { width: 100%; height: 100%; aspect-ratio: auto; max-height: none; object-fit: cover; }
 .ds-uploadpair .ds-upload { box-sizing: border-box; width: 100%; }
+/* Hero stage compact (rule 55): half height, title and line each on one line, once the tool has its input. */
+.ds-hero--stage { transition: min-height var(--dur-med) var(--ease), padding var(--dur-med) var(--ease); }
+.ds-hero--stage.ds-hero--compact { min-height: calc(140px * var(--ui-scale)); padding: var(--space-5) var(--space-8); }
+.ds-hero--compact .ds-hero__copy { gap: var(--space-1); max-width: none; min-width: 0; }
+.ds-hero--compact .ds-hero__title { font-size: clamp(1.5rem, 2.4vw, 2.25rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ds-hero--compact .ds-hero__text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: none; }
+/* The library choice is the quiet pill from #ds, centred under its box wherever it sits. */
+.ds-pill--quiet.ds-pill--lg { display: flex; width: fit-content; max-width: 100%; margin-inline: auto; align-self: center; }

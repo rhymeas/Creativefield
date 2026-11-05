@@ -1,7 +1,8 @@
 import {useEffect,useState,type ReactNode} from "react";
-import {Block,MediaViewer,ResultGrid,ResultTile} from "../ds";
+import {Block,MediaViewer,MediaViewerInfo,ResultGrid,ResultTile} from "../ds";
 import {OPENJUTSU_SHOWCASE,POOL_VIDEOS} from "./reels";
 import {LOAD_TURN} from "./reload-turn";
+import {useRecreateMedia} from "./recreate";
 
 /* Example media (the placeholder set) under a tool's own runs: clips play in a muted loop, pictures sit still. Clearly labelled, following the latest runs in the same grid. */
 export function ExampleTiles({kind,count,leading,leadingCount=0,videoSources,imageSources,caption="Example"}:{kind:"video"|"image";count?:number;leading?:ReactNode;leadingCount?:number;videoSources?:readonly string[];imageSources?:readonly string[];caption?:string}){
@@ -17,22 +18,21 @@ export function ExampleTiles({kind,count,leading,leadingCount=0,videoSources,ima
 /** A missing example is skipped for this view; a later visit retries it. */
 function ExampleTile({src,kind,caption}:{src:string;kind:"image"|"video";caption:string}){
   const [failed,setFailed]=useState(false);
+  const recreate=useRecreateMedia()({example:{src,name:src.split("/").pop()??`example.${kind==="image"?"png":"mp4"}`,kind}});
   if(failed)return null;
-  return <div draggable onDragStart={event=>{event.dataTransfer.setData("application/x-comfyfield-example",src);event.dataTransfer.effectAllowed="copy";}} onErrorCapture={event=>{const target=event.target as HTMLElement;if((target.tagName==="IMG"||target.tagName==="VIDEO")&&target.getAttribute("src")===src)setFailed(true);}}>{OPENJUTSU_SHOWCASE.some(item=>item.result===src)?<ShowcaseTile src={src}/>:<ResultTile caption={caption}>{kind==="video"?<video src={src} muted loop autoPlay playsInline preload="metadata" aria-hidden/>:<img draggable={false} loading="lazy" src={src} alt=""/>}</ResultTile>}</div>;
+  return <div draggable onDragStart={event=>{event.dataTransfer.setData("application/x-comfyfield-example",src);event.dataTransfer.effectAllowed="copy";}} onErrorCapture={event=>{const target=event.target as HTMLElement;if((target.tagName==="IMG"||target.tagName==="VIDEO")&&target.getAttribute("src")===src)setFailed(true);}}>{OPENJUTSU_SHOWCASE.some(item=>item.result===src)?<ShowcaseTile src={src}/>:<ResultTile caption={caption} onRecreate={recreate?()=>void recreate():undefined}>{kind==="video"?<video src={src} muted loop autoPlay playsInline preload="metadata" aria-hidden/>:<img draggable={false} loading="lazy" src={src} alt=""/>}</ResultTile>}</div>;
 }
+
+const PROMPT="Replace the person in <Video 1> with the fantasy character in <Picture 1>. Clearly reproduce the character face, skin colour, hair and complete costume from the picture. Preserve the video performance, body motion, camera and background.";
 
 function ShowcaseTile({src}:{src:string}){
   const [open,setOpen]=useState(false);
   const example=OPENJUTSU_SHOWCASE.find(item=>item.result===src)!;
-  return <><ResultTile caption="OpenJutsu example" onOpen={()=>setOpen(true)}><video src={src} muted loop autoPlay playsInline preload="metadata" aria-hidden/></ResultTile>
-    <MediaViewer open={open} src={src} name={`OpenJutsu example ${example.number}`} mediaType="video" onClose={()=>setOpen(false)} info={<>
-      <h3>How it was made</h3><p>Character swap with MiniMax H3 and OpenJutsu. The source performance, camera and setting guide the result.</p>
-      <p><strong>Original video</strong></p><video src={example.original} controls playsInline preload="metadata" style={{width:"100%",maxHeight:200}}/>
-      <p><strong>Prepared input to the workflow</strong></p><video src={example.source} controls playsInline preload="metadata" style={{width:"100%",maxHeight:200}}/>
-      <p><strong>Character reference</strong></p><img src={example.character} alt={`Character reference ${example.number}`} style={{width:"100%",maxHeight:200,objectFit:"contain"}}/>
-      <p><strong>Workflow</strong><br/>10-second prepared reference → H3 character swap → 2× Lanczos resize.</p>
-      <p><strong>Prompt</strong><br/>Replace the person in &lt;Video 1&gt; with the fantasy character in &lt;Picture 1&gt;. Clearly reproduce the character face, skin colour, hair and complete costume from the picture. Preserve the video performance, body motion, camera and background.</p>
-      <p><strong>Settings</strong><br/>480p generation · 8 steps · CFG 1 · 24 fps</p>
-      {example.number===2&&<p>The shorter source was slowed to fill 10 seconds; the final frames were extended.</p>}
-    </>}/></>;
+  const recreate=useRecreateMedia()({capabilityId:"openjutsu-h3-swap",inputs:{source_video:{src:example.source,name:`openjutsu-example-${example.number}-source.mp4`},character_image:{src:example.character,name:`openjutsu-example-${example.number}-character.png`}},controls:{prompt:PROMPT}});
+  return <><ResultTile caption="OpenJutsu example" onOpen={()=>setOpen(true)} onRecreate={recreate?()=>void recreate():undefined}><video src={src} muted loop autoPlay playsInline preload="metadata" aria-hidden/></ResultTile>
+    {/* The same column as every result's full view: mode, reference tiles, prompt, model and settings. */}
+    <MediaViewer open={open} src={src} name={`OpenJutsu example ${example.number}`} mediaType="video" onClose={()=>setOpen(false)} onRecreate={recreate} info={<MediaViewerInfo mode="Character swap" model="MiniMax H3 · OpenJutsu"
+      inputs={[{src:example.original,label:"Original video",video:true},{src:example.source,label:"Prepared input",video:true},{src:example.character,label:`Character reference ${example.number}`}]}
+      prompt={PROMPT}
+      facts={[{label:"Workflow",value:"10 s prepared reference → H3 swap → 2× resize"},{label:"Quality",value:"480p · 8 steps · CFG 1 · 24 fps"},...(example.number===2?[{label:"Length",value:"Source slowed to 10 s, last frames held"}]:[])]}/>}/></>;
 }
