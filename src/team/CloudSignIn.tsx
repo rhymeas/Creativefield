@@ -1,6 +1,6 @@
 import {useState} from "react";
 import {Button,Dialog,LinkButton,Meta,TextField} from "../ds";
-import {storeCloudKey,workspacePath,type Call} from "./api";
+import {ApiError,storeCloudKey,workspacePath,type Call} from "./api";
 
 /** The Comfy account behind a key, as the server reads it (name, email, workspace, credits). */
 export type CloudAccountFacts={connected:boolean;name?:string;email?:string;workspace?:string;credits?:number;canSubmit?:boolean;addCreditsUrl?:string;reason?:string};
@@ -16,7 +16,7 @@ export function CloudSignIn({workspaceId,call,onClose,onSignedIn}:{workspaceId:s
     const value=key.trim();if(!value||busy)return;
     setBusy(true);setError("");
     try{const account=await call<CloudAccountFacts>(workspacePath(workspaceId,"cloud-key"),"POST",{key:value});storeCloudKey(value);await onSignedIn(account);}
-    catch(e){setError((e as Error).message);}
+    catch(e){setError(e instanceof ApiError&&(e.status===401||e.status===403)?"This tab was out of date and has been refreshed. Sign in again.":(e as Error).message);}
     finally{setBusy(false);}
   }
   return <Dialog open title="Use CreativeField with Comfy Cloud" onClose={onClose} footer={<><Button variant="ghost" onClick={onClose}>Not now</Button><Button variant="primary" disabled={busy||!key.trim()} onClick={()=>void submit()}>{busy?"Checking…":"Sign in"}</Button></>}>

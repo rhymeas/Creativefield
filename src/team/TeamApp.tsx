@@ -156,14 +156,17 @@ export function carryCreateDraft(manifest:CapabilityManifestV2,previous:ImageDra
 export default function TeamApp(){
   const [user,setUser]=useState<User|null>(null),[workspaces,setWorkspaces]=useState<Workspace[]>([]),[workspaceId,setWorkspaceId]=useState("");
   const [authRequired,setAuthRequired]=useState(false),[offline,setOffline]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState("");
+  /* A hosted guest whose session changed under this tab (another tab, or the old shared demo) is resynced, never asked for a password. */
+  const guestTab=useRef(false),resync=useRef<()=>Promise<void>>(async()=>{});
   const call:Call=useCallback(async<T,>(path:string,method?:string,body?:unknown,options?:RequestOptions)=>{
     try {const value=await request<T>(path,method,body,options);setOffline(false);return value;}
-    catch(e){if(e instanceof ApiError){if(e.status===401)setAuthRequired(true);if(e.status===0)setOffline(true);}throw e;}
+    catch(e){if(e instanceof ApiError){if(guestTab.current&&(e.status===401||e.status===403))void resync.current().catch(()=>undefined);else if(e.status===401)setAuthRequired(true);if(e.status===0)setOffline(true);}throw e;}
   },[]);
   const signIn=useCallback(async()=>{
     const account=await request<User>("/auth/me"),memberships=await request<Workspace[]>("/workspaces");
-    setUser(account);setWorkspaces(memberships);setWorkspaceId(id=>memberships.some(w=>w.id===id)?id:memberships[0]?.id??"");setAuthRequired(false);setOffline(false);setError("");setLoading(false);
+    guestTab.current=!!account.guest;setUser(account);setWorkspaces(memberships);setWorkspaceId(id=>memberships.some(w=>w.id===id)?id:memberships[0]?.id??"");setAuthRequired(false);setOffline(false);setError("");setLoading(false);
   },[]);
+  resync.current=signIn;
   useEffect(()=>{let active=true;void signIn().catch(e=>{if(active){if(!(e instanceof ApiError)||e.status!==401)setError((e as Error).message);setLoading(false);}});return()=>{active=false;};},[signIn]);
   const signOut=useCallback(async()=>{await call("/auth/logout","POST");setUser(null);setWorkspaces([]);setWorkspaceId("");setAuthRequired(false);},[call]);
   const closeReauth=useCallback(()=>{},[]);

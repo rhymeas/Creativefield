@@ -5,12 +5,16 @@ import { transaction } from "./db";
 
 export class HttpError extends Error { constructor(readonly statusCode: number, message: string) { super(message); } }
 export type Principal = { id: string; email: string };
+/** Every hosted guest's made-up address ends in this. */
+export const GUEST_DOMAIN = "@guest.creativefield";
 export type Role = "admin" | "creator" | "viewer";
 export async function principal(pool: Pool, request: FastifyRequest): Promise<Principal> {
   const token = request.cookies.cf_session;
   if (!token || token.length > 128) throw new HttpError(401, "Sign in to your team workspace");
   const result = await pool.query("SELECT u.id,u.email FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now()", [hashToken(token)]);
   if (!result.rows[0]) throw new HttpError(401, "Session expired");
+  /* A hosted try-out (GUEST_PER_BROWSER=1) only knows guests: a session from the old shared demo starts over as a guest. */
+  if (process.env.GUEST_PER_BROWSER === "1" && !String(result.rows[0].email).endsWith(GUEST_DOMAIN)) throw new HttpError(401, "Session expired");
   return result.rows[0];
 }
 export async function ensureLocalUser(pool: Pool): Promise<Principal> {
@@ -37,7 +41,7 @@ export async function ensureLocalUser(pool: Pool): Promise<Principal> {
  *  never sees another one's files, runs or Comfy Cloud account. The guest has no password to sign in with. */
 export async function createGuest(pool: Pool): Promise<Principal> {
   return transaction(pool, async client => {
-    const userId = newId(), workspaceId = newId(), email = `guest-${userId}@guest.creativefield`;
+    const userId = newId(), workspaceId = newId(), email = `guest-${userId}${GUEST_DOMAIN}`;
     await client.query("INSERT INTO users(id,email,password_hash) VALUES($1,$2,$3)", [userId, email, await hashPassword(generateLocalSecret())]);
     await client.query("INSERT INTO workspaces(id,name) VALUES($1,'My studio')", [workspaceId]);
     await client.query("INSERT INTO memberships(workspace_id,user_id,role) VALUES($1,$2,'admin')", [workspaceId, userId]);
