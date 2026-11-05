@@ -11,6 +11,8 @@ const VoiceRunReview=lazy(()=>import("./audio/VoiceRunReview").then(module=>({de
 const SpeechAudioPlayer=lazy(()=>import("./audio/SpeechAudioPlayer").then(module=>({default:module.SpeechAudioPlayer})));
 import {activeRun,runLabel} from "./state";
 import {ExampleTiles} from "./ExampleTiles";
+import {MediaPreview} from "./MediaPreview";
+import {newestMediaFirst} from "./media-order";
 import {LIBRARY_EXAMPLE_VIDEOS,promoReelForCapability} from "./reels";
 import {jobQueueTitle,runLocation} from "./job-queue";
 import {useRecreate} from "./recreate";
@@ -131,9 +133,9 @@ export function TeamLibrary({workspace,project,call,canEdit,authorized,version,u
     :<div className={`ds-grid cf-library-grid ${densityColumnsClass(density,assets.length+(pending?1:0)+(canEdit?1:0))}`}>
       {canEdit&&<UploadSlot tile label="Add media" hint="Image, video or audio" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,audio/wav,audio/mpeg" kinds={["image","video","audio"]} disabled={pending?.state==="uploading"} onFile={pick}/>}
       {pending&&<UploadTile src={pending.src} kind={pending.kind} state={pending.state} onRetry={retry} onDismiss={dismiss}/>}
-      {assets.map(asset=>{
+      {newestMediaFirst(assets).map(asset=>{
         const image=asset.content_type.startsWith("image/"),video=asset.content_type.startsWith("video/"),model=asset.content_type==="model/gltf-binary",viewable=image||video||model,src=assetUrl(workspace.id,asset.id);
-        return <MediaCard quiet dragAsset={{id:asset.id,url:src,contentType:asset.content_type}} key={asset.id} media={image?<img draggable={false} src={src} alt="" loading="lazy"/>:video?<video draggable={false} muted playsInline preload="metadata" src={`${src}#t=0.1`}/>:model?<Suspense fallback={<Meta>Loading model</Meta>}><ModelPreview url={src} standalone/></Suspense>:<audio controls preload="metadata" src={src}/>} viewLabel={`View ${asset.name}`} onView={viewable?()=>{if(model)location.hash=`3d/viewer/${asset.id}`;else setViewing(asset);}:undefined} info={<><span>{asset.name}</span><Meta parts={[asset.content_type,asset.media_type==="mask"?"Validated mask":asset.parent_id&&"New version"]}/></>} actions={<>
+        return <MediaCard quiet dragAsset={{id:asset.id,url:src,contentType:asset.content_type}} key={asset.id} media={image?<MediaPreview key={src} src={src} kind="image" lazy/>:video?<MediaPreview key={src} src={`${src}#t=0.1`} kind="video" alt={asset.name}/>:model?<Suspense fallback={<Meta>Loading model</Meta>}><ModelPreview url={src} standalone/></Suspense>:<audio controls preload="metadata" src={src}/>} viewLabel={`View ${asset.name}`} onView={viewable?()=>{if(model)location.hash=`3d/viewer/${asset.id}`;else setViewing(asset);}:undefined} info={<><span>{asset.name}</span><Meta parts={[asset.content_type,asset.media_type==="mask"?"Validated mask":asset.parent_id&&"New version"]}/></>} actions={<>
           {(viewable||asset.content_type.startsWith("audio/"))&&<IconButton label={`View ${asset.name}`} onClick={()=>{if(model)location.hash=`3d/viewer/${asset.id}`;else setViewing(asset);}}><Eye size={14}/></IconButton>}
           {model&&canEdit&&<><Button variant="ghost" onClick={()=>{location.hash=`3d/texture/${asset.id}`;}}>Texture</Button><Button variant="ghost" onClick={()=>{location.hash=`3d/mesh/${asset.id}`;}}>Mesh tools</Button></>}{image&&canEdit&&<Button variant="ghost" onClick={()=>{location.hash=`3d/image/auto/${asset.id}`;}}>Create 3D</Button>}{image&&canEdit&&<IconButton label={`Edit ${asset.name}`} onClick={()=>{location.hash=`imageedit/${asset.id}`;}}><Pencil size={14}/></IconButton>}
           {video&&canEdit&&videoEditReady&&<IconButton label={`Edit ${asset.name}`} onClick={()=>onEditVideo(asset)}><Pencil size={14}/></IconButton>}

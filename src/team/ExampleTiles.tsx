@@ -11,7 +11,14 @@ export function ExampleTiles({kind,count,leading,leadingCount=0,videoSources,ima
   const showcases=all.some(src=>OPENJUTSU_SHOWCASE.some(item=>item.result===src))?OPENJUTSU_SHOWCASE.map(item=>item.result):[];
   const others=all.filter(src=>!showcases.includes(src)),cut=others.length?LOAD_TURN%others.length:0,sources=[...showcases,...others.slice(cut),...others.slice(0,cut)];
   if(!sources.length&&!leadingCount)return null;
-  return <Block label="Examples"><ResultGrid count={leadingCount+Math.min(count??sources.length,sources.length)} aspect={0} label="Results and examples">{leading}{sources.slice(0,count??sources.length).map(src=><div key={src} draggable onDragStart={event=>{event.dataTransfer.setData("application/x-comfyfield-example",src);event.dataTransfer.effectAllowed="copy";}}>{OPENJUTSU_SHOWCASE.some(item=>item.result===src)?<ShowcaseTile src={src}/>:<ResultTile caption={caption}>{kind==="video"?<video src={src} muted loop autoPlay playsInline preload="metadata" aria-hidden/>:<img draggable={false} loading="lazy" src={src} alt=""/>}</ResultTile>}</div>)}</ResultGrid></Block>;
+  return <Block label="Examples"><ResultGrid count={leadingCount+Math.min(count??sources.length,sources.length)} aspect={0} label="Results and examples">{leading}{sources.slice(0,count??sources.length).map(src=><ExampleTile key={src} src={src} kind={kind} caption={caption}/>)}</ResultGrid></Block>;
+}
+
+/** A missing example is skipped for this view; a later visit retries it. */
+function ExampleTile({src,kind,caption}:{src:string;kind:"image"|"video";caption:string}){
+  const [failed,setFailed]=useState(false);
+  if(failed)return null;
+  return <div draggable onDragStart={event=>{event.dataTransfer.setData("application/x-comfyfield-example",src);event.dataTransfer.effectAllowed="copy";}} onErrorCapture={event=>{const target=event.target as HTMLElement;if((target.tagName==="IMG"||target.tagName==="VIDEO")&&target.getAttribute("src")===src)setFailed(true);}}>{OPENJUTSU_SHOWCASE.some(item=>item.result===src)?<ShowcaseTile src={src}/>:<ResultTile caption={caption}>{kind==="video"?<video src={src} muted loop autoPlay playsInline preload="metadata" aria-hidden/>:<img draggable={false} loading="lazy" src={src} alt=""/>}</ResultTile>}</div>;
 }
 
 function ShowcaseTile({src}:{src:string}){
