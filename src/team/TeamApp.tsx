@@ -5,7 +5,7 @@ import {KeyframeStudio} from "./KeyframeStudio";
 import {StartScreen} from "./StartScreen";
 import {GettingStarted} from "./GettingStarted";
 import {Welcome} from "./Welcome";
-import {CloudSignIn,type CloudAccountFacts} from "./CloudSignIn";
+import {CloudSignIn,reopenCloudSignIn,type CloudAccountFacts} from "./CloudSignIn";
 import {SwapThingPanel} from "./SwapThingPanel";
 import {ReferenceReplacePanel} from "./ReferenceReplacePanel";
 import {changeChoiceFromHash,startTasks,type StartTask} from "./start-tasks";
@@ -246,7 +246,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const manifest=catalogue.find(m=>m.id===capabilityId),project=projects.find(p=>p.id===projectId);
   intentScope.current=`${workspace.id}:${project?.id??""}`;
   /* The Comfy account behind the cloud key, shown in the user menu. */
-  const [account,setAccount]=useState<CloudAccountFacts|null>(null),[cloudSignIn,setCloudSignIn]=useState(false);
+  const [account,setAccount]=useState<CloudAccountFacts|null>(null),[cloudSignIn,setCloudSignIn]=useState(reopenCloudSignIn);
   useEffect(()=>{if(!authorized)return;let live=true;void call<NonNullable<typeof account>>(workspacePath(workspace.id,"cloud-account")).then(a=>{if(live)setAccount(a);}).catch(()=>{});return()=>{live=false;};},[authorized,workspace.id,call]);
   const cloudWorker=workers.find(isCloudWorker),runChoices=runTargetOptions(workers,route==="image"||route==="imageedit"||runOn==="chatgpt",user.guest?!!account?.connected:undefined),runWorkers=targetWorkers(workers,runOn==="router"?"local":runOn),cloudConsentKey=`comfyfield.cloud-consent:v1:${user.id}:${workspace.id}`;
   useEffect(()=>{if(runOn==="cloud"&&!cloudWorker){setRunOn("local");setAskCloud(false);}},[runOn,cloudWorker]);

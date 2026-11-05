@@ -5,6 +5,10 @@ import {ApiError,storeCloudKey,workspacePath,type Call} from "./api";
 /** The Comfy account behind a key, as the server reads it (name, email, workspace, credits). */
 export type CloudAccountFacts={connected:boolean;name?:string;email?:string;workspace?:string;credits?:number;canSubmit?:boolean;addCreditsUrl?:string;reason?:string};
 
+/* A guest tab that was out of date is resynced and remounted; the dialog then opens again on its own. */
+const REOPEN="creativefield.cloud-sign-in-again";
+export function reopenCloudSignIn():boolean{try{const again=sessionStorage.getItem(REOPEN)==="1";sessionStorage.removeItem(REOPEN);return again;}catch{return false;}}
+
 /** Where Comfy hands out API keys. */
 const KEYS_URL="https://platform.comfy.org/profile/api-keys";
 
@@ -16,7 +20,7 @@ export function CloudSignIn({workspaceId,call,onClose,onSignedIn}:{workspaceId:s
     const value=key.trim();if(!value||busy)return;
     setBusy(true);setError("");
     try{const account=await call<CloudAccountFacts>(workspacePath(workspaceId,"cloud-key"),"POST",{key:value});storeCloudKey(value);await onSignedIn(account);}
-    catch(e){setError(e instanceof ApiError&&(e.status===401||e.status===403)?"This tab was out of date and has been refreshed. Sign in again.":(e as Error).message);}
+    catch(e){const stale=e instanceof ApiError&&(e.status===401||e.status===403);if(stale)try{sessionStorage.setItem(REOPEN,"1");}catch{/* storage may be unavailable */}setError(stale?"This tab was out of date and has been refreshed. Sign in again.":(e as Error).message);}
     finally{setBusy(false);}
   }
   return <Dialog open title="Use CreativeField with Comfy Cloud" onClose={onClose} footer={<><Button variant="ghost" onClick={onClose}>Not now</Button><Button variant="primary" disabled={busy||!key.trim()} onClick={()=>void submit()}>{busy?"Checking…":"Sign in"}</Button></>}>
