@@ -17,3 +17,13 @@ export async function probeVideo(filename:string) {
   if(!video?.width||!video.height||!Number.isFinite(duration)||duration<=0)throw new Error("Output has no valid encoded video stream");
   return {width:video.width,height:video.height,durationSeconds:duration,codec:video.codec_name,frameRate:video.r_frame_rate,hasAudio:data.streams?.some(s=>s.codec_type==="audio")??false,container:data.format?.format_name};
 }
+
+/** Size, length and frame rate measured from the stored file, for checks such as Kling's
+    720p–2160p, 24–60 fps rule. Best-effort: a file that cannot be read yields no facts. */
+export async function measuredMediaFacts(filename:string,contentType:string):Promise<Record<string,unknown>>{
+  try{
+    if(contentType.startsWith("video/")){const video=await probeVideo(filename);return {durationSeconds:video.durationSeconds,width:video.width,height:video.height,...(video.frameRate?{frameRate:video.frameRate}:{})};}
+    if(["image/png","image/jpeg","image/webp"].includes(contentType)){const {probeImage}=await import("./image-media");const image=await probeImage(filename);return {width:image.width,height:image.height};}
+  }catch{/* Preparation checks the actual media before submission. */}
+  return {};
+}

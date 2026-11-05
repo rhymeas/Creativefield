@@ -7,12 +7,13 @@ import {elementInputsSchema,resolveRunInputs} from "../element-inputs";
 import type {DirectRegistry} from "./registry";
 import {BROWSER_KEY_CONNECTION,guestRouterKey} from "../cloud-keys";
 import {ROUTER_MODELS,routerInputProblem} from '../../src/capabilities/router-models';
+import {measuredMediaFacts} from "../media";
 
 // Local/storyboard RunRequest and PreparedRun remain unchanged.
 export const admissionSchema=requestSchema.extend({workerId:requestSchema.shape.workerId.optional(),elementInputs:elementInputsSchema.optional()});
 type Admission=ReturnType<typeof admissionSchema.parse>;
 
-export async function enqueueDirect(client:PoolClient,catalogue:CapabilityBundle[],registry:DirectRegistry,workspaceId:string,userId:string,body:Admission,requestHash:string){
+export async function enqueueDirect(client:PoolClient,catalogue:CapabilityBundle[],registry:DirectRegistry,workspaceId:string,userId:string,body:Admission,requestHash:string,storeFile?:(storageKey:string)=>Promise<string>){
   if(body.workerId!==undefined)throw new HttpError(400,"Direct execution does not use a ComfyUI worker");
   if(body.tracking!==undefined)throw new HttpError(400,"Tracking input is not supported by this route");
   if(!(await client.query("SELECT id FROM projects WHERE workspace_id=$1 AND id=$2",[workspaceId,body.projectId])).rowCount)throw new HttpError(404,"Project not found");
@@ -27,7 +28,16 @@ export async function enqueueDirect(client:PoolClient,catalogue:CapabilityBundle
   if(entry.binding.provider==='comfy-router'){
     const model=ROUTER_MODELS.find(m=>m.id===manifest.id);
     if(!model)throw new HttpError(422,'Cloud model contract is unavailable');
-    const rows=(await client.query('SELECT id,content_type,bytes,metadata FROM assets WHERE workspace_id=$1 AND id=ANY($2::uuid[])',[workspaceId,Object.values(resolved.inputIds)])).rows;
+    const rows=(await client.query('SELECT id,content_type,bytes,metadata,storage_key FROM assets WHERE workspace_id=$1 AND id=ANY($2::uuid[])',[workspaceId,Object.values(resolved.inputIds)])).rows;
+    /* Uploads from before size and frame rate were recorded are measured once here and kept. */
+    if(storeFile)for(const row of rows){
+      const meta=row.metadata??{},video=String(row.content_type).startsWith('video/');
+      if(meta.width!==undefined&&meta.height!==undefined&&(!video||meta.frameRate!==undefined&&meta.durationSeconds!==undefined))continue;
+      const facts=await measuredMediaFacts(await storeFile(row.storage_key),String(row.content_type));
+      if(!Object.keys(facts).length)continue;
+      row.metadata={...meta,...facts};
+      await client.query('UPDATE assets SET metadata=$3 WHERE workspace_id=$1 AND id=$2',[workspaceId,row.id,JSON.stringify(row.metadata)]);
+    }
     const checked=Object.fromEntries(Object.entries(resolved.inputIds).map(([role,id])=>[role,rows.find(a=>a.id===id)]));
     const problem=routerInputProblem(model,checked);if(problem)throw new HttpError(400,problem);
   }

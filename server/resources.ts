@@ -15,7 +15,7 @@ import {elementInputsSchema} from "./element-inputs";
 import {deleteLibraryAsset} from "./asset-deletion";
 import {inspectGlb} from "../src/team/three-d/glb-document";
 import {deleteRun} from "./runs";
-import {probeVideo} from "./media";
+import {measuredMediaFacts,probeVideo} from "./media";
 
 const base = "/api/v1/workspaces/:workspaceId";
 const ws = z.object({ workspaceId: z.uuid() });
@@ -132,10 +132,8 @@ export async function resourceRoutes(app: FastifyInstance, pool: Pool, store: Di
       let metadata:Record<string,unknown>=query.purpose?{editorDocumentBitmap:true}:{};
       // Duration lets workspaces warn before automatically trimming an upload.
       // Probing is best-effort: unavailable ffprobe must not prevent an upload.
-      if(mediaType==="video"){
-        try{const video=await probeVideo(await store.file(workspaceId,saved.key));metadata.durationSeconds=video.durationSeconds;}
-        catch{ /* Preparation checks the actual media before submission. */ }
-      }
+      /* Size and frame rate too, so cloud models that check them (Kling) can read the upload. */
+      if(mediaType==="video"||mediaType==="image"||mediaType==="reference")metadata={...metadata,...await measuredMediaFacts(await store.file(workspaceId,saved.key),file.mimetype)};
       if(mediaType==="model3d"){if(saved.bytes>64*1024*1024)throw new HttpError(413,"GLB models must be smaller than 64 MB.");try{inspectGlb(await readFile(await store.file(workspaceId,saved.key)));metadata={format:"glb",version:2,bytes:saved.bytes};}catch(error){throw new HttpError(422,(error as Error).message);}}
       if(file.mimetype==="image/png"&&["image","mask","layer"].includes(mediaType)){
         if(saved.bytes>DEFAULT_PNG_VALIDATION_LIMITS.maxBytes)throw new HttpError(413,"The PNG file exceeds the allowed byte size");

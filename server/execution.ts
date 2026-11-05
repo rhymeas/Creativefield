@@ -1269,7 +1269,7 @@ export async function executionRoutes(app:FastifyInstance,pool:Pool,store:DiskSt
         if(tools.state!=="ready")throw new HttpError(422,tools.state==="install_required"?`Masked editing installation required: ${tools.missing.join(", ")}. ${tools.instructions}`:`Masked editing check incomplete. ${tools.instructions}`);
       }
       const route=bundle?.manifest.routes.find(r=>r.id===body.routeId);
-      if(route?.execution==="direct_provider")return enqueueDirect(client,scopedCatalogue,registry,workspaceId,user.id,body,requestHash);
+      if(route?.execution==="direct_provider")return enqueueDirect(client,scopedCatalogue,registry,workspaceId,user.id,body,requestHash,key=>store.file(workspaceId,key));
       /* A cloud route is admitted here, with the cloud worker's own probe as its readiness. A panel
          that only knows the pack's local route still reaches the cloud: prepareInvocation asks the
          chosen worker, so every chain and storyboard step keeps the worker a person picked. */
