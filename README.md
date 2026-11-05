@@ -1,16 +1,16 @@
 <div align="center">
   <img src="src/assets/creativefield-logo.png" alt="CreativeField" width="360">
 
-  <a href="https://creativefield-production.up.railway.app/examples/creativefield-promo-v3.mp4"><img src="docs/screens/creativefield/creativefield-promo-v3.webp" alt="Watch the CreativeField introduction video" width="100%"></a>
+  <a href="https://www.creativefield.app/examples/creativefield-promo-v3.mp4"><img src="docs/screens/creativefield/creativefield-promo-v3.webp" alt="Watch the CreativeField introduction video" width="100%"></a>
 
-  [▶ Watch the CreativeField video](https://creativefield-production.up.railway.app/examples/creativefield-promo-v3.mp4)
+  [▶ Watch the CreativeField video](https://www.creativefield.app/examples/creativefield-promo-v3.mp4)
 
   # CreativeField
 
   **A free, open-source, AI-powered Photoshop alternative, and a simple studio for ComfyUI video, image and 3D. It runs on your own computer.**
 </div>
 
-**[Try the online preview](https://creativefield-production.up.railway.app/)** — a shared public test workspace. Anyone with the link can view, change or remove its content; please do not upload private files. The preview does not currently have a GPU renderer connected.
+**[Try it online at creativefield.app](https://www.creativefield.app/)** — every browser gets its own private try-out workspace, deleted after a day without a visit. Sign in with your own Comfy API key and renders run on Comfy Router (FLUX, Seedance, Kling, MiniMax H3) on your Comfy credits, the free plan included. The key stays in your browser.
 
 Made for the [#OpenSourceHiggsfield](https://comfy.org/open-source-higgsfield/) challenge.
 
