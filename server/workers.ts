@@ -166,6 +166,8 @@ export class WorkerMonitor {
   async close(){this.stopped=true;await this.pending;}
   private async refresh(){
     const workers=(await this.pool.query("SELECT * FROM workers WHERE enabled=true AND (checked_at IS NULL OR checked_at<now()-interval '1 minute')")).rows;
-    for(const worker of workers)if(!this.stopped)await probeWorker(this.pool,this.catalogue,worker);
+    /* A Comfy Cloud worker whose visitor key the server does not hold (after a restart, until the browser sends it
+       again) is left as it was: probing it without a key would only mark it offline. */
+    for(const worker of workers)if(!this.stopped&&(worker.kind!=="cloud"||cloudKey(worker.workspace_id)))await probeWorker(this.pool,this.catalogue,worker);
   }
 }

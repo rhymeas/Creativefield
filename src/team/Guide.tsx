@@ -1,13 +1,15 @@
 import {useState} from "react";
-import {Cloud,Cpu,Download,Image as ImageIcon,KeyRound,MessageCircle,Monitor,Sparkles,Wand2} from "lucide-react";
-import {Button,Dialog,HowItWorks,LinkButton,SegmentedTabs,StatusText,Toolbar} from "../ds";
+import {Cloud,Cpu,Download,Image as ImageIcon,KeyRound,MessageCircle,Monitor,Rocket,ShieldCheck,Sparkles,Wand2} from "lucide-react";
+import type {ReactNode} from "react";
+import {Button,Dialog,HowItWorks,LinkButton,ModeTabs,StatusText,Toolbar} from "../ds";
 
 /** Where the source lives; there are no packaged releases yet, so the ZIP is the main branch. */
 export const GITHUB_URL="https://github.com/rhymeas/Creativefield";
 export const GITHUB_ZIP=`${GITHUB_URL}/archive/refs/heads/main.zip`;
 
 type Section="start"|"run"|"worker"|"data"|"download";
-const SECTIONS:{id:Section;label:string}[]=[{id:"start",label:"Start"},{id:"run",label:"Where it runs"},{id:"worker",label:"Workers"},{id:"data",label:"Your data"},{id:"download",label:"Download"}];
+/* The guide's sections are its modes (rule 32): large tabs with an icon, so they read as a choice of pages. */
+const SECTIONS:{id:Section;label:string;icon:ReactNode}[]=[{id:"start",label:"Start",icon:<Rocket size={16}/>},{id:"run",label:"Where it runs",icon:<Cloud size={16}/>},{id:"worker",label:"Workers",icon:<Cpu size={16}/>},{id:"data",label:"Your data",icon:<ShieldCheck size={16}/>},{id:"download",label:"Download",icon:<Download size={16}/>}];
 
 /* A plain-words guide for people who are not technical: what a worker is, how the cloud and ChatGPT
    fit in, where their things are kept, and the download. It is part of the page itself: nothing is
@@ -18,7 +20,7 @@ export function Guide({hosted,cloudConnected,onClose,onCloudSignIn,onOpenWorkers
   const download=<><LinkButton variant="primary" href={GITHUB_URL} target="_blank" rel="noreferrer">Open on GitHub</LinkButton><LinkButton variant="ghost" href={GITHUB_ZIP} rel="noreferrer">Download ZIP</LinkButton></>;
   return <Dialog open wide title="How CreativeField works" onClose={onClose} footer={<Button variant="secondary" onClick={onClose}>Got it</Button>}>
     <div className="cf-form">
-      <SegmentedTabs label="Guide section" quiet value={section} onChange={setSection} items={SECTIONS}/>
+      <ModeTabs label="Guide section" value={section} onChange={setSection} items={SECTIONS}/>
       {section==="start"&&<HowItWorks title="Make something in three steps" lead="CreativeField turns a few words, a photo or a clip into pictures, video and 3D. You don't need to know anything about AI models."
         steps={[
           {icon:<Wand2 size={20}/>,title:"Pick a tool",text:"Video, Image, FotoField or 3D in the top bar. Each tool does one thing, such as a new picture or a moving clip."},
