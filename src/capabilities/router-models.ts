@@ -1,7 +1,7 @@
 import type {CapabilityManifestV2,Control,Port} from './types';
 
-export type CloudFeature='keyframes'|'video-upscale'|'image-upscale'|'image-create'|'image-edit'|'image-angles'|'image-relight'|'video-create'|'video-edit'|'replace-character'|'motion-transfer'|'restyle'|'object-swap'|'openjutsu'|'unsupported';
-export type RouterModel={id:string;model:string;title:string;features:CloudFeature[];kind:'flux'|'seedance'|'kling-edit'|'kling-motion'|'h3-reference'|'bfl-video-upscale'|'bria-upscale';output:'image'|'video';inputs:Port[];controls:Control[]};
+export type CloudFeature='effects'|'keyframes'|'video-upscale'|'image-upscale'|'image-create'|'image-edit'|'image-angles'|'image-relight'|'video-create'|'video-edit'|'replace-character'|'motion-transfer'|'restyle'|'object-swap'|'openjutsu'|'unsupported';
+export type RouterModel={id:string;model:string;title:string;features:CloudFeature[];kind:'flux'|'seedance'|'kling-edit'|'kling-motion'|'h3-reference'|'bfl-video-upscale'|'bria-upscale'|'h3-effect';output:'image'|'video';inputs:Port[];controls:Control[]};
 const prompt:Control={id:'prompt',label:'Prompt',type:'string',default:'',apiField:'prompt'};
 const seed:Control={id:'seed',label:'Seed',type:'integer',default:1,min:0,max:2147483647,apiField:'seed'};
 const image=(id:string,label:string,required=false):Port=>({id,label,type:'image',required});
@@ -9,11 +9,23 @@ const video:Port={id:'source_video',label:'Your video',type:'video',required:tru
 const reference=[image('reference_image','Character or reference'),image('reference_image_2','Second reference')];
 const fluxControls:Control[]=[prompt,{id:'width',label:'Width',type:'integer',default:1024,min:256,max:2048,apiField:'width'},{id:'height',label:'Height',type:'integer',default:1024,min:256,max:2048,apiField:'height'},seed];
 const klingControls:Control[]=[prompt,{id:'mode',label:'Quality',type:'select',options:['std','pro'],default:'std',apiField:'mode'}];
+/** The effects of the local MiniMax H3 effects workflow (native-workflows/h3-effects presets). */
+export const H3_EFFECTS:{id:string;title:string;prompt:string}[]=[
+ {id:'fire_breath',title:'Fire breath',prompt:'The person in the picture takes a deep breath and breathes a huge stream of fire toward the camera.'},
+ {id:'bullet_time',title:'Bullet time',prompt:'The person in the picture leaps into the air; time freezes mid-jump and the camera circles around them in bullet time.'},
+ {id:'blooming_flowers',title:'Blooming flowers',prompt:'Flowers bloom and grow all around the person in the picture until they are surrounded by blossoms.'},
+ {id:'four_seasons',title:'Four seasons',prompt:'The seasons change around the person in the picture: spring blossoms, summer sun, autumn leaves and winter snow.'},
+ {id:'kiss_camera',title:'Kiss to camera',prompt:'The person in the picture leans toward the camera, smiles and blows a kiss.'},
+ {id:'storm_magic',title:'Storm magic',prompt:'The person in the picture calls down a storm; lightning crackles and wind whips around them.'},
+ {id:'truman_show',title:'Film set reveal',prompt:'The person in the picture walks forward and touches the sky, which turns out to be a painted wall of a giant film set.'},
+];
 /** Reviewed contracts, not a blanket forwarding of Router's catalog. No model is substituted. */
 export const ROUTER_MODELS:RouterModel[]=[
  {id:'router-h3-reference',model:'minimax/minimax-h3',title:'MiniMax H3 Reference',features:['openjutsu'],kind:'h3-reference',output:'video',inputs:[video,image('reference_image','Character',true),image('reference_image_2','Scene reference (optional)')],controls:[{...prompt,default:'Keep the reference performance, camera and scene.'},{id:'duration',label:'Seconds',type:'integer',default:5,min:5,max:15,apiField:'duration'},{id:'resolution',label:'Quality',type:'select',options:['768P'],default:'768P',apiField:'resolution'},{...seed,max:4294967295}]},
  {id:'router-flux-create',model:'bfl/flux-2-pro',title:'FLUX 2 Pro',features:['image-create'],kind:'flux',output:'image',inputs:[],controls:fluxControls},
  {id:'router-flux-edit',model:'bfl/flux-2-pro',title:'FLUX 2 Pro',features:['image-edit','image-angles','image-relight'],kind:'flux',output:'image',inputs:[image('source_image','Your image',true),...reference],controls:fluxControls},
+ /* The local h3-effects workflow's presets, without its local embedding token: one photo, one effect, on MiniMax H3. */
+ {id:'router-h3-effects',model:'minimax/minimax-h3',title:'MiniMax H3 Effects',features:['effects'],kind:'h3-effect',output:'video',inputs:[image('start_image','Photo',true)],controls:[{id:'effect',label:'Effect',type:'select',options:H3_EFFECTS.map(e=>e.title),default:H3_EFFECTS[0].title,apiField:'effect'},{...prompt,label:'Add to the effect (optional)'},{id:'duration',label:'Seconds',type:'integer',default:5,min:4,max:15,apiField:'duration'},{id:'resolution',label:'Quality',type:'select',options:['768P','2K'],default:'768P',apiField:'resolution'},{...seed,max:4294967295}]},
  /* Upscalers, from each model's Router OpenAPI document (GET /v2/models/<id>/openapi.json). BFL takes up to 20 s and 50 MB of video. */
  {id:'router-video-upscale',model:'bfl/video-upscale-v1',title:'FLUX Video Upscale',features:['video-upscale'],kind:'bfl-video-upscale',output:'video',inputs:[video],controls:[{...prompt,label:'Describe the clip (optional)'},{id:'upscale_factor',label:'Scale',type:'select',options:[1.5,2,3],default:2,apiField:'upscale_factor'},{id:'creativity',label:'Detail',type:'select',options:[0,1],default:0,apiField:'creativity'}]},
  {id:'router-image-upscale',model:'bria/image-edit-increase-resolution',title:'Bria Upscale',features:['image-upscale'],kind:'bria-upscale',output:'image',inputs:[image('source_image','Your image',true)],controls:[{id:'desired_increase',label:'Scale',type:'select',options:[2,4],default:2,apiField:'desired_increase'}]},
@@ -30,7 +42,7 @@ export function routerInputProblem(m:RouterModel,assets:Record<string,{content_t
  let imageBytes=0;
  for(const [role,a] of Object.entries(assets)){
   if(a.content_type.startsWith('image/')){
-   if(m.kind==='h3-reference'){if(!['image/png','image/jpeg','image/webp','image/gif'].includes(a.content_type))return 'Add a readable reference image.';continue;}
+   if(m.kind==='h3-reference'||m.kind==='h3-effect'){if(!['image/png','image/jpeg','image/webp','image/gif'].includes(a.content_type))return 'Add a readable reference image.';continue;}
    imageBytes+=Number(a.bytes);if(!['image/png','image/jpeg'].includes(a.content_type))return 'Use PNG or JPEG references for this cloud model.';
    if(m.kind.startsWith('kling')){const w=Number(a.metadata?.width),h=Number(a.metadata?.height),minimum=300;if(!w||!h||Math.min(w,h)<minimum||w/h>2.5||h/w>2.5)return `Kling references need at least ${minimum} pixels on each side and an aspect ratio between 1:2.5 and 2.5:1.`;}
   }else if(role==='source_video'){
@@ -64,6 +76,7 @@ export function cloudFeature(route:string,videoMode:string,imageTab:string,chang
  if(route==='imageedit')return 'image-edit';
  if(route==='video'||route==='motion'){
   if(videoMode==='create')return 'video-create';
+  if(videoMode==='effects')return 'effects';
   if(videoMode==='replace')return 'replace-character';
   if(videoMode==='transform')return changeChoice==='person'?'replace-character':changeChoice==='motion'?'motion-transfer':changeChoice==='swap'||changeChoice==='object'?'object-swap':changeChoice==='upscale'?'video-upscale':'restyle';
   if(videoMode==='edit')return 'video-edit';
