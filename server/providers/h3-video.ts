@@ -7,6 +7,8 @@ import {promisify} from 'node:util';
 import type {OwnedInput} from './types';
 
 const execute=promisify(execFile);
+/* Read supported local MP4/MOV and WebM inputs without network protocols. */
+const INPUT_GUARD=['-protocol_whitelist','file','-format_whitelist','mov,matroska,webm'];
 
 /** Prepare a bounded, temporary upload copy; never modify the project asset. */
 export async function withH3Video<T>(input:OwnedInput,upload:(video:OwnedInput)=>Promise<T>):Promise<T>{
@@ -16,7 +18,7 @@ export async function withH3Video<T>(input:OwnedInput,upload:(video:OwnedInput)=
  try{
   const source=path.join(dir,'source'),output=path.join(dir,'ready.mp4');
   await pipeline(await input.open(),createWriteStream(source,{flags:'wx'}));
-  const probe=await execute(process.env.FFPROBE_PATH??'ffprobe',['-v','error','-select_streams','v:0','-show_entries','stream=duration:format=duration','-of','json',source],{timeout:30000,maxBuffer:1024*1024,windowsHide:true});
+  const probe=await execute(process.env.FFPROBE_PATH??'ffprobe',['-v','error',...INPUT_GUARD,'-select_streams','v:0','-show_entries','stream=duration:format=duration','-of','json',source],{timeout:30000,maxBuffer:1024*1024,windowsHide:true});
   const facts=JSON.parse(probe.stdout) as {streams?:Array<{duration?:string}>;format?:{duration?:string}};
   const streamDuration=Number(facts.streams?.[0]?.duration),formatDuration=Number(facts.format?.duration);
   const duration=Number.isFinite(streamDuration)&&streamDuration>0?streamDuration:formatDuration;
@@ -46,9 +48,9 @@ export async function withVideoCut<T>(input:OwnedInput,maxSeconds:number,upload:
   const source=path.join(dir,'source'),output=path.join(dir,'cut.mp4');
   await pipeline(await input.open(),createWriteStream(source,{flags:'wx'}));
   /* A length that cannot be read is left to the model's own check: the file goes as it is. */
-  const duration=await execute(process.env.FFPROBE_PATH??'ffprobe',['-v','error','-show_entries','format=duration','-of','json',source],{timeout:30000,maxBuffer:1024*1024,windowsHide:true}).then(probe=>Number((JSON.parse(probe.stdout) as {format?:{duration?:string}}).format?.duration),()=>NaN);
+  const duration=await execute(process.env.FFPROBE_PATH??'ffprobe',['-v','error',...INPUT_GUARD,'-show_entries','format=duration','-of','json',source],{timeout:30000,maxBuffer:1024*1024,windowsHide:true}).then(probe=>Number((JSON.parse(probe.stdout) as {format?:{duration?:string}}).format?.duration),()=>NaN);
   if(!Number.isFinite(duration)||duration<=maxSeconds+0.05)return await upload({...input,open:async()=>createReadStream(source)});
-  await execute(process.env.FFMPEG_PATH??'ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-y','-protocol_whitelist','file,pipe','-i',source,'-t',String(maxSeconds),'-map','0:v:0','-map','0:a?','-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p','-c:a','aac','-movflags','+faststart',output],{timeout:300000,maxBuffer:1024*1024,windowsHide:true});
+  await execute(process.env.FFMPEG_PATH??'ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-y',...INPUT_GUARD,'-i',source,'-t',String(maxSeconds),'-map','0:v:0','-map','0:a?','-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p','-c:a','aac','-movflags','+faststart',output],{timeout:300000,maxBuffer:1024*1024,windowsHide:true});
   const size=(await stat(output)).size;
   if(!size)throw new Error('The video could not be cut to length.');
   return await upload({role:input.role,contentType:'video/mp4',bytes:size,open:async()=>createReadStream(output)});

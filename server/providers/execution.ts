@@ -12,6 +12,7 @@ import type {AdapterContext,AdapterTransport,DirectBinding,OwnedInput} from "./t
 export type TransportFactory=(binding:DirectBinding,authorization:string)=>AdapterTransport;
 export type ProviderDependencies={registry?:DirectRegistry;transportFactory?:TransportFactory};
 const active="('pending','submitting','submission_unknown','queued','running','cancel_requested')";
+const PREPARATION_SENTENCES=new Set(["Use an MP4 or MOV up to 200 MB","Video too large","The video duration could not be read.","The video could not be prepared within the H3 size limit.","The video could not be cut to length."]);
 const remoteId=(v:unknown):v is string=>typeof v==="string"&&/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,199}$/.test(v);
 const terminal=(s:string)=>["succeeded","failed","canceled"].includes(s);
 const messages={credential:"Pinned provider credentials changed or are unavailable; execution is suspended.",binding:"Pinned provider adapter is unavailable or changed; execution is suspended.",outage:"Provider status is unavailable; read-only reconciliation will retry.",unknown:"Submission outcome is unknown; generation will not be automatically resubmitted.",output:"Output verification or import failed; only artifact import will retry."};
@@ -138,10 +139,11 @@ export class DirectExecutionService {
     }catch(error){
       if(attempted){await this.transition(run,"submission_unknown",messages.unknown);await this.dueLater(run);}
       else{
-        /* Say why: the preparation's own sentence (too long, upload refused), with any key masked. */
-        const why=String((error as Error)?.message??"").replace(/(comfyui-|Bearer\s+)\S+/gi,"$1…").slice(0,300);
-        console.error(`Provider input preparation failed for run ${run.id}: ${why}`);
-        await this.transition(run,await this.state(run)==="cancel_requested"?"canceled":"failed",why?`Preparing your files failed: ${why}`:"Provider input preparation failed before generation.");
+        /* The person sees only the preparation's own sentences; anything else (SDK or network text) goes to the
+           server log with keys, addresses and paths removed. */
+        const raw=String((error as Error)?.message??"");
+        console.error(`Provider input preparation failed for run ${run.id}: ${raw.replace(/(comfyui-|Bearer\s+)\S+/gi,"$1…").replace(/https?:\/\/\S+/gi,"[address]").replace(/[A-Za-z]:\\\S+|\/(?:[\w.-]+\/)+[\w.-]+/g,"[path]").slice(0,300)}`);
+        await this.transition(run,await this.state(run)==="cancel_requested"?"canceled":"failed",`Preparing your files failed: ${PREPARATION_SENTENCES.has(raw)?raw:"Comfy did not accept the upload. Try again in a moment."}`);
       }
     }
   }
