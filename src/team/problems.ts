@@ -26,7 +26,7 @@ export type ProblemContext = { address?: string; settings?: string };
 const FIX_LABELS: Record<FixKind, string> = {
   "start-comfy": "Start ComfyUI",
   "connect-comfy": "Connect ComfyUI",
-  "cloud-sign-in": "Sign in to Comfy Cloud",
+  "cloud-sign-in": "Sign in with your Comfy key",
   "check-again": "Check again",
   "open-settings": "Open worker settings",
   "open-models": "Open Models",
@@ -175,7 +175,7 @@ export function workerBlocker(input: {
   if (starting) return { cause: "starting", title: "ComfyUI is starting", text: "This model runs as soon as ComfyUI answers.", fix: fixFor("start-comfy") };
   if (offlineWorker) return offlineBlocker(offlineWorker);
   if (!workers.length && guest) {
-    return { cause: "no-worker", title: "Sign in to Comfy Cloud", text: "On this website, renders run on your own Comfy Cloud account. Sign in with your Comfy API key to start.", fix: fixFor("cloud-sign-in") };
+    return { cause: "no-worker", title: "Sign in with your Comfy key", text: "On this website, renders run on your own Comfy account, the free plan included. Sign in with your Comfy API key to start.", fix: fixFor("cloud-sign-in") };
   }
   if (!workers.length) {
     return { cause: "no-worker", title: "Not connected to ComfyUI", text: `CreativeField isn't connected to ComfyUI yet. Add its address in ${settings} and check it.`, fix: fixFor("connect-comfy") };

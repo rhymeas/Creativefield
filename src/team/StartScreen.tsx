@@ -15,7 +15,7 @@ const ICONS:Record<StartTaskId,ReactNode>={
 /** "All tools": one card per task this computer can run, each opening its screen directly. The start field narrows them
     by name and line.
     A task with its own workflow opens the composer on that workflow through `onOpen`. */
-export function StartScreen({ready,onOpen}:{ready:Partial<Record<StartNeed,boolean>>;onOpen?:(task:StartTask)=>void}){
+export function StartScreen({ready,onOpen,hosted=false}:{ready:Partial<Record<StartNeed,boolean>>;onOpen?:(task:StartTask)=>void;hosted?:boolean}){
   const [query,setQuery]=useState("");
   /* Example pictures are dropped into public/examples and listed in its index.json ({"video": "video.webp"}): no code change per picture. */
   const [examples,setExamples]=useState<Record<string,string>>({}),[pool,setPool]=useState<string[]>([]);
@@ -23,7 +23,7 @@ export function StartScreen({ready,onOpen}:{ready:Partial<Record<StartNeed,boole
   useEffect(()=>{let current=true;fetch("/examples/index.json").then(r=>r.ok?r.json():{}).then(map=>{if(current&&map&&typeof map==="object")setExamples(map as Record<string,string>);}).catch(()=>{});return()=>{current=false;};},[]);
   const all=startTasks(ready),shown=matchTasks(all,query);
   return <div className="cf-start">
-    <Hero title="What do you want to make?" text="Free and open source, powered by ComfyUI. Nothing leaves your computer." media={<RotatingVideo srcs={POOL_VIDEOS.slice(LOAD_TURN%POOL_VIDEOS.length).concat(POOL_VIDEOS.slice(0,LOAD_TURN%POOL_VIDEOS.length))}/>}>
+    <Hero title="What do you want to make?" text={hosted?"Free and open source, powered by ComfyUI. Renders run on your own Comfy account.":"Free and open source, powered by ComfyUI. Nothing leaves your computer."} media={<RotatingVideo srcs={POOL_VIDEOS.slice(LOAD_TURN%POOL_VIDEOS.length).concat(POOL_VIDEOS.slice(0,LOAD_TURN%POOL_VIDEOS.length))}/>}>
       <SearchField label="Search tools" value={query} onChange={setQuery} placeholder="Describe it: a video of my dog, a product shot…"/>
     </Hero>
     <Toolbar>

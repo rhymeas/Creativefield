@@ -23,10 +23,10 @@ export function CloudSignIn({workspaceId,call,onClose,onSignedIn}:{workspaceId:s
     catch(e){const stale=e instanceof ApiError&&(e.status===401||e.status===403);if(stale)try{sessionStorage.setItem(REOPEN,"1");}catch{/* storage may be unavailable */}setError(stale?"This tab was out of date and has been refreshed. Sign in again.":(e as Error).message);}
     finally{setBusy(false);}
   }
-  return <Dialog open title="Use CreativeField with Comfy Cloud" onClose={onClose} footer={<><Button variant="ghost" onClick={onClose}>Not now</Button><Button variant="primary" disabled={busy||!key.trim()} onClick={()=>void submit()}>{busy?"Checking…":"Sign in"}</Button></>}>
+  return <Dialog open title="Sign in with your Comfy key" onClose={onClose} footer={<><Button variant="ghost" onClick={onClose}>Not now</Button><Button variant="primary" disabled={busy||!key.trim()} onClick={()=>void submit()}>{busy?"Checking…":"Sign in"}</Button></>}>
     <form onSubmit={event=>{event.preventDefault();void submit();}}>
-      <TextField label="Comfy Cloud API key" type="password" autoComplete="off" autoFocus value={key} onChange={setKey} error={error||undefined}
-        hint="The key stays in this browser. Renders run on your Comfy Cloud account and use its credits."/>
+      <TextField label="Comfy API key" type="password" autoComplete="off" autoFocus value={key} onChange={setKey} error={error||undefined}
+        hint="The key stays in this browser. Renders run on your Comfy account and use its credits, the free plan included."/>
     </form>
     <Meta>No account yet? Create one and a key at Comfy, then paste the key here.</Meta>
     <LinkButton variant="ghost" href={KEYS_URL} target="_blank" rel="noreferrer">Get an API key</LinkButton>
