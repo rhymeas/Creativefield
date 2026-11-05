@@ -793,7 +793,7 @@
 .ds-toast svg { color: var(--accent); }
 .ds-usermenu { position: relative; display: inline-flex; }
 .ds-usermenu__trigger { display: inline-flex; border-radius: 50%; }
-.ds-usermenu__panel { position: absolute; z-index: 40; right: 0; top: calc(100% + var(--space-2)); min-width: calc(220px * var(--ui-scale)); display: flex; flex-direction: column; padding: calc(6px * var(--ui-scale)); border-radius: var(--radius-lg); background: var(--surface-control); border: 1px solid var(--line-hairline); box-shadow: var(--shadow-pop); animation: ds-pop var(--dur-med) var(--ease-spring); transform-origin: top right; }
+.ds-usermenu__panel { position: absolute; z-index: 40; right: 0; top: calc(100% + var(--space-2)); width: calc(288px * var(--ui-scale)); max-width: calc(100vw - 2 * var(--space-4)); display: flex; flex-direction: column; padding: calc(6px * var(--ui-scale)); border-radius: var(--radius-lg); background: var(--surface-control); border: 1px solid var(--line-hairline); box-shadow: var(--shadow-pop); animation: ds-pop var(--dur-med) var(--ease-spring); transform-origin: top right; }
 .ds-usermenu__who { display: flex; flex-direction: column; gap: 2px; padding: var(--space-2) calc(10px * var(--ui-scale)) var(--space-3); border-bottom: 1px solid var(--line-hairline); margin-bottom: var(--space-1); }
 .ds-usermenu__who .ds-meta { padding-inline: 0; }
 .ds-usermenu__name { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--text-primary); overflow-wrap: anywhere; }
@@ -2117,7 +2117,10 @@ button.ds-castcard__main { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .ds-hero__word { animation: none; opacity: 1; } .ds-hero__bg > video, .ds-hero__bg > img, .ds-hero__aurora { animation: none; } }
 
 /* UserMenu extra: one row under the name (a balance and its link). */
-.ds-usermenu__extra { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-inline); padding: var(--space-2) var(--space-3); border-top: 1px solid var(--line); }
+.ds-usermenu__extra { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2) calc(10px * var(--ui-scale)) var(--space-3); border-bottom: 1px solid var(--line-hairline); margin-bottom: var(--space-1); }
+.ds-usermenu__extra .ds-meta { padding-inline: 0; }
+/* A fact and its one action on one line: the credit balance and its link. */
+.ds-usermenu__row { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-inline); }
 
 /* FrameStrip */
 .ds-framestrip { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; }

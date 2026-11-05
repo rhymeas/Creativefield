@@ -10,7 +10,7 @@ export function workerReadiness(manifest:CapabilityManifestV2,worker:Worker,now=
   const route=(worker as {kind?:string}).kind==="cloud"&&manifest.routes.some(r=>r.id==="cloud")?"cloud":"local";
   // A plan that may not submit runs makes every pack unavailable there, with Comfy's own reason.
   const blocked=inventory as {canSubmit?:boolean;submitBlockedReason?:string};
-  if(blocked.canSubmit===false)return {state:"credentials_required" as const,reasons:[blocked.submitBlockedReason??"This Comfy Cloud plan does not allow runs from other apps."],missing:[]};
+  if(blocked.canSubmit===false)return {state:"credentials_required" as const,reasons:[/free tier/i.test(blocked.submitBlockedReason??"")?"Your Comfy plan can't run jobs from CreativeField: Comfy allows API keys on paid plans only. Upgrade your Comfy plan to render here.":blocked.submitBlockedReason??"This Comfy Cloud plan does not allow runs from other apps."],missing:[]};
   return capabilityReadiness(manifest,route,{...inventory,online:worker.enabled&&fresh&&inventory.online},presetId);
 }
 export function soleReadyWorker(manifest:CapabilityManifestV2,workers:Worker[],presetId?:string):string {

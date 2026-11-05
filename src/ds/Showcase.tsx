@@ -535,7 +535,7 @@ export default function Showcase() {
               <ConfirmDialog error="This item is still in use. Remove its references, then retry." open={confirmation} title="Remove this credential?" text="The stored credential is deleted from this server." confirmLabel="Remove credential" onCancel={() => setConfirmation(false)} onConfirm={() => setConfirmation(false)} />
               <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 <ToastDemo />
-                <UserMenu initials="R" name="Alex Example" extra={<><Meta parts={["2,110 credits"]} /><LinkButton variant="ghost" href="#ds">Add credits</LinkButton></>} meta={<Meta parts={["Studio", "admin"]} />} items={[{ id: "s", label: "Team settings", icon: <Settings size={14} />, onSelect: () => {} }, { id: "o", label: "Sign out", icon: <LogOut size={14} />, onSelect: () => {} }]} />
+                <UserMenu initials="R" name="Alex Example" extra={<><span className="ds-usermenu__row"><Meta>2,110 credits</Meta><LinkButton variant="ghost" href="#ds">Upgrade plan</LinkButton></span><Meta>Your Comfy plan can't run jobs from CreativeField: Comfy allows API keys on paid plans only. Upgrade your Comfy plan to render here.</Meta><Meta>Your Comfy Cloud key is saved in this browser only. CreativeField never stores it.</Meta></>} meta={<><Meta>person@example.test</Meta><Meta>Personal Workspace</Meta></>} items={[{ id: "s", label: "Settings", icon: <Settings size={14} />, onSelect: () => {} }, { id: "o", label: "Sign out of Comfy Cloud", icon: <LogOut size={14} />, onSelect: () => {} }]} />
               </div>
             </div>
             <div style={{ flex: 1, minWidth: 320 }}>
