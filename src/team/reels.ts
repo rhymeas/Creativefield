@@ -9,7 +9,7 @@ const REELS = {
   "h3-flf2v": "/examples/promo/video-studio.mp4",
   "h3-effects": "/examples/promo/effects-lab.mp4",
   "h3-object-swap": "/examples/promo/swap-thing.mp4",
-  "openjutsu-h3-swap": "/examples/showcase/result-1.mp4",
+  "openjutsu-h3-swap": "/examples/squarehead/jutsu-01.mp4",
 
   "wan-animate2-distilled": "/reels/mj-07.mp4",
   "wan21-vace-masked-edit": "/reels/feature-swap.mp4",
@@ -30,6 +30,10 @@ const REELS = {
 /** The placeholder clips that take turns behind heroes (Midjourney set). */
 export const POOL_VIDEOS = Array.from({ length: 8 }, (_, i) => `/reels/mj-0${i}.mp4`);
 
+/** Squarehead's OpenJutsu examples and stills extracted from those actual renders. */
+export const SQUAREHEAD_EXAMPLE_VIDEOS = Array.from({length:5},(_,i)=>`/examples/squarehead/jutsu-0${i+1}.mp4`);
+export const SQUAREHEAD_EXAMPLE_IMAGES = Array.from({length:5},(_,i)=>`/examples/squarehead/jutsu-0${i+1}.webp`);
+
 /** Actual local OpenJutsu renders, with their corresponding input assets. */
 export const OPENJUTSU_SHOWCASE = Array.from({length:4},(_,index)=>{
   const number=index+1;
@@ -45,14 +49,14 @@ export const LOW_PRIORITY_EXAMPLES:readonly string[] = [
 
 /** All bundled video examples, in the order feeds show them: the OpenJutsu renders, the best promo clips, the
     Midjourney loops, then the early test clips. Available in the Library and media picker. */
-export const LIBRARY_EXAMPLE_VIDEOS = [...OPENJUTSU_SHOWCASE.map(item=>item.result),
+export const LIBRARY_EXAMPLE_VIDEOS = [...SQUAREHEAD_EXAMPLE_VIDEOS,...OPENJUTSU_SHOWCASE.map(item=>item.result),
   ...["reshoot","effects-lab","copy-moves","film-studio","block-shot","swap-thing","new-look","video-studio","ad-studio"].map(name=>`/examples/promo/${name}.mp4`),
   ...POOL_VIDEOS,...LOW_PRIORITY_EXAMPLES];
 
 /** These clips illustrate each area; they are not claims that the named workflow made the clip. */
 export function promoReelForCapability(ids?:string|string[]){
   const map:Record<string,string>={"h3-t2v":"video-studio","h3-i2v":"video-studio","h3-flf2v":"video-studio","h3-effects":"effects-lab","h3-object-swap":"swap-thing","openjutsu-h3-swap":"reshoot"};
-  if([ids??""].flat().includes("openjutsu-h3-swap"))return OPENJUTSU_SHOWCASE[0].result;
+  if([ids??""].flat().includes("openjutsu-h3-swap"))return SQUAREHEAD_EXAMPLE_VIDEOS[0];
   const name=[ids??""].flat().map(id=>map[id]).find(Boolean);
   return name?`/examples/promo/${name}.mp4`:undefined;
 }

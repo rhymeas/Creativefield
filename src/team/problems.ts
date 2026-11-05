@@ -10,7 +10,7 @@ import type { Worker } from "./api";
  */
 
 /** The one action that clears a problem. A screen turns it into a button carrying this label. */
-export type FixKind = "start-comfy" | "connect-comfy" | "check-again" | "open-settings" | "open-models" | "run-local" | "retry";
+export type FixKind = "start-comfy" | "connect-comfy" | "cloud-sign-in" | "check-again" | "open-settings" | "open-models" | "run-local" | "retry";
 export type ProblemFix = { kind: FixKind; label: string };
 export type PlainProblem = {
   title: string;
@@ -26,6 +26,7 @@ export type ProblemContext = { address?: string; settings?: string };
 const FIX_LABELS: Record<FixKind, string> = {
   "start-comfy": "Start ComfyUI",
   "connect-comfy": "Connect ComfyUI",
+  "cloud-sign-in": "Sign in to Comfy Cloud",
   "check-again": "Check again",
   "open-settings": "Open worker settings",
   "open-models": "Open Models",
@@ -167,10 +168,15 @@ export function workerBlocker(input: {
   settings?: string;
   /** Picking this computer is a real way out of a cloud run that cannot start. */
   canRunLocal?: boolean;
+  /** A hosted guest: their worker is Comfy Cloud, reached by signing in with their own key. */
+  guest?: boolean;
 }): WorkerBlocker | null {
-  const { worker, workers, readiness, offlineWorker, starting, settings = "Settings", canRunLocal } = input;
+  const { worker, workers, readiness, offlineWorker, starting, settings = "Settings", canRunLocal, guest } = input;
   if (starting) return { cause: "starting", title: "ComfyUI is starting", text: "This model runs as soon as ComfyUI answers.", fix: fixFor("start-comfy") };
   if (offlineWorker) return offlineBlocker(offlineWorker);
+  if (!workers.length && guest) {
+    return { cause: "no-worker", title: "Sign in to Comfy Cloud", text: "On this website, renders run on your own Comfy Cloud account. Sign in with your Comfy API key to start.", fix: fixFor("cloud-sign-in") };
+  }
   if (!workers.length) {
     return { cause: "no-worker", title: "Not connected to ComfyUI", text: `CreativeField isn't connected to ComfyUI yet. Add its address in ${settings} and check it.`, fix: fixFor("connect-comfy") };
   }

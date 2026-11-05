@@ -133,7 +133,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const sleeping=ready?undefined:worker?(readiness?.state==="offline"?worker:undefined):workers.filter(w=>workerReadiness(manifest,w).state==="offline").sort((a,b)=>Number(!!b.can_start)-Number(!!a.can_start)||Number(b.enabled)-Number(a.enabled))[0];
   /* One cause, said once, in the problem bar, carrying the one action that clears it (rules 36, 42).
      The Generate button does not repeat it: its footer line covers this draft only. */
-  const blocker=workerBlocker({worker,workers,readiness,offlineWorker:sleeping,starting,settings:settingsPlace,canRunLocal:!!onRunLocal});
+  const blocker=workerBlocker({worker,workers,readiness,offlineWorker:sleeping,starting,settings:settingsPlace,canRunLocal:!!onRunLocal,guest:!!user.guest});
   async function startComfy(target=sleeping){
     if(!target)return;
     setStarting(true);setError("");
@@ -160,7 +160,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
     if(!blocker)return undefined;
     const fix=blocker.fix;
     if(fix.kind==="start-comfy")return <Button variant="secondary" disabled={starting} onClick={()=>void startComfy(sleeping??worker)}>{starting?"Starting…":fix.label}</Button>;
-    if(fix.kind==="connect-comfy"||fix.kind==="open-settings")return onWorkerSettings?<Button variant="secondary" onClick={onWorkerSettings}>{fix.kind==="connect-comfy"?fix.label:"Open worker settings"}</Button>:undefined;
+    if(fix.kind==="connect-comfy"||fix.kind==="open-settings"||fix.kind==="cloud-sign-in")return onWorkerSettings?<Button variant="secondary" onClick={onWorkerSettings}>{fix.kind==="open-settings"?"Open worker settings":fix.label}</Button>:undefined;
     if(fix.kind==="open-models")return <Button variant="secondary" onClick={()=>{if(onModels)onModels();else onQueued();}}>Open Models</Button>;
     if(fix.kind==="run-local")return onRunLocal?<Button variant="secondary" onClick={onRunLocal}>Run on this computer</Button>:undefined;
     return <Button variant="secondary" disabled={starting} onClick={()=>onQueued()}>Check again</Button>;

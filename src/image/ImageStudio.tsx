@@ -2,7 +2,7 @@ import {insertReferenceMention} from "../team/prompt-reference";
 import {inferLightGuide,relightPrompt} from "./relight-prompt";
 import {resolveImageReference} from "./image-reference";
 import {ExampleTiles} from "../team/ExampleTiles";
-import {promoStillForImage} from "../team/reels";
+import {promoStillForImage,SQUAREHEAD_EXAMPLE_IMAGES} from "../team/reels";
 import {routeTask} from "../capabilities/tasks";
 import {TeamChoice,type TeamChoiceOption} from "../team/TeamChoice";
 import {ToolHero} from "../team/heroes";
@@ -548,7 +548,7 @@ export function ImageStudio({
                 </>}><img draggable={false} src={assetUrl(workspace.id,asset.id)} alt={asset.name}/></ResultTile>)}
               </ResultGrid>
             </Block>}
-            {visibleRuns.length === 0 && <ExampleTiles kind="image" imageSources={promoStillForImage(sharedCreate?"flux2-klein-t2i":manifest.id,adStudio,remixStudio)?[promoStillForImage(sharedCreate?"flux2-klein-t2i":manifest.id,adStudio,remixStudio)!]:undefined} caption={promoStillForImage(sharedCreate?"flux2-klein-t2i":manifest.id,adStudio,remixStudio)?"Illustration":"Example"} />}
+            <ExampleTiles kind="image" imageSources={[...SQUAREHEAD_EXAMPLE_IMAGES,...(promoStillForImage(sharedCreate?"flux2-klein-t2i":manifest.id,adStudio,remixStudio)?[promoStillForImage(sharedCreate?"flux2-klein-t2i":manifest.id,adStudio,remixStudio)!]:[])]} caption="Illustration" />
           </Canvas></>}
           </ProductionContent>
       </div>
