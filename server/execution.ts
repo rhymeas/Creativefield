@@ -25,7 +25,8 @@ import {editedRunRoutes} from "./edited-run";
 import {sdkClient,sdkTransportConfigured,sdkSupportsManifest,cloudInputs,sdkFailureReason} from "./sdk-client";
 import {measurePreservation} from "./edit-preservation";
 import {scailChunksEnabled} from "./config";
-import {cloudKeyFor} from "./cloud-keys";
+import {cloudKeyFor,guestRouterKey} from "./cloud-keys";
+import {cloudAccountFor} from "./cloud-account";
 import {ComfyError} from "@comfyorg/sdk";
 import type {Job,Output} from "@comfyorg/sdk";
 import { firstOutputFile, type HistoryEntry, type RawQueueItem } from "../src/comfy/client";
@@ -1259,6 +1260,9 @@ export async function executionRoutes(app:FastifyInstance,pool:Pool,store:DiskSt
     const {workspaceId}=ws.parse(request.params),user=await member(pool,request,workspaceId,"creator");
     const body=admissionSchema.parse(request.body),requestHash=hashToken(canonical(body));
     const scopedCatalogue=await loadWorkspaceCatalogue(pool,catalogue,workspaceId);
+    /* A guest with no Comfy credits left gets one plain sentence here instead of a run Comfy refuses. */
+    const guestKey=guestRouterKey(workspaceId),direct=scopedCatalogue.find(b=>b.manifest.id===body.capabilityId)?.manifest.routes.find(r=>r.id===body.routeId)?.execution==="direct_provider";
+    if(guestKey&&direct){const account=await cloudAccountFor(pool,workspaceId,guestKey).catch(()=>undefined);if(typeof account?.credits==="number"&&account.credits<=0)throw new HttpError(402,"Your Comfy credits are used up. Add credits in your Comfy account, then try again.");}
     return transaction(pool,async client=>{
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`${workspaceId}/${body.idempotencyKey}`]);
       const old=(await client.query(`SELECT ${publicColumns},request_hash FROM runs WHERE workspace_id=$1 AND idempotency_key=$2`,[workspaceId,body.idempotencyKey])).rows[0];
