@@ -36,3 +36,21 @@ export async function withH3Video<T>(input:OwnedInput,upload:(video:OwnedInput)=
   return await upload({role:input.role,contentType:'video/mp4',bytes:size,open:async()=>createReadStream(output)});
  }finally{await rm(dir,{recursive:true,force:true});}
 }
+
+/** A temporary copy cut to the first `maxSeconds`, for models with a length limit (Kling: 10 s); shorter clips go as they are. */
+export async function withVideoCut<T>(input:OwnedInput,maxSeconds:number,upload:(video:OwnedInput)=>Promise<T>):Promise<T>{
+ const root=path.resolve(process.cwd(),'.comfyfield','tmp');
+ await mkdir(root,{recursive:true});
+ const dir=await mkdtemp(path.join(root,'video-cut-'));
+ try{
+  const source=path.join(dir,'source'),output=path.join(dir,'cut.mp4');
+  await pipeline(await input.open(),createWriteStream(source,{flags:'wx'}));
+  /* A length that cannot be read is left to the model's own check: the file goes as it is. */
+  const duration=await execute(process.env.FFPROBE_PATH??'ffprobe',['-v','error','-show_entries','format=duration','-of','json',source],{timeout:30000,maxBuffer:1024*1024,windowsHide:true}).then(probe=>Number((JSON.parse(probe.stdout) as {format?:{duration?:string}}).format?.duration),()=>NaN);
+  if(!Number.isFinite(duration)||duration<=maxSeconds+0.05)return await upload({...input,open:async()=>createReadStream(source)});
+  await execute(process.env.FFMPEG_PATH??'ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-y','-protocol_whitelist','file,pipe','-i',source,'-t',String(maxSeconds),'-map','0:v:0','-map','0:a?','-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p','-c:a','aac','-movflags','+faststart',output],{timeout:300000,maxBuffer:1024*1024,windowsHide:true});
+  const size=(await stat(output)).size;
+  if(!size)throw new Error('The video could not be cut to length.');
+  return await upload({role:input.role,contentType:'video/mp4',bytes:size,open:async()=>createReadStream(output)});
+ }finally{await rm(dir,{recursive:true,force:true});}
+}

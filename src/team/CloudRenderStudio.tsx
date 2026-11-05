@@ -43,6 +43,9 @@ export function CloudRenderStudio({feature,workspace,project,user,call,version,c
  const assetEpoch=useRef(0),loadingAssetsRef=useRef(false);
  const selectionEpoch=useRef<Record<string,number>>({});
  useEffect(()=>()=>{for(const role of Object.keys(selectionEpoch.current))selectionEpoch.current[role]++;},[workspace.id,project.id,model?.id]);
+ /* The run just sent: a failure before or during generation shows here, not only in Jobs. */
+ const [watching,setWatching]=useState('');
+ useEffect(()=>{if(!watching)return;let active=true;const timer=setInterval(()=>{void call<Run&{error?:string|null}>(workspacePath(workspace.id,`runs/${encodeURIComponent(watching)}`)).then(run=>{if(!active)return;if(['failed','canceled'].includes(String(run.state))){setError(run.error||'The cloud render stopped.');setWatching('');}else if(run.state==='succeeded')setWatching('');}).catch(()=>{});},3000);return()=>{active=false;clearInterval(timer);};},[watching,call,workspace.id]);
  async function chooseMedia(role:string,id:string){
   const epoch=selectionEpoch.current[role]=(selectionEpoch.current[role]??0)+1;
   setError('');
@@ -80,7 +83,7 @@ export function CloudRenderStudio({feature,workspace,project,user,call,version,c
   const intent=draft.pending??{projectId:project.id,idempotencyKey:crypto.randomUUID(),capabilityId:model.id,version:'1.0.0',routeId:'router',inputs:Object.fromEntries(model.inputs.filter(p=>draft.inputs[p.id]).map(p=>[p.id,draft.inputs[p.id]])),controls,audioPolicy:model.kind==='h3-reference'?'replace' as const:'mute' as const,consent:{cloudCredits:true as const}};
   // Save before HTTP so an ambiguous acknowledgement cannot mint a second paid request.
   setDraft(d=>({...d,pending:intent}));try{localStorage.setItem(key,JSON.stringify({...draft,pending:intent}));}catch{}
-  try{await call<Run>(workspacePath(workspace.id,'runs'),'POST',intent);setDraft(d=>({...d,pending:undefined}));onQueued();}catch(e){if(e instanceof ApiError&&[400,401,403,404,422].includes(e.status)){setDraft(d=>({...d,pending:undefined}));setError((e as Error).message);}else setError(`${(e as Error).message} Retry submission keeps the same request ID to avoid a duplicate render.`);}finally{queueGate.current=false;setBusy('');}
+  try{const run=await call<Run>(workspacePath(workspace.id,'runs'),'POST',intent);setDraft(d=>({...d,pending:undefined}));setWatching(run?.id??'');onQueued();}catch(e){if(e instanceof ApiError&&[400,401,403,404,422].includes(e.status)){setDraft(d=>({...d,pending:undefined}));setError((e as Error).message);}else setError(`${(e as Error).message} Retry submission keeps the same request ID to avoid a duplicate render.`);}finally{queueGate.current=false;setBusy('');}
  }
  const missing=model?.inputs.some(p=>p.required&&!draft.inputs[p.id]),invalid=model?.controls.some(c=>{const v=draft.controls[c.id];return c.type==='string'?model.kind!=='h3-reference'&&!String(v??'').trim():c.type==='select'?!c.options?.includes(v as string|number):typeof v!=='number'||!Number.isFinite(v)||c.min!==undefined&&v<c.min||c.max!==undefined&&v>c.max;});
  const durationNote=model?.kind==='h3-reference'&&selectedVideo?h3ReferenceDurationNote(selectedVideo.metadata?.durationSeconds):undefined;

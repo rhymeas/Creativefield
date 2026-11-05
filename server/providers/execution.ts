@@ -135,9 +135,14 @@ export class DirectExecutionService {
       await this.transition(run,"queued",null,result.remoteId);
       await this.pool.query("UPDATE provider_run_bindings SET phase='accepted' WHERE workspace_id=$1 AND run_id=$2",[run.workspace_id,run.id]);
       await this.dueLater(run);
-    }catch{
+    }catch(error){
       if(attempted){await this.transition(run,"submission_unknown",messages.unknown);await this.dueLater(run);}
-      else await this.transition(run,await this.state(run)==="cancel_requested"?"canceled":"failed","Provider input preparation failed before generation.");
+      else{
+        /* Say why: the preparation's own sentence (too long, upload refused), with any key masked. */
+        const why=String((error as Error)?.message??"").replace(/(comfyui-|Bearer\s+)\S+/gi,"$1…").slice(0,300);
+        console.error(`Provider input preparation failed for run ${run.id}: ${why}`);
+        await this.transition(run,await this.state(run)==="cancel_requested"?"canceled":"failed",why?`Preparing your files failed: ${why}`:"Provider input preparation failed before generation.");
+      }
     }
   }
   private async ingest(run:any,entry:RegisteredAdapter,context:AdapterContext){

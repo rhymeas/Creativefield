@@ -509,7 +509,7 @@ export class ExecutionService {
     if(!acceptedUploadPath(worker,filename,await uploaded.json() as {name?:string;subfolder?:string}))throw new Error("Worker returned an unexpected upload path");
     return filename;
   }
-  private async uploadInputs(run:any,worker:any,assets:any[],motion?:{role:string;storageKey:string;filename:string},addSilentAudio=false):Promise<Record<string,string>>{
+  private async uploadInputs(run:any,worker:any,assets:any[],motion?:{role:string;storageKey:string;filename:string},addSilentAudio=false,padAudioTail=false):Promise<Record<string,string>>{
     const inputs:Record<string,string>={};
     for(const asset of assets){
       const isMotion=motion?.role===asset.role;
@@ -521,7 +521,7 @@ export class ExecutionService {
           const prepared=file!==source;
           const uploadName=prepared?filename.replace(/\.[^.]+$/, ".mkv"):filename;
           return this.uploadInput(worker,uploadName,await openAsBlob(file,{type:prepared?"video/x-matroska":asset.content_type}),asset.role);
-        });
+        },{padTail:padAudioTail});
       }else{
         const data=await openAsBlob(source,{type:isMotion?"video/mp4":asset.content_type});
         inputs[asset.role]=await this.uploadInput(worker,filename,data,asset.role);
@@ -631,7 +631,7 @@ export class ExecutionService {
         }
       }
       const sourceFrames=await this.replaceSourceFrames(run,assets,bundle.manifest);
-      const inputs=await this.uploadInputs(run,worker,assets,undefined,["h3-object-swap","openjutsu-h3-advanced"].includes(bundle.manifest.id));
+      const inputs=await this.uploadInputs(run,worker,assets,undefined,["h3-object-swap","openjutsu-h3-advanced"].includes(bundle.manifest.id),bundle.manifest.id==="openjutsu-h3-advanced");
       const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,compileRunGraph(bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
       // A cancellation before prompt submission can complete without touching the worker queue.
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
@@ -684,7 +684,7 @@ export class ExecutionService {
          only accepts the names the server made, and the stored graph keeps those names. */
       const cloud=worker.kind==="cloud";
       const named=Object.fromEntries(assets.map(asset=>[asset.role,`comfyfield-${run.id}-${asset.id}.${extension(asset.content_type)}`]));
-      const inputs=cloud?named:await this.uploadInputs(run,worker,assets,undefined,["h3-object-swap","openjutsu-h3-advanced"].includes(bundle.manifest.id));
+      const inputs=cloud?named:await this.uploadInputs(run,worker,assets,undefined,["h3-object-swap","openjutsu-h3-advanced"].includes(bundle.manifest.id),bundle.manifest.id==="openjutsu-h3-advanced");
       const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,compileRunGraph(bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
       if(current.state==="cancel_requested"){await this.finish(run,"canceled");return;}
