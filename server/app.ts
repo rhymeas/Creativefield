@@ -6,7 +6,7 @@ import type { Pool } from "pg";
 import { z, ZodError } from "zod";
 import type { ServerConfig } from "./config";
 import { HttpError, member, principal, ensureLocalUser, createGuest } from "./auth";
-import { CLOUD_KEY_HEADER, browserCloudKey, forgetBrowserCloudKey, plausibleCloudKey, rememberBrowserCloudKey } from "./cloud-keys";
+import { CLOUD_KEY_HEADER, browserCloudKey, guestRouterKey, forgetBrowserCloudKey, plausibleCloudKey, rememberBrowserCloudKey } from "./cloud-keys";
 import { generateOpaqueToken, hashToken, hashPassword, verifyPassword, newId, encryptProviderSecret } from "./crypto";
 import { guardPool, queryWithRetry, transaction } from "./db";
 import { DiskStore } from "./storage";
@@ -294,12 +294,14 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
   });
   app.get(`${base}/router-models`,async request=>{
     const {workspaceId}=workspaceParam.parse(request.params);await member(pool,request,workspaceId);
-    const connected=!!(await pool.query('SELECT id FROM provider_connections WHERE workspace_id=$1 AND provider_id=$2',[workspaceId,'comfy-router'])).rowCount;
+    const connected=!!guestRouterKey(workspaceId)||!!(await pool.query('SELECT id FROM provider_connections WHERE workspace_id=$1 AND provider_id=$2',[workspaceId,'comfy-router'])).rowCount;
     return {connected,credentialValidation:'not_checked',models:ROUTER_MODELS};
   });
   app.post(`${base}/provider-connections`, async request => {
     const { workspaceId } = workspaceParam.parse(request.params); await member(pool, request, workspaceId, "admin");
     const input = z.object({ providerId: z.string().max(80), secret: z.string().min(1).max(8192) }).strict().parse(request.body);
+    /* A hosted try-out never stores a visitor's key: their Comfy key stays in their browser (Sign in to Comfy Cloud). */
+    if (config.guestPerBrowser) throw new HttpError(403, "On this website your Comfy key stays in your browser. Use Sign in to Comfy Cloud instead.");
     try { assertIndependentProvider(input.providerId); if (input.providerId === "comfy-local") throw new Error(); } catch { throw new HttpError(400, "Provider is not approved for hosted execution"); }
     if(input.providerId==='comfy-router'&&(!/^comfyui-[^\s]+$/.test(input.secret)||input.secret!==input.secret.trim()))throw new HttpError(400,'Enter a Comfy workspace API key beginning with comfyui-');
     const ciphertext = encryptProviderSecret(input.secret, config.masterKey, { workspaceId, providerId: input.providerId });
@@ -369,7 +371,7 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
     const query=z.object({capabilityId:z.string().max(120),routeId:z.string().max(80)}).strict().parse(request.query);
     const manifest=catalogue.find(b=>b.manifest.id===query.capabilityId)?.manifest,entry=manifest?registry.resolve(manifest,query.routeId):null;
     if(!entry)return {state:"unsupported",reasons:["No qualified direct provider adapter is available for this route."],missing:[]};
-    const credential=(await pool.query("SELECT id FROM provider_connections WHERE workspace_id=$1 AND provider_id=$2",[workspaceId,entry.binding.provider])).rowCount;
+    const credential=(entry.binding.provider==="comfy-router"&&!!guestRouterKey(workspaceId))||(await pool.query("SELECT id FROM provider_connections WHERE workspace_id=$1 AND provider_id=$2",[workspaceId,entry.binding.provider])).rowCount;
     return {state:credential?"ready":"credentials_required",reasons:credential?[]:["Workspace provider credentials are required."],missing:[],credentialValidation:"not_checked"};
   });
   const chatgptImages=await chatgptImageRoutes(app,pool,store,dependencies.chatgptNative);

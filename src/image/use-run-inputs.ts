@@ -1,7 +1,7 @@
 import {useEffect,useState} from "react";
 import {request,workspacePath,type Run} from "../team/api";
 
-export type RunInvocation={inputs?:Record<string,string>;presetId?:string};
+export type RunInvocation={inputs?:Record<string,string>;controls?:Record<string,unknown>;presetId?:string};
 
 /** The runs list leaves out what each run was given; fetch it for the few recent runs a view compares, once per run. */
 export function useRunInputs(workspaceId:string,runs:Run[],limit=8):Record<string,RunInvocation>{

@@ -13,7 +13,7 @@ import { useEffect, useId, useRef, useState, type ReactNode, type RefObject, typ
 import { Clapperboard, Images, Maximize2, Pencil, RectangleHorizontal, Trash2 } from "lucide-react";
 import { countOptions, frameControls } from "../capabilities/frame-controls";
 import type { CapabilityManifestV2, Control, Readiness } from "../capabilities/types";
-import { UploadSlot, Block, Canvas, ConfirmDialog, GenerateButton, HintButton, Meta, ModelCard, Notice, Panel, PanelSection, ParamButton, Params, PromptField, Button, ContactSheet, Dialog, Flashlight, IconButton, InfoButton, MediaViewer, ResultGrid, ResultTile, CameraAngleSheet, useToast, Row, SectionHeader, StatusText, TextField, Thumb, ThumbGrid, Toolbar, type ContactSheetItem, CompareWipe, LinkButton } from "../ds";
+import { UploadSlot, Block, Canvas, ConfirmDialog, GenerateButton, HintButton, Meta, ModelCard, Notice, Panel, PanelSection, ParamButton, Params, PromptField, Button, ContactSheet, Dialog, Flashlight, IconButton, InfoButton, MediaViewer, MediaViewerInfo, ResultGrid, ResultTile, CameraAngleSheet, useToast, Row, SectionHeader, StatusText, TextField, Thumb, ThumbGrid, Toolbar, type ContactSheetItem, CompareWipe, LinkButton } from "../ds";
 import {AngleBatchPanel} from "./AngleBatchPanel";
 import {IdentityPhotoset} from "./IdentityPhotoset";
 import {useRunInputs} from "./use-run-inputs";
@@ -291,6 +291,8 @@ export function ImageStudio({
   /* Results and history are one gallery: newest runs first, every real image equal. */
   const resultItems = visibleRuns.flatMap((run) => outputsOf(run).map((asset) => ({ run, asset })));
   const [viewing, setViewing] = useState<Asset | null>(null);
+  const viewingRun=resultItems.find(item=>item.asset.id===viewing?.id)?.run;
+  const viewingInputs=useRunInputs(workspace.id,viewingRun?[viewingRun]:[],1);
   const [deleteAsset,setDeleteAsset]=useState<Asset|null>(null),[deleting,setDeleting]=useState(false),[deleteError,setDeleteError]=useState("");
   const [sheet, setSheet] = useState<{ run: Run; items: ContactSheetItem[]; caption: string } | null>(null);
   const [canceling, setCanceling] = useState("");
@@ -553,7 +555,7 @@ export function ImageStudio({
           </ProductionContent>
       </div>
       <ConfirmDialog open={!!deleteAsset} title="Delete this image?" text="Remove this image from the library and results." confirmLabel="Delete image" busy={deleting} error={deleteError} onCancel={()=>{if(!deleting)setDeleteAsset(null);}} onConfirm={()=>{if(!deleteAsset||!batchContext||deleting)return;setDeleting(true);setDeleteError("");void batchContext.call(workspacePath(workspace.id,`assets/${encodeURIComponent(deleteAsset.id)}`),"DELETE").then(()=>{setDeleteAsset(null);batchContext.onChanged();}).catch(error=>setDeleteError((error as Error).message)).finally(()=>setDeleting(false));}}/>
-      <MediaViewer open={!!viewing} src={viewing ? assetUrl(workspace.id, viewing.id) : ""} name={viewing?.name ?? ""} onClose={() => setViewing(null)} onActivate={() => viewing && editAsset(viewing)}
+      <MediaViewer open={!!viewing} src={viewing ? assetUrl(workspace.id, viewing.id) : ""} name={viewing?.name ?? ""} onClose={() => setViewing(null)} onActivate={() => viewing && editAsset(viewing)} info={viewingRun?<MediaViewerInfo model={viewingRun.capability_id===manifest.id?title:viewingRun.capability_id} inputs={Object.entries(viewingInputs[viewingRun.id]?.inputs??{}).filter(([,id])=>!!id).map(([port,id])=>({src:assetUrl(workspace.id,id),label:port.replaceAll("_"," ")}))} prompt={String(viewingInputs[viewingRun.id]?.controls?.prompt??"")} date={new Date(viewingRun.created_at).toLocaleString()}/>:undefined}
         />
       <Dialog wide open={!!sheet} title="Contact sheet" onClose={() => setSheet(null)} footer={<Button variant="secondary" onClick={() => setSheet(null)}>Close</Button>}>
         {sheet ? (

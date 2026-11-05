@@ -28,7 +28,8 @@ export function Guide({hosted,cloudConnected,onClose,onCloudSignIn,onOpenWorkers
       {section==="run"&&<>
         <HowItWorks title="Who does the work" lead={'Making pictures and video needs a strong graphics card. "Run on" in the top bar picks who does it.'}
           steps={[
-            {icon:<Cloud size={20}/>,title:"Comfy Cloud",text:"Renders on your own Comfy account and uses its credits. Comfy allows this on paid plans only. You sign in once with an API key from your Comfy account."},
+            {icon:<Sparkles size={20}/>,title:"Comfy Router",text:"Top hosted models (FLUX 2 Pro for pictures, Seedance and Kling for video) on your own Comfy credits. Works on any Comfy plan, the free one included: sign in once with an API key from your Comfy account."},
+            {icon:<Cloud size={20}/>,title:"Comfy Cloud",text:"Runs the full ComfyUI workflows on Comfy's graphics cards with your credits. Comfy allows this on paid plans only."},
             {icon:<Cpu size={20}/>,title:"Your own computer",text:hosted?"Free and fully private: download CreativeField and run it on a PC with a recent NVIDIA graphics card. A website can't do this part.":'Free and fully private: ComfyUI on this PC makes everything. Pick "This computer" under Run on.'},
             {icon:<MessageCircle size={20}/>,title:"ChatGPT",text:hosted?"In the downloaded app, FotoField can edit pictures through your own ChatGPT sign-in and plan. It isn't offered on this website.":"FotoField can edit pictures through your own ChatGPT sign-in and plan. Pick ChatGPT under Run on, then sign in once in Settings, ChatGPT."},
           ]}/>
@@ -37,7 +38,7 @@ export function Guide({hosted,cloudConnected,onClose,onCloudSignIn,onOpenWorkers
       {section==="worker"&&<>
         <HowItWorks title="What a worker is" lead="A worker is the computer that actually makes your pictures and videos. It runs ComfyUI, a free program that holds the AI models. CreativeField is the simple front: it sends your words and pictures to the worker and shows you what comes back."
           steps={hosted
-            ?[{icon:<Cloud size={20}/>,title:"Here, it is Comfy Cloud",text:"On this website your worker is Comfy Cloud. Sign in with your Comfy Cloud key and it is set up; there is nothing to install."},
+            ?[{icon:<Cloud size={20}/>,title:"Here, it is Comfy",text:"On this website Comfy does the work: Comfy Router models on any plan, Comfy Cloud workflows on a paid plan. Sign in once with your Comfy key; there is nothing to install."},
               {icon:<Cpu size={20}/>,title:"Or your own PC",text:"Download CreativeField and install ComfyUI, and both run on your computer. A website can't reach a program on your computer."}]
             :[{icon:<Download size={20}/>,title:"Install ComfyUI",text:"Get ComfyUI from comfy.org and start it. It answers at http://127.0.0.1:8188."},
               {icon:<Cpu size={20}/>,title:"Add it here",text:"Settings, Workers: enter that address, then Probe. Its models then appear in Models."},

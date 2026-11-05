@@ -36,6 +36,6 @@ export function Welcome({tools,onOpen,onCloud}:{tools:StartTask[];onOpen:(task:S
     text="Turn a few words, a photo or a clip into pictures, video and 3D. Pick a place to start, or look around first."
     media={<RotatingVideo srcs={[POOL_VIDEOS[LOAD_TURN%POOL_VIDEOS.length]]}/>}
     picks={picks.length?<>{picks.map(t=>{const select=()=>{close();onOpen(t);};const clip=WELCOME_CLIPS[t.id];return clip?<WelcomeClipCard key={t.id} task={t} clip={clip} onSelect={select}/>:<PresetCard key={t.id} size="tool" featured={t.featured} label={t.label} hint={t.text} thumb={examples[t.id]?`/examples/${examples[t.id]}`:t.thumb} onSelect={select}/>;})}</>:undefined}
-    note={<Meta>{onCloud?"Renders run on your own Comfy Cloud account. Your key stays in this browser.":"Local generation needs a connected ComfyUI worker and its models."}</Meta>}
+    note={<Meta>{onCloud?"Renders run on your own Comfy account and credits, the free plan included. Your key stays in this browser.":"Local generation needs a connected ComfyUI worker and its models."}</Meta>}
     action={onCloud?<><Button variant="secondary" onClick={close}>Look around</Button><Button variant="primary" onClick={()=>{close();onCloud();}}>Use with Comfy Cloud</Button></>:<Button variant="primary" onClick={close}>Let's create</Button>}/>;
 }

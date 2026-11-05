@@ -5,6 +5,7 @@ import {newId} from "../crypto";
 import {requestSchema,publicColumns} from "../run-submission";
 import {elementInputsSchema,resolveRunInputs} from "../element-inputs";
 import type {DirectRegistry} from "./registry";
+import {BROWSER_KEY_CONNECTION,guestRouterKey} from "../cloud-keys";
 import {ROUTER_MODELS,routerInputProblem} from '../../src/capabilities/router-models';
 
 // Local/storyboard RunRequest and PreparedRun remain unchanged.
@@ -43,7 +44,7 @@ export async function enqueueDirect(client:PoolClient,catalogue:CapabilityBundle
   const invocation:Invocation={capabilityId:manifest.id,version:manifest.version,routeId:body.routeId,inputs:resolved.inputIds,controls,audioPolicy:body.audioPolicy,...(Object.keys(resolved.elementInputSnapshots).length?{elementInputSnapshots:resolved.elementInputSnapshots}:{})};
   if(entry.binding.provider==='comfy-router')invocation.consent={cloudCredits:true};
   try{if(entry.adapter.validate(structuredClone(invocation))?.valid!==true)throw new Error();}catch{throw new HttpError(400,"Provider rejected the input parameters");}
-  const connection=(await client.query("SELECT id,credential_revision FROM provider_connections WHERE workspace_id=$1 AND provider_id=$2",[workspaceId,entry.binding.provider])).rows[0];
+  const connection=entry.binding.provider==="comfy-router"&&guestRouterKey(workspaceId)?{id:BROWSER_KEY_CONNECTION,credential_revision:0}:(await client.query("SELECT id,credential_revision FROM provider_connections WHERE workspace_id=$1 AND provider_id=$2",[workspaceId,entry.binding.provider])).rows[0];
   if(!connection)throw new HttpError(422,"Workspace provider credentials are required");
   const id=newId();
   const run=(await client.query(`INSERT INTO runs(id,workspace_id,project_id,created_by,capability_id,capability_version,route_id,state,invocation,request_hash,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,'pending',$8,$9,$10) RETURNING ${publicColumns}`,[id,workspaceId,body.projectId,userId,manifest.id,manifest.version,body.routeId,JSON.stringify(invocation),requestHash,body.idempotencyKey])).rows[0];

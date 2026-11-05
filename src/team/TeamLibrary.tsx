@@ -1,7 +1,7 @@
 import type {ReactNode} from "react";
 import {lazy,Suspense,useEffect,useState} from "react";
 import {Download,Eye,Image as ImageIcon, Pencil,Trash2} from "lucide-react";
-import {ASSET_TYPE_DRAG,FrameStrip,Block,MosaicGrid,MosaicTile,ResultTile,mosaicAccent,Button,ClampText,ConfirmDialog,ContactSheet,Dialog,IconButton,MediaViewer,Notice,EmptyState,HistoryItem,LinkButton,MediaCard,Meta,PerformanceMirror,ResultGrid,SectionHeader,SegmentedTabs,StatusText,Toolbar,UploadSlot,UploadTile,densityColumnsClass,useDensity,type ContactSheetItem} from "../ds";
+import {ASSET_TYPE_DRAG,FrameStrip,Block,MosaicGrid,MosaicTile,ResultTile,mosaicAccent,Button,ClampText,ConfirmDialog,ContactSheet,Dialog,IconButton,MediaViewer,MediaViewerInfo,Notice,EmptyState,HistoryItem,LinkButton,MediaCard,Meta,PerformanceMirror,ResultGrid,SectionHeader,SegmentedTabs,StatusText,Toolbar,UploadSlot,UploadTile,densityColumnsClass,useDensity,type ContactSheetItem} from "../ds";
 
 import {assetUrl,workspacePath,type Asset,type AssetPage,type Call,type Project,type Run,type User,type Worker,type Workspace} from "./api";
 import {RunFrameInspection} from "./RunFrameInspection";
@@ -136,6 +136,9 @@ export function TeamLibrary({workspace,project,call,canEdit,authorized,version,u
   /* Which run made each file, so a generated file offers Recreate like its run does. */
   const [madeBy,setMadeBy]=useState<Run[]>([]),recreateById=useRecreateById(call,workspace.id,setError);
   useEffect(()=>{if(!authorized)return;let current=true;void call<Run[]>(workspacePath(workspace.id,`runs?projectId=${project.id}`)).then(list=>{if(current)setMadeBy(list.filter(run=>run.state==="succeeded"));}).catch(()=>{});return()=>{current=false;};},[workspace.id,project.id,call,authorized,version,update]);
+  const viewingRunId=viewing?producerRunId(viewing,madeBy):undefined;
+  const [viewingRun,setViewingRun]=useState<Run|null>(null);
+  useEffect(()=>{setViewingRun(null);if(!viewingRunId)return;let current=true;void call<Run>(workspacePath(workspace.id,`runs/${encodeURIComponent(viewingRunId)}`)).then(run=>{if(current)setViewingRun(run);}).catch(()=>{});return()=>{current=false;};},[viewingRunId,workspace.id,call]);
   const kindOf=(file:File)=>file.type.startsWith("video/")?"video" as const:file.type.startsWith("audio/")?"audio" as const:"image" as const;
   async function send(file:File){try{const form=new FormData();form.append("file",file);await call(workspacePath(workspace.id,`assets?projectId=${project.id}`),"POST",form);setPending(old=>{if(old)URL.revokeObjectURL(old.src);return null;});setUpdate(v=>v+1);}catch(e){setPending(old=>old?{...old,state:"failed"}:old);setError((e as Error).message);}}
   function pick(file:File|null){if(!file)return;setError("");setPending({file,src:URL.createObjectURL(file),kind:kindOf(file),state:"uploading"});void send(file);}
@@ -166,7 +169,7 @@ export function TeamLibrary({workspace,project,call,canEdit,authorized,version,u
     <ExampleTiles kind="video" videoSources={LIBRARY_EXAMPLE_VIDEOS}/>
     <ExampleTiles kind="image" imageSources={SQUAREHEAD_EXAMPLE_IMAGES}/>
   </>}</Block>
-  <MediaViewer open={!!viewing&&!viewing.content_type.startsWith("audio/")} src={viewing?assetUrl(workspace.id,viewing.id):""} name={viewing?.name??""} mediaType={viewing?.content_type.startsWith("video/")?"video":"image"} onClose={()=>setViewing(null)}/>
+  <MediaViewer open={!!viewing&&!viewing.content_type.startsWith("audio/")} src={viewing?assetUrl(workspace.id,viewing.id):""} name={viewing?.name??""} mediaType={viewing?.content_type.startsWith("video/")?"video":"image"} onClose={()=>setViewing(null)} onRecreate={canEdit?withRun(viewingRunId,recreateById):undefined} info={viewingRun?<MediaViewerInfo model={jobQueueTitle(viewingRun.capability_id,titles??{})} inputs={Object.entries(viewingRun.invocation?.inputs??{}).filter(([,id])=>typeof id==="string"&&!!id).map(([port,id])=>({src:assetUrl(workspace.id,id),label:port.replaceAll("_"," "),video:/video|clip/i.test(port)}))} prompt={String(viewingRun.invocation?.controls?.prompt??"")} facts={Object.entries(viewingRun.invocation?.controls??{}).filter(([key,value])=>key!=="prompt"&&(typeof value==="string"||typeof value==="number"||typeof value==="boolean")).map(([key,value])=>({label:key.replaceAll("_"," "),value:String(value)}))} date={new Date(viewingRun.created_at).toLocaleString()}/>:undefined}/>
   <Dialog open={!!viewing&&viewing.content_type.startsWith("audio/")} title={viewing?.name??"Audio preview"} onClose={()=>setViewing(null)} footer={<Button variant="ghost" onClick={()=>setViewing(null)}>Close</Button>}>{viewing&&<Suspense fallback={null}><SpeechAudioPlayer key={viewing.id} workspace={workspace.id} asset={viewing}/></Suspense>}</Dialog>
   <ConfirmDialog open={!!deleting} title="Delete this file?" text={deleting?`${deleting.name} will be removed from your library. If a project still needs the file, its stored copy and references will be retained.`:""} confirmLabel={deleteError?"Retry deletion":"Delete file"} error={deleteError} busy={!!deletingId} onCancel={()=>setDeleting(null)} onConfirm={()=>void removeAsset()}/>
   </>;

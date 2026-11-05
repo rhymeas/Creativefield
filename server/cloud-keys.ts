@@ -25,6 +25,14 @@ export function browserCloudKey(workspaceId: string | undefined): string | undef
 /** A hosted try-out (GUEST_PER_BROWSER=1) never lends the server's own key to a guest. */
 export const guestsOnly = () => process.env.GUEST_PER_BROWSER === "1";
 
+/** A Router run that uses the visitor's browser key, not a stored provider credential, is pinned to revision 0 of this id. */
+export const BROWSER_KEY_CONNECTION = "00000000-0000-0000-0000-000000000000";
+
+/** On a hosted try-out a signed-in guest's own key also runs Comfy Router models, which bill the same Comfy credits. */
+export function guestRouterKey(workspaceId: string | undefined): string | undefined {
+  return guestsOnly() ? browserCloudKey(workspaceId) : undefined;
+}
+
 /** The key a workspace's cloud worker uses: the visitor's own, else (not on a hosted try-out) the server's. */
 export function cloudKeyFor(workspaceId: string | undefined): string | undefined {
   return browserCloudKey(workspaceId) ?? (guestsOnly() ? undefined : comfyCloudKey());

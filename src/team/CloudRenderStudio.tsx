@@ -89,7 +89,9 @@ export function CloudRenderStudio({feature,workspace,project,user,call,version,c
   <div className="cf-form">
    <ModelCard title={labels[feature]} subtitle={model?model.title:"Comfy Router"}/>
    {error&&<Notice inline title="Cloud request failed" actions={<Button variant="secondary" onClick={()=>setError('')}>Dismiss</Button>}>{error}</Notice>}
-   {connected===false&&<Collapsible title="Comfy API key" arrow="end">
+   {/* A hosted guest signs in once; their key stays in the browser and also runs these models. */}
+   {connected===false&&user.guest&&<Toolbar><Button variant="primary" onClick={onSettings}>Sign in with your Comfy key</Button></Toolbar>}
+   {connected===false&&!user.guest&&<Collapsible title="Comfy API key" arrow="end">
     <Meta>Connect your Comfy workspace API key. Models use that workspace’s credits; connecting does not start a render.</Meta>
     {workspace.role==='admin'?<><TextField label="Comfy API key" type="password" autoComplete="new-password" value={secret} onChange={v=>{setSecret(v);setConnectError('');}}/><Toolbar><Button variant="primary" disabled={!!busy||!secret.trim()} onClick={()=>void connect()}>{busy==='key'?'Connecting…':'Connect Comfy Router'}</Button><LinkButton href="https://platform.comfy.org/profile/api-keys" target="_blank" rel="noopener noreferrer">Get a key</LinkButton></Toolbar>{connectError&&<Notice inline title="Could not connect">{connectError}</Notice>}</>:<Meta>Ask a workspace admin to connect Comfy Router in Providers / keys.</Meta>}
    </Collapsible>}
@@ -105,7 +107,7 @@ export function CloudRenderStudio({feature,workspace,project,user,call,version,c
     <Dialog className="ds-advanced-dialog" open={advanced} title="Advanced" onClose={()=>setAdvanced(false)} footer={<Button variant="primary" onClick={()=>setAdvanced(false)}>Done</Button>}>
     {model.controls.filter(c=>c.id!=='prompt'&&!FRAME_IDS.includes(c.id)).map(c=>c.type==='select'?<Row key={c.id} label={c.label} display={String(draft.controls[c.id])} value={String(draft.controls[c.id])} disabled={locked} options={c.options!.map(v=>({value:String(v),label:String(v)}))} onChange={v=>setDraft(d=>({...d,controls:{...d.controls,[c.id]:c.options?.find(option=>String(option)===v)??v}}))}/>:<TextField key={c.id} label={c.label} type="number" min={c.min} max={c.max} value={String(draft.controls[c.id]??'')} disabled={locked} onChange={v=>setDraft(d=>({...d,controls:{...d.controls,[c.id]:Number(v)}}))}/>)}
     </Dialog>
-    <Toolbar>    {connected&&workspace.role==='admin'&&<Button variant="ghost" onClick={onSettings}>Manage keys</Button>}</Toolbar>
+    <Toolbar>    {connected&&!user.guest&&workspace.role==='admin'&&<Button variant="ghost" onClick={onSettings}>Manage keys</Button>}</Toolbar>
    </>}
    {!model&&<EmptyState title="No compatible cloud model connected for this tool" text="This tool has no verified Comfy Router integration yet. Your local workflow remains available." action={<Button variant="secondary" onClick={onLocal}>Use this computer</Button>}/>}
   </div>

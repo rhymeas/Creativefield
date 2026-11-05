@@ -6,6 +6,7 @@ import {probeVideo} from "../media";
 import sharp from 'sharp';
 import {productionDirectRegistry,type DirectRegistry,type RegisteredAdapter} from "./registry";
 import {createProviderTransport} from "./transport";
+import {BROWSER_KEY_CONNECTION,guestRouterKey} from "../cloud-keys";
 import type {AdapterContext,AdapterTransport,DirectBinding,OwnedInput} from "./types";
 
 export type TransportFactory=(binding:DirectBinding,authorization:string)=>AdapterTransport;
@@ -40,6 +41,9 @@ export class DirectExecutionService {
     }
   }
   private async credential(run:any){
+    /* A hosted guest's Router run uses the key their browser holds; the server keeps it in memory only.
+       After a restart it is back with the browser's next request, and the run waits until then. */
+    if(run.connection_id===BROWSER_KEY_CONNECTION&&Number(run.credential_revision)===0){const key=guestRouterKey(run.workspace_id);if(!key)throw new Error("Pinned credentials unavailable");return key;}
     const row=(await this.pool.query("SELECT encrypted_secret FROM provider_connections WHERE workspace_id=$1 AND id=$2 AND provider_id=$3 AND credential_revision=$4",[run.workspace_id,run.connection_id,run.binding.provider,run.credential_revision])).rows[0];
     if(!row)throw new Error("Pinned credentials unavailable");
     return decryptProviderSecret(row.encrypted_secret,this.masterKey,{workspaceId:run.workspace_id,providerId:run.binding.provider});

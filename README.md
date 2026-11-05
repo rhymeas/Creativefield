@@ -67,8 +67,8 @@ It is an early preview, not a Photoshop clone. FotoField covers the everyday lay
 | ![3D workspace](docs/screens/creativefield/3d.png) | ![Nodes editor with a sample image graph](docs/screens/creativefield/nodes-preview.webp) |
 | **Trim video** | **Project library** |
 | ![Trim video workspace](docs/screens/creativefield/trim-video.png) | ![Project library](docs/screens/creativefield/library.png) |
-| **How it was made** | |
-| ![Full view: references, prompt, model and settings beside the result, with Recreate](docs/screens/creativefield/full-view.png) | |
+| **How it was made** | **Create Image** |
+| ![Full view: references, prompt, model and settings beside the result, with Recreate](docs/screens/creativefield/full-view.png) | ![Create Image workspace with project results and examples](docs/screens/creativefield/create-image.png) |
 
 These screenshots show the application in a demo project. They show the interface, not a claim about output quality; the Nodes view shows a sample image graph.
 
