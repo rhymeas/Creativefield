@@ -99,12 +99,28 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
     }
     if (refs.length) graph["24"].inputs = batch;
     else { delete graph["24"]; graph["6"].inputs.image = ["16", 0]; }
-    const prompt = String(graph["6"].inputs.prompt);
+    // The editor names image slots in their original order. P-H3's inputs are
+    // packed when optional slots are empty, so translate only attached mentions
+    // to their actual position in the conditioning batch.
+    const pictureNumbers = new Map<number,number>([[1,1]]);
+    for (let i = 0; i < refs.length; i++) pictureNumbers.set(Number(refs[i].id) - 19, i + 2);
+    const prompt = String(graph["6"].inputs.prompt).replace(/@Image\s*(\d{1,2})\b/gi,(match,number:string)=>{
+      const position = pictureNumbers.get(Number(number));
+      return position === undefined ? match : `<Picture ${position}>`;
+    });
     const markers = Array.from({length:refs.length + 1}, (_, i) => `<Picture ${i + 1}>: <|vision_start|><|image_pad|><|vision_end|>`).join("");
     graph["6"].inputs.prompt = `<|im_start|>user\n${markers}Edit <Picture 1>. ${prompt}<|im_end|>\n<|im_start|>assistant\n<think>\n`;
   }
   if (manifest.id === "flux2-klein-edit") {
     const refs = ["reference_image", "reference_image_2", "reference_image_3"].map((port,i) => ({file:invocation.inputs[port],id:`cf-ref-${i+1}`})).filter(ref=>!!ref.file);
+    // Slots in the UI can have gaps; the model receives the attached images
+    // packed after the source, so keep explicit mentions aligned to that order.
+    const imageNumbers=new Map<number,number>([[1,1]]);
+    for(let i=0;i<refs.length;i++) imageNumbers.set(Number(refs[i].id.slice(-1))+1,i+2);
+    graph["28"].inputs.value=String(graph["28"].inputs.value).replace(/@Image\s*(\d{1,2})\b/gi,(match,number:string)=>{
+      const position=imageNumbers.get(Number(number));
+      return position===undefined?match:`image ${position}`;
+    });
     for (let i=1;i<=3;i++) if (!refs.some(ref=>ref.id===`cf-ref-${i}`)) delete graph[`cf-ref-${i}`];
     for (let i=0;i<3;i++) {
       const id=refs[i]?.id;

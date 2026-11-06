@@ -87,10 +87,16 @@ export function mergeImageRuns(listed:Run[],known:Run[],capabilityId:string):Run
 }
 
 export function createStartTarget(fileCount:number,models:TeamChoiceOption[],currentModel?:string):string|null{
-  if(fileCount>0&&fileCount<=4&&currentModel?.startsWith("pruna-p-h3-")&&models.some(option=>option.value==="pruna-p-h3-edit"))return "pruna-p-h3-edit";
-  // Several pictures need reference inputs, which only Fibo has; one picture takes the routed editor.
-  const target=fileCount>1?models.find(option=>option.value==="fibo2-edit")?.value:routeTask("image.edit",models.map(option=>({id:option.value})))?.pack.id;
-  return fileCount>0&&target?target:null;
+  if(fileCount<1||fileCount>4)return null;
+  // These edit workflows expose the same source + three reference input ports.
+  const referenceEditors=["flux2-klein-edit","qwen-image-21-edit","pruna-p-h3-edit","fibo2-edit"];
+  const selectedEditor=currentModel?.startsWith("flux2-klein-")?"flux2-klein-edit"
+    :currentModel?.startsWith("qwen-image-21-")?"qwen-image-21-edit"
+    :currentModel?.startsWith("pruna-p-h3-")?"pruna-p-h3-edit"
+    :currentModel==="fibo2-edit"?currentModel:undefined;
+  if(selectedEditor&&models.some(option=>option.value===selectedEditor))return selectedEditor;
+  if(fileCount>1)return models.find(option=>referenceEditors.includes(option.value))?.value??null;
+  return routeTask("image.edit",models.map(option=>({id:option.value})))?.pack.id??null;
 }
 
 export function createStartInputs(assetIds:string[]):Record<string,string>{
@@ -496,7 +502,7 @@ export function ImageStudio({
                 <Flashlight compact src={lightSource ? assetUrl(workspace.id, lightSource.id) : undefined} alt={lightSource?.name ?? "Selected source image"} direction={lightDirection} temperature={lightTemperature} temperatures={lightTemperatures} onDirectionChange={setGuideDirection} onTemperatureChange={setGuideTemperature}/>
                 <Meta>Guide is approximate; the written prompt defines the scene and light.</Meta>
               </PanelSection>}
-              {imageInputs.length===0&&onModel&&batchContext&&!!createStartTarget(1,modelOptions??[])&&<><UploadSlot label="Add a reference" hint="Up to 4: one picture, or one plus 3 references" accept="image/png,image/jpeg,image/webp" kinds={["image"]} disabled={busy} multiple onAsset={assetId=>startFromAssets([assetId])} onFiles={files=>void startFromPictures(files)} onFile={file=>{if(file)void startFromPictures([file]);}}/><LibraryButton disabled={busy} onClick={()=>setCreatePickerOpen(true)}/></>}
+              {imageInputs.length===0&&onModel&&batchContext&&!!createStartTarget(1,modelOptions??[],manifest.id)&&<><UploadSlot label="Add a reference" hint={manifest.id.startsWith("qwen-image-21-")?"Add an image and a reference to edit with Qwen (up to 4 images).":"Up to 4: one picture, or one plus 3 references"} accept="image/png,image/jpeg,image/webp" kinds={["image"]} disabled={busy} multiple onAsset={assetId=>startFromAssets([assetId])} onFiles={files=>void startFromPictures(files)} onFile={file=>{if(file)void startFromPictures([file]);}}/><LibraryButton disabled={busy} onClick={()=>setCreatePickerOpen(true)}/></>}
               {!anglesRoute&&!relight&&(sharedCreate||shownSize||aspectControl||countControl)&&<Params>{sharedCreate&&!aspectControl&&<ParamButton<string> title="Aspect ratio (not available for this model)" icon={<RectangleHorizontal size={16}/>} disabled label="Source ratio" value="Source ratio" options={[]} onChange={()=>{}}/>}{aspectControl&&<ParamButton<string|number> title={aspectControl.label} icon={<RectangleHorizontal size={16}/>} disabled={busy} label={String(valueOf(aspectControl))} value={valueOf(aspectControl)} options={(aspectControl.options??[]).map(value=>({value,label:String(value)}))} onChange={value=>changeControl(aspectControl.id,value)}/>}{shownSize&&<ParamButton<string|number> title="Size" icon={<Maximize2 size={16}/>} disabled={busy} label={sizeText(shownSize.id,draft.controls[shownSize.id]??shownSize.default??"Choose size")} value={(draft.controls[shownSize.id]??shownSize.default??"") as string|number} options={(shownSize.options??[]).map(value=>({value,label:sizeText(shownSize.id,value)}))} onChange={value=>changeControl(shownSize.id,value)}/>}{sharedCreate&&!countControl&&<ParamButton<number> title="Image count (not available for this model)" icon={<Images size={16}/>} disabled label="1 image" value={1} options={[]} onChange={()=>{}}/>}{countControl&&<ParamButton<number> title={countControl.label} icon={<Images size={16}/>} disabled={busy} label={`${Number(valueOf(countControl))} ${Number(valueOf(countControl))===1?"image":"images"}`} value={Number(valueOf(countControl))} options={countOptions(countControl).map(value=>({value,label:String(value)}))} onChange={value=>changeControl(countControl.id,Number(value))}/>}</Params>}
               {!anglesRoute&&!relight&&controls.some(control=>control.id!=="prompt"&&!frame.ids.includes(control.id)&&(!sharedCreate||control.id==="seed"))&&<Row subtle label="Advanced settings" display="Optional controls" disabled={busy} onClick={()=>setAdvanced(true)}/>}
               <Dialog className="ds-advanced-dialog" open={advanced} title="Advanced" onClose={()=>setAdvanced(false)} footer={<Button variant="primary" onClick={()=>setAdvanced(false)}>Done</Button>}>

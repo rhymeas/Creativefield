@@ -20,6 +20,7 @@ import {chainKeyPrefix,chainPart,type JobPart} from "./progress";
 import {compileJutsuRelay,planJutsuRelay} from "../src/capabilities/jutsu";
 import {inspectReplaceClip} from "./replace-clip-check";
 import {readOpenJutsuTracking} from "./openjutsu-tracking";
+import {inspectCharacterReference,prepareOpenJutsuUpload} from "./openjutsu-reference";
 import {requestSchema,publicColumns,canonical,extension,prepareInvocation,enqueuePreparedRun,cancelRun} from "./run-submission";
 import {applyStoredRunGraphEdits} from "./run-graph-edits";
 import {editedRunRoutes} from "./edited-run";
@@ -511,14 +512,37 @@ export class ExecutionService {
     if(!acceptedUploadPath(worker,filename,await uploaded.json() as {name?:string;subfolder?:string}))throw new Error("Worker returned an unexpected upload path");
     return filename;
   }
-  private async uploadInputs(run:any,worker:any,assets:any[],motion?:{role:string;storageKey:string;filename:string},addSilentAudio=false,padAudioTail=false):Promise<Record<string,string>>{
+  /** The run ledger supplies cancellation, rather than a process-local AbortSignal.
+   * Stop waiting for the vision result if this run is canceled. Never interrupt the
+   * worker globally: another user may have work in its queue. */
+  private async inspectCharacterForRun(run:any,worker:any,image:Buffer){
+    const controller=new AbortController();
+    let checking=false;
+    const timer=setInterval(()=>{
+      if(checking)return;
+      checking=true;
+      void this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])
+        .then(result=>{if(["cancel_requested","canceled"].includes(result.rows[0]?.state))controller.abort();})
+        .catch(()=>{}).finally(()=>{checking=false;});
+    },1500);
+    timer.unref();
+    try{return await inspectCharacterReference(worker,image,{signal:AbortSignal.any([controller.signal,AbortSignal.timeout(240000)])});}
+    finally{clearInterval(timer);}
+  }
+  private async uploadInputs(run:any,worker:any,assets:any[],motion?:{role:string;storageKey:string;filename:string},addSilentAudio=false,padAudioTail=false,inspectCharacter=false):Promise<Record<string,string>>{
     const inputs:Record<string,string>={};
     for(const asset of assets){
       const isMotion=motion?.role===asset.role;
       const filename=isMotion?motion!.filename:`comfyfield-${run.id}-${asset.id}.${extension(asset.content_type)}`;
       if(Object.values(inputs).includes(filename)){inputs[asset.role]=filename;continue;}
       const source=await this.store.file(run.workspace_id,isMotion?motion!.storageKey:asset.storage_key);
-      if(addSilentAudio&&asset.role==="source_video"){
+      if(inspectCharacter&&asset.role==="character_image"){
+        const bytes=await readFile(source);
+        const prepared=await prepareOpenJutsuUpload(bytes,asset.content_type,(image)=>this.inspectCharacterForRun(run,worker,image));
+        if(prepared.kind==="ambiguous")throw new Error(prepared.reason);
+        const uploadName=prepared.kind==="isolated"?filename.replace(/\.[^.]+$/, ".png"):filename;
+        inputs[asset.role]=await this.uploadInput(worker,uploadName,new Blob([new Uint8Array(prepared.bytes)],{type:prepared.mediaType}),asset.role);
+      }else if(addSilentAudio&&asset.role==="source_video"){
         inputs[asset.role]=await withVideoAudio(source,async file=>{
           const prepared=file!==source;
           const uploadName=prepared?filename.replace(/\.[^.]+$/, ".mkv"):filename;
@@ -633,7 +657,7 @@ export class ExecutionService {
         }
       }
       const sourceFrames=await this.replaceSourceFrames(run,assets,bundle.manifest);
-      const inputs=await this.uploadInputs(run,worker,assets,undefined,["h3-object-swap","openjutsu-h3-advanced"].includes(bundle.manifest.id),bundle.manifest.id==="openjutsu-h3-advanced");
+      const inputs=await this.uploadInputs(run,worker,assets,undefined,["h3-object-swap","openjutsu-h3-advanced"].includes(bundle.manifest.id),bundle.manifest.id==="openjutsu-h3-advanced",bundle.manifest.id==="openjutsu-h3-swap"&&worker.kind!=="cloud");
       const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,compileRunGraph(bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
       // A cancellation before prompt submission can complete without touching the worker queue.
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
@@ -647,6 +671,10 @@ export class ExecutionService {
       await this.pool.query("UPDATE runs SET remote_id=$1,state=CASE WHEN state='cancel_requested' THEN state ELSE 'queued' END,updated_at=now() WHERE workspace_id=$2 AND id=$3",[result.prompt_id,run.workspace_id,run.id]);
       await this.event(run.workspace_id,run.id,"queued");
     } catch(error) {
+      if(!remoteAttempted&&manifest?.id==="openjutsu-h3-swap"){
+        const state=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0]?.state;
+        if(state==="cancel_requested"){await this.finish(run,"canceled");return;}
+      }
       if(remoteAttempted) {
         await this.pool.query("UPDATE runs SET state=CASE WHEN state='cancel_requested' THEN state ELSE 'submission_unknown' END,error='Submission outcome is being reconciled; it will not be automatically resubmitted',updated_at=now() WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id]);
         await this.event(run.workspace_id,run.id,"submission_unknown");
@@ -686,7 +714,7 @@ export class ExecutionService {
          only accepts the names the server made, and the stored graph keeps those names. */
       const cloud=worker.kind==="cloud";
       const named=Object.fromEntries(assets.map(asset=>[asset.role,`comfyfield-${run.id}-${asset.id}.${extension(asset.content_type)}`]));
-      const inputs=cloud?named:await this.uploadInputs(run,worker,assets,undefined,["h3-object-swap","openjutsu-h3-advanced"].includes(bundle.manifest.id),bundle.manifest.id==="openjutsu-h3-advanced");
+      const inputs=cloud?named:await this.uploadInputs(run,worker,assets,undefined,["h3-object-swap","openjutsu-h3-advanced"].includes(bundle.manifest.id),bundle.manifest.id==="openjutsu-h3-advanced",bundle.manifest.id==="openjutsu-h3-swap");
       const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,compileRunGraph(bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
       if(current.state==="cancel_requested"){await this.finish(run,"canceled");return;}
@@ -703,6 +731,10 @@ export class ExecutionService {
       await this.pool.query("UPDATE runs SET remote_id=$1,state=CASE WHEN state='cancel_requested' THEN state ELSE 'queued' END,updated_at=now() WHERE workspace_id=$2 AND id=$3",[job.id,run.workspace_id,run.id]);
       await this.event(run.workspace_id,run.id,"queued",{transport:"sdk",remoteId:job.id});
     } catch(error) {
+      if(!remoteAttempted&&run.capability_id==="openjutsu-h3-swap"){
+        const state=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0]?.state;
+        if(state==="cancel_requested"){await this.finish(run,"canceled");return;}
+      }
       const status=error instanceof ComfyError?error.httpStatus:undefined;
       if(remoteAttempted&&status!==undefined&&status>=400&&status<500&&status!==429){
         // The proxy answered and rejected the request: no job was accepted, so

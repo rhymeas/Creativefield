@@ -54,6 +54,18 @@ export async function prepareCharacterReference(bytes:Buffer,mediaType:string,an
   return {kind:"isolated",bytes:result,mediaType:"image/png",box:assessment.box};
 }
 
+/** Wide pictures are possible multi-view sheets. Inspect those before passing them to
+ * the swap graph. A portrait is left alone; that heuristic does not claim to detect
+ * every possible sheet layout. Never replace an uncertain analysis with a guess. */
+export async function prepareOpenJutsuUpload(bytes:Buffer,mediaType:string,analyze:(bytes:Buffer,mediaType:string)=>Promise<CharacterReferenceAnalysis>):Promise<PreparedCharacterReference>{
+  const metadata=await sharp(bytes,{failOn:"warning",limitInputPixels:64*1024*1024}).metadata();
+  if(!metadata.width||!metadata.height)throw new Error("The character image could not be read.");
+  const rotated=[5,6,7,8].includes(metadata.orientation??1);
+  const width=rotated?metadata.height:metadata.width,height=rotated?metadata.width:metadata.height;
+  if(width/height<1.6)return {kind:"unchanged",bytes,mediaType};
+  return prepareCharacterReference(bytes,mediaType,analyze);
+}
+
 /** Uses the same local Qwen3-VL model and ComfyUI image graph as reference-describe.
  * The caller must run this only on an idle worker and handle its unavailable/error response.
  * This function never cancels or interrupts any worker job. */

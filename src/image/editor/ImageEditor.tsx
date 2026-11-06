@@ -805,7 +805,7 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
         gc.drawImage(crop,0,0);gc.globalAlpha=.38;gc.drawImage(mask,region.x,region.y,region.w,region.h,0,0,region.w,region.h);
         selectionGuide=await uploadPng(guide,"image",`selection-guide-${Date.now()}.png`);
       }
-      const mapped=modifyReferenceBindings(source.id,annotated?reference.id:selectionGuide?.id,explicitReferences.map(asset=>asset?.id??null),ports,aiPrompt);
+      const mapped=modifyReferenceBindings(source.id,annotated?reference.id:selectionGuide?.id,explicitReferences.map(asset=>asset?.id??null),ports,aiPrompt,runEdit.manifest.id);
       const inputs:Record<string,string>=mapped.inputs;
       if(runEdit===maskedEdit&&sel){
         const mask=cropSelectionMask(sel,region);if(!mask)throw new Error("The selected mask is unavailable.");
@@ -831,7 +831,7 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
         delete inputs.reference_image_3;
       }
       const referenceInstruction=referenceSheet?identityReferenceSheetInstruction(characterIds.length):aiCharacter?identityReferenceInstruction(referenceCount):"";
-      const mappedAnnotations=annotated?mapAnnotationReferenceMentions(annotations,source.id,reference.id,explicitReferences.map(asset=>asset?.id??null),edit.manifest.inputs.map(input=>input.id)):annotations;
+      const mappedAnnotations=annotated?mapAnnotationReferenceMentions(annotations,source.id,reference.id,explicitReferences.map(asset=>asset?.id??null),ports,runEdit.manifest.id):annotations;
       const instruction=annotated?annotationInstruction(mappedAnnotations,mapped.prompt):[aiInstruction(mode,characterPlacement&&aiCharacter?characterPlacementInstruction(aiCharacter.name,aiPrompt):selectionInstruction(mapped.prompt,!!sel)),selectionGuide?selectionGuideInstruction:"",referenceInstruction].filter(Boolean).join(" ");
       // Modify must follow the user's actual instruction, including replacement details.
       // Fibo's optional prompt enhancer can rewrite those details before the edit model sees them.
