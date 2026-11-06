@@ -317,7 +317,7 @@
   },
   "801": {
     "inputs": {
-      "prompt": "Replace the selected person in <Video 1> with the character in <Picture 1>. Take only the person from <Picture 1>: face, hair, body and clothes. Ignore the background, setting and light of <Picture 1>. Keep everything else of <Video 1> unchanged: background, framing, aspect ratio, other people, camera, light, performance and audio timing.",
+      "prompt": "Replace the selected person in <Video 1> with the character in <Picture 1>. Use the complete character from <Picture 1>, preserving its distinctive shape, proportions, features, limbs and clothing without cutting them off. Ignore the background, setting and light of <Picture 1>. Keep everything else of <Video 1> unchanged: background, framing, aspect ratio, other people, camera, light, performance and audio timing.",
       "seed": 904239,
       "audio_guide": true,
       "steps": 8,

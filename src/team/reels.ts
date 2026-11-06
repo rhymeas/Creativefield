@@ -30,6 +30,9 @@ const REELS = {
 /** The placeholder clips that take turns behind heroes (Midjourney set). */
 export const POOL_VIDEOS = Array.from({ length: 8 }, (_, i) => `/reels/mj-0${i}.mp4`);
 
+/** Newest finished video examples appear first in the shared feed and Library. */
+export const FEATURED_VIDEO_EXAMPLES = ["/examples/promo/beach-portrait.mp4"];
+
 /** Squarehead's OpenJutsu examples and stills extracted from those actual renders. */
 export const SQUAREHEAD_EXAMPLE_VIDEOS = Array.from({length:5},(_,i)=>`/examples/squarehead/jutsu-0${i+1}.mp4`);
 export const SQUAREHEAD_EXAMPLE_IMAGES = Array.from({length:5},(_,i)=>`/examples/squarehead/jutsu-0${i+1}.webp`);
@@ -49,7 +52,7 @@ export const LOW_PRIORITY_EXAMPLES:readonly string[] = [
 
 /** All bundled video examples, in the order feeds show them: the OpenJutsu renders, the best promo clips, the
     Midjourney loops, then the early test clips. Available in the Library and media picker. */
-export const LIBRARY_EXAMPLE_VIDEOS = [...SQUAREHEAD_EXAMPLE_VIDEOS,...OPENJUTSU_SHOWCASE.map(item=>item.result),
+export const LIBRARY_EXAMPLE_VIDEOS = [...FEATURED_VIDEO_EXAMPLES,...SQUAREHEAD_EXAMPLE_VIDEOS,...OPENJUTSU_SHOWCASE.map(item=>item.result),
   ...["reshoot","effects-lab","copy-moves","film-studio","block-shot","swap-thing","new-look","video-studio","ad-studio"].map(name=>`/examples/promo/${name}.mp4`),
   ...POOL_VIDEOS,...LOW_PRIORITY_EXAMPLES];
 

@@ -13,7 +13,7 @@ import {activeRun,runLabel} from "./state";
 import {ExampleTiles} from "./ExampleTiles";
 import {MediaPreview} from "./MediaPreview";
 import {newestMediaFirst} from "./media-order";
-import {LIBRARY_EXAMPLE_VIDEOS,SQUAREHEAD_EXAMPLE_IMAGES,SQUAREHEAD_EXAMPLE_VIDEOS,promoReelForCapability} from "./reels";
+import {FEATURED_VIDEO_EXAMPLES,LIBRARY_EXAMPLE_VIDEOS,SQUAREHEAD_EXAMPLE_IMAGES,SQUAREHEAD_EXAMPLE_VIDEOS,promoReelForCapability} from "./reels";
 import {jobQueueTitle,runLocation} from "./job-queue";
 import {producerRunId,useRecreate,useRecreateById} from "./recreate";
 import {capabilityHasControl} from "../capabilities/lookup";
@@ -117,7 +117,7 @@ function ProjectRuns({workspace,project,call,canEdit,authorized,version,user,tit
     {motionRun&&<PerformanceMirror driving={assetUrl(workspace.id,motionRun.invocation!.inputs.motion_video)} result={assetUrl(workspace.id,motionRun.output_ids[0])} caption="Latest motion run · driving performance and result side by side"/>}
     {pickedOutputs.length>0&&<Toolbar><Button variant="secondary" onClick={()=>setSheetOpen(true)}>Contact sheet · {pickedOutputs.length}</Button><Button variant="ghost" onClick={()=>{setPicked({});setSheetOpen(false);}}>Clear</Button></Toolbar>}
     {feedAssetError&&<Notice priority={20} consequence title="Library couldn't be updated" details={feedAssetError}>The feed shows the last media it read.</Notice>}
-    {feed?<>{feedView}{examples&&<ExampleTiles kind={examples} videoSources={examples==="video"?LIBRARY_EXAMPLE_VIDEOS:undefined}/>}</>:examples?<ExampleTiles kind={examples} leading={runTiles} leadingCount={shown.length} videoSources={examples==="video"&&promoReelForCapability(capabilityId)?[...new Set([...SQUAREHEAD_EXAMPLE_VIDEOS,promoReelForCapability(capabilityId)!])]:undefined}/>:<ResultGrid count={shown.length} aspect={0} label="Project runs">{runTiles}</ResultGrid>}
+    {feed?<>{feedView}{examples&&<ExampleTiles kind={examples} videoSources={examples==="video"?LIBRARY_EXAMPLE_VIDEOS:undefined}/>}</>:examples?<ExampleTiles kind={examples} leading={runTiles} leadingCount={shown.length} videoSources={examples==="video"&&promoReelForCapability(capabilityId)?[...new Set([...FEATURED_VIDEO_EXAMPLES,...SQUAREHEAD_EXAMPLE_VIDEOS,promoReelForCapability(capabilityId)!])]:undefined}/>:<ResultGrid count={shown.length} aspect={0} label="Project runs">{runTiles}</ResultGrid>}
     <Dialog wide open={authorized&&sheetOpen&&sheetItems.length>0} title="Selected results" onClose={()=>setSheetOpen(false)} footer={<Button variant="secondary" onClick={()=>setSheetOpen(false)}>Close</Button>}>
       <ContactSheet items={sheetItems} title={`Selected results · ${project.name}`} fileName={`selected-results-${project.id.slice(0,8)}.png`}/>
     </Dialog>

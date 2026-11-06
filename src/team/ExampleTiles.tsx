@@ -1,6 +1,6 @@
 import {useEffect,useState,type ReactNode} from "react";
 import {Block,MediaViewer,MediaViewerInfo,ResultGrid,ResultTile} from "../ds";
-import {LOW_PRIORITY_EXAMPLES,OPENJUTSU_SHOWCASE,POOL_VIDEOS,SQUAREHEAD_EXAMPLE_IMAGES,SQUAREHEAD_EXAMPLE_VIDEOS} from "./reels";
+import {FEATURED_VIDEO_EXAMPLES,LOW_PRIORITY_EXAMPLES,OPENJUTSU_SHOWCASE,POOL_VIDEOS,SQUAREHEAD_EXAMPLE_IMAGES,SQUAREHEAD_EXAMPLE_VIDEOS} from "./reels";
 import {LOAD_TURN} from "./reload-turn";
 import {useRecreateMedia} from "./recreate";
 
@@ -8,8 +8,8 @@ import {useRecreateMedia} from "./recreate";
 export function ExampleTiles({kind,count,leading,leadingCount=0,videoSources,imageSources,caption="Example"}:{kind:"video"|"image";count?:number;leading?:ReactNode;leadingCount?:number;videoSources?:readonly string[];imageSources?:readonly string[];caption?:string}){
   const [pictures,setPictures]=useState<string[]>([]);
   useEffect(()=>{let current=true;if(kind==="image")fetch("/examples/pool.json").then(r=>r.ok?r.json():{images:[]}).then((p:{images?:string[]})=>{if(current&&Array.isArray(p.images))setPictures(p.images.map(f=>`/examples/${f}`));}).catch(()=>{});return()=>{current=false;};},[kind]);
-  const all=kind==="video"?videoSources??[...SQUAREHEAD_EXAMPLE_VIDEOS,...POOL_VIDEOS]:imageSources??pictures;
-  const featured=all.filter(src=>(kind==="video"?SQUAREHEAD_EXAMPLE_VIDEOS:SQUAREHEAD_EXAMPLE_IMAGES).includes(src));
+  const all=kind==="video"?videoSources??[...FEATURED_VIDEO_EXAMPLES,...SQUAREHEAD_EXAMPLE_VIDEOS,...POOL_VIDEOS]:imageSources??pictures;
+  const featured=all.filter(src=>(kind==="video"?[...FEATURED_VIDEO_EXAMPLES,...SQUAREHEAD_EXAMPLE_VIDEOS]:SQUAREHEAD_EXAMPLE_IMAGES).includes(src));
   const showcases=all.some(src=>OPENJUTSU_SHOWCASE.some(item=>item.result===src))?OPENJUTSU_SHOWCASE.map(item=>item.result):[];
   /* OpenJutsu first, then the good examples taking turns at the top on each visit, and the early test clips always last. */
   const others=all.filter(src=>!featured.includes(src)&&!showcases.includes(src)&&!LOW_PRIORITY_EXAMPLES.includes(src)),late=all.filter(src=>!featured.includes(src)&&!showcases.includes(src)&&LOW_PRIORITY_EXAMPLES.includes(src));

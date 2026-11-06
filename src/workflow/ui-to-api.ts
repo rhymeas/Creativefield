@@ -181,6 +181,8 @@ export function uiToApi(ui: UiWorkflow, info: ObjectInfo, opts: ConvertOptions =
     const values = Array.isArray(node.widgets_values) ? node.widgets_values : [];
     const inputs: Record<string, unknown> = {};
     let cursor = 0;
+    /** A preview-only node (ImageCompare) whose display widget is never saved: the editor leaves it out of the prompt too. */
+    let viewerOnly = false;
 
     /** Writes a resolved input; false when it leads nowhere usable. */
     const assign = (name: string, source: Resolved, required: boolean): void => {
@@ -233,7 +235,10 @@ export function uiToApi(ui: UiWorkflow, info: ObjectInfo, opts: ConvertOptions =
       if (!def) continue;
       const type = def[0];
       const cfg = def[1] ?? {};
-      const isWidget = (Array.isArray(type) || WIDGET_TYPES.has(type) || !!cfg.socketless) && !cfg.forceInput;
+      // An editor widget of its own type (CreateBoundingBoxes' BOUNDING_BOXES) has no socket on the saved node
+      // and keeps its value in widgets_values like any other widget.
+      const editorWidget = !node.inputs?.some((i) => i.name === name) && "default" in cfg;
+      const isWidget = ((Array.isArray(type) || WIDGET_TYPES.has(type) || !!cfg.socketless) && !cfg.forceInput) || editorWidget;
       const required = name in (spec.input.required ?? {});
       const slot = node.inputs?.find((i) => i.name === name && i.link != null);
 
@@ -250,6 +255,9 @@ export function uiToApi(ui: UiWorkflow, info: ObjectInfo, opts: ConvertOptions =
           // A template saved before the node gained this input has no value for it.
           // Optional inputs then fall back to the server's default.
           if (!required) continue;
+          // A required widget the template never saved falls back to the node's own default, as the editor does.
+          if ("default" in cfg) { inputs[name] = cfg.default; continue; }
+          if (cfg.socketless && !(spec.output?.length)) { viewerOnly = true; break; }
           throw new Error(`Node ${key} (${node.type}): no saved value for "${name}"`);
         }
         inputs[name] = values[cursor];
@@ -269,6 +277,7 @@ export function uiToApi(ui: UiWorkflow, info: ObjectInfo, opts: ConvertOptions =
       if (slot.link == null || slot.name in inputs || slot.name in defs) continue;
       assign(slot.name, resolveLink(scope, slot.link), false);
     }
+    if (viewerOnly) continue;
 
     graph[key] = {
       class_type: node.type,
