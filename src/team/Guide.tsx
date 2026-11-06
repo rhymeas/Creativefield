@@ -23,7 +23,7 @@ export function Guide({hosted,cloudConnected,onClose,onCloudSignIn,onOpenWorkers
       <ModeTabs label="Guide section" value={section} onChange={setSection} items={SECTIONS}/>
       {section==="start"&&<HowItWorks title="Make something in three steps" lead="CreativeField turns a few words, a photo or a clip into pictures, video and 3D. You don't need to know anything about AI models."
         steps={[
-          {icon:<Wand2 size={20}/>,title:"Pick a tool",text:"Video, Image, FotoField or 3D in the top bar. Each tool does one thing, such as a new picture or a moving clip."},
+          {icon:<Wand2 size={20}/>,title:"Pick a tool",text:"Video, Image or 3D in the top bar; FotoField is in the Image menu. Each tool does one thing, such as a new picture or a moving clip."},
           {icon:<ImageIcon size={20}/>,title:"Add words or a picture",text:"Describe what you want, or drop in a photo or clip to start from."},
           {icon:<Sparkles size={20}/>,title:"Press Generate",text:hosted?"Comfy Cloud makes it, and the result appears right there and in the Library.":"Your computer makes it, and the result appears right there and in the Library."},
         ]}/>}

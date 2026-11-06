@@ -35,7 +35,7 @@ const cx = (...c: Array<string | false | null | undefined>) => c.filter(Boolean)
 /* ── TopBar ─────────────────────────────────────────────────── */
 
 export type MegaItem = { id: string; icon?: ReactNode; title: string; text?: string; badge?: { text: string; tone?: "accent" | "hot" | "soft" }; onSelect: () => void };
-export type NavItem = { label: string; href: string; /** One entry that the product leads with: a thin brand-yellow ring. */ featured?: boolean; onSelect?: () => void; badge?: { text: string; tone?: "accent" | "hot" | "soft" }; menu?: { features: MegaItem[]; models: MegaItem[] }; /** A short list under the item (projects). The chosen entry is shown right after the label. */ dropdown?: { items: MegaItem[]; selectedId?: string; footer?: MegaItem }; suffix?: string };
+export type NavItem = { label: string; href: string; onSelect?: () => void; badge?: { text: string; tone?: "accent" | "hot" | "soft" }; menu?: { features: MegaItem[]; models: MegaItem[] }; /** A short list under the item (projects). The chosen entry is shown right after the label. */ dropdown?: { items: MegaItem[]; selectedId?: string; footer?: MegaItem }; suffix?: string };
 
 export function TopBar({
   brand,
@@ -102,12 +102,12 @@ export function TopBar({
         )}
       </span>
     ) : it.onSelect ? (
-    <button key={it.href} type="button" className={cx("ds-navlink", it.featured && "ds-navlink--featured")} aria-current={it.href === current ? "page" : undefined} onClick={it.onSelect}>
+    <button key={it.href} type="button" className="ds-navlink" aria-current={it.href === current ? "page" : undefined} onClick={it.onSelect}>
       {it.label}
       {it.badge && <Badge tone={it.badge.tone}>{it.badge.text}</Badge>}
     </button>
     ) : (
-    <a key={it.href} className={cx("ds-navlink", it.featured && "ds-navlink--featured")} href={it.href} aria-current={it.href === current ? "page" : undefined}>
+    <a key={it.href} className="ds-navlink" href={it.href} aria-current={it.href === current ? "page" : undefined}>
       {it.label}
       {it.badge && <Badge tone={it.badge.tone}>{it.badge.text}</Badge>}
     </a>
