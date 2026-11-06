@@ -19,6 +19,7 @@ import {stageForNode} from "./develop";
 import {chainKeyPrefix,chainPart,type JobPart} from "./progress";
 import {compileJutsuRelay,planJutsuRelay} from "../src/capabilities/jutsu";
 import {inspectReplaceClip} from "./replace-clip-check";
+import {readOpenJutsuTracking} from "./openjutsu-tracking";
 import {requestSchema,publicColumns,canonical,extension,prepareInvocation,enqueuePreparedRun,cancelRun} from "./run-submission";
 import {applyStoredRunGraphEdits} from "./run-graph-edits";
 import {editedRunRoutes} from "./edited-run";
@@ -965,6 +966,7 @@ export class ExecutionService {
     const revision=(await this.pool.query("SELECT id,sha256,manifest FROM workflow_revisions WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.workflow_revision_id])).rows[0];
     if(!revision){await this.finish(run,"failed","Pinned workflow revision is unavailable");return;}
     const manifest=revision.manifest as CapabilityBundle["manifest"];
+    const openJutsuTracking=manifest.id==="openjutsu-h3-swap"?readOpenJutsuTracking(graph,entry.outputs):undefined;
     const contract=manifest.outputContract,imageContract=manifest.imageArtifacts,motion=motionContractFor(manifest);
     if(imageContract){
       try{await this.ingestImageArtifacts(run,worker,entry,revision,manifest,imageContract);}
@@ -1025,6 +1027,7 @@ export class ExecutionService {
           catch{throw new PermanentArtifactError("Worker output is not a valid GLB model");}
         }else{
           try{last.metadata=await probeVideo(filename);}catch(error){if(error instanceof MediaProbeUnavailableError)throw error;throw new PermanentArtifactError("Worker output is not a valid encoded video");}
+          if(openJutsuTracking)last.metadata={...last.metadata,openJutsuTracking};
           last.contentType=(last.metadata as Awaited<ReturnType<typeof probeVideo>>).container?.includes("webm")?"video/webm":"video/mp4";
           if(run.invocation.mediaSnapshot)last.metadata={...last.metadata,...await verifyMaskedOutput(filename,run.invocation.mediaSnapshot)};
           if(expectedMotion&&motionRow?.receipt){
@@ -1040,7 +1043,7 @@ export class ExecutionService {
         const gate=await this.publicationGate(client,run);if(gate!=="publish")return gate;
         for(const asset of saved)await client.query("INSERT INTO assets(id,workspace_id,project_id,name,media_type,content_type,storage_key,sha256,bytes,created_by,parent_id,metadata) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",[asset.id,run.workspace_id,run.project_id,asset.name,declaredMedia,asset.contentType,asset.key,asset.sha256,asset.bytes,run.created_by,parentId,JSON.stringify(asset.metadata)]);
         await client.query("UPDATE runs SET state='succeeded',output_ids=$1,error=NULL,updated_at=now() WHERE workspace_id=$2 AND id=$3",[JSON.stringify(saved.map(a=>a.id)),run.workspace_id,run.id]);
-        await client.query("INSERT INTO run_events(workspace_id,run_id,state) VALUES($1,$2,'succeeded')",[run.workspace_id,run.id]);
+        await client.query("INSERT INTO run_events(workspace_id,run_id,state,detail) VALUES($1,$2,'succeeded',$3)",[run.workspace_id,run.id,JSON.stringify(openJutsuTracking?{openJutsuTracking}:{})]);
         // A chained upscale publishes the final file: it goes in front of the run's own output.
         const chained=run.invocation?.upscaleChain as {parentRunId?:unknown}|undefined;
         if(declaredMedia==="video"&&typeof chained?.parentRunId==="string")

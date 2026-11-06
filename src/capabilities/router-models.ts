@@ -1,7 +1,7 @@
 import type {CapabilityManifestV2,Control,Port} from './types';
 
-export type CloudFeature='talk'|'effects'|'keyframes'|'video-upscale'|'image-upscale'|'image-create'|'image-edit'|'image-angles'|'image-relight'|'video-create'|'video-edit'|'replace-character'|'motion-transfer'|'restyle'|'object-swap'|'openjutsu'|'unsupported';
-export type RouterModel={id:string;model:string;title:string;features:CloudFeature[];kind:'flux'|'seedance'|'kling-edit'|'kling-motion'|'h3-reference'|'bfl-video-upscale'|'bria-upscale'|'h3-effect'|'kling-lipsync';output:'image'|'video';inputs:Port[];controls:Control[]};
+export type CloudFeature='image-cutout'|'video-cutout'|'talk'|'effects'|'keyframes'|'video-upscale'|'image-upscale'|'image-create'|'image-edit'|'image-angles'|'image-relight'|'video-create'|'video-edit'|'replace-character'|'motion-transfer'|'restyle'|'object-swap'|'openjutsu'|'unsupported';
+export type RouterModel={id:string;model:string;title:string;features:CloudFeature[];kind:'flux'|'seedance'|'kling-edit'|'kling-motion'|'h3-reference'|'bfl-video-upscale'|'bria-upscale'|'h3-effect'|'kling-lipsync'|'bria-cutout'|'bria-video-cutout';output:'image'|'video';inputs:Port[];controls:Control[]};
 const prompt:Control={id:'prompt',label:'Prompt',type:'string',default:'',apiField:'prompt'};
 const seed:Control={id:'seed',label:'Seed',type:'integer',default:1,min:0,max:2147483647,apiField:'seed'};
 const image=(id:string,label:string,required=false):Port=>({id,label,type:'image',required});
@@ -32,6 +32,9 @@ export const ROUTER_MODELS:RouterModel[]=[
  {id:'router-h3-effects',model:'minimax/minimax-h3',title:'MiniMax H3 Effects',features:['effects'],kind:'h3-effect',output:'video',inputs:[image('start_image','Photo',true)],controls:[{id:'effect',label:'Effect',type:'select',options:H3_EFFECTS.map(e=>e.title),default:H3_EFFECTS[0].title,apiField:'effect'},{...prompt,label:'Add to the effect (optional)'},{id:'duration',label:'Seconds',type:'integer',default:5,min:4,max:15,apiField:'duration'},{id:'resolution',label:'Quality',type:'select',options:['768P','2K'],default:'768P',apiField:'resolution'},{...seed,max:4294967295}]},
  /* Upscalers, from each model's Router OpenAPI document (GET /v2/models/<id>/openapi.json). BFL takes up to 20 s and 50 MB of video. */
  {id:'router-video-upscale',model:'bfl/video-upscale-v1',title:'FLUX Video Upscale',features:['video-upscale'],kind:'bfl-video-upscale',output:'video',inputs:[video],controls:[{...prompt,label:'Describe the clip (optional)'},{id:'upscale_factor',label:'Scale',type:'select',options:[1.5,2,3],default:2,apiField:'upscale_factor'},{id:'creativity',label:'Detail',type:'select',options:[0,1],default:0,apiField:'creativity'}]},
+ /* Background removal, from Bria's Router OpenAPI documents: a picture as base64 (PNG with alpha back), a clip up to 60 s on a plain colour. */
+ {id:'router-image-cutout',model:'bria/image-edit-remove-background',title:'Bria Remove Background',features:['image-cutout'],kind:'bria-cutout',output:'image',inputs:[image('source_image','Your image',true)],controls:[]},
+ {id:'router-video-cutout',model:'bria/video-edit-remove-background',title:'Bria Video Background Removal',features:['video-cutout'],kind:'bria-video-cutout',output:'video',inputs:[video],controls:[{id:'background_color',label:'Background',type:'select',options:['Green','White','Black','Blue','Gray'],default:'Green',apiField:'background_color'}]},
  {id:'router-image-upscale',model:'bria/image-edit-increase-resolution',title:'Bria Upscale',features:['image-upscale'],kind:'bria-upscale',output:'image',inputs:[image('source_image','Your image',true)],controls:[{id:'desired_increase',label:'Scale',type:'select',options:[2,4],default:2,apiField:'desired_increase'}]},
  /* First and last frame of one keyframe segment: Seedance takes both as content images with these roles. */
  {id:'router-seedance-keyframes',model:'byteplus/dreamina-seedance-2-5-260628',title:'Seedance 2.5 · first and last frame',features:['keyframes'],kind:'seedance',output:'video',inputs:[image('start_image','First frame',true),image('end_image','Last frame',true)],controls:[prompt,{id:'duration',label:'Seconds',type:'integer',min:4,max:30,default:5,apiField:'duration'},{id:'resolution',label:'Size',type:'select',options:['480p','720p','1080p'],default:'720p',apiField:'resolution'},seed]},
@@ -58,6 +61,7 @@ export function routerInputProblem(m:RouterModel,assets:Record<string,{content_t
     if(!['video/mp4','video/quicktime','video/webm'].includes(a.content_type)||(meta.durationSeconds!==undefined&&(!Number.isFinite(duration)||duration<=0))||(meta.width!==undefined&&(!Number.isFinite(Number(meta.width))||Number(meta.width)<=0))||(meta.height!==undefined&&(!Number.isFinite(Number(meta.height))||Number(meta.height)<=0))||(meta.frameRate!==undefined&&(!Number.isFinite(fps)||fps<=0)))return 'H3 needs a readable video with at least one frame.';
     continue;
    }
+   if(m.kind==='bria-video-cutout'){if(!['video/mp4','video/quicktime'].includes(a.content_type))return 'Background removal takes an MP4 or MOV; longer clips are cut to their first 60 seconds.';continue;}
    /* Kling lip-sync: 720-1920 px on each side, up to 100 MB; longer clips are cut to 10 s. */
    if(m.kind==='kling-lipsync'){const w=Number(meta.width),h=Number(meta.height);if(!['video/mp4','video/quicktime'].includes(a.content_type)||Number(a.bytes)>100*1024*1024||Number.isFinite(w)&&Number.isFinite(h)&&(Math.min(w,h)<720||Math.max(w,h)>1920))return `Kling Lip Sync needs an MP4 or MOV of up to 100 MB with 720–1920 pixels on each side.${Number.isFinite(w)&&Number.isFinite(h)?` This clip is ${w}×${h}.`:''}`;continue;}
    /* FLUX Video Upscale is for small clips: any size, the first 20 s are sent, the file at most 50 MB. */
@@ -79,13 +83,13 @@ export function cloudFeature(route:string,videoMode:string,imageTab:string,chang
  if(route==='openjutsu')return 'openjutsu';
  if(route==='audio')return 'talk';
  if(route==='motion')return 'motion-transfer';
- if(route==='image')return imageTab==='create'?'image-create':imageTab==='upscale'?'image-upscale':imageTab==='angles'?'image-angles':imageTab==='relight'?'image-relight':'image-edit';
+ if(route==='image')return imageTab==='create'?'image-create':imageTab==='upscale'?'image-upscale':imageTab==='cutout'?'image-cutout':imageTab==='angles'?'image-angles':imageTab==='relight'?'image-relight':'image-edit';
  if(route==='imageedit')return 'image-edit';
  if(route==='video'||route==='motion'){
   if(videoMode==='create')return 'video-create';
   if(videoMode==='effects')return 'effects';
   if(videoMode==='replace')return 'replace-character';
-  if(videoMode==='transform')return changeChoice==='person'?'replace-character':changeChoice==='motion'?'motion-transfer':changeChoice==='swap'||changeChoice==='object'?'object-swap':changeChoice==='upscale'?'video-upscale':'restyle';
+  if(videoMode==='transform')return changeChoice==='person'?'replace-character':changeChoice==='motion'?'motion-transfer':changeChoice==='swap'||changeChoice==='object'?'object-swap':changeChoice==='upscale'?'video-upscale':changeChoice==='cutout'?'video-cutout':'restyle';
   if(videoMode==='edit')return 'video-edit';
  }
  return 'unsupported';

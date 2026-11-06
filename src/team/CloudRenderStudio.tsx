@@ -23,10 +23,10 @@ export function pixelSize(controls:Array<{id:string;default?:unknown;min?:number
 type Intent={projectId:string;idempotencyKey:string;capabilityId:string;version:string;routeId:string;inputs:Record<string,string>;controls:Record<string,string|number|boolean>;audioPolicy:'mute'|'replace';consent:{cloudCredits:true}};
 type Draft={model:string;inputs:Record<string,string>;controls:Record<string,string|number|boolean>;pending?:Intent};
 const defaults=(m:RouterModel)=>Object.fromEntries(m.controls.map(c=>[c.id,c.default as string|number|boolean]));
-const labels:Record<CloudFeature,string>={talk:'Make it talk',effects:'Effect clips',keyframes:'Animate keyframes','video-upscale':'Sharpen and upscale','image-upscale':'Upscale image','image-create':'Create image','image-edit':'Edit image','image-angles':'Angles','image-relight':'Relight','video-create':'Create video','video-edit':'Edit video','replace-character':'Replace character','motion-transfer':'Motion transfer',restyle:'Restyle','object-swap':'Object swap',openjutsu:'OpenJutsu · H3 API',unsupported:'Cloud rendering'};
+const labels:Record<CloudFeature,string>={'image-cutout':'Cut out','video-cutout':'Remove background',talk:'Make it talk',effects:'Effect clips',keyframes:'Animate keyframes','video-upscale':'Sharpen and upscale','image-upscale':'Upscale image','image-create':'Create image','image-edit':'Edit image','image-angles':'Angles','image-relight':'Relight','video-create':'Create video','video-edit':'Edit video','replace-character':'Replace character','motion-transfer':'Motion transfer',restyle:'Restyle','object-swap':'Object swap',openjutsu:'OpenJutsu · H3 API',unsupported:'Cloud rendering'};
 /* The choice that defines a run (which effect, how much larger) sits above the prompt, not under Advanced. */
-const LEAD_IDS=['effect','voice','upscale_factor','desired_increase'];
-const changeFeatures:CloudFeature[]=['replace-character','motion-transfer','object-swap','restyle','video-upscale'];
+const LEAD_IDS=['effect','voice','upscale_factor','desired_increase','background_color'];
+const changeFeatures:CloudFeature[]=['replace-character','motion-transfer','object-swap','restyle','video-upscale','video-cutout'];
 function restored(key:string,models:RouterModel[],incoming?:{inputs:Record<string,string>;prompt:string}):Draft{
  let draft:Draft|undefined;try{const d=JSON.parse(localStorage.getItem(key)??'null') as Draft;if(d&&models.some(m=>m.id===d.model)&&d.inputs&&d.controls)draft=d;}catch{}
  const m=models.find(m=>m.id===draft?.model)??models[0];draft??={model:m?.id??'',inputs:{},controls:m?defaults(m):{}};
