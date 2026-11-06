@@ -20,9 +20,9 @@ function encoder(out: string, w: number, h: number, fps: number = STAGE_FPS) {
 }
 
 /** Draws the grey-box clip and its depth pass for a scene, frame by frame, into two MP4 files in `dir`. */
-export async function renderBlocking(scene: StageScene, seconds: number, dir: string, signal?: AbortSignal, fps: number = STAGE_FPS): Promise<BlockingRender> {
+export async function renderBlocking(scene: StageScene, seconds: number, dir: string, signal?: AbortSignal, fps: number = STAGE_FPS, hd = false): Promise<BlockingRender> {
   await mkdir(dir, { recursive: true });
-  const { w, h } = stageSize(scene.aspect), frames = stageFrames(seconds, fps), far = depthFar(scene);
+  const { w, h } = stageSize(scene.aspect, hd), frames = stageFrames(seconds, fps), far = depthFar(scene);
   const clay = path.join(dir, "layout.mp4"), depth = path.join(dir, "depth.mp4");
   const a = encoder(clay, w, h, fps), b = encoder(depth, w, h, fps);
   let drawingError: unknown;

@@ -17,6 +17,8 @@ const body = z.object({
   aspect: z.enum(["16:9", "9:16", "1:1"]).default("16:9"),
   // 16 fps feeds Wan VACE; 24 fps feeds MiniMax H3 (Grey-block to video).
   fps: z.number().refine((n) => (STAGE_RATES as readonly number[]).includes(n), "Choose 16 or 24 fps").default(16),
+  // 1280×720 and up, for cloud models (Kling) that refuse smaller clips.
+  hd: z.boolean().default(false),
 }).strict();
 
 /** One shot is drawn at a time: the rasterizer is CPU-bound and a second request would only slow both. */
@@ -47,7 +49,7 @@ export async function blockShotRoutes(app: FastifyInstance, pool: Pool, store: D
       await mkdir(dir, { recursive: true });
       const saved: Array<{ key: string }> = [];
       try {
-        const rendered = await renderBlocking(buildScene(input.set, input.move, input.aspect), input.seconds, dir, undefined, input.fps);
+        const rendered = await renderBlocking(buildScene(input.set, input.move, input.aspect), input.seconds, dir, undefined, input.fps, input.hd);
         const label = `${setById(input.set)!.name}, ${cameraMove(input.move)!.name.toLowerCase()}`;
         const out: Record<string, unknown> = {};
         for (const [role, file, name] of [["layout", rendered.clay, `Layout: ${label}`], ["depth", rendered.depth, `Depth: ${label}`]] as const) {

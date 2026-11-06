@@ -13,17 +13,25 @@ const clip=(workspaceId:string,id:string)=><video src={assetUrl(workspaceId,id)}
  *  (`makeReal`), the layout is drawn at 24 fps and handed to that screen, where MiniMax H3 turns it into the real shot
  *  from your character, prop and location pictures. Without it, the depth restyle (Wan VACE) paints the shot here.
  *  The drawing is ported from OpenField's Stage; the idea is shared with Open Cinema Studio. */
-export function BlockShot({workspace,project,call,workers,catalogue,canCreate,onQueued,makeReal}:{workspace:Workspace;project:Project;call:Call;workers:Worker[];catalogue:CapabilityManifestV2[];canCreate:boolean;onQueued:()=>void;makeReal?:(layoutId:string)=>void}){
+/** `router`: on Comfy Router the layout is drawn in HD and handed to Kling's restyle with the look as its prompt. */
+export function BlockShot({workspace,project,call,workers,catalogue,canCreate,onQueued,makeReal,router}:{workspace:Workspace;project:Project;call:Call;workers:Worker[];catalogue:CapabilityManifestV2[];canCreate:boolean;onQueued:()=>void;makeReal?:(layoutId:string)=>void;router?:(layoutId:string,look:string)=>void}){
   const [options,setOptions]=useState<Options>(),[set,setSet]=useState("street"),[move,setMove]=useState("push-in"),[seconds,setSeconds]=useState("2"),[prompt,setPrompt]=useState("");
   const [phase,setPhase]=useState<"idle"|"drawing"|"rendering">("idle"),[shot,setShot]=useState<Shot>(),[result,setResult]=useState<string>(),[error,setError]=useState("");
   const alive=useRef(true);useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
   useEffect(()=>{void call<Options>(workspacePath(workspace.id,"block-shot/options")).then(setOptions).catch(e=>setError((e as Error).message));},[call,workspace.id]);
   const capability=catalogue.find(m=>m.id==="vace-depth-restyle"),worker=workers.find(w=>w.enabled&&(w as Worker&{kind?:string}).kind==="local");
-  const reason=!canCreate?"You can look, but not make things in this workspace.":makeReal?"":!capability?"The depth restyle is not set up on this computer. Models shows what is missing.":!worker?"Add and start a local ComfyUI first.":!prompt.trim()?"Describe how the shot should look.":"";
+  const reason=!canCreate?"You can look, but not make things in this workspace.":router?(!prompt.trim()?"Describe how the shot should look.":""):makeReal?"":!capability?"The depth restyle is not set up on this computer. Models shows what is missing.":!worker?"Add and start a local ComfyUI first.":!prompt.trim()?"Describe how the shot should look.":"";
   const busy=phase!=="idle";
 
   async function make(){
     if(busy||reason)return;
+    if(router){
+      setError("");setShot(undefined);setPhase("drawing");
+      try{const drawn=await call<Shot>(workspacePath(workspace.id,"block-shot"),"POST",{projectId:project.id,set,move,seconds:Math.max(3,Number(seconds)),aspect:"16:9",fps:24,hd:true});if(!alive.current)return;setShot(drawn);onQueued();router(drawn.layout.id,prompt.trim());}
+      catch(e){if(alive.current)setError((e as Error).message);}
+      finally{if(alive.current)setPhase("idle");}
+      return;
+    }
     if(makeReal&&shot){makeReal(shot.layout.id);return;}
     if(!makeReal&&(!capability||!worker))return;
     setError("");setResult(undefined);setShot(undefined);setPhase("drawing");
@@ -53,14 +61,14 @@ export function BlockShot({workspace,project,call,workers,catalogue,canCreate,on
     <Page>
       {error&&<Notice priority={30} title="The shot was not made" details={error} actions={<Button variant="secondary" disabled={busy||!!reason} onClick={()=>void make()}>Try again</Button>}>Nothing else was changed. You can change something and try again.</Notice>}
       <Split>
-        <Panel footer={<GenerateButton busy={busy} label={phase==="drawing"?"Drawing the layout":phase==="rendering"?"Painting the shot":makeReal?(shot?"Make it real":"Draw the layout"):"Make the shot"} disabled={busy} aria-disabled={!busy&&!!reason} disabledReason={reason||undefined} onClick={()=>void make()}/>}>
+        <Panel footer={<GenerateButton busy={busy} label={phase==="drawing"?"Drawing the layout":phase==="rendering"?"Painting the shot":router?"Draw and make it real":makeReal?(shot?"Make it real":"Draw the layout"):"Make the shot"} disabled={busy} aria-disabled={!busy&&!!reason} disabledReason={reason||undefined} onClick={()=>void make()}/>}>
           <Block label="Block a shot">
             <Row label="Set" display={chosen?.name??"Street"} value={set} options={setItems.map(s=>({value:s.id,label:s.name}))} onChange={value=>{setSet(value);setShot(undefined);}} disabled={busy}/>
             {chosen&&<Meta>{chosen.text}</Meta>}
             <Row label="Camera move" display={options?.moves.find(m=>m.id===move)?.name??"Push in"} value={move} options={(options?.moves??[]).map(m=>({value:m.id,label:m.name}))} onChange={value=>{setMove(value);setShot(undefined);}} disabled={busy}/>
-            <SegmentedTabs label="Length" quiet items={(options?.seconds??[2,3,4,5]).map(s=>({id:String(s),label:`${s} s`}))} value={seconds} onChange={value=>{setSeconds(value);setShot(undefined);}}/>
+            <SegmentedTabs label="Length" quiet items={(options?.seconds??[2,3,4,5]).filter(s=>!router||s>=3).map(s=>({id:String(s),label:`${s} s`}))} value={seconds} onChange={value=>{setSeconds(value);setShot(undefined);}}/>
             {makeReal&&shot&&<Meta>Next you add your character, and a vehicle or place if you like. MiniMax H3 keeps this camera move and turns every grey shape into the real thing.</Meta>}
-            {!makeReal&&<PromptField label="Look" value={prompt} onChange={setPrompt} disabled={busy} placeholder="Where it is, the light, who is in it. For example: a rainy street at dusk, a woman in a red coat walking away."/>}
+            {(!makeReal||router)&&<PromptField label="Look" value={prompt} onChange={setPrompt} disabled={busy} placeholder="Where it is, the light, who is in it. For example: a rainy street at dusk, a woman in a red coat walking away."/>}
           </Block>
         </Panel>
         <Canvas>

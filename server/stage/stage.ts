@@ -34,7 +34,8 @@ export const stageFrames = (seconds: number, fps: number = STAGE_FPS) => fps ===
 /** Frame rates a layout can be drawn at: 16 for Wan VACE, 24 for MiniMax H3 (Grey-block to video). */
 export const STAGE_RATES = [16, 24] as const;
 /** Multiples of 16, around 480p. */
-export const stageSize = (aspect: StageAspect): { w: number; h: number } => aspect === "16:9" ? { w: 832, h: 480 } : aspect === "9:16" ? { w: 480, h: 832 } : { w: 640, h: 640 };
+/** hd draws at least 720 px on the short side, as cloud video models such as Kling need. */
+export const stageSize = (aspect: StageAspect, hd = false): { w: number; h: number } => hd ? (aspect === "16:9" ? { w: 1280, h: 720 } : aspect === "9:16" ? { w: 720, h: 1280 } : { w: 960, h: 960 }) : aspect === "16:9" ? { w: 832, h: 480 } : aspect === "9:16" ? { w: 480, h: 832 } : { w: 640, h: 640 };
 
 const add = (a: Vec3, b: Vec3): Vec3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
