@@ -15,7 +15,7 @@ const clip=(workspaceId:string,id:string)=><video src={assetUrl(workspaceId,id)}
  *  The drawing is ported from OpenField's Stage; the idea is shared with Open Cinema Studio. */
 /** `router`: on Comfy Router the layout is drawn in HD and handed to Kling's restyle with the look as its prompt. */
 export function BlockShot({workspace,project,call,workers,catalogue,canCreate,onQueued,makeReal,router}:{workspace:Workspace;project:Project;call:Call;workers:Worker[];catalogue:CapabilityManifestV2[];canCreate:boolean;onQueued:()=>void;makeReal?:(layoutId:string)=>void;router?:(layoutId:string,look:string)=>void}){
-  const [options,setOptions]=useState<Options>(),[set,setSet]=useState("street"),[move,setMove]=useState("push-in"),[seconds,setSeconds]=useState("2"),[prompt,setPrompt]=useState("");
+  const [options,setOptions]=useState<Options>(),[set,setSet]=useState("street"),[move,setMove]=useState("push-in"),[seconds,setSeconds]=useState(router?"3":"2"),[prompt,setPrompt]=useState("");
   const [phase,setPhase]=useState<"idle"|"drawing"|"rendering">("idle"),[shot,setShot]=useState<Shot>(),[result,setResult]=useState<string>(),[error,setError]=useState("");
   const alive=useRef(true);useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
   useEffect(()=>{void call<Options>(workspacePath(workspace.id,"block-shot/options")).then(setOptions).catch(e=>setError((e as Error).message));},[call,workspace.id]);
@@ -27,7 +27,8 @@ export function BlockShot({workspace,project,call,workers,catalogue,canCreate,on
     if(busy||reason)return;
     if(router){
       setError("");setShot(undefined);setPhase("drawing");
-      try{const drawn=await call<Shot>(workspacePath(workspace.id,"block-shot"),"POST",{projectId:project.id,set,move,seconds:Math.max(3,Number(seconds)),aspect:"16:9",fps:24,hd:true});if(!alive.current)return;setShot(drawn);onQueued();router(drawn.layout.id,prompt.trim());}
+      try{/* 24 fps for 3-5 s takes the server up to about a minute to draw. */
+      const drawn=await call<Shot>(workspacePath(workspace.id,"block-shot"),"POST",{projectId:project.id,set,move,seconds:Math.max(3,Number(seconds)),aspect:"16:9",fps:24,hd:true},{timeoutMs:180000});if(!alive.current)return;setShot(drawn);onQueued();router(drawn.layout.id,prompt.trim());}
       catch(e){if(alive.current)setError((e as Error).message);}
       finally{if(alive.current)setPhase("idle");}
       return;
