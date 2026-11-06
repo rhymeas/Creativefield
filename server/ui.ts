@@ -29,6 +29,8 @@ export async function serveTeamUi(app:FastifyInstance,root:string,nodeEditorOrig
       return reply.code(204).send();
     }
   };
+  /* The worker that keeps a hosted guest's files in their browser. It must sit at the root to reach /api. */
+  app.get("/sw.js",async(_request,reply)=>reply.header("Cache-Control","no-cache").type("text/javascript; charset=utf-8").send(await readFile(path.join(root,"sw.js"))));
   app.get("/favicon.svg",favicon);
   app.get("/favicon.ico",favicon);
   app.get("/",async(_request,reply)=>{

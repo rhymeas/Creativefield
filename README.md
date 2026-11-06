@@ -10,7 +10,7 @@
   **A free, open-source, AI-powered Photoshop alternative, and a simple studio for ComfyUI video, image and 3D. It runs on your own computer.**
 </div>
 
-**[Try it online at creativefield.app](https://www.creativefield.app/)** — every browser gets its own private try-out workspace, deleted after a day without a visit. Sign in with your own Comfy API key and renders run on Comfy Router (FLUX, Seedance, Kling, MiniMax H3) on your Comfy credits, the free plan included. The key stays in your browser.
+**[Try it online at creativefield.app](https://www.creativefield.app/)** — every browser gets its own private try-out workspace. Your library stays in your browser and FotoField documents never leave it; the server's working copy is deleted after a day without a visit, and a file goes back up only when a render needs it. Sign in with your own Comfy API key and renders run on Comfy Router (FLUX, Seedance, Kling, MiniMax H3) on your Comfy credits, the free plan included. The key is kept in your browser; the server only holds it in memory while it talks to Comfy for you.
 
 Made for the [#OpenSourceHiggsfield](https://comfy.org/open-source-higgsfield/) challenge.
 

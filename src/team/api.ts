@@ -1,4 +1,5 @@
 ﻿import type {CapabilityManifestV2,Invocation,WorkerInventory} from "../capabilities/types";
+import {afterResponse,answerLocally,restoreFor} from "./browser-library";
 export type User={id:string;email:string;localSingleUser?:boolean;/** A hosted try-out visitor: their own guest workspace, no password, Comfy Cloud with their own key. */guest?:boolean};
 /** A visitor's own Comfy Cloud key stays in this browser. It goes with every API call in one header and the server only holds it in memory. */
 export const CLOUD_KEY_STORAGE="creativefield.comfy-cloud-key";
@@ -23,13 +24,15 @@ function requestHeaders(body:unknown):Record<string,string>|undefined{
 }
 export async function request<T>(path:string,method="GET",body?:unknown,options:AbortSignal|RequestOptions={}):Promise<T>{
   if(!path.startsWith("/")||path.startsWith("//"))throw new Error("Use a same-origin API path");
+  const local=await answerLocally(path,method,body);if(local!==undefined)return local as T;
+  await restoreFor(path,method,body,request);
   const config:RequestOptions=options instanceof AbortSignal?{signal:options}:options;
   let response:Response;
   try {response=await fetch(`/api/v1${path}`,{method,credentials:"same-origin",headers:requestHeaders(body),body:body instanceof FormData?body:body===undefined?undefined:JSON.stringify(body),signal:config.signal??AbortSignal.timeout(config.timeoutMs??30000)});}
   catch(e){if(config.signal?.aborted)throw e;throw new ApiError(0,"Team server unavailable. No job is submitted to another service.");}
   const content=await response.json().catch(()=>null);
   if(!response.ok)throw new ApiError(response.status,content?.error??`Request failed (${response.status})`);
-  return content as T;
+  return afterResponse(path,method,body,content as T,request);
 }
 export const workspacePath=(id:string,tail:string)=>`/workspaces/${encodeURIComponent(id)}/${tail}`;
 /** Where AI text runs: ready, needs a key, or needs a Codex sign-in. A key never travels here. */

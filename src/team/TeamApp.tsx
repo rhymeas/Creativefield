@@ -1,6 +1,7 @@
 import {Box,CircleHelp,Clapperboard,Cloud,Footprints,Image as ImageIcon,LogOut,Maximize2,Move,Palette,Plus,Scissors,Settings,Sparkles,Video} from "lucide-react";
 import {annotationStorageKey,imageAnnotationsSchema} from "../image/annotations";
 import {TeamStoryboard} from "./TeamStoryboard";
+import {enableBrowserLibrary} from "./browser-library";
 import {KeyframeStudio} from "./KeyframeStudio";
 import {StartScreen} from "./StartScreen";
 import {GettingStarted} from "./GettingStarted";
@@ -170,6 +171,7 @@ export default function TeamApp(){
   },[]);
   const signIn=useCallback(async()=>{
     const account=await request<User>("/auth/me"),memberships=await request<Workspace[]>("/workspaces");
+    if(account.guest)await enableBrowserLibrary();
     guestTab.current=!!account.guest;setUser(account);setWorkspaces(memberships);setWorkspaceId(id=>memberships.some(w=>w.id===id)?id:memberships[0]?.id??"");setAuthRequired(false);setOffline(false);setError("");setLoading(false);
   },[]);
   resync.current=signIn;
@@ -361,7 +363,9 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   // replacement instructions on the verified cat-to-pumpkin case. Other models
   // remain available through the model selector and readiness determines fallback.
   const editRoutes=["qwen-image-21-edit","fibo2-edit","flux2-klein-edit","pruna-p-h3-edit"].map(routeFor).filter((route): route is NonNullable<typeof route> => !!route);
-  const openedImageId=route==="imageedit"?routeHash.split("/")[1]:undefined;
+  /* #imageedit/layers is FotoField itself, also for a guest whose Run on is Comfy Router. */
+  const layeredEditor=routeHash.startsWith("#imageedit/layers");
+  const openedImageId=route==="imageedit"&&!layeredEditor?routeHash.split("/")[1]:undefined;
   const openedImageRun=openedImageId?imageRuns.find(run=>run.output_ids.includes(openedImageId)):undefined;
   const preferPruna=(openedImageRun?.capability_id??capabilityId).startsWith("pruna-p-h3-");
   const editRoute=(preferPruna?editRoutes.find(option=>option.manifest.id==="pruna-p-h3-edit"):undefined)??editRoutes[0];
@@ -369,8 +373,8 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   /* The image screen's own tabs: the open workflow decides which one is on, and a tab for a tool that is not
      ready here is never drawn (rule 26). */
   const chatgptUnsupported=runOn==="chatgpt"&&["video","motion","3d","audio","characters","influencer"].includes(route);
-  const chatgptPage=runOn==="chatgpt"&&(route==="image"||route==="imageedit");
-  const routerPage=runOn==="router"&&!(route==="video"&&videoMode==="keyframes")&&["video","motion","image","imageedit","3d","audio","characters","influencer"].includes(route);
+  const chatgptPage=!layeredEditor&&runOn==="chatgpt"&&(route==="image"||route==="imageedit");
+  const routerPage=!layeredEditor&&runOn==="router"&&!(route==="video"&&videoMode==="keyframes")&&["video","motion","image","imageedit","3d","audio","characters","influencer"].includes(route);
   const imageTabItems=runOn==="chatgpt"?[{id:"angles" as const,label:"Angles"},{id:"relight" as const,label:"Relight"}]:runOn==="router"?[{id:"create" as const,label:"Create"},{id:"angles" as const,label:"Angles"},{id:"relight" as const,label:"Relight"},...(routerModelsFor("image-upscale").length?[{id:"upscale" as const,label:"Upscale"}]:[]),...(routerModelsFor("image-cutout").length?[{id:"cutout" as const,label:"Cut out"}]:[])]:imageTabs(shownImages),wantedImageTab=imageTabFor(manifest?.id,route),imageTab=imageTabItems.some(item=>item.id===wantedImageTab)?wantedImageTab:imageTabItems[0]?.id??"create";
   /* Block a shot hands its grey layout to Grey-block to video when that is ready here. */
   const previsTarget=routeTask("video.previs",readyManifests)?.pack;
@@ -512,7 +516,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const threeDMenu={features:NATIVE_THREE_D_TOOLS.map(tool=>({id:tool.id,icon:<Box size={18}/>,title:tool.title,text:tool.text,onSelect:()=>{location.hash=`3d/${tool.id}`;}})),models:[]};
   /* The Image menu lists what exists, not only what the worker answers for right now: the page itself says when ComfyUI is offline. Editing lives in FotoField, reached from this menu. */
   const menuImages=catalogue.filter(m=>m.coverage.local==="implemented"&&isImageCapability(m)),menuCreate=imageTabTarget("create",menuImages);
-  const imageMenu=user.guest?{features:[{id:"create-image",icon:<ImageIcon size={18}/>,title:"Create Image",text:"Make a picture with FLUX 2 Pro on your Comfy credits",onSelect:()=>{location.hash="image";}},{id:"fotofield",icon:<Palette size={18}/>,title:"FotoField",text:"Our free photo editor: layers, masks and AI edits",onSelect:()=>{location.hash="imageedit";}}],models:[]}:{
+  const imageMenu=user.guest?{features:[{id:"create-image",icon:<ImageIcon size={18}/>,title:"Create Image",text:"Make a picture with FLUX 2 Pro on your Comfy credits",onSelect:()=>{location.hash="image";}},{id:"fotofield",icon:<Palette size={18}/>,title:"FotoField",text:"Our free photo editor: layers, masks and AI edits",onSelect:()=>{location.hash="imageedit/layers";}}],models:[]}:{
     features:[...(menuCreate?[{id:"create-image",icon:<ImageIcon size={18}/>,title:"Create Image",text:"Generate a durable image with local ComfyUI",onSelect:()=>{setCapabilityId(menuCreate.id);location.hash="image";}}]:[]),{id:"fotofield",icon:<Palette size={18}/>,title:"FotoField",text:"Our free photo editor: layers, masks and AI edits",onSelect:()=>{location.hash="imageedit";}},...menuImages.filter(m=>["flux2-klein-angles","flux2-klein-relight"].includes(m.id)).map(m=>({id:m.id,icon:<ImageIcon size={18}/>,title:m.id.endsWith("angles")?"Camera angles":"Relight",text:m.id.endsWith("angles")?"Explore another view of your image":"Change light and atmosphere",onSelect:()=>choose(m.id)}))],
     models:menuImages.map(m=>({id:m.id,icon:<Sparkles size={18}/>,title:m.title.split(" (")[0],text:capabilityPurpose(m),onSelect:()=>choose(m.id)})),
   };

@@ -15,6 +15,7 @@ import {elementInputsSchema} from "./element-inputs";
 import {deleteLibraryAsset} from "./asset-deletion";
 import {inspectGlb} from "../src/team/three-d/glb-document";
 import {deleteRun} from "./runs";
+import {guestsOnly} from "./cloud-keys";
 import {measuredMediaFacts,probeVideo} from "./media";
 
 const base = "/api/v1/workspaces/:workspaceId";
@@ -114,7 +115,10 @@ export async function resourceRoutes(app: FastifyInstance, pool: Pool, store: Di
   });
   app.post(`${base}/assets`, async request => {
     const { workspaceId } = ws.parse(request.params), user = await member(pool,request,workspaceId,"creator");
-    const query = z.object({ projectId: z.uuid().optional(), parentId: z.uuid().optional(), kind: z.enum(["image","video","audio","mask","layer","reference","model3d"]).optional(),purpose:z.literal("editor-document").optional() }).strict().parse(request.query);
+    const query = z.object({ projectId: z.uuid().optional(), parentId: z.uuid().optional(), kind: z.enum(["image","video","audio","mask","layer","reference","model3d"]).optional(),purpose:z.literal("editor-document").optional(),restoreId:z.uuid().optional() }).strict().parse(request.query);
+    /* A guest's file comes back from their browser under its own id, so the records that name it still hold. */
+    if(query.restoreId&&!guestsOnly())throw new HttpError(400,"Restoring is for hosted guests.");
+    if(query.restoreId&&(await pool.query("SELECT id FROM assets WHERE id=$1",[query.restoreId])).rowCount)throw new HttpError(409,"That file is already here.");
     if(query.purpose&&query.kind!=="layer")throw new HttpError(400,"Editor document pixels must be uploaded as PNG layers.");
     if (query.projectId && !(await pool.query("SELECT id FROM projects WHERE workspace_id=$1 AND id=$2",[workspaceId,query.projectId])).rowCount) throw new HttpError(404,"Project not found");
     const file = await request.file();
@@ -126,7 +130,7 @@ export async function resourceRoutes(app: FastifyInstance, pool: Pool, store: Di
     if (["mask","layer","reference"].includes(mediaType) ? inferred !== "image" : mediaType !== inferred) { file.file.resume(); throw new HttpError(400,"Media kind does not match file type"); }
     if (["mask","layer"].includes(mediaType)&&file.mimetype!=="image/png") { file.file.resume(); throw new HttpError(415,"Image masks and layers must be PNG files"); }
     const saved = await store.put(workspaceId, file.file);
-    const id=newId();let inserting=false;
+    const id=query.restoreId??newId();let inserting=false;
     try {
       if (file.file.truncated) throw new HttpError(413,"Upload exceeds configured limit");
       let metadata:Record<string,unknown>=query.purpose?{editorDocumentBitmap:true}:{};
