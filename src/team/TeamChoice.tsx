@@ -8,7 +8,7 @@ export type TeamChoiceOption={value:string;label:string;note?:string;disabled?:b
 /** Existing studio triggers and selection surfaces; never a browser-native select. `prefix` writes the quiet label before the value; turn it off when the value is the whole action. `size` is the pill height (`lg` for a full label like "Choose from library"). */
 /** A choice as the design system's box: its own symbol, or its small picture. */
 const toChoice=(o:TeamChoiceOption):ChoiceOption=>({value:o.value,label:o.label,note:o.note,status:o.status,detail:o.detail,disabled:o.disabled,icon:o.icon??(o.preview?(o.preview.video?<video src={o.preview.src} muted playsInline preload="metadata"/>:<img src={o.preview.src} alt="" loading="lazy"/>):undefined)});
-export function TeamChoice({label,display,value,options,onChange,disabled=false,variant="row",size="md",prefix=true,subtitle,image,video,openSignal=0,onLoadMore,loadingMore=false,loadMoreError}:{label:string;display:string;value:string;options:TeamChoiceOption[];onChange:(value:string)=>void;disabled?:boolean;variant?:"row"|"model"|"pill";size?:"md"|"lg";prefix?:boolean;subtitle?:string;image?:string;video?:string;openSignal?:number;onLoadMore?:()=>void;loadingMore?:boolean;loadMoreError?:string}){
+export function TeamChoice({label,display,value,options,onChange,disabled=false,variant="row",size="md",prefix=true,subtitle,image,video,openSignal=0,onLoadMore,loadingMore=false,loadMoreError,hideTrigger=false,uploadControl}:{label:string;display:string;value:string;options:TeamChoiceOption[];onChange:(value:string)=>void;disabled?:boolean;variant?:"row"|"model"|"pill";size?:"md"|"lg";prefix?:boolean;subtitle?:string;image?:string;video?:string;openSignal?:number;onLoadMore?:()=>void;loadingMore?:boolean;loadMoreError?:string;hideTrigger?:boolean;uploadControl?:ReactNode}){
   const [open,setOpen]=useState(false),close=useCallback(()=>setOpen(false),[]);
   useEffect(()=>{if(disabled)setOpen(false);},[disabled]);
   useEffect(()=>{if(openSignal>0&&!disabled)setOpen(true);},[openSignal,disabled]);
@@ -17,7 +17,7 @@ export function TeamChoice({label,display,value,options,onChange,disabled=false,
   const visual=options.length>0&&options.every(o=>o.preview),[query,setQuery]=useState("");
   const shown=visual&&query.trim()?options.filter(o=>`${o.label} ${friendlyMediaName(o.label)}`.toLowerCase().includes(query.trim().toLowerCase())):options;
   return <>
-    {variant==="model"?<ModelCard title={display} subtitle={subtitle??"Local ComfyUI"} image={image} video={video} onChange={disabled?undefined:()=>setOpen(true)}/>:variant==="pill"?<Pill quiet size={size} type="button" disabled={disabled} aria-label={prefix?label:undefined} onClick={()=>setOpen(true)}>{prefix&&<span className="ds-pill__prefix">{label}</span>}{display}{size!=="lg"&&<ChevronRight size={14}/>}</Pill>:<Row label={label} display={display} disabled={disabled} onClick={()=>setOpen(true)}/>}
+    {!hideTrigger&&(variant==="model"?<ModelCard title={display} subtitle={subtitle??"Local ComfyUI"} image={image} video={video} onChange={disabled?undefined:()=>setOpen(true)}/>:variant==="pill"?<Pill quiet size={size} type="button" disabled={disabled} aria-label={prefix?label:undefined} onClick={()=>setOpen(true)}>{prefix&&<span className="ds-pill__prefix">{label}</span>}{display}{size!=="lg"&&<ChevronRight size={14}/>}</Pill>:<Row label={label} display={display} disabled={disabled} onClick={()=>setOpen(true)}/>)}
     {visual||!options.length
       ?<Dialog wide={visual} open={open&&!disabled} title={label} onClose={close}>
         {visual?<div className="cf-form">
@@ -27,6 +27,7 @@ export function TeamChoice({label,display,value,options,onChange,disabled=false,
             <Meta>{friendlyMediaName(o.label)}</Meta>
           </div>)}</ThumbGrid>:<EmptyState title="Nothing matches" text={onLoadMore?"Try another word or load more files.":"Try another word."}/>}
         </div>:<EmptyState title="No choices available" text={onLoadMore?"Load more files to find compatible resources.":"Add a compatible resource to this workspace first."}/>}
+        {uploadControl}
         {loadMoreError&&<div role="status"><Meta>{loadMoreError}</Meta></div>}
         {onLoadMore&&<Button variant="secondary" disabled={loadingMore} onClick={onLoadMore}>{loadingMore?"Loading…":loadMoreError?"Try again":"Load more"}</Button>}
       </Dialog>

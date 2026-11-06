@@ -217,6 +217,14 @@ export async function detectContentRegion(filename:string,signal?:AbortSignal):P
       if(top>0&&top<=rowRange&&horizontalEdge(field,top,left,right).straight<0.5)top=0;
       if(bottom<field.height&&field.height-bottom<=rowRange&&horizontalEdge(field,bottom,left,right).straight<0.5)bottom=field.height;
       if(left>=right||top>=bottom||right-left<minWidth||bottom-top<minHeight)continue;
+      // Movement alone is not a screen boundary: a stationary camera can leave
+      // the wall and floor still while a person moves in the centre. Require
+      // evidence of an actual straight edge before discarding any of the frame.
+      const bounded=(top>0&&horizontalEdge(field,top,left,right).straight>=0.5)
+        ||(bottom<field.height&&horizontalEdge(field,bottom,left,right).straight>=0.5)
+        ||(left>0&&verticalEdge(field,left,top,bottom).straight>=0.5)
+        ||(right<field.width&&verticalEdge(field,right,top,bottom).straight>=0.5);
+      if(!bounded)continue;
       const area=(right-left)*(bottom-top),score=area*(1+Math.min(1,edgeScore(field,left,top,right,bottom)/64)*0.25);
       if(!best||score>best.score)best={left,top,right,bottom,score};
     }

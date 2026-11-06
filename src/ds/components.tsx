@@ -2066,9 +2066,10 @@ export function ResultGrid({ count, aspect, label, children }: { count: number; 
 }
 
 /* ResultTile: one image in a ResultGrid, or its place while it is being made (pass a status instead of children). */
-export function ResultTile({ children, status, caption, actions, onOpen, develop, dragAsset, onRecreate }: { /** Opens the tool this was made in with the same inputs and settings: the hover button bottom right. */ onRecreate?: () => void; children?: ReactNode; status?: ReactNode; caption?: ReactNode; actions?: ReactNode; onOpen?: () => void; dragAsset?: { id: string; url: string; contentType?: string }; develop?: { src?: string; label: ReactNode; detail?: ReactNode; elapsed?: ReactNode; progress?: number; active?: boolean; onCancel?: () => void; cancelling?: boolean } }) {
+export function ResultTile({ children, status, caption, actions, onOpen, develop, dragAsset, onRecreate, onDelete, deleteTitle = "Delete this file?", deleteText = "It is removed from this project for everyone." }: { /** Opens the tool this was made in with the same inputs and settings: the hover button bottom right. */ onRecreate?: () => void; /** Removes the tile after a confirm (rule 69): every upload, reference, film and example can go, not only results. */ onDelete?: () => Promise<void> | void; deleteTitle?: string; deleteText?: string; children?: ReactNode; status?: ReactNode; caption?: ReactNode; actions?: ReactNode; onOpen?: () => void; dragAsset?: { id: string; url: string; contentType?: string }; develop?: { src?: string; label: ReactNode; detail?: ReactNode; elapsed?: ReactNode; progress?: number; active?: boolean; onCancel?: () => void; cancelling?: boolean } }) {
   const preview=useSurfacePreview({onRecreate});
   const open=onOpen??preview.open;
+  const [removing,setRemoving]=useState(false),[deleting,setDeleting]=useState(false);
   return (
     <div ref={preview.ref} className="ds-resulttile" role="listitem" tabIndex={!develop&&children ? 0 : undefined} data-empty={(!develop && !children) || undefined} data-develop={develop ? "" : undefined} draggable={!!dragAsset} onDragStart={dragAsset?(e)=>setAssetDrag(e,dragAsset.id,dragAsset.url,dragAsset.contentType):undefined} onClick={event=>{if(!develop&&!(event.target as Element).closest('button,a,input'))open();}}
       onKeyDown={!develop&&children ? event => {
@@ -2101,7 +2102,8 @@ export function ResultTile({ children, status, caption, actions, onOpen, develop
       ) : children ?? <span className="ds-resulttile__status">{status}</span>}
       {caption && <span className="ds-resulttile__caption">{caption}</span>}
       {!develop && onRecreate && hasMediaNode(children) && <Button variant="brand" className="ds-media__recreate" onClick={event => { event.stopPropagation(); onRecreate(); }}><Repeat size={14} />Recreate</Button>}
-      {!develop&&(actions||hasMediaNode(children))&&<span className="ds-resulttile__actions">{actions??<><IconButton label="Full view" onClick={open}><Maximize2 size={14}/></IconButton>{preview.canEdit&&<IconButton label="Edit media" onClick={preview.edit}><Pencil size={14}/></IconButton>}</>}</span>}
+      {!develop&&(actions||hasMediaNode(children))&&<span className="ds-resulttile__actions">{actions??<><IconButton label="Full view" onClick={open}><Maximize2 size={14}/></IconButton>{preview.canEdit&&<IconButton label="Edit media" onClick={preview.edit}><Pencil size={14}/></IconButton>}{onDelete&&<IconButton label="Delete" onClick={event=>{event.stopPropagation();setRemoving(true);}}><Trash2 size={14}/></IconButton>}</>}</span>}
+      {onDelete&&<ConfirmDialog open={removing} title={deleteTitle} text={deleteText} confirmLabel={deleting?"Deleting…":"Delete"} onCancel={()=>setRemoving(false)} onConfirm={()=>{if(deleting)return;setDeleting(true);void Promise.resolve(onDelete()).finally(()=>{setDeleting(false);setRemoving(false);});}}/>}
       {preview.viewer}
     </div>
   );

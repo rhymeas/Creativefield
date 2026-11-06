@@ -197,11 +197,19 @@ export function previewWorkflowImport(input: {
       if ((key === "positive" || key === "negative") && Array.isArray(link) && typeof link[0] === "string" && !promptRole.has(link[0])) promptRole.set(link[0], key);
     }
   }
+  /* Current templates put the prompt in a text primitive (PrimitiveStringMultiline) that feeds the encoders, while
+     nodes inside their subgraphs carry fixed helper texts in fields also named "prompt". One such primitive wired
+     into a prompt field is the template's own prompt input, so the Prompt control drives it. */
+  const PRIMITIVE_TEXT = new Set(["PrimitiveStringMultiline", "PrimitiveString"]);
+  const promptPrimitives = Object.entries(graph).filter(([id, node]) => PRIMITIVE_TEXT.has(node.class_type) && typeof node.inputs.value === "string"
+    && Object.values(graph).some((consumer) => Object.entries(consumer.inputs ?? {}).some(([key, link]) => (PROMPT_FIELDS as readonly string[]).includes(key) && Array.isArray(link) && link[0] === id)));
+  const primitivePrompt = promptPrimitives.length === 1 ? promptPrimitives[0] : undefined;
+  if (primitivePrompt) addControl("prompt", "Prompt", primitivePrompt[0], primitivePrompt[1].class_type, "value", primitivePrompt[1].inputs.value);
   for (const [node, value] of Object.entries(graph).sort(([left], [right]) => left.localeCompare(right, "en", { numeric: true }))) {
     for (const field of PROMPT_FIELDS) {
       if (typeof fieldValue(graph, node, field) !== "string") continue;
       if (promptRole.get(node) === "negative") addControl("negative_prompt", "Negative prompt", node, value.class_type, field, fieldValue(graph, node, field));
-      else addControl("prompt", "Prompt", node, value.class_type, field, fieldValue(graph, node, field));
+      else if (!primitivePrompt) addControl("prompt", "Prompt", node, value.class_type, field, fieldValue(graph, node, field));
       break;
     }
     for (const field of NEGATIVE_FIELDS) {

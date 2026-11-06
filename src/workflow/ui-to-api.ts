@@ -81,6 +81,9 @@ type Scope = {
   expanded: Map<number, Resolved[]>;
 };
 
+/** ComfyUI reads any list in a prompt as a link [node, slot]; the editor sends a list widget value (BOUNDING_BOXES) as { __value__: list }. */
+const widgetValue = (value: unknown): unknown => Array.isArray(value) ? { __value__: value } : value;
+
 export function uiToApi(ui: UiWorkflow, info: ObjectInfo, opts: ConvertOptions = {}): ApiGraph {
   const subgraphs = new Map((ui.definitions?.subgraphs ?? []).map((s) => [s.id, s]));
   const enable = new Set((opts.enable ?? []).map(String));
@@ -191,7 +194,7 @@ export function uiToApi(ui: UiWorkflow, info: ObjectInfo, opts: ConvertOptions =
         return;
       }
       if ("value" in source) {
-        inputs[name] = source.value;
+        inputs[name] = widgetValue(source.value);
         return;
       }
       if (!included.has(source.key)) {
@@ -223,7 +226,7 @@ export function uiToApi(ui: UiWorkflow, info: ObjectInfo, opts: ConvertOptions =
           assign(full, resolveLink(scope, linked.link as number), false);
           if (childIsWidget) cursor += 1 + extraSlots(childCfg); // a linked widget keeps its saved slot
         } else if (childIsWidget && cursor < values.length) {
-          inputs[full] = values[cursor];
+          inputs[full] = widgetValue(values[cursor]);
           cursor += 1 + extraSlots(childCfg);
           if (childType === DYNAMIC_COMBO) readChildren(full, childDef, inputs[full]);
         }
@@ -246,7 +249,7 @@ export function uiToApi(ui: UiWorkflow, info: ObjectInfo, opts: ConvertOptions =
         const source = resolveLink(scope, slot.link as number);
         // Current templates may proxy a subgraph widget without duplicating its
         // saved value on the instance. Its inner widget still holds the default.
-        if (!source && isWidget && cursor < values.length) inputs[name] = values[cursor];
+        if (!source && isWidget && cursor < values.length) inputs[name] = widgetValue(values[cursor]);
         else assign(name, source, required);
         if (isWidget) cursor += 1 + extraSlots(cfg);
         if (type === DYNAMIC_COMBO) readChildren(name, def, inputs[name]);
@@ -256,11 +259,11 @@ export function uiToApi(ui: UiWorkflow, info: ObjectInfo, opts: ConvertOptions =
           // Optional inputs then fall back to the server's default.
           if (!required) continue;
           // A required widget the template never saved falls back to the node's own default, as the editor does.
-          if ("default" in cfg) { inputs[name] = cfg.default; continue; }
+          if ("default" in cfg) { inputs[name] = widgetValue(cfg.default); continue; }
           if (cfg.socketless && !(spec.output?.length)) { viewerOnly = true; break; }
           throw new Error(`Node ${key} (${node.type}): no saved value for "${name}"`);
         }
-        inputs[name] = values[cursor];
+        inputs[name] = widgetValue(values[cursor]);
         cursor += 1 + extraSlots(cfg);
         if (type === DYNAMIC_COMBO) readChildren(name, def, inputs[name]);
       } else if (required && !String(type).startsWith("COMFY_AUTOGROW")) {

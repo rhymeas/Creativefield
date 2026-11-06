@@ -14,6 +14,12 @@ export type PreparedCharacterReference =
   | {kind:"isolated"; bytes:Buffer; mediaType:"image/png"; box:[number,number,number,number]}
   | {kind:"ambiguous"; reason:string};
 
+/** Only character ports of the two local OpenJutsu workflows should be isolated. */
+export function needsOpenJutsuReferencePreparation(workflowId:string,role:string):boolean {
+  return workflowId==="openjutsu-h3-swap"&&role==="character_image"
+    ||workflowId==="openjutsu-h3-advanced"&&/^reference_image(?:_[234])?$/.test(role);
+}
+
 export const CHARACTER_SHEET_INSTRUCTION = `Analyze this reference picture for video character replacement. Reply only in JSON. If it contains exactly one character, reply {"kind":"single"}. If it is a character sheet showing multiple full-body views of the SAME character and a single complete front-facing view is clearly separated from every other character, reply {"kind":"repeated","box":[left,top,right,bottom]}, using integers 0 to 1000 normalized to the image dimensions for a tight bounding box around the complete front-view character, including head, hands, and feet. Do not include text or another character. If different characters appear, a full front view is not clearly separate, the picture is crowded, or you are uncertain, reply {"kind":"ambiguous"}. Do not guess.`;
 
 /** Parse only the exact bounded contract. Malformed responses cannot silently become a crop. */

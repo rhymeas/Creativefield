@@ -54,7 +54,7 @@ It is an early preview, not a Photoshop clone. FotoField covers the everyday lay
 | **3D** | Image to 3D, Text to 3D, viewer, textures, mesh tools | Hunyuan3D 2.1, TRELLIS.2 | Working |
 | **Block a shot** | Pick a set and a camera move, describe the look: a grey layout and its depth pass are drawn, then painted as a shot that keeps the camera move and where people stand | Wan 2.1 VACE 1.3B depth restyle | Working on a GPU; three sets, eight moves, 2 to 5 s |
 | **Short film** | Write the shots, make each one, get one video | Wan 2.2 plus FFmpeg assembly | Assembly works; identity can drift between shots |
-| **Import a workflow** | Turn a saved ComfyUI workflow into a simple panel | any allowed node set | Working for reviewed nodes |
+| **Import a workflow** | Turn a saved ComfyUI workflow file into a simple panel: inputs, controls and result are found for you | the nodes and models installed on your ComfyUI | Working; 7 of 11 saved workflows on our test machine convert, including current Flux 3 Klein, Fibo 2, Z-Image, SeedVR2 and MiniMax H3 templates. API exports and graphs with an unconnected required input are refused |
 
 ## Screenshots
 
