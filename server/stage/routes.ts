@@ -19,6 +19,8 @@ const body = z.object({
   fps: z.number().refine((n) => (STAGE_RATES as readonly number[]).includes(n), "Choose 16 or 24 fps").default(16),
   // 1280×720 and up, for cloud models (Kling) that refuse smaller clips.
   hd: z.boolean().default(false),
+  // Comfy Router restyles the layout alone; its depth pass would only fill the project with an unused clip.
+  layoutOnly: z.boolean().default(false),
 }).strict();
 
 /** One shot is drawn at a time: the rasterizer is CPU-bound and a second request would only slow both. */
@@ -49,10 +51,10 @@ export async function blockShotRoutes(app: FastifyInstance, pool: Pool, store: D
       await mkdir(dir, { recursive: true });
       const saved: Array<{ key: string }> = [];
       try {
-        const rendered = await renderBlocking(buildScene(input.set, input.move, input.aspect), input.seconds, dir, undefined, input.fps, input.hd);
+        const rendered = await renderBlocking(buildScene(input.set, input.move, input.aspect), input.seconds, dir, undefined, input.fps, input.hd, !input.layoutOnly);
         const label = `${setById(input.set)!.name}, ${cameraMove(input.move)!.name.toLowerCase()}`;
         const out: Record<string, unknown> = {};
-        for (const [role, file, name] of [["layout", rendered.clay, `Layout: ${label}`], ["depth", rendered.depth, `Depth: ${label}`]] as const) {
+        for (const [role, file, name] of ([["layout", rendered.clay, `Layout: ${label}`], ["depth", rendered.depth, `Depth: ${label}`]] as const).filter(([role]) => role === "layout" || !input.layoutOnly)) {
           const put = await store.put(workspaceId, createReadStream(file));
           saved.push(put);
           const id = newId();

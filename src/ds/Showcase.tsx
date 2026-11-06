@@ -100,6 +100,7 @@ import {
   UserMenu,
   useToast,
   AmbientReel,
+  LazyVideo,
   AmbientReelProvider,
   PanelSection,
   PickerRow,
@@ -995,6 +996,9 @@ export default function Showcase() {
 
       <Section title="Control panel parts">
         <div style={{ width: 302, display: "grid", gap: 8 }}>
+          <Block label="Lazy video (feeds, tiles, thumbnails)">
+            <div style={{ width: 302, height: 170, overflow: "hidden", borderRadius: "var(--radius-2xl)" }}><LazyVideo src="/reels/wan22-i2v-5b.mp4" label="Loads near the screen, plays while visible" /></div>
+          </Block>
           <Block label="Ambient reel">
             <AmbientReelProvider src="/reels/wan22-i2v-5b.mp4">
               <div style={{ position: "relative", width: 302, height: 100, overflow: "hidden", borderRadius: "var(--radius-2xl)" }}>

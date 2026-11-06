@@ -292,6 +292,31 @@ export function AmbientReel({ src, className }: { src?: string; className?: stri
   );
 }
 
+/**
+ * A video in a feed, tile or thumbnail (rule 68): nothing loads until it is near the screen, a looping
+ * preview plays only while it is visible, and reduced motion keeps it still. With `controls` it loads
+ * its first frame near the screen and waits for the viewer to press play.
+ */
+export function LazyVideo({ src, poster, label, controls, className, draggable }: { src: string; poster?: string; label?: string; controls?: boolean; className?: string; draggable?: boolean }) {
+  const video = useRef<HTMLVideoElement>(null);
+  const reduced = useReducedMotion();
+  const [near, setNear] = useState(typeof IntersectionObserver === "undefined");
+  useEffect(() => {
+    const el = video.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const loader = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) { setNear(true); loader.disconnect(); } }, { rootMargin: "300px" });
+    loader.observe(el);
+    if (controls || reduced) return () => loader.disconnect();
+    const player = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) void el.play().catch(() => {});
+      else el.pause();
+    }, { threshold: 0.1 });
+    player.observe(el);
+    return () => { loader.disconnect(); player.disconnect(); };
+  }, [controls, reduced, src]);
+  return <video ref={video} className={className} src={near ? src : undefined} poster={poster} muted={!controls} loop={!controls} controls={controls} playsInline preload={near ? "metadata" : "none"} draggable={draggable} aria-label={label} aria-hidden={label ? undefined : true} />;
+}
+
 /* ── Panel ──────────────────────────────────────────────────── */
 
 export function Panel({ header, children, footer, video }: { header?: ReactNode; children: ReactNode; footer?: ReactNode; video?: string }) {
@@ -543,7 +568,7 @@ export function UploadSlot({
     return (
       <div ref={surface.ref} className={cx("ds-upload ds-upload--filled", compact && "ds-upload--compact", tile && "ds-upload--tile",previewKind==="audio"&&"ds-upload--audio")} data-drag={drag} onPointerEnter={paste.onPointerEnter} onPointerLeave={paste.onPointerLeave} onDragOver={(e)=>{if(!disabled){e.preventDefault();setDrag(true);}}} onDragLeave={()=>setDrag(false)} onDrop={drop}>
         {previewKind==="audio"?<audio src={preview} controls preload="metadata" aria-label={label}/>:previewKind === "video" ? (
-          <video src={preview} muted loop autoPlay playsInline aria-label={label} />
+          <LazyVideo src={preview} label={label} />
         ) : (
           <img src={preview} alt={label} />
         )}
@@ -3022,7 +3047,7 @@ export function useMediaEditor(){return useContext(mediaEditContext);}
 function ReferenceTile({input}:{input:{src:string;label:string;video?:boolean}}){
   const [open,setOpen]=useState(false);
   return <div className="ds-viewer-info__ref">
-    <button type="button" aria-label={`View ${input.label}`} title={input.label} onClick={()=>setOpen(true)}>{input.video?<video src={input.src} muted loop autoPlay playsInline aria-label={input.label}/>:<img src={input.src} alt={input.label}/>}</button>
+    <button type="button" aria-label={`View ${input.label}`} title={input.label} onClick={()=>setOpen(true)}>{input.video?<LazyVideo src={input.src} label={input.label}/>:<img src={input.src} alt={input.label}/>}</button>
     <a className="ds-iconbtn ds-viewer-info__download" href={input.src} download={input.src.split("/").pop()?.split("?")[0]||input.label} aria-label={`Download ${input.label}`} title={`Download ${input.label}`}><Download size={12}/></a>
     <MediaViewer open={open} src={input.src} name={input.label} mediaType={input.video?"video":"image"} onClose={()=>setOpen(false)}/>
   </div>;
@@ -3543,7 +3568,7 @@ export function PresetCard({ label, hint, thumb, thumbs, icon, selected, size, f
   const reduced = useReducedMotion();
   return (
     <button type="button" role="radio" aria-checked={!!selected} className={cx("ds-preset", size === "tool" && "ds-preset--tool", featured && "ds-preset--featured", promo && "ds-preset--promo")} onClick={onSelect}>
-      <span className="ds-preset__art">{video && !reduced ? <video src={video} poster={thumb} muted autoPlay loop playsInline preload="metadata" aria-hidden /> : thumb ? <RotatingPicture first={thumb} more={thumbs} /> : icon}{badge && <span className="ds-preset__badge">{badge}</span>}
+      <span className="ds-preset__art">{video && !reduced ? <LazyVideo src={video} poster={thumb} /> : thumb ? <RotatingPicture first={thumb} more={thumbs} /> : icon}{badge && <span className="ds-preset__badge">{badge}</span>}
         {promo && <span className="ds-preset__over"><span className="ds-preset__headline">{label}</span>{hint && <span className="ds-preset__overhint">{hint}</span>}</span>}</span>
       {!promo && <span className="ds-preset__label" title={size === "tool" ? label : undefined}>{label}</span>}
       {!promo && hint && <span className="ds-preset__hint">{hint}</span>}
@@ -3787,7 +3812,7 @@ export function HistoryItem({
             {!!inputs?.length && (
               <div className="ds-details__thumbs">
                 {inputs.map((input) => input.video
-                  ? <video key={input.label} className="ds-details__thumb" src={input.src} muted loop autoPlay playsInline aria-label={input.label} />
+                  ? <LazyVideo key={input.label} className="ds-details__thumb" src={input.src} label={input.label} />
                   : <img key={input.label} className="ds-details__thumb" src={input.src} alt={input.label} />)}
               </div>
             )}
@@ -3804,7 +3829,7 @@ export function HistoryItem({
                 {motionVideo && (
                   <>
                     <ArrowRight size={14} aria-hidden />
-                    <video className="ds-details__thumb" src={motionVideo} muted loop autoPlay playsInline aria-label="Motion video" />
+                    <LazyVideo className="ds-details__thumb" src={motionVideo} label="Motion video" />
                   </>
                 )}
               </div>

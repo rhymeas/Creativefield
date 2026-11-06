@@ -1,13 +1,13 @@
 import {useEffect,useRef,useState} from "react";
-import {Block,Button,Canvas,EmptyState,GenerateButton,LinkButton,MediaCard,Meta,Notice,Page,Panel,PromptField,Row,SegmentedTabs,Split,StatusText} from "../ds";
+import {Block,Button,Canvas,EmptyState,GenerateButton,LazyVideo,LinkButton,MediaCard,Meta,Notice,Page,Panel,PromptField,Row,SegmentedTabs,Split,StatusText} from "../ds";
 import {assetUrl,workspacePath,type Call,type Project,type Run,type Worker,type Workspace} from "./api";
 import {WorkflowDescription} from "./workflow-info";
 import type {CapabilityManifestV2} from "../capabilities/types";
 
 type Options={sets:Array<{id:string;name:string;text:string}>;moves:Array<{id:string;name:string}>;seconds:number[]};
-type Shot={layout:{id:string};depth:{id:string};frames:number;width:number;height:number;fps:number};
+type Shot={layout:{id:string};depth?:{id:string};frames:number;width:number;height:number;fps:number};
 const DONE=["succeeded","failed","cancelled","submission_unknown"];
-const clip=(workspaceId:string,id:string)=><video src={assetUrl(workspaceId,id)} muted loop autoPlay playsInline/>;
+const clip=(workspaceId:string,id:string)=><LazyVideo src={assetUrl(workspaceId,id)}/>;
 
 /** Block a shot: pick a set and a camera move. A grey layout is drawn from the set. With Grey-block to video ready
  *  (`makeReal`), the layout is drawn at 24 fps and handed to that screen, where MiniMax H3 turns it into the real shot
@@ -28,7 +28,7 @@ export function BlockShot({workspace,project,call,workers,catalogue,canCreate,on
     if(router){
       setError("");setShot(undefined);setPhase("drawing");
       try{/* 24 fps for 3-5 s takes the server up to about a minute to draw. */
-      const drawn=await call<Shot>(workspacePath(workspace.id,"block-shot"),"POST",{projectId:project.id,set,move,seconds:Math.max(3,Number(seconds)),aspect:"16:9",fps:24,hd:true},{timeoutMs:180000});if(!alive.current)return;setShot(drawn);onQueued();router(drawn.layout.id,prompt.trim());}
+      const drawn=await call<Shot>(workspacePath(workspace.id,"block-shot"),"POST",{projectId:project.id,set,move,seconds:Math.max(3,Number(seconds)),aspect:"16:9",fps:24,hd:true,layoutOnly:true},{timeoutMs:180000});if(!alive.current)return;setShot(drawn);onQueued();router(drawn.layout.id,prompt.trim());}
       catch(e){if(alive.current)setError((e as Error).message);}
       finally{if(alive.current)setPhase("idle");}
       return;
@@ -41,7 +41,7 @@ export function BlockShot({workspace,project,call,workers,catalogue,canCreate,on
       if(!alive.current)return;setShot(drawn);onQueued();
       if(makeReal||!capability||!worker)return;
       setPhase("rendering");
-      let run=await call<Run>(workspacePath(workspace.id,"runs"),"POST",{projectId:project.id,workerId:worker.id,idempotencyKey:crypto.randomUUID(),capabilityId:capability.id,version:capability.version,routeId:"local",inputs:{source_video:drawn.layout.id,depth_video:drawn.depth.id},controls:{prompt:prompt.trim(),seed:Math.floor(Math.random()*2147483647)},audioPolicy:"mute"});
+      let run=await call<Run>(workspacePath(workspace.id,"runs"),"POST",{projectId:project.id,workerId:worker.id,idempotencyKey:crypto.randomUUID(),capabilityId:capability.id,version:capability.version,routeId:"local",inputs:{source_video:drawn.layout.id,depth_video:drawn.depth!.id},controls:{prompt:prompt.trim(),seed:Math.floor(Math.random()*2147483647)},audioPolicy:"mute"});
       onQueued();
       while(alive.current&&!DONE.includes(run.state)){await new Promise(r=>setTimeout(r,3000));run=await call<Run>(workspacePath(workspace.id,`runs/${run.id}`));}
       if(!alive.current)return;

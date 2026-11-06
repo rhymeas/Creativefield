@@ -1,5 +1,5 @@
 import {useEffect,useState} from "react";
-import {Button,Meta,PresetCard,RotatingVideo,WelcomeDialog} from "../ds";
+import {Button,LazyVideo,Meta,PresetCard,RotatingVideo,WelcomeDialog} from "../ds";
 import logo from "../assets/creativefield-logo-trim.png";
 import {POOL_VIDEOS} from "./reels";
 import {LOAD_TURN} from "./reload-turn";
@@ -15,7 +15,7 @@ function WelcomeClipCard({task,clip,onSelect}:{task:StartTask;clip:string;onSele
   const [reducedMotion,setReducedMotion] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
   useEffect(()=>{if(typeof matchMedia !== "function")return;const query=matchMedia("(prefers-reduced-motion: reduce)");const update=()=>setReducedMotion(query.matches);query.addEventListener("change",update);return()=>query.removeEventListener("change",update);},[]);
   return <PresetCard size="tool" featured={task.featured} label={task.label} hint={task.text} onSelect={onSelect}
-    icon={<span className="ds-welcome__clip"><img src={poster} alt=""/>{!reducedMotion&&<video src={`/examples/welcome-${clip}.mp4`} poster={poster} muted autoPlay loop playsInline aria-hidden="true"/>}</span>}/>;
+    icon={<span className="ds-welcome__clip"><img src={poster} alt=""/>{!reducedMotion&&<LazyVideo src={`/examples/welcome-${clip}.mp4`} poster={poster}/>}</span>}/>;
 }
 
 /** A short introduction, shown once per browser and dismissible at any time. A pick opens that tool directly. */

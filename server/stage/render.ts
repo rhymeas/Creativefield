@@ -21,25 +21,26 @@ function encoder(out: string, w: number, h: number, fps: number = STAGE_FPS, sca
 }
 
 /** Draws the grey-box clip and its depth pass for a scene, frame by frame, into two MP4 files in `dir`. */
-export async function renderBlocking(scene: StageScene, seconds: number, dir: string, signal?: AbortSignal, fps: number = STAGE_FPS, hd = false): Promise<BlockingRender> {
+/** `withDepth` false draws the layout only, for cloud models that do not take a depth pass. */
+export async function renderBlocking(scene: StageScene, seconds: number, dir: string, signal?: AbortSignal, fps: number = STAGE_FPS, hd = false, withDepth = true): Promise<BlockingRender> {
   await mkdir(dir, { recursive: true });
   /* HD is drawn at the normal size and scaled while encoding: grey blocks lose nothing, and drawing stays as fast. */
   const { w, h } = stageSize(scene.aspect), out = hd ? stageSize(scene.aspect, true) : undefined, frames = stageFrames(seconds, fps), far = depthFar(scene);
   const clay = path.join(dir, "layout.mp4"), depth = path.join(dir, "depth.mp4");
-  const a = encoder(clay, w, h, fps, out), b = encoder(depth, w, h, fps, out);
+  const a = encoder(clay, w, h, fps, out), b = withDepth ? encoder(depth, w, h, fps, out) : undefined;
   let drawingError: unknown;
   try {
     for (let i = 0; i < frames; i++) {
       signal?.throwIfAborted();
       const frame = rasterFrame(scene, frames > 1 ? i / (frames - 1) : 0, w, h, far);
-      await Promise.all([a.write(frame.clay), b.write(frame.depth)]);
+      await Promise.all([a.write(frame.clay), b?.write(frame.depth)]);
     }
   } catch (error) {
     drawingError = error;
   }
-  const endings = await Promise.allSettled([a.end(), b.end()]);
+  const endings = await Promise.allSettled([a.end(), b?.end()]);
   if (drawingError) throw drawingError;
   const failed = endings.find((result): result is PromiseRejectedResult => result.status === "rejected");
   if (failed) throw failed.reason;
-  return { clay, depth, frames, width: out?.w ?? w, height: out?.h ?? h, fps };
+  return { clay, depth: withDepth ? depth : "", frames, width: out?.w ?? w, height: out?.h ?? h, fps };
 }
