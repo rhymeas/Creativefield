@@ -1,5 +1,5 @@
 ﻿import type {CapabilityManifestV2,Invocation,WorkerInventory} from "../capabilities/types";
-import {afterResponse,answerLocally,restoreFor} from "./browser-library";
+import {afterResponse,answerLocally,restoreFor,trackWrite} from "./browser-library";
 export type User={id:string;email:string;localSingleUser?:boolean;/** A hosted try-out visitor: their own guest workspace, no password, Comfy Cloud with their own key. */guest?:boolean};
 /** A visitor's own Comfy Cloud key stays in this browser. It goes with every API call in one header and the server only holds it in memory. */
 export const CLOUD_KEY_STORAGE="creativefield.comfy-cloud-key";
@@ -23,9 +23,13 @@ function requestHeaders(body:unknown):Record<string,string>|undefined{
   return Object.keys(headers).length?headers:undefined;
 }
 export async function request<T>(path:string,method="GET",body?:unknown,options:AbortSignal|RequestOptions={}):Promise<T>{
+  const done=trackWrite(method);
+  try{return await send<T>(path,method,body,options);}finally{done();}
+}
+async function send<T>(path:string,method:string,body:unknown,options:AbortSignal|RequestOptions):Promise<T>{
   if(!path.startsWith("/")||path.startsWith("//"))throw new Error("Use a same-origin API path");
   const local=await answerLocally(path,method,body);if(local!==undefined)return local as T;
-  await restoreFor(path,method,body,request);
+  ({path,body}=await restoreFor(path,method,body,request));
   const config:RequestOptions=options instanceof AbortSignal?{signal:options}:options;
   let response:Response;
   try {response=await fetch(`/api/v1${path}`,{method,credentials:"same-origin",headers:requestHeaders(body),body:body instanceof FormData?body:body===undefined?undefined:JSON.stringify(body),signal:config.signal??AbortSignal.timeout(config.timeoutMs??30000)});}

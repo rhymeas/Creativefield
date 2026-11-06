@@ -15,8 +15,8 @@ API use, or your own machine).
      To render, a visitor picks **Use with Comfy Cloud** (welcome card, **Run on → Comfy Cloud** or the account menu) and pastes their own
      Comfy Cloud API key. The key stays in their browser and goes with each request; the server keeps it in memory only, never on disk,
      and renders run on that visitor's Comfy account and credits. After a restart the next request from that browser hands the key back.
-     Each guest's files are also copied into their browser (Cache Storage, `public/sw.js`), and FotoField documents stay there only; a later
-     render sends a file back under its own id. A guest workspace not visited for 24 hours is deleted with all its files and records (`GUEST_IDLE_HOURS` changes the wait); a run
+     Each guest's files are also copied into their browser (Cache Storage, `public/sw.js`), and FotoField documents stay there only. Once the
+     browser holds a checked copy and no run is working, the server drops the bytes and keeps the row; a later render sends the file back. A guest workspace not visited for 24 hours is deleted with all its files and records (`GUEST_IDLE_HOURS` changes the wait); a run
      still in flight keeps it until the next hourly sweep.
    - **With a sign-in wall:** leave `OPEN_ACCESS` unset and set `BOOTSTRAP_EMAIL` and `BOOTSTRAP_PASSWORD` (a long password you choose, at least 12
      characters) and give the guest those details.

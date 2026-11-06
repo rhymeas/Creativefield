@@ -24,6 +24,7 @@ const item = ws.extend({ id: z.uuid() });
 const name = z.string().trim().min(1).max(120);
 const text = z.string().max(20000);
 const assetColumns = "id,project_id,name,media_type,content_type,sha256,bytes,parent_id,created_at,metadata";
+const ACTIVE_RUN = ["pending","submitting","submission_unknown","queued","running","cancel_requested"];
 const refs = z.array(z.uuid()).max(16).refine(a => new Set(a).size === a.length, "Duplicate reference");
 /* A worker saves results under its own names (`Flux2-Klein_00032_.png`, `image-1792885667649.webp`).
    Those are number soup in a download folder, so a saved file is named after its project, the
@@ -182,7 +183,10 @@ export async function resourceRoutes(app: FastifyInstance, pool: Pool, store: Di
         WHERE r.workspace_id=a.workspace_id AND r.output_ids @> jsonb_build_array(a.id::text) ORDER BY r.created_at DESC LIMIT 1) AS made_by
       FROM assets a LEFT JOIN projects p ON p.workspace_id=a.workspace_id AND p.id=a.project_id WHERE a.workspace_id=$1 AND a.id=$2`,[workspaceId,id])).rows[0];
     if (!asset) throw new HttpError(404,"Asset not found");
-    const file=await store.file(workspaceId,asset.storage_key),size=(await stat(file)).size;
+    /* A released file lives in the guest's browser only; its row stays until the workspace goes. */
+    const file=await store.file(workspaceId,asset.storage_key).catch(()=>null);
+    if(!file)throw new HttpError(404,"This file is kept in your browser.");
+    const size=(await stat(file)).size;
     const range=byteRange(request.headers.range,size);
     const download=z.object({download:z.enum(["1"]).optional()}).strict().parse(request.query).download;
     reply.header("Content-Type",asset.content_type).header("Accept-Ranges","bytes").header("Content-Disposition",dispositionHeader(download?"attachment":"inline",downloadName(asset,asset.project_name,asset.made_by)));
@@ -190,6 +194,31 @@ export async function resourceRoutes(app: FastifyInstance, pool: Pool, store: Di
     if(range){reply.code(206).header("Content-Range",`bytes ${range.start}-${range.end}/${size}`).header("Content-Length",range.end-range.start+1);}
     else reply.header("Content-Length",size);
     return reply.send(createReadStream(file,range??undefined));
+  });
+  /* A hosted guest's browser holds a checked copy, so the server gives up the bytes. The row stays: runs
+     and relations name it, and a render sends the same bytes back. Nothing is released while a run works. */
+  app.post(`${base}/assets/:id/release`,async request=>{
+    const {workspaceId,id}=item.parse(request.params);await member(pool,request,workspaceId,"creator");
+    if(!guestsOnly())throw new HttpError(400,"Releasing is for hosted guests.");
+    const {sha256}=z.object({sha256:z.string().regex(/^[a-f0-9]{64}$/)}).strict().parse(request.body);
+    const asset=(await pool.query("SELECT storage_key,sha256 FROM assets WHERE workspace_id=$1 AND id=$2",[workspaceId,id])).rows[0];
+    if(!asset)throw new HttpError(404,"Asset not found");
+    if(asset.sha256!==sha256)throw new HttpError(409,"The copy in this browser does not match.");
+    if((await pool.query("SELECT 1 FROM runs WHERE workspace_id=$1 AND state=ANY($2::text[]) LIMIT 1",[workspaceId,ACTIVE_RUN])).rowCount)throw new HttpError(409,"A run is still working.");
+    await store.remove(workspaceId,asset.storage_key).catch(error=>{if((error as NodeJS.ErrnoException).code!=="ENOENT")throw error;});
+    return {released:true};
+  });
+  app.post(`${base}/assets/:id/restore`,async request=>{
+    const {workspaceId,id}=item.parse(request.params);await member(pool,request,workspaceId,"creator");
+    if(!guestsOnly())throw new HttpError(400,"Restoring is for hosted guests.");
+    const asset=(await pool.query(`SELECT ${assetColumns},storage_key FROM assets WHERE workspace_id=$1 AND id=$2`,[workspaceId,id])).rows[0];
+    if(!asset)throw new HttpError(404,"Asset not found");
+    const {storage_key:key,...row}=asset,file=await request.file();
+    if(!file)throw new HttpError(400,"Choose a media file");
+    if(await store.file(workspaceId,key).then(()=>true,()=>false)){file.file.resume();return row;}
+    const saved=await store.put(workspaceId,file.file,key.split("/")[1]);
+    if(file.file.truncated||saved.sha256!==asset.sha256){await store.remove(workspaceId,key).catch(()=>{});throw new HttpError(422,"That is not the same file.");}
+    return row;
   });
   app.delete(`${base}/assets/:id`, async request => {
     const { workspaceId,id } = item.parse(request.params); await member(pool,request,workspaceId,"creator");

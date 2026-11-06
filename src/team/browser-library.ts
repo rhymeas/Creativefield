@@ -2,22 +2,25 @@
    to work from and is deleted after a day without a visit, so every file the guest sees is copied
    into Cache Storage (public/sw.js answers from it) with its record beside it. When the workspace
    is gone the records still list here, and a file is sent back under its own id only when a render
-   needs it. FotoField documents never leave this browser. A local install does not switch this on. */
+   needs it. Once a checked copy is here and no render is working, the server gives up its bytes
+   (HOLD_MS keeps a file for the request that usually follows its upload). FotoField documents never
+   leave this browser. A local install does not switch this on. */
 import {ApiError,type Asset,type AssetPage} from "./api";
 
-const CACHE="creativefield-library-v1",RESTORE_TIMEOUT=300000;
+const CACHE="creativefield-library-v1",RESTORE_TIMEOUT=300000,HOLD_MS=120000,SWEEP_MS=30000;
 const fileKey=(id:string)=>`/browser-library/file/${id}`,recordKey=(id:string)=>`/browser-library/record/${id}`,documentKey=(id:string)=>`/browser-library/document/${id}`;
 const UUID=/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const RESTORABLE=new Set(["image","video","audio","mask","layer","reference","model3d"]);
 
 type Send=<T>(path:string,method?:string,body?:unknown,options?:{timeoutMs?:number})=>Promise<T>;
-export type LibraryRecord={asset:Asset;workspaceId:string;hidden?:boolean};
+export type LibraryRecord={asset:Asset;workspaceId:string;hidden?:boolean;/** The server gave up its bytes; the row stays. */released?:boolean;seenAt?:number};
 export type LocalDocument={id:string;name:string;kind:string;revision:number;updated_at:string;document?:unknown};
 
 let active=false;
 /** Which project a browser-only file is currently listed in, so a render restores it into that one. */
 const shownIn=new Map<string,string>();
-let mirroring:Promise<void>=Promise.resolve();
+let mirroring:Promise<void>=Promise.resolve(),releasing:Promise<void>=Promise.resolve();
+let writes=0,sweeper:ReturnType<typeof setInterval>|undefined,workspaceNow="";
 
 const open=()=>caches.open(CACHE);
 const json=(value:unknown)=>new Response(JSON.stringify(value),{headers:{"Content-Type":"application/json"}});
@@ -43,7 +46,12 @@ export async function enableBrowserLibrary(){
   }catch{/* The server copy keeps working. */}
 }
 /** For tests. */
-export function setBrowserLibraryActive(value:boolean){active=value;shownIn.clear();}
+export function setBrowserLibraryActive(value:boolean){active=value;shownIn.clear();writes=0;workspaceNow="";if(sweeper)clearInterval(sweeper);sweeper=undefined;}
+/** Counts requests that change something: nothing is released while one is on its way. */
+export function trackWrite(method:string){
+  if(method==="GET")return ()=>{};
+  writes++;return ()=>{writes--;};
+}
 
 function scope(path:string){const match=/^\/workspaces\/([^/]+)\/([^?]*)(?:\?(.*))?$/.exec(path);return match?{workspaceId:decodeURIComponent(match[1]),tail:match[2],query:new URLSearchParams(match[3]??"")}:null;}
 const contentPath=(workspaceId:string,id:string)=>`/api/v1/workspaces/${encodeURIComponent(workspaceId)}/assets/${encodeURIComponent(id)}/content`;
@@ -59,8 +67,31 @@ function mirror(workspaceId:string,items:Asset[]){
   }).catch(()=>undefined);
 }
 async function remember(workspaceId:string,items:Asset[]){
-  await Promise.all(items.map(asset=>writeRecord({asset,workspaceId})));
+  await Promise.all(items.map(async asset=>{
+    const prior=await readRecord(asset.id),same=prior?.workspaceId===workspaceId;
+    await writeRecord({asset,workspaceId,seenAt:same?prior?.seenAt??Date.now():Date.now(),...(same&&prior?.released?{released:true}:{})});
+  }));
   mirror(workspaceId,items);
+}
+const hex=(bytes:ArrayBuffer)=>[...new Uint8Array(bytes)].map(byte=>byte.toString(16).padStart(2,"0")).join("");
+/** Tells the server to drop each file this browser holds in full. A refusal waits for the next sweep. */
+export function sweepReleases(send:Send,now=Date.now()){
+  releasing=releasing.then(async()=>{
+    if(!workspaceNow)return;
+    const cache=await open(),records=await readAll<LibraryRecord>("/browser-library/record/");
+    for(const record of records){
+      if(writes>0)return;
+      const {asset}=record;
+      if(record.workspaceId!==workspaceNow||record.hidden||record.released||!asset.sha256||now-(record.seenAt??now)<HOLD_MS)continue;
+      const stored=await cache.match(fileKey(asset.id));if(!stored)continue;
+      const blob=await stored.blob();
+      if(blob.size!==Number(asset.bytes)||hex(await crypto.subtle.digest("SHA-256",await blob.arrayBuffer()))!==asset.sha256)continue;
+      try{await send(`/workspaces/${encodeURIComponent(workspaceNow)}/assets/${encodeURIComponent(asset.id)}/release`,"POST",{sha256:asset.sha256});}
+      catch{return;}
+      await writeRecord({...record,released:true});
+    }
+  }).catch(()=>undefined);
+  return releasing;
 }
 /** A file from an earlier workspace: the server no longer has it, only this browser does. */
 const onlyHere=(record:LibraryRecord,workspaceId:string)=>record.workspaceId!==workspaceId&&!record.hidden;
@@ -108,21 +139,40 @@ async function documentBitmap(workspaceId:string,form:FormData){
   return asset;
 }
 
-/** Sends back the browser-only files a request names, under their own ids, before the request goes out. */
-export async function restoreFor(path:string,method:string,body:unknown,send:Send){
-  if(!active||method==="GET"||method==="DELETE")return;
-  const place=scope(path);if(!place||place.query.has("restoreId"))return;
+/** Sends back the browser-only files a request names before it goes out. A file another workspace still
+    holds (a lost session, inside the day) comes back under a new id, and the request is rewritten to it. */
+export async function restoreFor(path:string,method:string,body:unknown,send:Send):Promise<{path:string;body:unknown}>{
+  const unchanged={path,body};
+  if(!active||method==="GET"||method==="DELETE")return unchanged;
+  const place=scope(path);
+  if(!place||place.query.has("restoreId")||/^assets\/[^/]+\/(release|restore)$/.test(place.tail)||place.tail==="assets/lookup")return unchanged;
+  await releasing;
+  const base=`/workspaces/${encodeURIComponent(place.workspaceId)}/assets`,moved=new Map<string,string>();
   const text=`${path} ${body===undefined||body instanceof FormData?"":JSON.stringify(body)}`;
   for(const id of new Set((text.match(UUID)??[]).map(value=>value.toLowerCase()))){
     if(id===place.workspaceId.toLowerCase())continue;
-    const record=await readRecord(id),projectId=shownIn.get(id);
-    if(!record||!onlyHere(record,place.workspaceId)||!projectId||!RESTORABLE.has(record.asset.media_type))continue;
+    const record=await readRecord(id);if(!record)continue;
+    /* An upload only names its project and parent; a released parent keeps its row. */
+    const released=record.released&&record.workspaceId===place.workspaceId&&place.tail!=="assets",projectId=shownIn.get(id);
+    if(!released&&(!onlyHere(record,place.workspaceId)||!projectId||!RESTORABLE.has(record.asset.media_type)))continue;
     const stored=await (await open()).match(fileKey(id));
     if(!stored)throw new ApiError(410,`${record.asset.name} is no longer in this browser. Add it again.`);
-    const form=new FormData();form.append("file",new File([await stored.blob()],record.asset.name,{type:record.asset.content_type}));
-    const restored=await send<Asset>(`/workspaces/${encodeURIComponent(place.workspaceId)}/assets?projectId=${projectId}&kind=${record.asset.media_type}&restoreId=${id}`,"POST",form,{timeoutMs:RESTORE_TIMEOUT});
-    await writeRecord({asset:{...record.asset,...restored,metadata:{...record.asset.metadata,...restored.metadata}},workspaceId:place.workspaceId});
+    const blob=await stored.blob(),form=()=>{const value=new FormData();value.append("file",new File([blob],record.asset.name,{type:record.asset.content_type}));return value;};
+    const upload=(tail:string)=>send<Asset>(`${base}${tail}`,"POST",form(),{timeoutMs:RESTORE_TIMEOUT});
+    const keep=(asset:Asset)=>writeRecord({asset:{...record.asset,...asset,metadata:{...record.asset.metadata,...asset.metadata}},workspaceId:place.workspaceId,seenAt:Date.now()});
+    if(released){await keep(await upload(`/${id}/restore`));continue;}
+    const query=`?projectId=${projectId}&kind=${record.asset.media_type}`;
+    try{await keep(await upload(`${query}&restoreId=${id}`));}
+    catch(error){
+      if(!(error instanceof ApiError)||error.status!==409)throw error;
+      const fresh=await upload(query);
+      await (await open()).put(fileKey(fresh.id),new Response(blob,{headers:stored.headers}));
+      await keep(fresh);await forget(id);shownIn.set(fresh.id,projectId!);moved.set(id,fresh.id);
+    }
   }
+  if(!moved.size)return unchanged;
+  const swap=(value:string)=>[...moved].reduce((text,[from,to])=>text.split(from).join(to),value);
+  return {path:swap(path),body:body===undefined||body instanceof FormData?body:JSON.parse(swap(JSON.stringify(body)))};
 }
 
 /** Keeps a copy of what the server answered, and adds the browser's own files to a finished list. */
@@ -130,6 +180,8 @@ export async function afterResponse<T>(path:string,method:string,body:unknown,co
   if(!active)return content;
   const place=scope(path);if(!place)return content;
   const {workspaceId,tail,query}=place;
+  workspaceNow=workspaceId;
+  sweeper??=setInterval(()=>{void sweepReleases(send);},SWEEP_MS);
   if(method==="GET"&&tail==="assets"){
     const page=content as unknown as AssetPage,projectId=query.get("projectId");
     await remember(workspaceId,page.items);
