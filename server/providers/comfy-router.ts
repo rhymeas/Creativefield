@@ -1,4 +1,4 @@
-import {H3_EFFECTS,ROUTER_MODELS,routerManifest,type RouterModel} from '../../src/capabilities/router-models';
+import {H3_EFFECTS,KLING_VOICES,ROUTER_MODELS,routerManifest,type RouterModel} from '../../src/capabilities/router-models';
 import type {Invocation} from '../../src/capabilities/types';
 import type {DirectAdapter,OwnedInput,PreparedInputs} from './types';
 import type {Registration} from './registry';
@@ -15,6 +15,7 @@ function body(m:RouterModel,i:Invocation,p:PreparedInputs){
  if(m.kind==='flux')return {prompt,width:c.width,height:c.height,seed:c.seed,output_format:'png',prompt_upsampling:false,...Object.fromEntries(['source_image','reference_image','reference_image_2'].filter(k=>p[k]).map((k,n)=>[n?`input_image_${n+1}`:'input_image',p[k]]))};
  if(m.kind==='seedance')return {content:[{type:'text',text:prompt},...(p.start_image?[{type:'image_url',image_url:{url:p.start_image},role:'first_frame'}]:[]),...(p.end_image?[{type:'image_url',image_url:{url:p.end_image},role:'last_frame'}]:[])],duration:c.duration,resolution:c.resolution,seed:c.seed,generate_audio:false,watermark:false};
  if(m.kind==='h3-reference')return {content:[{type:'text',text:`Use the character in Image 1 for the person shown in Video 1. Follow the reference performance, camera and scene.${p.reference_image_2?' Image 2 is an additional scene reference.':''} ${prompt}`},{type:'video_url',video_url:{url:p.source_video},role:'reference_video'},...['reference_image','reference_image_2'].filter(k=>p[k]).map(k=>({type:'image_url',image_url:{url:p[k]},role:'reference_image'}))],duration:c.duration,resolution:c.resolution,seed:c.seed,ratio:'adaptive',aigc_watermark:false};
+ if(m.kind==='kling-lipsync')return {input:{mode:'text2video',video_url:p.source_video,text:prompt.trim(),voice_id:KLING_VOICES.find(v=>v.name===c.voice)?.id??'oversea_male1',voice_language:'en',voice_speed:c.voice_speed}};
  if(m.kind==='h3-effect'){const effect=H3_EFFECTS.find(e=>e.title===c.effect)?.prompt??H3_EFFECTS[0].prompt;return {content:[{type:'text',text:prompt.trim()?`${effect} ${prompt.trim()}`:effect},{type:'image_url',image_url:{url:p.start_image},role:'first_frame'}],duration:c.duration,resolution:c.resolution,seed:c.seed,aigc_watermark:false};}
  if(m.kind==='bria-upscale')return {image:p.source_image,desired_increase:c.desired_increase,sync:false};
  if(m.kind==='bfl-video-upscale')return {input_video:p.source_video,upscale_factor:c.upscale_factor,creativity:c.creativity,...(prompt.trim()?{prompt}:{})};
@@ -24,7 +25,7 @@ function body(m:RouterModel,i:Invocation,p:PreparedInputs){
 export function routerAdapter(m:RouterModel):DirectAdapter{
  return {id:`comfy-router-${m.kind}`,version:'1.0.0',provider:'comfy-router',recovery:'unsupported',cancellation:'supported',
   validate(i){
-    const limit=m.kind==='h3-reference'||m.kind==='h3-effect'?500:m.kind.startsWith('kling')?2500:20000,prompt=i.controls.prompt;
+    const limit=m.kind==='kling-lipsync'?120:m.kind==='h3-reference'||m.kind==='h3-effect'?500:m.kind.startsWith('kling')?2500:20000,prompt=i.controls.prompt;
     /* Bria Upscale has no prompt at all; the others treat it as optional or require it. */
     const optionalPrompt=m.kind==='h3-reference'||m.kind==='h3-effect'||m.kind==='bfl-video-upscale';
     const reason=m.kind==='bria-upscale'?undefined:typeof prompt!=='string'?'Write a prompt.':!optionalPrompt&&!prompt.trim()?'Write a prompt.':prompt.length>limit?`${m.title} takes a prompt of up to ${limit} characters; this one has ${prompt.length}. Shorten it.`:i.audioPolicy!==(m.kind==='h3-reference'?'replace':'mute')?'This sound setting is not available for this model.':m.kind==='h3-reference'&&!(i.inputs.source_video&&i.inputs.reference_image)?'Add your video and a character picture.':undefined;

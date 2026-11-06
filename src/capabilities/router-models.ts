@@ -1,7 +1,7 @@
 import type {CapabilityManifestV2,Control,Port} from './types';
 
-export type CloudFeature='effects'|'keyframes'|'video-upscale'|'image-upscale'|'image-create'|'image-edit'|'image-angles'|'image-relight'|'video-create'|'video-edit'|'replace-character'|'motion-transfer'|'restyle'|'object-swap'|'openjutsu'|'unsupported';
-export type RouterModel={id:string;model:string;title:string;features:CloudFeature[];kind:'flux'|'seedance'|'kling-edit'|'kling-motion'|'h3-reference'|'bfl-video-upscale'|'bria-upscale'|'h3-effect';output:'image'|'video';inputs:Port[];controls:Control[]};
+export type CloudFeature='talk'|'effects'|'keyframes'|'video-upscale'|'image-upscale'|'image-create'|'image-edit'|'image-angles'|'image-relight'|'video-create'|'video-edit'|'replace-character'|'motion-transfer'|'restyle'|'object-swap'|'openjutsu'|'unsupported';
+export type RouterModel={id:string;model:string;title:string;features:CloudFeature[];kind:'flux'|'seedance'|'kling-edit'|'kling-motion'|'h3-reference'|'bfl-video-upscale'|'bria-upscale'|'h3-effect'|'kling-lipsync';output:'image'|'video';inputs:Port[];controls:Control[]};
 const prompt:Control={id:'prompt',label:'Prompt',type:'string',default:'',apiField:'prompt'};
 const seed:Control={id:'seed',label:'Seed',type:'integer',default:1,min:0,max:2147483647,apiField:'seed'};
 const image=(id:string,label:string,required=false):Port=>({id,label,type:'image',required});
@@ -19,11 +19,15 @@ export const H3_EFFECTS:{id:string;title:string;prompt:string}[]=[
  {id:'storm_magic',title:'Storm magic',prompt:'The person in the picture calls down a storm; lightning crackles and wind whips around them.'},
  {id:'truman_show',title:'Film set reveal',prompt:'The person in the picture walks forward and touches the sky, which turns out to be a painted wall of a giant film set.'},
 ];
+/** Kling lip-sync's English voices, as listed by ComfyUI's official Kling lip-sync node (comfy_api_nodes/nodes_kling.py). */
+export const KLING_VOICES:{name:string;id:string}[]=[['Melody','girlfriend_4_speech02'],['Sunny','genshin_vindi2'],['Sage','zhinen_xuesheng'],['Ace','AOT'],['Blossom','ai_shatang'],['Peppy','genshin_klee2'],['Dove','genshin_kirara'],['Shine','ai_kaiya'],['Anchor','oversea_male1'],['Lyric','ai_chenjiahao_712'],['Tender','chat1_female_new-3'],['Siren','chat_0407_5-1'],['Zippy','cartoon-boy-07'],['Bud','uk_boy1'],['Sprite','cartoon-girl-01'],['Candy','PeppaPig_platform'],['Beacon','ai_huangzhong_712'],['Rock','ai_huangyaoshi_712'],['Titan','ai_laoguowang_712'],['Grace','chengshu_jiejie'],['Helen','you_pingjing'],['Lore','calm_story1'],['Crag','uk_man2'],['Prattle','laopopo_speech02'],['Hearth','heainainai_speech02'],['The Reader','reader_en_m-v1'],['Commercial Lady','commercial_lady_en_f-v1']].map(([name,id])=>({name,id}));
 /** Reviewed contracts, not a blanket forwarding of Router's catalog. No model is substituted. */
 export const ROUTER_MODELS:RouterModel[]=[
  {id:'router-h3-reference',model:'minimax/minimax-h3',title:'MiniMax H3 Reference',features:['openjutsu'],kind:'h3-reference',output:'video',inputs:[video,image('reference_image','Character',true),image('reference_image_2','Scene reference (optional)')],controls:[{...prompt,default:'Keep the reference performance, camera and scene.'},{id:'duration',label:'Seconds',type:'integer',default:5,min:5,max:15,apiField:'duration'},{id:'resolution',label:'Quality',type:'select',options:['768P'],default:'768P',apiField:'resolution'},{...seed,max:4294967295}]},
  {id:'router-flux-create',model:'bfl/flux-2-pro',title:'FLUX 2 Pro',features:['image-create'],kind:'flux',output:'image',inputs:[],controls:fluxControls},
  {id:'router-flux-edit',model:'bfl/flux-2-pro',title:'FLUX 2 Pro',features:['image-edit','image-angles','image-relight'],kind:'flux',output:'image',inputs:[image('source_image','Your image',true),...reference],controls:fluxControls},
+ /* Make it talk: Kling lip-sync in text mode, from its Router OpenAPI document (video 2-10 s, text up to 120 characters, a Kling voice). */
+ {id:'router-kling-talk',model:'kling/videos-lip-sync',title:'Kling Lip Sync',features:['talk'],kind:'kling-lipsync',output:'video',inputs:[video],controls:[{id:'voice',label:'Voice',type:'select',options:KLING_VOICES.map(v=>v.name),default:'Anchor',apiField:'voice_id'},{...prompt,label:'What they say (up to 120 characters)'},{id:'voice_speed',label:'Speed',type:'select',options:[0.8,1,1.2,1.5],default:1,apiField:'voice_speed'}]},
  /* The local h3-effects workflow's presets, without its local embedding token: one photo, one effect, on MiniMax H3. */
  {id:'router-h3-effects',model:'minimax/minimax-h3',title:'MiniMax H3 Effects',features:['effects'],kind:'h3-effect',output:'video',inputs:[image('start_image','Photo',true)],controls:[{id:'effect',label:'Effect',type:'select',options:H3_EFFECTS.map(e=>e.title),default:H3_EFFECTS[0].title,apiField:'effect'},{...prompt,label:'Add to the effect (optional)'},{id:'duration',label:'Seconds',type:'integer',default:5,min:4,max:15,apiField:'duration'},{id:'resolution',label:'Quality',type:'select',options:['768P','2K'],default:'768P',apiField:'resolution'},{...seed,max:4294967295}]},
  /* Upscalers, from each model's Router OpenAPI document (GET /v2/models/<id>/openapi.json). BFL takes up to 20 s and 50 MB of video. */
@@ -54,6 +58,8 @@ export function routerInputProblem(m:RouterModel,assets:Record<string,{content_t
     if(!['video/mp4','video/quicktime','video/webm'].includes(a.content_type)||(meta.durationSeconds!==undefined&&(!Number.isFinite(duration)||duration<=0))||(meta.width!==undefined&&(!Number.isFinite(Number(meta.width))||Number(meta.width)<=0))||(meta.height!==undefined&&(!Number.isFinite(Number(meta.height))||Number(meta.height)<=0))||(meta.frameRate!==undefined&&(!Number.isFinite(fps)||fps<=0)))return 'H3 needs a readable video with at least one frame.';
     continue;
    }
+   /* Kling lip-sync: 720-1920 px on each side, up to 100 MB; longer clips are cut to 10 s. */
+   if(m.kind==='kling-lipsync'){const w=Number(meta.width),h=Number(meta.height);if(!['video/mp4','video/quicktime'].includes(a.content_type)||Number(a.bytes)>100*1024*1024||Number.isFinite(w)&&Number.isFinite(h)&&(Math.min(w,h)<720||Math.max(w,h)>1920))return `Kling Lip Sync needs an MP4 or MOV of up to 100 MB with 720–1920 pixels on each side.${Number.isFinite(w)&&Number.isFinite(h)?` This clip is ${w}×${h}.`:''}`;continue;}
    /* FLUX Video Upscale is for small clips: any size, the first 20 s are sent, the file at most 50 MB. */
    if(m.kind==='bfl-video-upscale'){if(!['video/mp4','video/quicktime'].includes(a.content_type)||Number(a.bytes)>50*1024*1024)return 'FLUX Video Upscale takes an MP4 or MOV of up to 50 MB; longer clips are cut to their first 20 seconds.';continue;}
    if(!['video/mp4','video/quicktime'].includes(a.content_type)||Number(a.bytes)>200*1024*1024||!Number.isFinite(duration)||duration<3||!Number.isFinite(edge)||edge<720||edge>2160||!Number.isFinite(fps)||fps<24||fps>60)return Number.isFinite(edge)&&Number.isFinite(fps)&&Number.isFinite(duration)?`Kling needs an MP4 or MOV of at least 3 seconds (longer clips are cut to the first 10), 720p–2160p, 24–60 fps, up to 200 MB. This clip is ${Number(meta.width)}×${Number(meta.height)}, ${Math.round(fps*100)/100} fps, ${Math.round(duration*10)/10} s.`:'Kling needs a measured MP4 or MOV: at least 3 seconds (longer clips are cut to the first 10), 720p–2160p, 24–60 fps, up to 200 MB. Upload a compatible clip first.';
@@ -71,6 +77,7 @@ export function h3ReferenceDurationNote(value:unknown):string|undefined {
 }
 export function cloudFeature(route:string,videoMode:string,imageTab:string,changeChoice='person'):CloudFeature{
  if(route==='openjutsu')return 'openjutsu';
+ if(route==='audio')return 'talk';
  if(route==='motion')return 'motion-transfer';
  if(route==='image')return imageTab==='create'?'image-create':imageTab==='upscale'?'image-upscale':imageTab==='angles'?'image-angles':imageTab==='relight'?'image-relight':'image-edit';
  if(route==='imageedit')return 'image-edit';

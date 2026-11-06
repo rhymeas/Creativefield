@@ -521,7 +521,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const localTools={remiximage:readyManifests.some(remixImageModel),adimage:readyManifests.some(adImageModel),h3effects:readyEffects,replace:implemented.some(m=>m.id==="scail2-character-replace"),motion:implemented.some(m=>m.category==="motion"),effects:implemented.some(m=>capabilitySurface(m)==="video-effect"),edit:implemented.some(isMaskedEdit),vfx:implemented.some(m=>m.id==="nvidia-vfx-upscale"),video:implemented.some(m=>isCreateVideoWorkflow(m)),image:shownImages.length>0,audio:implemented.some(m=>m.category==="audio"||/chatterbox|lip-?sync|speech/.test(m.id))};
   /* A hosted guest runs only what Comfy Router (any plan) or Comfy Cloud (paid plan) can do; local-only tools are left out (rule 26). */
   const cloudJobs=account?.canSubmit===true,routes=(feature:CloudFeature)=>routerModelsFor(feature).length>0;
-  const listedTools:typeof localTools&{restyle:boolean;film:boolean}=user.guest?{remiximage:false,adimage:false,h3effects:routes("effects"),effects:false,audio:false,film:false,
+  const listedTools:typeof localTools&{restyle:boolean;film:boolean}=user.guest?{remiximage:false,adimage:false,h3effects:routes("effects"),effects:false,audio:routes("talk"),film:false,
     replace:routes("replace-character")||routes("openjutsu"),motion:routes("motion-transfer"),edit:routes("object-swap"),restyle:routes("restyle"),video:routes("video-create"),image:routes("image-create"),
     vfx:routes("video-upscale")||cloudJobs&&implemented.some(m=>m.id==="nvidia-vfx-upscale"&&m.routes.some(r=>r.execution==="comfy_cloud"))}:{...localTools,restyle:localTools.effects,film:localTools.video};
   const guestLocalOnly=!!user.guest&&!cloudJobs;
