@@ -50,7 +50,7 @@ import {admissionSchema,enqueueDirect} from "./providers/submission";
 import {isCloudRoute,prepareCloudInvocation,CLOUD_WORKER_REASON} from "./cloud-readiness";
 import {productionDirectRegistry,type DirectRegistry} from "./providers/registry";
 import {loadWorkspaceCatalogue} from "./workflow-imports";
-import {planUpscale,upscaleBundle,upscaleControls} from "./chain-upscale";
+import {hasOwnVideoFinish,planUpscale,upscaleBundle,upscaleControls} from "./chain-upscale";
 import {maskedEditReadiness} from "./media-tools";
 import {assertImageExtension,probeImage,type ImageMetadata} from "./image-media";
 import {assertSafeImageFile,imageOutputFiles} from "./image-output";
@@ -973,7 +973,7 @@ export class ExecutionService {
   private async chainUpscale(run:any,manifest:CapabilityBundle["manifest"],output:{id:string;metadata?:unknown}):Promise<void>{
     try{
       // An upscaled result is not upscaled again.
-      if(run.invocation?.upscaleChain)return;
+      if(run.invocation?.upscaleChain || hasOwnVideoFinish(manifest.id))return;
       const facts=output.metadata as {width?:unknown;height?:unknown}|undefined;
       const plan=planUpscale({width:Number(facts?.width??0),height:Number(facts?.height??0)});
       if(!plan)return;

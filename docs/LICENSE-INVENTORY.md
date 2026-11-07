@@ -1,5 +1,9 @@
 # License inventory (REL-04)
 
+`hyperflow-h3-flash-t2v` and `hyperflow-h3-flash-flf2v` use the upstream ComfyUI HyperFlow Flash workflows and nodes. `hyperflow-h3-flash-i2v`, `hyperflow-h3-flash-t2v-deno` and `hyperflow-h3-flash-flf2v-deno` also use the separately reviewed [Deno sampler](https://github.com/Deno2026/comfyui-deno-custom-nodes). **HyperFlow H3 Flash and MiniMax H3 components** are installed separately, not bundled. Review the applicable model terms before use or redistribution; see the [HyperFlow model card](https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash) and [ComfyUI integration](https://github.com/Video-Rebirth/ComfyUI-HyperFlow-Flash).
+
+The Audio workspace uses a graph adapted from the [ControlFoley text-and-video example](https://github.com/YJX-Research/comfyui-controlfoley-official/blob/c918ad7/example_workflows/04_tv2a_text_video.json) under Apache-2.0. The ControlFoley weights are separate and licensed under CC BY-NC 4.0.
+
 `qwen-image-21-masked-edit` uses the same Qwen Image 2.1 weights and terms as the guided edit workflow described below. Its graph is included; model weights are installed separately. The Qwen Research License permits non-commercial research and evaluation; commercial use requires separate permission.
 
 Application license reconciled 22 October 2026: `GPL-3.0-only`, copyright bashpacks.

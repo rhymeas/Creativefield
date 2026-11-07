@@ -1,6 +1,6 @@
 import type { CapabilityBundle, SourceLinkedMaskSnapshot } from "./types";
 import { assertRoutePolicy } from "./policy";
-import {assertH3SecondsGraph,assertSecondsDurationGraph,hasQualifiedDurationMapping} from "./timing";
+import {assertH3SecondsGraph,assertHyperflowSecondsGraph,assertSecondsDurationGraph,hasQualifiedDurationMapping} from "./timing";
 import { validateImageArtifacts } from "./image-artifacts";
 import {validatePosePreviewContract} from "./pose-preview";
 import { validateImageInputContract } from "./image-input-contract";
@@ -69,6 +69,9 @@ export function validateCapability(bundle: CapabilityBundle): string[] {
     }
     else if(m.timing.frameMapping==="h3_seconds_17n5"){
       try{if(!bundle.template)throw new Error("Missing timing graph");assertH3SecondsGraph(bundle.template,m.controls.find(c=>c.id==="length")!.binding!,m.timing.fps);}catch(e){errors.push(String(e));}
+    }
+    else if(m.timing.frameMapping==="hyperflow_seconds_17n5"){
+      try{if(!bundle.template)throw new Error("Missing timing graph");assertHyperflowSecondsGraph(m,bundle.template,m.controls.find(c=>c.id==="length")!.binding!);}catch(e){errors.push(String(e));}
     }
   }
   for (const item of [...m.inputs, ...m.controls]) {

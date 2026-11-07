@@ -2,6 +2,7 @@ import {spawn} from "node:child_process";
 import {tmpdir} from "node:os";
 import {HttpError} from "../auth";
 import type {AiTextImage,AiTextProvider,AiTextRequest,AiTextResult} from "../ai-text";
+import {desktopCodex} from "./codex-runtime";
 
 /** How the app introduces itself in the app-server handshake. Codex uses the name to attribute requests. */
 const CLIENT_INFO={name:"comfyfield",title:"ComfyField",version:"0.1.0"};
@@ -43,7 +44,7 @@ export function turnInput(request:AiTextRequest):AiInputItem[]{
  * it sends `store: false` and `stream: true` itself, and no Responses field is ever set from here.
  */
 export function threadParams(){
-  return {ephemeral:true,cwd:tmpdir(),approvalPolicy:"never",sandbox:"readOnly"};
+  return {ephemeral:true,cwd:tmpdir(),approvalPolicy:"never",sandbox:"read-only"};
 }
 
 /** One plain sentence for the app's Notice. A refused request and a failed turn both land here. */
@@ -214,7 +215,8 @@ export const chatGptCodexProvider:AiTextProvider={
   id:"chatgpt",
   async generate(request):Promise<AiTextResult>{
     if(request.kind==="image")throw new HttpError(503,"The ChatGPT plan writes text only. It cannot make pictures.");
-    const command=codexCommand();
+    const desktop=await desktopCodex();
+    const command=desktop?{command:desktop,args:["app-server"],shell:false}:codexCommand();
     let child;
     try{
       child=spawn(command.command,command.args,{stdio:["pipe","pipe","ignore"],shell:command.shell,windowsHide:true});

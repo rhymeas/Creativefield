@@ -17,6 +17,11 @@ export function soleReadyWorker(manifest:CapabilityManifestV2,workers:Worker[],p
   const available=workers.filter(w=>workerReadiness(manifest,w,undefined,presetId).state==="ready");
   return available.length===1?available[0].id:"";
 }
+/** HyperFlow can have multiple equivalent local workers; use a stable ready one rather than reporting offline. */
+export function hyperflowReadyWorker(manifest:CapabilityManifestV2,workers:Worker[],presetId?:string):string {
+  return workers.filter(w=>workerReadiness(manifest,w,undefined,presetId).state==="ready")
+    .sort((a,b)=>a.id.localeCompare(b.id))[0]?.id??"";
+}
 const readinessRank:Record<ReadinessState,number>={ready:0,unsupported:1,credentials_required:2,download_required:3,install_required:4,incompatible:5,offline:6};
 export function bestWorkerReadiness(manifest:CapabilityManifestV2,workers:Worker[],now=Date.now()):Readiness {
   if(!workers.length)return {state:"offline",reasons:["No local ComfyUI worker is registered."],missing:[]};
@@ -38,8 +43,22 @@ export type Draft={controls:Record<string,string|number|boolean>;inputs:Record<s
 export function draftPromptForHandoff(manifest:CapabilityManifestV2,draft:Draft,promptOn:boolean):string {
   return promptOptional(manifest)&&!promptOn ? "" : String(draft.controls.prompt??"");
 }
+/** Keep compatible settings when adding a start image changes the HyperFlow graph. */
+export function hyperflowImageHandoff(source:CapabilityManifestV2,target:CapabilityManifestV2,current:Draft,next:Draft):Draft {
+  if(source.id!=="hyperflow-h3-flash-t2v"||target.id!=="hyperflow-h3-flash-i2v")return next;
+  const controls={...next.controls};
+  for(const id of ["length","seed","quality"]){
+    const setting=target.controls.find(c=>c.id===id&&!c.disabledReason),value=current.controls[id];
+    if(!setting||value===undefined)continue;
+    if(setting.type==="select"&&setting.options?.includes(value as string|number))controls[id]=value;
+    if((setting.type==="number"||setting.type==="integer")&&typeof value==="number"&&Number.isFinite(value)&&(setting.type!=="integer"||Number.isSafeInteger(value))&&(setting.min===undefined||value>=setting.min)&&(setting.max===undefined||value<=setting.max))controls[id]=value;
+  }
+  const {width,height}=current.controls;
+  if(Object.values(target.resolutions??{}).some(size=>size.width===width&&size.height===height)){controls.width=width;controls.height=height;}
+  return {...next,controls,audioPolicy:target.audioPolicies.includes(current.audioPolicy)?current.audioPolicy:next.audioPolicy};
+}
 /** These H3 creation graphs decode generated audio; replace retains that output. */
-export function h3GeneratedAudio(m:CapabilityManifestV2){return ["h3-t2v","h3-i2v","h3-flf2v","h3-effects"].includes(m.id)&&m.audioPolicies.includes("replace");}
+export function h3GeneratedAudio(m:CapabilityManifestV2){return ["h3-t2v","h3-i2v","h3-flf2v","h3-effects","hyperflow-h3-flash-i2v","hyperflow-h3-flash-t2v","hyperflow-h3-flash-flf2v"].includes(m.id)&&m.audioPolicies.includes("replace");}
 export function defaultDraft(m:CapabilityManifestV2):Draft {
   return {controls:Object.fromEntries(m.controls.filter(c=>!c.disabledReason&&c.default!==undefined).map(c=>[c.id,c.default])) as Draft["controls"],inputs:{},elementInputs:{},audioPolicy:m.voiceContract||h3GeneratedAudio(m)?"replace":m.audioPolicies.includes("preserve")?"preserve":"mute"};
 }

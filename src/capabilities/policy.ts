@@ -136,6 +136,8 @@ export function assertRoutePolicy(route: RouteDefinition): void {
   }
 }
 export const OPENJUTSU_ADVANCED_CLASSES = new Set(["H3AdvancedSwapPlan", "H3TrackCrops", "H3TrackRoles", "H3RoleMask"]);
+// Only the individually reviewed sampler and HyperFlow loader used by the pinned local template.
+export const HYPERFLOW_QUALITY_CLASSES = new Set(["HyperFlowGGUFLoader", "HyperFlowSigmas", "DenoMiniMaxH3TiledSampler", "MiniMaxH3AddGuide"]);
 
 export function assertLocalGraphPolicy(graph: ApiGraph, additionalClasses: ReadonlySet<string> = new Set()): void {
   if (!Object.keys(graph).length) throw new Error("Workflow is empty");

@@ -5,8 +5,8 @@ import {insertReferenceMention,modelPromptReferences,usesH3Prompt} from "./promp
 import {addKnownAssetDragType} from "./asset-drag";
 import {TrimToFit} from "./TrimToFit";
 import {DEFAULT_MIN_FREE_SHARE} from "../capabilities/hardware";
-import {isSelectedVideoCreate} from "../capabilities/tasks";
-import {endFramePair,endFrameRoute,isEndFrameVariant,withOptionalEndImage} from "./end-frame";
+import {isSelectedVideoCreate,routeImageToVideoDraft} from "../capabilities/tasks";
+import {endFrameControls,endFrameFinishPair,endFramePair,endFrameRoute,isEndFrameVariant,withOptionalEndImage} from "./end-frame";
 import {lazy,Suspense,useCallback,useEffect,useMemo,useRef,useState,type ReactNode} from "react";
 import { acceptsFile, Button, SegmentedTabs, UploadPair, useToast, Checkbox, TextField, Collapsible, GenerateButton, Meta, Notice, Panel, PromptField, Params, ParamButton, ReferenceTray, Row, Rule, Thumb, ToggleRow, Dialog, ShimmerText, GestureStage, CameraPathPreview, LinkButton, PresetGrid, PresetCard, HowItWorks } from "../ds";
 import {Clock,Gauge,Images,RectangleHorizontal,Sparkles,Video,Volume2,WandSparkles, Maximize2} from "lucide-react";
@@ -16,7 +16,7 @@ import {ToolHero} from "./heroes";
 import {ProductionContent} from "./ProductionWorkspace";
 import type {CapabilityManifestV2} from "../capabilities/types";
 import {ApiError,assetUrl,workspacePath,composerAssets,mergeAssets,type Asset,type Call,type Project,type ReusableElement,type User,type Worker,type Workspace} from "./api";
-import {defaultDraft,draftErrors,draftKey,draftPromptForHandoff,h3GeneratedAudio,promptOptional,restoreDraft,soleReadyWorker,submissionIntent,workerReadiness,type Draft} from "./state";
+import {defaultDraft,draftErrors,draftKey,draftPromptForHandoff,h3GeneratedAudio,hyperflowImageHandoff,hyperflowReadyWorker,promptOptional,restoreDraft,soleReadyWorker,submissionIntent,workerReadiness,type Draft} from "./state";
 import {plainProblem,plainReasons,workerBlocker} from "./problems";
 import {audienceOf,settingsLabel} from "./audience";
 import {TeamRuns} from "./TeamLibrary";
@@ -60,7 +60,7 @@ export const audioChoice=(manifest:CapabilityManifestV2)=>manifest.audioPolicies
 export function sizeLabel(id:string,value:unknown){const n=Number(value);if(id==="resolution")return Number.isFinite(n)?`${n}p`:String(value);return n<=0.5?"480p":n<=1?"720p":n<=1.6?"900p":`${n} MP`;}
 /** The Advanced dialog holds the settings the panel keeps out of sight. Motion adds its pose text and its negative prompt. */
 export function advancedControls(manifest:CapabilityManifestV2,motionRoute:boolean,nativeCamera:boolean){
-  const inline=["width","height","length","seconds","prompt","seed","megapixels","resolution",...frameControls(manifest).ids,...(manifest.id==="openjutsu-h3-advanced"?["roles"]:[]),...(nativeCamera?["camera_pose","speed"]:[])];
+  const inline=["width","height","length","seconds","prompt","seed","megapixels","resolution",...frameControls(manifest).ids,...(["hyperflow-h3-flash-i2v","hyperflow-h3-flash-t2v"].includes(manifest.id)?["quality"]:[]),...(manifest.id==="openjutsu-h3-advanced"?["roles"]:[]),...(nativeCamera?["camera_pose","speed"]:[])];
   return manifest.controls.filter(control=>!inline.includes(control.id)&&(motionRoute?control.id==="motion_prompt"||control.id==="negative":control.id!=="motion_prompt"));
 }
 /** Lip sync is an audio tool, so Create Video leaves it out; a workflow already open stays in its own list. */
@@ -123,9 +123,12 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   useEffect(()=>{if(!authorized){setElements([]);return;}let current=true;void call<ReusableElement[]>(workspacePath(workspace.id,`elements?projectId=${encodeURIComponent(project.id)}`)).then(value=>{if(current)setElements(value);}).catch(e=>{if(current)setError((e as Error).message);});return()=>{current=false;};},[call,workspace.id,project.id,authorized]);
   useEffect(()=>{if(authorized)return;invalidateOperation(uploadGate.current);setBusy("");},[authorized,workspace.id,project.id,manifest.id]);
   useEffect(()=>{if(!authorized||!masked)return;let current=true;setRequirements(null);void call<{state:string;missing:string[];instructions:string}>(workspacePath(workspace.id,"masked-edit-requirements")).then(value=>{if(current)setRequirements(value);}).catch(e=>{if(current)setError((e as Error).message);});return()=>{current=false;};},[authorized,masked,call,workspace.id]);
-  useEffect(()=>{setWorkerId(id=>workers.some(w=>w.id===id)?id:soleReadyWorker(manifest,workers,draft.presetId));},[workers,manifest,draft.presetId]);
+  const renderEndPair=endFrameFinishPair(manifest,endPair,catalogue,draft.controls.quality??"upscale");
+  const textFinish=manifest.id==="hyperflow-h3-flash-t2v"&&draft.controls.quality==="upscale"?catalogue.find(m=>m.id==="hyperflow-h3-flash-t2v-deno"&&m.coverage.local==="implemented"):undefined;
+  const executionManifest=manifest.id==="hyperflow-h3-flash-i2v"&&draft.inputs.end_image&&renderEndPair?renderEndPair:textFinish??manifest;
+  useEffect(()=>{const hyperflow=["hyperflow-h3-flash-i2v","hyperflow-h3-flash-t2v"].includes(manifest.id);setWorkerId(id=>workers.some(w=>w.id===id&&(!hyperflow||workerReadiness(executionManifest,w,undefined,draft.presetId).state==="ready"))?id:hyperflow?hyperflowReadyWorker(executionManifest,workers,draft.presetId):soleReadyWorker(executionManifest,workers,draft.presetId));},[workers,manifest.id,executionManifest,draft.presetId]);
 
-  const worker=workers.find(w=>w.id===workerId),readiness=worker?workerReadiness(manifest,worker,undefined,draft.presetId):null;
+  const worker=workers.find(w=>w.id===workerId),readiness=worker?workerReadiness(executionManifest,worker,undefined,draft.presetId):null;
   /* The catalogue shows this in an info popover; the screen where a run is queued should say it outright. */
   const workerHardware=worker?.inventory?.hardware,ramTotal=workerHardware?.ramTotal??0,ramFree=workerHardware?.ramFree??null,memoryTight=ramFree!==null&&ramTotal>0&&ramFree/ramTotal<=(workerHardware?.minFreeShare??DEFAULT_MIN_FREE_SHARE);
   const missing=manifest.inputs.filter(port=>port.required&&!draft.inputs[port.id]&&!draft.elementInputs[port.id]);
@@ -223,7 +226,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   }
   function startWithAsset(target:CapabilityManifestV2,port:string,assetId:string){
     if(locked)return;
-    const nextKey=draftKey(user.id,workspace.id,project.id,target.id),next=readDraft(nextKey,target);
+    const nextKey=draftKey(user.id,workspace.id,project.id,target.id),next=hyperflowImageHandoff(manifest,target,draft,readDraft(nextKey,target));
     next.inputs[port]=assetId;
     if(supportsH3PromptCamera(manifest)&&supportsH3PromptCamera(target)){next.cameraMove=draft.cameraMove;next.cameraPose=draft.cameraPose;}
     if(target.controls.some(control=>control.id==="prompt"))next.controls.prompt=draftPromptForHandoff(manifest,draft,promptOn);
@@ -233,14 +236,17 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   function saveIntent(value:Intent|null){setPending(value);try{if(value)sessionStorage.setItem(`${key}:intent`,JSON.stringify(value));else sessionStorage.removeItem(`${key}:intent`);}catch{setError("This request is tracked only while the page stays open; browser storage is unavailable.");}}
   async function queue(){
     if(!canQueue||busy||(!pending&&(!ready||!valid)))return;
+    if(!pending&&manifest.id==="hyperflow-h3-flash-i2v"&&draft.inputs.end_image&&(draft.controls.quality??"upscale")!=="normal"&&renderEndPair?.id!=="hyperflow-h3-flash-flf2v-deno"){setError("Deno upscale is unavailable for start and end images on this setup. Choose Normal or install the required workflow.");return;}
+    if(!pending&&manifest.id==="hyperflow-h3-flash-t2v"&&draft.controls.quality==="upscale"&&!textFinish){setError("Deno upscale is unavailable on this setup. Choose Normal or install the required workflow.");return;}
     setBusy("queue");setError("");setSaved("");
     const consent={...(webcamSelected?{webcam:true}:{}),...(manifest.voiceContract?{voice:voiceConsent}:{})};
     /* A switched-off prompt is not sent: an empty text is a run without words, not an example prompt. */
     const writtenControls=promptOptional(manifest)&&!promptOn?{...draft.controls,prompt:""}:draft.controls;
     const availableImages=imagePorts.flatMap((port,index)=>draft.inputs[port.id]||draft.elementInputs?.[port.id]?[index+1]:[]);
-    const controls=manifest.id!=="openjutsu-h3-advanced"&&typeof writtenControls.prompt==="string"&&/@Image\s*\d/i.test(writtenControls.prompt)?{...writtenControls,prompt:modelPromptReferences(writtenControls.prompt,usesH3Prompt(manifest)?"h3":"plain",availableImages)}:writtenControls;
+    const referenceControls=manifest.id!=="openjutsu-h3-advanced"&&typeof writtenControls.prompt==="string"&&/@Image\s*\d/i.test(writtenControls.prompt)?{...writtenControls,prompt:modelPromptReferences(writtenControls.prompt,usesH3Prompt(manifest)?"h3":"plain",availableImages)}:writtenControls;
+    const controls=endFrameControls(manifest,renderEndPair,draft.inputs,referenceControls);
     const path=cameraMove&&cameraPathModel&&!draft.inputs.end_image?cameraPathRoute(cameraPathModel,cameraMove,draft.inputs,controls):undefined;
-    const intent=pending??submissionIntent({projectId:project.id,workerId,...(path?{capabilityId:path.capabilityId,version:path.version,inputs:path.inputs}:(({capabilityId,version,inputs})=>({capabilityId,version,inputs}))(endFrameRoute(manifest,endPair,draft.inputs))),routeId:"local",elementInputs:draft.elementInputs,controls:path?path.controls:cameraInstruction?{...controls,prompt:`${cameraInstruction}\n\n${String(controls.prompt??"").trim()}`.trim()}:controls,...(draft.presetId?{presetId:draft.presetId}:{}),audioPolicy:draft.audioPolicy,...(Object.keys(consent).length?{consent}:{})});
+    const intent=pending??submissionIntent({projectId:project.id,workerId,...(path?{capabilityId:path.capabilityId,version:path.version,inputs:path.inputs}:textFinish?{capabilityId:textFinish.id,version:textFinish.version,inputs:draft.inputs}:(({capabilityId,version,inputs})=>({capabilityId,version,inputs}))(endFrameRoute(manifest,renderEndPair,draft.inputs))),routeId:"local",elementInputs:draft.elementInputs,controls:path?path.controls:cameraInstruction?{...controls,prompt:`${cameraInstruction}\n\n${String(controls.prompt??"").trim()}`.trim()}:controls,...(draft.presetId?{presetId:draft.presetId}:{}),audioPolicy:draft.audioPolicy,...(Object.keys(consent).length?{consent}:{})});
     saveIntent(intent);
     try {await call<{id:string}>(workspacePath(workspace.id,"runs"),"POST",intent);saveIntent(null);setSaved(`Started · ${new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}`);setRunVersion(v=>v+1);onQueued();}
     catch(e){setError((e as Error).message);if(e instanceof ApiError&&e.status>=400&&e.status<500&&e.status!==401&&e.status!==409)saveIntent(null);}
@@ -252,7 +258,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const guide=effectGuide(manifest.id),promptCopy=manifest.id==="h3-object-swap"?{label:"What to change",placeholder:"Name one thing in the clip, for example the jacket"}:effectPromptCopy(guide);
   const candidates=useMemo(()=>catalogue.filter(m=>m.coverage.local==="implemented"&&(workflowIds?workflowIds.includes(m.id):surface==="motion"?capabilitySurface(m)==="motion":surface==="video-edit"?isMaskedEdit(m):surface==="video-enhance"?capabilitySurface(m)==="video-enhance":surface==="video-effect"?capabilitySurface(m)==="video-effect":createVideoCandidate(m,manifest.id)&&(m.id===manifest.id||!isEndFrameVariant(m.id)))),[catalogue,surface,workflowIds,manifest.id]);
   const createSurface=createVideoCandidate(manifest,manifest.id)||masked;
-  const imageTarget=createSurface&&!masked&&!manifest.inputs.some(port=>port.type==="image")?candidates.find(m=>createVideoCandidate(m)&&m.inputs.some(port=>port.type==="image"&&port.id==="start_image")):undefined;
+  const imageTarget=createSurface&&!masked&&!manifest.inputs.some(port=>port.type==="image")?routeImageToVideoDraft(candidates.filter(m=>workers.some(w=>workerReadiness(m,w).state==="ready")),candidates)?.pack:undefined;
   function changeModel(id:string){
     const target=catalogue.find(item=>item.id===id);
     if(target&&supportsH3PromptCamera(manifest)&&supportsH3PromptCamera(target)){
@@ -292,6 +298,18 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
     void(async()=>{for(let index=0;index<selected.length&&turn.isCurrent();index++){if(!await upload(ports[index].id,selected[index],turn.isCurrent))return;}if(turn.isCurrent()){invalidateReferenceDrop(referenceDropEpoch);setAddingReference(false);}})();
   }
   function setElementInput(role:string,value:string){setDraft(d=>chooseElementInput(d,role,value));setFiles(f=>({...f,[role]:null}));}
+  async function writeVideoPrompt(){
+    const start=draft.inputs.start_image,end=draft.inputs.end_image,original=String(draft.controls.prompt??"");
+    if(!start||locked)return;
+    setBusy("video-prompt");setError("");
+    try{
+      const answer=await call<{prompt:string}>(workspacePath(workspace.id,"video-prompt"),"POST",{projectId:project.id,startImageId:start,...(end?{endImageId:end}:{}),intent:original,seconds:Number(draft.controls.length??5)});
+      if(!mounted.current)return;
+      setDraft(current=>current.inputs.start_image===start&&current.inputs.end_image===end&&String(current.controls.prompt??"")===original?{...current,controls:{...current.controls,prompt:answer.prompt}}:current);
+      setPromptOn(true);
+    }catch(e){if(mounted.current)setError((e as Error).message);}
+    finally{if(mounted.current)setBusy("");}
+  }
   const toast=useToast();
   /* A failed request is said in everyday words; the raw text waits behind Details (rule 36). */
   const failure=error?plainProblem(error,{settings:settingsPlace}):null;
@@ -306,7 +324,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
     return <TextField label={label} type="number" min={c.min} max={c.max} step={c.id==="strength"?"0.05":c.type==="integer"?1:"any"} value={String(draft.controls[c.id]??"")} onChange={v=>changeControl(c.id,v===""?"":Number(v))}/>;
   }
   const maskChoice=source&&trackingReady&&!selectedMask?<SegmentedTabs quiet label="Mask method" value={maskMethod} onChange={setMaskMethod} items={[{id:"track",label:"Select area"},{id:"upload",label:"Upload mask"}]}/>:null;
-  const workerChoice=<TeamChoice label="Worker" display={worker?.name??"Choose a worker"} disabled={locked} value={workerId} onChange={setWorkerId} options={workers.map(w=>{const r=workerReadiness(manifest,w,undefined,draft.presetId);return {value:w.id,label:w.name,disabled:r.state!=="ready",status:r.state==="ready"?"ready":r.state==="offline"?"offline":r.state==="download_required"?"missing":"incompatible",detail:r.state!=="ready"?plainReasons(r.reasons,{settings:settingsPlace}):undefined};})}/>;
+  const workerChoice=<TeamChoice label="Worker" display={worker?.name??"Choose a worker"} disabled={locked} value={workerId} onChange={setWorkerId} options={workers.map(w=>{const r=workerReadiness(executionManifest,w,undefined,draft.presetId);return {value:w.id,label:w.name,disabled:r.state!=="ready",status:r.state==="ready"?"ready":r.state==="offline"?"offline":r.state==="download_required"?"missing":"incompatible",detail:r.state!=="ready"?plainReasons(r.reasons,{settings:settingsPlace}):undefined};})}/>;
   const promptControl=manifest.controls.find(c=>c.id==="prompt"),optionalPrompt=promptOptional(manifest);
   /* Reference pictures (a style, an object, a person) go into one tray instead of a stack of boxes. */
   const referencePorts=manifest.inputs.filter(port=>port.type==="image"&&/reference/i.test(port.id)),openReferencePorts=referencePorts.filter(port=>!draft.inputs[port.id]&&!draft.elementInputs[port.id]),emptyReference=openReferencePorts[0];
@@ -352,9 +370,13 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
         {masked&&source&&<ParamButton disabled={locked} title="Edit ideas" icon={<WandSparkles size={16}/>} label="Edit ideas" value={MASK_EDIT_IDEAS.find(idea=>idea.prompt===draft.controls.prompt)?.value??"custom"} options={MASK_EDIT_IDEAS.map(idea=>({value:idea.value as string,label:idea.label}))} onChange={value=>{const idea=MASK_EDIT_IDEAS.find(idea=>idea.value===value);if(idea)changeControl("prompt",idea.prompt);}}/>}
         {promptControl&&optionalPrompt&&<ToggleRow label="Prompt" checked={promptOn} onChange={setPromptOn} disabled={locked}/>}
         {promptControl&&(!optionalPrompt||promptOn)&&controlField(promptControl)}
+        {createSurface&&manifest.id==="hyperflow-h3-flash-i2v"&&draft.inputs.start_image&&<><Button variant="secondary" disabled={locked} onClick={()=>void writeVideoPrompt()}>{busy==="video-prompt"?"Writing prompt…":"Write prompt from images"}</Button><Meta>Sends your reference images to ChatGPT or your own text API.</Meta></>}
         {manifest.id==="openjutsu-h3-advanced"&&manifest.controls.filter(c=>c.id==="roles").map(c=><div key={c.id}>{controlField(c)}</div>)}
         {manifest.controls.filter(c=>c.id==="motion_prompt"&&!motionRoute).map(c=><div key={c.id}>{controlField(c)}</div>)}
         {(size||qualityOptions.length>0||lengthControl||aspect||count)&&<Params>{size?<ParamButton disabled={locked} title="Size" icon={<Maximize2 size={16}/>} label={sizeLabel(size.id,draft.controls[size.id]??size.default)} value={String(draft.controls[size.id]??size.default)} onChange={v=>changeControl(size.id,size.options?.find(o=>String(o)===v)??v)} options={(size.options??[]).map(o=>({value:String(o),label:sizeLabel(size.id,o)}))}/>:qualityOptions.length>0?<ParamButton disabled={locked} title="Size" icon={<Maximize2 size={16}/>} label={quality?.label??"Choose size"} value={selectedResolution} options={qualityOptions} onChange={id=>{if(locked)return;const selected=manifest.resolutions![id];setDraft(d=>({...d,controls:{...d.controls,width:selected.width,height:selected.height}}));}}/>:null}{lengthControl&&<ParamButton disabled={locked} title="Duration" icon={<Clock size={16}/>} label={lengthLabel(Number(draft.controls[lengthControl.id]??lengthControl.default))} value={Number(draft.controls[lengthControl.id]??lengthControl.default)} onChange={v=>changeControl(lengthControl.id,Number(v))} options={lengthOptions}/>}{aspect&&<ParamButton<string|number> disabled={locked} title="Aspect ratio" icon={<RectangleHorizontal size={16}/>} label={String(draft.controls[aspect.id]??aspect.default??aspect.options![0])} value={(draft.controls[aspect.id]??aspect.default??aspect.options![0]) as string|number} onChange={v=>changeControl(aspect.id,v)} options={aspect.options!.map(o=>({value:o as string|number,label:String(o)}))}/>}{count&&<ParamButton<number> disabled={locked} title="Images" icon={<Images size={16}/>} label={`${Number(draft.controls[count.id]??count.default??count.min)} ${Number(draft.controls[count.id]??count.default??count.min)===1?"image":"images"}`} value={Number(draft.controls[count.id]??count.default??count.min)} onChange={v=>changeControl(count.id,Number(v))} options={countOptions(count).map(n=>({value:n,label:String(n)}))}/>}</Params>}
+        {["hyperflow-h3-flash-i2v","hyperflow-h3-flash-t2v"].includes(manifest.id)&&manifest.controls.some(c=>c.id==="quality")&&<ParamButton disabled={locked} title="Finish" icon={<Sparkles size={16}/>} label={String(draft.controls.quality??"upscale")==="hd-upscale"?"HD upscale":String(draft.controls.quality??"upscale")==="upscale"?"Upscale":"Normal"} value={String(draft.controls.quality??"upscale")} options={[{value:"normal",label:"Normal"},...(!draft.inputs.end_image||catalogue.some(m=>m.id==="hyperflow-h3-flash-flf2v-deno"&&m.coverage.local==="implemented")?[{value:"upscale",label:"Upscale"},...(manifest.id==="hyperflow-h3-flash-i2v"?[{value:"hd-upscale",label:"HD upscale"}]:[])]:[])]} onChange={v=>changeControl("quality",v)}/>}
+        {manifest.id==="hyperflow-h3-flash-t2v"&&manifest.controls.some(c=>c.id==="quality")&&<Meta>Add a start image to use HD upscale.</Meta>}
+        {manifest.id==="hyperflow-h3-flash-i2v"&&draft.inputs.end_image&&renderEndPair?.id!=="hyperflow-h3-flash-flf2v-deno"&&draft.controls.quality!=="normal"&&<Meta>Deno finish is unavailable for this start and end image workflow.</Meta>}
         <Row subtle disabled={locked} label="Advanced settings" display="Optional controls" onClick={()=>setAdvancedOpen(true)}/>
       </fieldset>
       {canQueue&&<LinkButton variant="ghost" href={`#nodes/feature/${manifest.id}`}>Edit in nodes</LinkButton>}

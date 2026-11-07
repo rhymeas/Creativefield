@@ -2,7 +2,8 @@ import {useCallback,useEffect,useRef,useState,type ReactNode} from "react";
 import {Clapperboard,Trash2} from "lucide-react";
 import {Button,Dialog,EmptyState,GenerateButton,IconButton,Meta,TextField,Notice,Panel,Row,SectionHeader,ShotStrip,ShotTile,StatusText,Toolbar,type ShotMediaDrop} from "../ds";
 import type {CapabilityManifestV2} from "../capabilities/types";
-import {storyboardImageSibling} from "../capabilities/storyboard-image-route";
+import {routeTask, type TaskId} from "../capabilities/tasks";
+import {storyboardImageControls,storyboardImageSibling} from "../capabilities/storyboard-image-route";
 import {acceptsMediaType,readExampleFile} from "../ds/example-media";
 import {resolveImageReference} from "../image/image-reference";
 import {ApiError,assetUrl,composerAssets,mergeAssets,workspacePath,type Asset,type AssetPage,type Call,type Project,type ReusableElement,type User,type Worker,type Workspace} from "./api";
@@ -95,7 +96,12 @@ export function BoardEditor({board,picker,user,workspace,project,catalogue,worke
   const startImagePort=(m?:CapabilityManifestV2)=>!!m?.inputs.some(p=>p.id==="start_image"&&p.type==="image");
   const animatableFor=(s:Shot)=>{const current=catalogue.find(m=>m.id===s.settings.generation?.capabilityId);if(startImagePort(current))return current;const base=current&&storyboardImageSibling(current.id);return base?catalogue.find(m=>m.id===base&&startImagePort(m)):undefined;};
   const approvals=approvedTakes(draft.shots,stills),allApproved=draft.shots.length>0&&draft.shots.every(s=>approvals[s.key]&&!!animatableFor(s));
-  const effectiveShots=allApproved?draft.shots.map(s=>{const capability=animatableFor(s)!;return {...s,assets:[...s.assets.filter(a=>a.role!=="start_image"),{role:"start_image",assetId:approvals[s.key].approved_asset_id!}],settings:{...s.settings,generation:s.settings.generation?{...s.settings.generation,capabilityId:capability.id,version:capability.version}:s.settings.generation,elementInputs:Object.fromEntries(Object.entries(s.settings.elementInputs).filter(([role])=>role!=="start_image"))}};}):draft.shots;
+  const effectiveShots=allApproved?draft.shots.map(s=>{
+    const target=animatableFor(s)!;
+    const generation=s.settings.generation!;
+    const source=catalogue.find(m=>m.id===generation.capabilityId)!;
+    return {...s,assets:[...s.assets.filter(a=>a.role!=="start_image"),{role:"start_image",assetId:approvals[s.key].approved_asset_id!}],settings:{...s.settings,generation:{...generation,capabilityId:target.id,version:target.version,controls:storyboardImageControls(generation.controls,source,target)},elementInputs:Object.fromEntries(Object.entries(s.settings.elementInputs).filter(([role])=>role!=="start_image"))}};
+  }):draft.shots;
   const saveInvalid=draft.shots.some(s=>(s.settings.title?.length??0)>500||!Number.isFinite(Number(s.durationSeconds))||Number(s.durationSeconds)<=0||Number(s.durationSeconds)>120)||draft.shots.length>32||draft.shots.reduce((n,s)=>n+Number(s.durationSeconds),0)>300||hasFiles;
   const missingPrompt=draft.shots.findIndex(s=>!s.prompt.trim());
   const planInvalid=saveInvalid||missingPrompt>=0;
@@ -110,12 +116,16 @@ export function BoardEditor({board,picker,user,workspace,project,catalogue,worke
   function updateShot(next:Shot){setDraft(d=>({...d,shots:d.shots.map(s=>s.key===next.key?next:s)}));}
   /** A new shot inherits the storyboard's cast reference when one shot already carries it,
    *  so an added shot keeps the same character instead of falling back to plain text-to-video. */
-  function castBase(){const donor=draft.shots.find(s=>(s.settings.elementInputs.start_image||s.assets.some(a=>a.role==="start_image"))&&creationModels.some(m=>m.id===s.settings.generation?.capabilityId));if(!donor)return;const current=creationModels.find(m=>m.id===donor.settings.generation?.capabilityId),cast=current?.inputs.some(p=>p.id==="start_image"&&p.type==="image")&&current.inputs.every(p=>!p.required||p.id==="start_image")?current:creationModels.find(m=>m.id==="h3-i2v");return cast?{donor,cast}:undefined;}
+  function castBase(){const donor=draft.shots.find(s=>(s.settings.elementInputs.start_image||s.assets.some(a=>a.role==="start_image"))&&creationModels.some(m=>m.id===s.settings.generation?.capabilityId));if(!donor)return;const current=creationModels.find(m=>m.id===donor.settings.generation?.capabilityId),cast=current?.inputs.some(p=>p.id==="start_image"&&p.type==="image")&&current.inputs.every(p=>!p.required||p.id==="start_image")?current:pickModel("video.from-image");return cast?{donor,cast}:undefined;}
   function newShotInheriting(base?:CapabilityManifestV2){const inherited=castBase();const shot=newShot(base);return inherited?inheritShotStartImage(shot,inherited.donor):shot;}
-  function textModel(){return creationModels.find(m=>m.category==="t2v"&&workers.some(w=>workerReadiness(m,w).state==="ready"))??creationModels.find(m=>m.category==="t2v");}
+  function pickModel(task: TaskId) {
+    return routeTask(task, creationModels.filter(model => workers.some(worker => workerReadiness(model, worker).state === "ready")))?.pack
+      ?? routeTask(task, creationModels)?.pack;
+  }
+  function textModel(){return pickModel("video.create");}
   function add(){const next=newShotInheriting(castBase()?.cast??textModel());setDraft(d=>({...d,shots:[...d.shots,next]}));setSelected(next.key);}
   const room=Math.max(0,32-draft.shots.length);
-  const imageShotModel=creationModels.find(m=>m.id==="h3-i2v");
+  const imageShotModel=pickModel("video.from-image");
   const imageShotDuration=Number(imageShotModel?.controls.find(c=>c.id==="length")?.default??1);
   const durationRoom=Math.max(0,300-draft.shots.reduce((sum,s)=>sum+(Number(s.durationSeconds)||0),0));
   const imageShotLimit=Number.isFinite(imageShotDuration)&&imageShotDuration>0?Math.min(room,Math.floor(durationRoom/imageShotDuration)):0;

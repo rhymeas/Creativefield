@@ -7,6 +7,12 @@ import type {CapabilityBundle} from "../src/capabilities/types";
 /** The pack this chain prefers, and the mode it runs in: super resolution, not denoise. */
 export const UPSCALE_PACK="nvidia-vfx-upscale";
 export const UPSCALE_MODE="ULTRA";
+
+/** HyperFlow image-to-video owns its finish: chaining a second, unrelated upscaler
+ * would override the user's Normal / Upscale / HD Upscale choice. */
+export function hasOwnVideoFinish(capabilityId:string):boolean {
+  return ["hyperflow-h3-flash-i2v", "hyperflow-h3-flash-t2v", "hyperflow-h3-flash-t2v-deno", "hyperflow-h3-flash-flf2v", "hyperflow-h3-flash-flf2v-deno"].includes(capabilityId);
+}
 /** The size a result must reach, in pixels of height. */
 export const UPSCALE_FLOOR=720,UPSCALE_PREFERRED=1080;
 /** A result this tall already is what the chain is for. */

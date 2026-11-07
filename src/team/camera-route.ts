@@ -65,7 +65,7 @@ export function writeCameraPose(prompt:string,pose:CameraPose|null):string{
 
 /** H3 has no native camera path: express a requested movement in its text prompt. */
 export function supportsH3PromptCamera(manifest:CapabilityManifestV2){
-  return ["h3-t2v","h3-i2v","h3-flf2v"].includes(manifest.id)&&manifest.controls.some(control=>control.id==="prompt"&&!!control.binding);
+  return ["h3-t2v","h3-i2v","h3-flf2v","hyperflow-h3-flash-t2v","hyperflow-h3-flash-i2v","hyperflow-h3-flash-flf2v"].includes(manifest.id)&&manifest.controls.some(control=>control.id==="prompt"&&!!control.binding);
 }
 
 /** The model whose camera moves are only a sentence in the prompt, and the one that moves the camera for real. */

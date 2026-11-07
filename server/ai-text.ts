@@ -153,6 +153,12 @@ function readConfig(env:NodeJS.ProcessEnv){
   try{return aiTextConfig(env);}catch{return undefined;}
 }
 
+/** Who can read images for this request: the active provider, else the first ready one that can. Local ComfyUI text cannot. */
+export function imageTextProvider(settings:AiTextSettings){
+  const reads=(id?:AiTextProviderId)=>!!id&&id!=="local-comfy"&&settings.providers.some(provider=>provider.id===id&&provider.state==="ready");
+  return reads(settings.active)?settings.active:settings.providers.find(provider=>reads(provider.id))?.id;
+}
+
 /** What this workspace can use and which provider is active. A saved choice counts only while it can still run. */
 export async function aiTextSettings(pool:Pool,workspaceId:string,env:NodeJS.ProcessEnv=process.env):Promise<AiTextSettings>{
   const facts:AiTextFacts={localWorker:await localTextReady(pool,workspaceId),config:readConfig(env),codex:codexInstalled(env),signedIn:codexSignedIn(env)};

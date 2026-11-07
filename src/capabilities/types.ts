@@ -109,7 +109,7 @@ export type CapabilityManifestV2 = {
   /** Where an imported workflow or idea comes from; shown with a link in the workspace info dialog. `url` is https only. */
   credit?: { name: string; url: string; license: string; what: string };
   tickets: string[];
-  timing?: { fps: number; minSeconds: number; maxSeconds: number; sourceTimed: boolean; frameMapping?: "wan_frames_round_4n1" | "wan_seconds_floor_4n1" | "h3_seconds_17n5" };
+  timing?: { fps: number; minSeconds: number; maxSeconds: number; sourceTimed: boolean; frameMapping?: "wan_frames_round_4n1" | "wan_seconds_floor_4n1" | "h3_seconds_17n5" | "hyperflow_seconds_17n5" };
   resolutions?: Record<string, { width: number; height: number }>;
   audioPolicies: Array<"preserve" | "replace" | "mix" | "mute">;
   nativeScale?: number;

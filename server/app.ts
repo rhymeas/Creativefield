@@ -26,6 +26,7 @@ import {serveTeamUi} from "./ui";
 import {videoFrameInspectionRoutes} from "./video-frame-inspection";
 import {storyboardExecutionRoutes} from "./storyboard-execution";
 import {storyboardPlanRoutes} from "./storyboard-plan";
+import {videoPromptRoutes} from "./video-prompt";
 import {aiTextSettings,setActiveTextProvider} from "./ai-text";
 import {referencePlanRoutes} from "./reference-plan";
 import {referenceDescribeRoutes} from "./reference-describe";
@@ -385,6 +386,7 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
   await videoFrameInspectionRoutes(app,pool,store);
   const storyboards=await storyboardExecutionRoutes(app,pool,store,catalogue);
   await storyboardPlanRoutes(app,pool);
+  await videoPromptRoutes(app,pool,store);
   await referencePlanRoutes(app,pool);
   await referenceDescribeRoutes(app,pool,store);
   await referenceInspectionRoutes(app,pool);

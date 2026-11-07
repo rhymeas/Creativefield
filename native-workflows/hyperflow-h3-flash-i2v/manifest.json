@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "id": "hyperflow-h3-flash-i2v",
+  "version": "0.1.0",
+  "title": "HyperFlow H3 Flash",
+  "category": "i2v",
+  "description": "Animate a reference picture with HyperFlow H3 Flash. Choose normal output or a Deno tiled finish.",
+  "inputs": [{"id":"start_image","label":"Start image","type":"image","required":true,"binding":{"node":"20","field":"image"}}],
+  "outputs": [{"id":"video","label":"Video","type":"video","required":true}],
+  "controls": [
+    {"id":"prompt","label":"Prompt","type":"string","default":"","binding":{"node":"5","field":"prompt"}},
+    {"id":"width","label":"Width","type":"integer","min":256,"max":1024,"default":576,"binding":{"node":"5","field":"width"}},
+    {"id":"height","label":"Height","type":"integer","min":256,"max":1024,"default":1024,"binding":{"node":"5","field":"height"}},
+    {"id":"length","label":"Length (seconds)","type":"number","min":1,"max":15,"step":1,"default":5,"binding":{"node":"5","field":"length"}},
+    {"id":"quality","label":"Finish","type":"select","options":["normal","upscale","hd-upscale"],"default":"upscale","binding":{"node":"ui:quality","field":"value"}},
+    {"id":"seed","label":"Seed","type":"integer","min":0,"max":2147483647,"default":20261031,"binding":{"node":"8","field":"noise_seed"}}
+  ],
+  "presets": [],
+  "timing": {"fps":24,"minSeconds":1,"maxSeconds":15,"sourceTimed":false,"frameMapping":"hyperflow_seconds_17n5"},
+  "resolutions": {"portrait":{"width":576,"height":1024},"landscape":{"width":1024,"height":576},"square":{"width":768,"height":768},"portrait-standard":{"width":768,"height":1024},"landscape-standard":{"width":1024,"height":768}},
+  "routes": [{"id":"local","execution":"local_comfy","provider":"comfy-local","upstreamProviders":[],"implementation":"implemented","workflowId":"hyperflow-h3-flash-i2v","requirements":[
+    {"id":"node:HyperFlowGGUFLoader","kind":"node","name":"HyperFlowGGUFLoader","instructions":"Install the reviewed HyperFlow H3 Flash loader on the local worker."},
+    {"id":"node:HyperFlowSigmas","kind":"node","name":"HyperFlowSigmas","instructions":"Install the reviewed HyperFlow H3 Flash sampler schedule."},
+    {"id":"node:DenoMiniMaxH3TiledSampler","kind":"node","name":"DenoMiniMaxH3TiledSampler","instructions":"Install the separately reviewed Deno tiled sampler on the local worker."},
+    {"id":"node:MiniMaxH3AddGuide","kind":"node","name":"MiniMaxH3AddGuide","instructions":"Use a ComfyUI version with MiniMax H3 guide support."},
+    {"id":"model:hyperflow","kind":"model","name":"minimax_h3_ref2va_hyperflow_flash_14b-Q4_K_M.gguf","location":"unet_gguf","instructions":"Add the HyperFlow H3 Flash Ref2VA Q4 model to the worker's GGUF model list."},
+    {"id":"model:encoder","kind":"model","name":"qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors","location":"text_encoders","instructions":"Add the MiniMax H3 text encoder."},
+    {"id":"model:video-vae","kind":"model","name":"minimax_h3_video_vae_fp16.safetensors","location":"vae","instructions":"Add the MiniMax H3 video VAE."},
+    {"id":"model:audio-vae","kind":"model","name":"minimax_h3_audio_vae_fp32.safetensors","location":"vae","instructions":"Add the MiniMax H3 audio VAE."},
+    {"id":"model:latent-upscaler","kind":"model","name":"minimax_h3_latent_upscaler_3d_conv_v1_fp16.safetensors","location":"latent_upscale_models","instructions":"Add the MiniMax H3 latent upscaler."}
+  ],"evidence":["2026-11-06: Normal and HD Upscale completed through CreativeField on the isolated local worker; start/end-frame routing uses the existing H3 workflow."]}],
+  "coverage":{"local":"implemented","hosted":"planned"},
+  "licenses":{"software":"HyperFlow and the individually reviewed Deno sampler require their respective licenses.","weights":[{"name":"HyperFlow H3 Flash and MiniMax H3 components","license":"Check the model licenses before use.","source":"https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash"}]},
+  "sources":[{"url":"https://github.com/Video-Rebirth/hyperflow-h3-flash","observedAt":"2026-11-06","kind":"implementation"},{"url":"https://github.com/Deno2026/comfyui-deno-custom-nodes","observedAt":"2026-11-06","kind":"implementation"}],
+  "tickets":[],"audioPolicies":["mute","replace"]
+}

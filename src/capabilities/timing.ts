@@ -9,7 +9,7 @@ export function durationMapping(m: CapabilityManifestV2): FrameMapping {
   if(!timing || timing.sourceTimed || !Number.isFinite(timing.fps) || timing.fps<=0 || !length?.binding || length.disabledReason) return undefined;
   const declared=timing.frameMapping;
   if(length.binding.transform==="seconds_to_wan_frames") return !declared || declared==="wan_frames_round_4n1" ? "wan_frames_round_4n1" : undefined;
-  return !length.binding.transform && (declared==="wan_seconds_floor_4n1"||declared==="h3_seconds_17n5") ? declared : undefined;
+  return !length.binding.transform && (declared==="wan_seconds_floor_4n1"||declared==="h3_seconds_17n5"||declared==="hyperflow_seconds_17n5") ? declared : undefined;
 }
 
 export const hasQualifiedDurationMapping = (m: CapabilityManifestV2) => durationMapping(m)!==undefined;
@@ -19,7 +19,7 @@ export function expectedGenerationFrames(m: CapabilityManifestV2, seconds: numbe
   if(!mapping) throw new Error("No qualified frame-duration binding");
   const fps=m.timing!.fps;
   if(mapping==="wan_frames_round_4n1") return secondsToWanFrames(seconds,fps);
-  if(mapping==="h3_seconds_17n5") return h3Frames(seconds,fps);
+  if(mapping==="h3_seconds_17n5"||mapping==="hyperflow_seconds_17n5") return h3Frames(seconds,fps);
   const requested=Math.floor(seconds*fps+1);
   // WanImageToVideo allocates floor((length-1)/4)+1 latent frames; Wan VAE decodes 4*t-3.
   return 4*Math.floor((requested-1)/4)+1;
@@ -43,6 +43,18 @@ export function assertH3SecondsGraph(graph: ApiGraph, binding: Binding, fps: num
   if(users.length!==1)fail();
   const videos=Object.values(graph).filter(n=>n.class_type==="CreateVideo");
   if(videos.length!==1||videos[0].inputs.fps!==fps)fail();
+}
+
+/** The pinned HyperFlow packs convert the direct length binding in compileLocal. */
+export function assertHyperflowSecondsGraph(manifest: CapabilityManifestV2, graph: ApiGraph, binding: Binding): void {
+  const expected = manifest.id === "hyperflow-h3-flash-i2v" ? "MiniMaxH3ReferenceToVideo" : "MiniMaxH3ImageToVideo";
+  const videos = Object.values(graph).filter(node => node.class_type === "CreateVideo");
+  if (!["hyperflow-h3-flash-t2v", "hyperflow-h3-flash-i2v", "hyperflow-h3-flash-flf2v"].includes(manifest.id)
+    || manifest.timing?.fps !== 24 || binding.node !== "5" || binding.field !== "length"
+    || graph["1"]?.class_type !== "HyperFlowGGUFLoader" || graph[binding.node]?.class_type !== expected
+    || typeof graph[binding.node].inputs.length !== "number" || !videos.length || videos.some(node => node.inputs.fps !== 24)) {
+    throw new Error("Invalid HyperFlow timing binding");
+  }
 }
 
 export function secondsForSourceFrames(m: CapabilityManifestV2, required: number): number {

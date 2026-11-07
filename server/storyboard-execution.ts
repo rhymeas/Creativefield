@@ -2,7 +2,7 @@ import type {FastifyInstance} from "fastify";
 import type {Pool,PoolClient} from "pg";
 import {z} from "zod";
 import type {CapabilityBundle} from "../src/capabilities/types";
-import {storyboardImageSibling} from "../src/capabilities/storyboard-image-route";
+import {storyboardImageControls,storyboardImageSibling} from "../src/capabilities/storyboard-image-route";
 import {member,HttpError} from "./auth";
 import {transaction} from "./db";
 import {hashToken,newId} from "./crypto";
@@ -140,9 +140,7 @@ export async function storyboardExecutionRoutes(app:FastifyInstance,pool:Pool,st
             const base=storyboardImageSibling(g.capabilityId);
             const sibling=base?catalogue.find(x=>x.manifest.id===base&&x.manifest.inputs.some(p=>p.id==="start_image"&&p.type==="image")&&x.manifest.controls.some(c=>c.id==="length")&&!x.manifest.timing?.sourceTimed):undefined;
             if(!sibling)throw new HttpError(422,"Animate approved requires a workflow with a start image input");
-            const supported=new Set(sibling.manifest.controls.map(control=>control.id));
-            const previous=new Set(b.manifest.controls.map(control=>control.id));
-            const controls=Object.fromEntries(Object.entries(g.controls).filter(([key])=>supported.has(key)||!previous.has(key)));
+            const controls=storyboardImageControls(g.controls,b.manifest,sibling.manifest);
             b=sibling;g={...g,controls,capabilityId:sibling.manifest.id,version:sibling.manifest.version};
           }
           const still=await approvedStoryboardStill(client,workspaceId,board,shot,body.approvedStillTakes[shot.plan_key]);

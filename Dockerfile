@@ -8,6 +8,7 @@ RUN npm ci --no-audit --no-fund
 COPY tsconfig.json tsconfig.server.json vite.config.ts index.html ./
 COPY src ./src
 COPY server ./server
+COPY workflow-candidates/controlfoley-video-sound.api.json ./workflow-candidates/
 COPY native-workflows ./native-workflows
 COPY pipelines ./pipelines
 COPY public ./public

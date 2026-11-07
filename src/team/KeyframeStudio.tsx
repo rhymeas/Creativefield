@@ -3,7 +3,7 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {Button,Dialog,GenerateButton,IconButton,InlineSelect,LabeledRow,Meta,Notice,Panel,PromptField,Thumb,ThumbGrid,UploadSlot} from '../ds';
 import type {CapabilityManifestV2} from '../capabilities/types';
 import {hasQualifiedDurationMapping} from '../capabilities/timing';
-import {isSelectedVideoCreate} from '../capabilities/tasks';
+import {isSelectedVideoCreate,routeTask} from '../capabilities/tasks';
 import {ApiError,assetUrl,composerAssets,mergeAssets,workspacePath,type Asset,type AssetPage,type Call,type Project,type User,type Worker,type Workspace} from './api';
 import {workerReadiness} from './state';
 import {planKeyframeSegments,qualifyKeyframeTiming,keyframePositions,keyframeInsertPositions,insertKeyframe,moveKeyframeImage,fitKeyframesToModel,removeKeyframe,type Keyframe} from './keyframe-plan';
@@ -46,7 +46,7 @@ export function KeyframeStudio({workspace,project,user,catalogue,workers,call,au
  const segmentPrompt=useRef<HTMLTextAreaElement>(null);
  const [infoOpen,setInfoOpen]=useState(false);
  const [orientation,setOrientation]=useState<'landscape'|'portrait'>(initialDraft?.orientation==='portrait'?'portrait':'landscape'),[turbo,setTurbo]=useState(initialDraft?.turbo!==false);
- const model=models.find(m=>m.id===modelId)??models.find(m=>workers.some(w=>workerReadiness(m,w).state==='ready'))??models[0],fps=model?.timing?.fps??16;
+ const model=models.find(m=>m.id===modelId)??routeTask('video.first-last',models.filter(m=>workers.some(w=>workerReadiness(m,w).state==='ready')))?.pack??routeTask('video.first-last',models)?.pack,fps=model?.timing?.fps??16;
  const canChooseOrientation=!!(model?.resolutions?.landscape&&model.resolutions.portrait)||!!model?.controls.find(c=>c.id==='aspect_ratio'&&c.options?.some(v=>typeof v==='string'&&v.startsWith('9:16')));
  const previousTiming=useRef<{id:string;fps:number}|null>(null);
  useEffect(()=>{if(!model||previousTiming.current?.id===model.id)return;const oldFps=previousTiming.current?.fps??(initialDraft?draftFrameRate(initialDraft,catalogue,fps):16);previousTiming.current={id:model.id,fps};try{setFrames(old=>fitKeyframesToModel(old,oldFps,model));}catch(e){setError((e as Error).message);}},[model?.id]);

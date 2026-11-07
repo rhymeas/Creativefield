@@ -1,3 +1,4 @@
+import {routeTask} from "../../capabilities/tasks";
 import {assetMatchesPort} from "../../capabilities/assets";
 import type {CapabilityManifestV2} from "../../capabilities/types";
 import type {CharacterRecord,ReusableElement} from "../api";
@@ -12,7 +13,7 @@ export function personaWorkflows(catalogue:CapabilityManifestV2[],elements:Array
   return elements.length?storyboardCreationModels(catalogue).filter(model=>model.category==="i2v"&&elements.every(element=>characterWorkflowReady(model,element))):[];
 }
 export function choosePersonaWorkflow(workflows:CapabilityManifestV2[],savedId:string){
-  return workflows.find(model=>model.id===savedId)??workflows.find(model=>model.id==="h3-i2v")??workflows[0];
+  return workflows.find(model=>model.id===savedId)??routeTask("video.from-image",workflows)?.pack??workflows[0];
 }
 
 export type CastScene={key:string;text:string;characterId:string;referenceAssetId?:string};
