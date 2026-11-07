@@ -16,7 +16,7 @@ import {ToolHero} from "./heroes";
 import {ProductionContent} from "./ProductionWorkspace";
 import type {CapabilityManifestV2} from "../capabilities/types";
 import {ApiError,assetUrl,workspacePath,composerAssets,mergeAssets,type Asset,type Call,type Project,type ReusableElement,type User,type Worker,type Workspace} from "./api";
-import {defaultDraft,draftErrors,draftKey,draftPromptForHandoff,h3GeneratedAudio,hyperflowImageHandoff,hyperflowReadyWorker,promptOptional,restoreDraft,soleReadyWorker,submissionIntent,workerReadiness,type Draft} from "./state";
+import {bestWorkerReadiness,composerReadyWorker,defaultDraft,draftErrors,draftKey,draftPromptForHandoff,h3GeneratedAudio,hyperflowImageHandoff,promptOptional,restoreDraft,submissionIntent,workerReadiness,type Draft} from "./state";
 import {plainProblem,plainReasons,workerBlocker} from "./problems";
 import {audienceOf,settingsLabel} from "./audience";
 import {TeamRuns} from "./TeamLibrary";
@@ -85,7 +85,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const key=draftKey(user.id,workspace.id,project.id,manifest.id);
   /* The one person on this PC has Settings; a shared workspace calls it Team settings. */
   const settingsPlace=settingsLabel(audienceOf(user));
-  const [draft,setDraft]=useState<Draft>(()=>{const d=readDraft(key,manifest);return initialInputs&&!readIntent(key)?{...d,inputs:{...d.inputs,...initialInputs}}:d;}),[pending,setPending]=useState<Intent|null>(()=>readIntent(key)),[workerId,setWorkerId]=useState(()=>soleReadyWorker(manifest,workers,draft.presetId));
+  const [draft,setDraft]=useState<Draft>(()=>{const d=readDraft(key,manifest);return initialInputs&&!readIntent(key)?{...d,inputs:{...d.inputs,...initialInputs}}:d;}),[pending,setPending]=useState<Intent|null>(()=>readIntent(key)),[preferredWorkerId,setWorkerId]=useState("");
   const [files,setFiles]=useState<Record<string,File|null>>({}),[assets,setAssets]=useState<Asset[]>([]),[elements,setElements]=useState<ReusableElement[]>([]),[error,setError]=useState(""),[busy,setBusy]=useState(""),[runVersion,setRunVersion]=useState(0),[saved,setSaved]=useState("");
   const [assetCursor,setAssetCursor]=useState<string|null>(null),[loadingAssets,setLoadingAssets]=useState(false),[assetPageError,setAssetPageError]=useState("");
   const [advancedOpen,setAdvancedOpen]=useState(false);
@@ -100,7 +100,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const [voiceConsent,setVoiceConsent]=useState(false);
   const [requirements,setRequirements]=useState<{state:string;missing:string[];instructions:string}|null>(null);
   const [drivingSeconds,setDrivingSeconds]=useState<number|null>(null);
-  const [starting,setStarting]=useState(false),mounted=useRef(true),referenceDropEpoch=useRef(0);
+  const [starting,setStarting]=useState(false),[checkingWorker,setCheckingWorker]=useState(false),mounted=useRef(true),referenceDropEpoch=useRef(0);
   useEffect(()=>()=>{mounted.current=false;referenceDropEpoch.current++;},[]);
 
   const assetEpoch=useRef(0),loadingAssetsRef=useRef(false),uploadGate=useRef(operationGate());
@@ -126,16 +126,16 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const renderEndPair=endFrameFinishPair(manifest,endPair,catalogue,draft.controls.quality??"upscale");
   const textFinish=manifest.id==="hyperflow-h3-flash-t2v"&&draft.controls.quality==="upscale"?catalogue.find(m=>m.id==="hyperflow-h3-flash-t2v-deno"&&m.coverage.local==="implemented"):undefined;
   const executionManifest=manifest.id==="hyperflow-h3-flash-i2v"&&draft.inputs.end_image&&renderEndPair?renderEndPair:textFinish??manifest;
-  useEffect(()=>{const hyperflow=["hyperflow-h3-flash-i2v","hyperflow-h3-flash-t2v"].includes(manifest.id);setWorkerId(id=>workers.some(w=>w.id===id&&(!hyperflow||workerReadiness(executionManifest,w,undefined,draft.presetId).state==="ready"))?id:hyperflow?hyperflowReadyWorker(executionManifest,workers,draft.presetId):soleReadyWorker(executionManifest,workers,draft.presetId));},[workers,manifest.id,executionManifest,draft.presetId]);
-
-  const worker=workers.find(w=>w.id===workerId),readiness=worker?workerReadiness(executionManifest,worker,undefined,draft.presetId):null;
+  const workerId=composerReadyWorker(executionManifest,workers,draft.presetId,preferredWorkerId);
+  const worker=workers.find(w=>w.id===workerId);
+  const readiness=worker?workerReadiness(executionManifest,worker,undefined,draft.presetId):bestWorkerReadiness(executionManifest,workers,undefined,draft.presetId);
   /* The catalogue shows this in an info popover; the screen where a run is queued should say it outright. */
   const workerHardware=worker?.inventory?.hardware,ramTotal=workerHardware?.ramTotal??0,ramFree=workerHardware?.ramFree??null,memoryTight=ramFree!==null&&ramTotal>0&&ramFree/ramTotal<=(workerHardware?.minFreeShare??DEFAULT_MIN_FREE_SHARE);
   const missing=manifest.inputs.filter(port=>port.required&&!draft.inputs[port.id]&&!draft.elementInputs[port.id]);
   const ready=readiness?.state==="ready"&&manifest.coverage.local==="implemented"&&(!masked||requirements?.state==="ready");
   /* A stopped ComfyUI is the usual reason a model cannot run here. The screen stays open, names it and
      starts it, then waits for the worker to answer so nobody reloads (rule 36). */
-  const sleeping=ready?undefined:worker?(readiness?.state==="offline"?worker:undefined):workers.filter(w=>workerReadiness(manifest,w).state==="offline").sort((a,b)=>Number(!!b.can_start)-Number(!!a.can_start)||Number(b.enabled)-Number(a.enabled))[0];
+  const sleeping=readiness.state==="offline"?workers.filter(w=>w.enabled).sort((a,b)=>Number(!!b.can_start)-Number(!!a.can_start))[0]:undefined;
   /* One cause, said once, in the problem bar, carrying the one action that clears it (rules 36, 42).
      The Generate button does not repeat it: its footer line covers this draft only. */
   const blocker=workerBlocker({worker,workers,readiness,offlineWorker:sleeping,starting,settings:settingsPlace,canRunLocal:!!onRunLocal,guest:!!user.guest});
@@ -153,6 +153,13 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
     }catch(e){if(mounted.current)setError((e as Error).message);}
     finally{if(mounted.current)setStarting(false);}
   }
+  async function checkWorker(){
+    if(!sleeping||workspace.role!=="admin"){onQueued();return;}
+    setCheckingWorker(true);
+    try{await call(workspacePath(workspace.id,`workers/${sleeping.id}/probe`),"POST");}
+    catch(e){if(mounted.current)setError((e as Error).message);}
+    finally{if(mounted.current){onQueued();setCheckingWorker(false);}}
+  }
   /* The cause clears on its own: the screen rechecks when it comes back into view, with no reload. */
   useEffect(()=>{
     if(!blocker||starting)return;
@@ -168,7 +175,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
     if(fix.kind==="connect-comfy"||fix.kind==="open-settings"||fix.kind==="cloud-sign-in")return onWorkerSettings?<Button variant="secondary" onClick={onWorkerSettings}>{fix.kind==="open-settings"?"Open worker settings":fix.label}</Button>:undefined;
     if(fix.kind==="open-models")return <Button variant="secondary" onClick={()=>{if(onModels)onModels();else onQueued();}}>Open Models</Button>;
     if(fix.kind==="run-local")return onRunLocal?<Button variant="secondary" onClick={onRunLocal}>Run on this computer</Button>:undefined;
-    return <Button variant="secondary" disabled={starting} onClick={()=>onQueued()}>Check again</Button>;
+    return <Button variant="secondary" disabled={checkingWorker} onClick={()=>void checkWorker()}>{checkingWorker?"Checking…":"Check again"}</Button>;
   }
   const unresolved=manifest.inputs.filter(p=>draft.inputs[p.id]&&!assets.some(a=>a.id===draft.inputs[p.id]&&assetMatchesPort(a,p)));
   const unresolvedElements=manifest.inputs.filter(port=>{const binding=draft.elementInputs[port.id];if(!binding)return false;const element=elements.find(item=>item.id===binding.elementId),asset=element?.assets.find(item=>item.id===binding.assetId);return !asset||!assetMatchesPort(asset,port);});

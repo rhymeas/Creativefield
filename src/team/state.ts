@@ -17,15 +17,15 @@ export function soleReadyWorker(manifest:CapabilityManifestV2,workers:Worker[],p
   const available=workers.filter(w=>workerReadiness(manifest,w,undefined,presetId).state==="ready");
   return available.length===1?available[0].id:"";
 }
-/** HyperFlow can have multiple equivalent local workers; use a stable ready one rather than reporting offline. */
-export function hyperflowReadyWorker(manifest:CapabilityManifestV2,workers:Worker[],presetId?:string):string {
-  return workers.filter(w=>workerReadiness(manifest,w,undefined,presetId).state==="ready")
-    .sort((a,b)=>a.id.localeCompare(b.id))[0]?.id??"";
+/** Keep the current worker while it can run the selected workflow and settings. */
+export function composerReadyWorker(manifest:CapabilityManifestV2,workers:Worker[],presetId?:string,preferredId?:string):string {
+  const ready=workers.filter(worker=>workerReadiness(manifest,worker,undefined,presetId).state==="ready");
+  return ready.find(worker=>worker.id===preferredId)?.id??ready.sort((a,b)=>a.id.localeCompare(b.id))[0]?.id??"";
 }
 const readinessRank:Record<ReadinessState,number>={ready:0,unsupported:1,credentials_required:2,download_required:3,install_required:4,incompatible:5,offline:6};
-export function bestWorkerReadiness(manifest:CapabilityManifestV2,workers:Worker[],now=Date.now()):Readiness {
+export function bestWorkerReadiness(manifest:CapabilityManifestV2,workers:Worker[],now=Date.now(),presetId?:string):Readiness {
   if(!workers.length)return {state:"offline",reasons:["No local ComfyUI worker is registered."],missing:[]};
-  return workers.map(worker=>({worker,result:workerReadiness(manifest,worker,now)}))
+  return workers.map(worker=>({worker,result:workerReadiness(manifest,worker,now,presetId)}))
     .sort((a,b)=>readinessRank[a.result.state]-readinessRank[b.result.state]||a.worker.id.localeCompare(b.worker.id))[0].result;
 }
 export async function refreshWorkerInventory(
