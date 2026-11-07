@@ -2206,6 +2206,10 @@ button.ds-castcard__main { cursor: pointer; }
 .ds-uploadpair .ds-mediacard__media { aspect-ratio: auto; height: 100%; }
 .ds-uploadpair :is(.ds-mediacard__media, .ds-upload--filled) :is(img, video) { width: 100%; height: 100%; aspect-ratio: auto; max-height: none; object-fit: cover; }
 .ds-uploadpair .ds-upload { box-sizing: border-box; width: 100%; }
+/* Both boxes of a pair are the same square, full or empty, so the actions under them share one line. */
+.ds-uploadpair .ds-upload:not(.ds-upload--filled):not(.ds-upload--compact) { min-height: 0; }
+.ds-uploadpair :is(.ds-upload, .ds-mediacard) { border-radius: var(--radius-2xl); }
+.ds-uploadpair .ds-pill--lg { justify-self: center; }
 /* Hero stage compact (rule 55): half height, title and line each on one line, once the tool has its input. */
 .ds-hero--stage { transition: min-height var(--dur-med) var(--ease), padding var(--dur-med) var(--ease); }
 .ds-hero--stage.ds-hero--compact { min-height: calc(140px * var(--ui-scale)); padding: var(--space-5) var(--space-8); }

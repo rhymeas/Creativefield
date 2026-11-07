@@ -1,5 +1,5 @@
 import {Lock,Maximize2,Minus,Plus,RotateCcw} from 'lucide-react';
-import {useEffect,useRef,useState,type CSSProperties,type KeyboardEvent as ReactKeyboardEvent,type PointerEvent as ReactPointerEvent,type ReactNode} from 'react';
+import {useEffect,useRef,useState,type CSSProperties,type KeyboardEvent as ReactKeyboardEvent,type PointerEvent as ReactPointerEvent,type ReactNode,type SyntheticEvent} from 'react';
 import {Button,Dialog,IconButton,Row} from './components';
 import './camera-move-picker.css';
 
@@ -76,6 +76,9 @@ export function CameraPoseStage({value,src,presets,disabled=false,onChange}:{val
  /** The shot's own picture; without one, a drawn world stands in. */
  src?:string;presets?:CameraPose[];disabled?:boolean;onChange:(pose:CameraPose)=>void}){
  const stage=useRef<HTMLDivElement>(null),drag=useRef<null|'move'|'size'>(null);
+ /* The stage takes the picture's own shape, so the start frame shows the whole picture and every frame on it is that shape. */
+ const [pictureShape,setPictureShape]=useState<number>();
+ const measure=(e:SyntheticEvent<HTMLImageElement>)=>{const {naturalWidth:width,naturalHeight:height}=e.currentTarget;if(width&&height)setPictureShape(width/height);};
  const pose=value??STILL_POSE,latest=useRef({pose,onChange,presets,disabled});
  latest.current={pose,onChange,presets,disabled};
  const set=(next:CameraPose)=>{const {presets:p,onChange:change}=latest.current,clean=tidy(next);change(p?.length?nearest(clean,p):clean);};
@@ -98,9 +101,9 @@ export function CameraPoseStage({value,src,presets,disabled=false,onChange}:{val
  }
  const cx=50+pose.x*SHARE*100,cy=50+pose.y*SHARE*100,size=SHARE*100/pose.zoom,moving=!!value&&!isStill(pose);
  const corners:ReactNode=['nw','ne','sw','se'].map(c=><i key={c} data-handle={c}/>);
- return <div className="ds-campose" data-disabled={disabled||undefined}>
+ return <div className="ds-campose" data-disabled={disabled||undefined} style={src&&pictureShape?{['--campose-shape' as string]:pictureShape} as CSSProperties:undefined}>
   <div className="ds-campose__stage" ref={stage} tabIndex={disabled?-1:0} role="application" aria-label={`Camera: ${describeCameraPose(value)}. Click or drag on the picture to aim the end of the shot, scroll to zoom; arrow keys, plus and minus also work.`} onPointerDown={down} onPointerMove={move} onPointerUp={()=>{drag.current=null;}} onPointerCancel={()=>{drag.current=null;}} onKeyDown={key}>
-   {src?<><img className="ds-campose__beyond" src={src} alt="" draggable={false}/><img className="ds-campose__picture ds-campose__picture--start" src={src} alt="" draggable={false}/></>:<World/>}
+   {src?<><img className="ds-campose__beyond" src={src} alt="" draggable={false}/><img className="ds-campose__picture ds-campose__picture--start" src={src} alt="" draggable={false} onLoad={measure}/></>:<World/>}
    <span className="ds-campose__start"><b>Start</b></span>
    {moving&&<svg className="ds-campose__path" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="50" y1="50" x2={cx} y2={cy}/></svg>}
    {value&&<span className="ds-campose__end" data-still={!moving||undefined} style={{left:`${cx-size/2}%`,top:`${cy-size/2}%`,width:`${size}%`,height:`${size}%`}}><b>{moving?'End':'Locked'}</b>{corners}</span>}

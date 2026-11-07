@@ -1,7 +1,8 @@
 /* CameraPoseStage: aim the camera on the picture. The start frame sits in the middle two thirds of the stage;
    the accent end frame stays where it is put; the monitor plays the move once and holds its end. Tokens only. */
-.ds-campose { display: grid; gap: var(--space-3); }
-.ds-campose__stage { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--radius-xl); background: var(--surface-page); box-shadow: inset 0 0 0 1px var(--line-strong); cursor: crosshair; touch-action: none; user-select: none; outline: none; }
+/* --campose-shape is the picture's width / height; a tall picture stays whole and narrows instead of growing past --campose-max-h. */
+.ds-campose { --campose-shape: 1.7778; --campose-max-h: 62vh; display: grid; gap: var(--space-3); }
+.ds-campose__stage { position: relative; justify-self: center; width: min(100%, calc(var(--campose-max-h) * var(--campose-shape))); aspect-ratio: var(--campose-shape); overflow: hidden; border-radius: var(--radius-xl); background: var(--surface-page); box-shadow: inset 0 0 0 1px var(--line-strong); cursor: crosshair; touch-action: none; user-select: none; outline: none; }
 .ds-campose__stage:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
 .ds-campose[data-disabled] .ds-campose__stage { cursor: default; opacity: .6; }
 .ds-campose__world { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
@@ -23,7 +24,7 @@
 .ds-campose__end[data-still] { border-style: dashed; box-shadow: none; }
 
 /* The camera view: one pass from the start to the chosen end, then it stays there. */
-.ds-campose__monitor { position: absolute; right: var(--space-3); bottom: var(--space-3); z-index: 2; width: 26%; aspect-ratio: 16 / 9; overflow: hidden; padding: 0; border: 2px solid var(--text-primary); border-radius: var(--radius-sm); background: var(--surface-page); box-shadow: var(--shadow-pop); cursor: pointer; }
+.ds-campose__monitor { position: absolute; right: var(--space-3); bottom: var(--space-3); z-index: 2; width: 26%; aspect-ratio: var(--campose-shape); overflow: hidden; padding: 0; border: 2px solid var(--text-primary); border-radius: var(--radius-sm); background: var(--surface-page); box-shadow: var(--shadow-pop); cursor: pointer; }
 .ds-campose__view { position: absolute; inset: 0; display: block; transform-origin: 50% 50%; animation: ds-campose-move 2.4s var(--ease) .2s both; }
 .ds-campose__view .ds-campose__world { overflow: visible; }
 .ds-campose__view .ds-campose__beyond { inset: -60%; width: 220%; height: 220%; }
@@ -66,6 +67,7 @@
 
 /* Inline in a side panel: the stage at panel width, its labels and monitor scaled down, and one slim tool line. */
 .ds-campose-inline { display: grid; gap: var(--space-1); }
+.ds-campose-inline .ds-campose { --campose-max-h: calc(280px * var(--ui-scale)); }
 .ds-campose-inline .ds-campose__stage { border-radius: var(--radius-lg); }
 .ds-campose-inline .ds-campose__start b, .ds-campose-inline .ds-campose__end b { top: 2px; left: 3px; padding: 0 var(--space-1); font-size: var(--text-3xs); line-height: var(--lh-3xs); }
 .ds-campose-inline .ds-campose__end i { width: 9px; height: 9px; }
