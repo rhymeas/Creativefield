@@ -16,6 +16,19 @@ export function mosaicSpan(aspect:number,accent:0|1|2,cols:number){
 /** Kept for callers: tiles no longer grow by position, the size slider sets every tile's width. */
 export const mosaicAccent=(index:number):0|1|2=>index===0?2:index%5===3?1:0;
 
+/** The shape of the finished tile closest to this one in the feed, the earlier one on a tie; undefined when none is finished. */
+export function nearestShape(shapes:ReadonlyArray<number|null>,index:number){
+ for(let distance=1;distance<shapes.length;distance++){const shape=shapes[index-distance]??shapes[index+distance];if(shape)return shape;}
+ return undefined;
+}
+/** Width / height of the picture or clip in a finished tile; null while it loads or while the tile is still working. */
+function tileShape(cell:Element){
+ if(cell.querySelector('[data-develop]'))return null;
+ const media=cell.querySelector('video,img');
+ if(media instanceof HTMLVideoElement)return media.videoHeight?media.videoWidth/media.videoHeight:null;
+ return media instanceof HTMLImageElement&&media.naturalHeight?media.naturalWidth/media.naturalHeight:null;
+}
+
 export function MosaicGrid({label,head,children}:{label:string;
  /** The feed's header line; its `end` part (a filter) is revealed on hover or focus. */
  head?:{start:ReactNode;end?:ReactNode};children:ReactNode}){
@@ -26,8 +39,10 @@ export function MosaicGrid({label,head,children}:{label:string;
     itself whenever a tile changes size or the feed changes, and React never sets a cell's grid position. */
  useEffect(()=>{const el=grid.current;if(!el||typeof ResizeObserver==='undefined')return;
   let frame=0;
-  const layout=()=>{frame=0;const heights=new Array<number>(cols).fill(0);
-   for(const cell of Array.from(el.children) as HTMLElement[]){
+  const layout=()=>{frame=0;const heights=new Array<number>(cols).fill(0),cells=Array.from(el.children) as HTMLElement[],shapes=cells.map(tileShape);
+   /* A working tile takes its neighbour's shape until it knows its own, set before the heights are measured. */
+   cells.forEach((cell,index)=>{if(!cell.querySelector('[data-develop]'))return;const shape=nearestShape(shapes,index);if(shape)cell.style.setProperty('--mosaic-neighbour',String(shape));else cell.style.removeProperty('--mosaic-neighbour');});
+   for(const cell of cells){
     const inner=cell.firstElementChild as HTMLElement|null,rows=Math.max(1,Math.ceil((inner?.getBoundingClientRect().height??0)/ROW));
     let column=0;for(let i=1;i<cols;i++)if(heights[i]<heights[column])column=i;
     cell.style.gridColumn=String(column+1);cell.style.gridRow=`${heights[column]+1} / span ${rows}`;heights[column]+=rows;

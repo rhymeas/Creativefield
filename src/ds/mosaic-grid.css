@@ -8,10 +8,11 @@
 .ds-mosaic__cell { position: relative; min-width: 0; }
 .ds-mosaic__inner { padding-bottom: var(--gap-section); }
 /* Media keep their own shape inside a tile. */
-.ds-mosaic .ds-media { aspect-ratio: auto; min-height: 0; max-height: none; height: auto; }
+.ds-mosaic .ds-hitem .ds-media { aspect-ratio: auto; width: 100%; min-width: 0; min-height: 0; max-height: none; height: auto; }
 .ds-mosaic .ds-media > video, .ds-mosaic .ds-media > img { display: block; width: 100%; height: auto; max-height: none; object-fit: contain; background: var(--surface-page); }
-.ds-mosaic .ds-media:not(:has(> video, > img)) { aspect-ratio: 16 / 9; }
+/* A tile without media yet: the shape asked for, else its neighbour's, else 16:9. No minimum height, or the ratio would push it wider than its column. */
+.ds-mosaic .ds-hitem .ds-media:not(:has(> video, > img)) { aspect-ratio: var(--media-shape, var(--mosaic-neighbour, 16 / 9)); }
 .ds-mosaic__cell[data-current] .ds-media { box-shadow: 0 0 0 1px var(--accent-ring); }
 .ds-mosaic__cell[data-current] .ds-media::after { content: ""; position: absolute; top: var(--space-2); left: var(--space-2); z-index: 2; width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--accent); box-shadow: 0 0 8px var(--accent-ring); pointer-events: none; }
-/* A loading tile in the feed fills exactly its 16:9 box, one column wide, whatever a screen gives it elsewhere. */
-.ds-mosaic .ds-media .ds-resulttile[data-develop] { position: absolute; inset: 0; width: auto; height: auto; min-height: 0; min-width: 0; }
+/* A loading tile in the feed fills exactly its box, one column wide, whatever a screen gives it elsewhere. */
+.ds-mosaic .ds-media .ds-resulttile[data-develop] { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; min-height: 0; min-width: 0; }

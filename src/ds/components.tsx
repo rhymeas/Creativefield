@@ -3730,6 +3730,7 @@ export function SectionHeader({ title, meta, end, large }: { title: ReactNode; m
 export function HistoryItem({
   media,
   portrait,
+  shape,
   model,
   prompt,
   thumb,
@@ -3749,6 +3750,8 @@ export function HistoryItem({
 }: {
   media: ReactNode;
   portrait?: boolean;
+  /** Width / height to keep for a result that is not there yet, in the shared feed. */
+  shape?: number;
   model: ReactNode;
   prompt: string;
   thumb?: string;
@@ -3800,7 +3803,7 @@ export function HistoryItem({
   return (
     <article className="ds-hitem" draggable={!!mediaAsset} onDragStart={mediaAsset?(event)=>setAssetDrag(event,mediaAsset.id,mediaAsset.url,mediaAsset.contentType):undefined}>
       {onDelete&&<ConfirmDialog open={removing} title="Delete this result?" text="It is removed from this project for everyone." confirmLabel={deleting?"Deleting…":"Delete"} busy={deleting} error={deleteError} onCancel={()=>{setRemoving(false);setDeleteError("");}} onConfirm={()=>{setDeleting(true);setDeleteError("");void onDelete().then(()=>setRemoving(false)).catch((e:Error)=>setDeleteError(e.message)).finally(()=>setDeleting(false));}}/>}
-      <div ref={preview.ref} className={cx("ds-media", portrait && "ds-media--portrait")} data-details-open={open} onClick={event=>{if(event.currentTarget.contains(event.target as Node)&&!(event.target as Element).closest("button,a,audio"))preview.open();}}>
+      <div ref={preview.ref} className={cx("ds-media", portrait && "ds-media--portrait")} style={shape?{["--media-shape" as string]:shape}:undefined} data-details-open={open} onClick={event=>{if(event.currentTarget.contains(event.target as Node)&&!(event.target as Element).closest("button,a,audio"))preview.open();}}>
         {media}
         {mode && hasMediaNode(media) && <span className="ds-media__mode">{mode}</span>}
         {onRecreate && hasMediaNode(media) && <Button variant="brand" className="ds-media__recreate" onClick={onRecreate}><Repeat size={14} />Recreate</Button>}

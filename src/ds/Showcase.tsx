@@ -564,6 +564,8 @@ export default function Showcase() {
 
       <Section title="Mosaic feed (shared results: real shapes, mixed sizes, dense packing)">
         <MosaicGrid label="All videos in this project" head={{start:"All videos in this project",end:<SegmentedTabs quiet label="Show" value="all" onChange={()=>{}} items={[{id:"all",label:"All"},{id:"app",label:"This app"}]}/>}}>
+          <MosaicTile key="working"><HistoryItem shape={9/16} media={<ResultTile develop={{label:"Working on it",progress:.4,elapsed:"0:11"}}/>} model="Shape asked for" prompt="" meta="Working" date="Now"/></MosaicTile>
+          <MosaicTile key="working-neighbour"><HistoryItem media={<ResultTile develop={{label:"Working on it",progress:.2,elapsed:"0:04"}}/>} model="Neighbour's shape" prompt="" meta="Working" date="Now"/></MosaicTile>
           {["/reels/wan22-i2v-14b.png","/reels/wan22-flf-14b.png","/reels/wan22-i2v-5b.png","/reels/wan22-i2v-14b.png","/reels/wan22-flf-14b.png","/reels/wan22-i2v-5b.png","/reels/wan22-i2v-14b.png"].map((src,i)=><MosaicTile key={i} accent={mosaicAccent(i)} current={i%3===0}><ResultTile caption={`Result ${i+1}`}><img src={src} alt="" style={i%4===2?{aspectRatio:"9 / 16",objectFit:"cover"}:undefined}/></ResultTile></MosaicTile>)}
         </MosaicGrid>
       </Section>
