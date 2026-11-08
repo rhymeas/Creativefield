@@ -12,6 +12,7 @@ const LINES:Record<string,{title:string;text:string}>={
   ad:{title:"Create your product shot",text:"Add a product image, describe the scene and animate a result."},
   effects:{title:"Bring your photo to life",text:"Choose an effect, add a photo and create a short video."},
   restyle:{title:"Give any video a new look",text:"Same moves and timing, a whole new style."},
+  reframe:{title:"Give your clip more room",text:"Choose a new format and extend the scene beyond its original edges."},
   edit:{title:"Change anything with one sentence",text:"Drop a clip, say what should change, and only that part changes."},
   picture:{title:"Make a picture from a few words",text:"Describe it, pick a look, and get a picture. Turn objects to new angles or change the light."},
   angles:{title:"See it from every side",text:"Pick the angles you want, from high to low and left to right, and turn your subject around."},

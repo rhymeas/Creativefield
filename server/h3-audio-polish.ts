@@ -1,9 +1,11 @@
 import { mkdtemp, rmdir, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { hasOwnVideoFinish } from "./chain-upscale";
+import { VIDEO_REFRAME_ID } from "../src/capabilities/video-reframe";
 import { ffmpegPath, probeMedia, runTool, streamsOfType } from "./audio-processing-validation";
 
 const h3VideoPacks = new Set([
+  VIDEO_REFRAME_ID,
   "h3-t2v", "h3-i2v", "h3-flf2v", "h3-effects", "minimax-h3-video",
   "h3-object-swap", "h3-object-swap-hyperflow", "openjutsu-h3-swap", "openjutsu-h3-swap-hyperflow", "openjutsu-h3-advanced", "previs-to-video", "previs-to-video-hyperflow",
 ]);

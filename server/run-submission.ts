@@ -27,7 +27,9 @@ import {CLOUD_UNAVAILABLE_REASON,cloudRoute} from "../src/capabilities/readiness
 import {prepareCloudInvocation} from "./cloud-readiness";
 import {isVideoProbe,SCENE_VIDEO_PROBE_ID,VIDEO_PROBE_FRAMES} from "../src/capabilities/replace-video-probe";
 import {admitSceneReference} from "./scene-probe-admission";
-import {inspectNormalizedVideo} from "./video-extension-media";
+import {inspectNormalizedVideo,VideoExtensionMediaError,VideoExtensionToolUnavailableError} from "./video-extension-media";
+import {VIDEO_REFRAME_ID} from "../src/capabilities/video-reframe";
+import {inspectReframeSource} from "./video-reframe";
 
 export const scalarControls=z.record(z.string(),z.union([z.string().max(20000),z.number().finite(),z.boolean()]));
 export const consentSchema=z.object({webcam:z.boolean().optional(),voice:z.boolean().optional(),cloudCredits:z.boolean().optional()}).strict();
@@ -78,6 +80,15 @@ export async function prepareInvocation(client:PoolClient,catalogue:CapabilityBu
   if(readiness.state!=="ready")throw new HttpError(422,readiness.reasons.join(" "));
   const resolved=await resolveRunInputs(client,bundle.manifest,workspaceId,body.projectId,body.inputs,body.elementInputs);
   const assets=resolved.assets;
+  if(bundle.manifest.id===VIDEO_REFRAME_ID){
+    if(!store||!assets.source_video?.storage_key)throw new HttpError(422,"Choose a project clip to reframe.");
+    try{await inspectReframeSource(await store.file(workspaceId,assets.source_video.storage_key),body.controls.aspect_ratio??bundle.manifest.controls[0].default);}
+    catch(error){
+      if(error instanceof VideoExtensionToolUnavailableError)throw new HttpError(503,"Video preparation is temporarily unavailable.");
+      if(error instanceof VideoExtensionMediaError)throw new HttpError(422,error.message);
+      throw error;
+    }
+  }
   const sceneReference=await (async()=>{
     if(bundle.manifest.id!==SCENE_VIDEO_PROBE_ID)return undefined;
     if(!store||!assets.scene_image?.storage_key)throw new HttpError(422,"Choose a stored scene image");

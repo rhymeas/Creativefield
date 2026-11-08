@@ -8,6 +8,8 @@
 
 `h3-effects-hyperflow` reuses the HyperFlow image-to-video graph and Deno finish. The **MiniMax H3 effect embeddings** used by its presets are separate downloads governed by the [published MiniMax H3 model terms](https://huggingface.co/Comfy-Org/MiniMax-H3).
 
+`hyperflow-video-reframe` adapts the [MIT-licensed TwoAbove H3 Video Outpaint graph and node](https://github.com/TwoAbove/ComfyUI-H3VideoOutpaint/tree/59b51eff76e58ff06e9908c98d1d2df22c465a1e) on ComfyUI (GPL-3.0). **HyperFlow H3 Flash FL2VA and MiniMax H3 components** and the HyperFlow loader are separately installed. [HyperFlow model card](https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash) · [MiniMax H3 model files](https://huggingface.co/Comfy-Org/MiniMax-H3)
+
 `previs-to-video-hyperflow` adapts Comfy Org's MiniMax H3 Video Restyling graph using **HyperFlow H3 Flash Ref2VA** with the **Qwen3-VL 32B encoder and H3 VAEs**. It uses ComfyUI core and the HyperFlow loader. [Original workflow](https://comfy.org/hub/workflows/minimax-h3-video-restyling-58a3f7167dba/) · [HyperFlow model card](https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash) · [MiniMax H3 model files](https://huggingface.co/Comfy-Org/MiniMax-H3)
 
 The Audio workspace uses a graph adapted from the [ControlFoley text-and-video example](https://github.com/YJX-Research/comfyui-controlfoley-official/blob/c918ad7/example_workflows/04_tv2a_text_video.json) under Apache-2.0. The ControlFoley weights are separate and licensed under CC BY-NC 4.0.

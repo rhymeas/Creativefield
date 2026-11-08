@@ -66,6 +66,9 @@ import {alignedImageInputSnapshotSchema} from "./image-input-admission";
 import {isObjectSwapWorkflow,isOpenJutsuSingleSwap} from "../src/capabilities/tasks";
 import {hyperflowStillReference} from "./hyperflow-reference";
 import {usesH3AudioPolish,withPolishedH3Audio} from "./h3-audio-polish";
+import {VIDEO_REFRAME_ID} from "../src/capabilities/video-reframe";
+import {withReframedAudio} from "./video-reframe";
+import {VideoExtensionMediaError} from "./video-extension-media";
 
 const base="/api/v1/workspaces/:workspaceId";
 const ws=z.object({workspaceId:z.uuid()}),item=ws.extend({id:z.uuid()});
@@ -1044,7 +1047,8 @@ export class ExecutionService {
         const response=await this.fetch(worker,`/view?${new URLSearchParams(file)}`);
         if(!response.ok||!response.body)throw new Error("Output unavailable");
         saved.push({id:newId(),name:file.filename,...await this.store.put(run.workspace_id,Readable.fromWeb(response.body as any))});
-        const last=saved[saved.length-1],filename=await this.store.file(run.workspace_id,last.key);
+        const last=saved[saved.length-1];
+        let filename=await this.store.file(run.workspace_id,last.key);
         if(declaredMedia==="image"){
           try{
             const image=await probeImage(filename);
@@ -1063,6 +1067,21 @@ export class ExecutionService {
           try{const glb=await probeGlb(filename);last.contentType=glb.contentType;last.metadata={...glb,generation:{runId:run.id,capabilityId:run.capability_id,capabilityVersion:run.capability_version,routeId:run.route_id,workerId:run.worker_id,seed:run.invocation?.controls?.seed}};}
           catch{throw new PermanentArtifactError("Worker output is not a valid GLB model");}
         }else{
+          if(manifest.id===VIDEO_REFRAME_ID){
+            const source=(await this.pool.query("SELECT a.storage_key FROM run_inputs i JOIN assets a ON a.id=i.asset_id AND a.workspace_id=i.workspace_id WHERE i.workspace_id=$1 AND i.run_id=$2 AND i.role='source_video'",[run.workspace_id,run.id])).rows[0];
+            if(!source?.storage_key)throw new PermanentArtifactError("The original clip is unavailable.");
+            const sourceFile=await this.store.file(run.workspace_id,source.storage_key);
+            const artifact=await withReframedAudio(sourceFile,filename,run.invocation.controls.aspect_ratio,async file=>file===filename?undefined:this.store.put(run.workspace_id,createReadStream(file))).catch(error=>{
+              if(error instanceof VideoExtensionMediaError)throw new PermanentArtifactError(error.message);
+              throw error;
+            });
+            if(artifact){
+              const old=last.key;
+              Object.assign(last,artifact);
+              filename=await this.store.file(run.workspace_id,last.key);
+              await this.store.remove(run.workspace_id,old).catch(()=>{});
+            }
+          }
           let video:Awaited<ReturnType<typeof probeVideo>>;
           try{video=await probeVideo(filename);}catch(error){if(error instanceof MediaProbeUnavailableError)throw error;throw new PermanentArtifactError("Worker output is not a valid encoded video");}
           last.metadata=video;

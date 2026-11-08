@@ -138,6 +138,7 @@ export function assertRoutePolicy(route: RouteDefinition): void {
 const OPENJUTSU_ADVANCED_CLASSES = new Set(["H3AdvancedSwapPlan", "H3TrackCrops", "H3TrackRoles", "H3RoleMask"]);
 // Only the individually reviewed sampler and HyperFlow loader used by the pinned local template.
 const HYPERFLOW_CORE_CLASSES = new Set(["HyperFlowGGUFLoader", "HyperFlowSigmas"]);
+const HYPERFLOW_REFRAME_CLASSES = new Set([...HYPERFLOW_CORE_CLASSES, "CreativeFieldHyperFlowReframe"]);
 const OPENJUTSU_FLASH_CLASSES = new Set([...HYPERFLOW_CORE_CLASSES, "HyperFlowH3CharacterSwapSettings"]);
 const HYPERFLOW_QUALITY_CLASSES = new Set([...HYPERFLOW_CORE_CLASSES, "DenoMiniMaxH3TiledSampler", "MiniMaxH3AddGuide"]);
 const HYPERFLOW_WORKFLOWS = new Set([
@@ -150,6 +151,7 @@ const HYPERFLOW_WORKFLOWS = new Set([
 ]);
 
 export function localWorkflowClasses(workflowId: string): ReadonlySet<string> | undefined {
+  if (workflowId === "hyperflow-video-reframe") return HYPERFLOW_REFRAME_CLASSES;
   if (workflowId === "openjutsu-h3-advanced") return OPENJUTSU_ADVANCED_CLASSES;
   if (workflowId === "openjutsu-h3-swap-hyperflow") return OPENJUTSU_FLASH_CLASSES;
   if (workflowId === "previs-to-video-hyperflow" || workflowId === "h3-object-swap-hyperflow") return HYPERFLOW_CORE_CLASSES;

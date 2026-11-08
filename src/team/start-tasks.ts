@@ -44,7 +44,7 @@ export function matchTasks<T extends { label: string; text: string }>(tasks: T[]
 }
 
 /** "#video/transform/swap" opens the Change page with that card chosen. */
-export function changeChoiceFromHash(hash: string): "motion" | "swap" | "restyle" | "person" | "upscale" | "cutout" | undefined {
+export function changeChoiceFromHash(hash: string): "motion" | "swap" | "restyle" | "person" | "upscale" | "cutout" | "reframe" | undefined {
   const choice = hash.replace(/^#/, "").split("/")[2];
-  return choice === "motion" || choice === "swap" || choice === "restyle" || choice === "person" || choice === "upscale" || choice === "cutout" ? choice : undefined;
+  return choice === "motion" || choice === "swap" || choice === "restyle" || choice === "person" || choice === "upscale" || choice === "cutout" || choice === "reframe" ? choice : undefined;
 }

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "id": "hyperflow-video-reframe",
+  "version": "0.1.0",
+  "title": "HyperFlow H3 Flash",
+  "category": "enhance",
+  "description": "Extend the edges of a clip to a different aspect ratio while keeping its original picture, movement and sound.",
+  "inputs": [{"id":"source_video","label":"Source clip","type":"video","required":true,"binding":{"node":"1","field":"file"}}],
+  "outputs": [{"id":"video","label":"Reframed video","type":"video","required":true}],
+  "controls": [
+    {"id":"aspect_ratio","label":"Aspect ratio","type":"select","options":["16:9 landscape","9:16 portrait","1:1 square"],"default":"16:9 landscape","binding":{"node":"6","field":"target_aspect"}},
+    {"id":"prompt","label":"What is beyond the edges?","type":"string","default":"","binding":{"node":"6","field":"prompt"}},
+    {"id":"seed","label":"Seed","type":"integer","min":0,"max":2147483647,"default":20260808,"binding":{"node":"6","field":"seed"}}
+  ],
+  "presets": [],
+  "timing": {"fps":24,"minSeconds":0.25,"maxSeconds":15,"sourceTimed":true},
+  "routes": [{"id":"local","execution":"local_comfy","provider":"comfy-local","upstreamProviders":[],"implementation":"implemented","workflowId":"hyperflow-video-reframe","requirements":[
+    {"id":"node:reframe","kind":"node","name":"CreativeFieldHyperFlowReframe","instructions":"Set up the reviewed HyperFlow video outpaint variant on a local worker with positioned FL2VA keyframes."},
+    {"id":"node:HyperFlowGGUFLoader","kind":"node","name":"HyperFlowGGUFLoader","instructions":"Install the reviewed HyperFlow H3 Flash loader on the local worker."},
+    {"id":"node:HyperFlowSigmas","kind":"node","name":"HyperFlowSigmas","instructions":"Install the reviewed HyperFlow H3 Flash sampler schedule."},
+    {"id":"model:hyperflow","kind":"model","name":"minimax_h3_fl2va_hyperflow_flash_14b-Q4_K_M.gguf","location":"unet_gguf","instructions":"Add the HyperFlow H3 Flash FL2VA Q4 model to the worker's GGUF model list."},
+    {"id":"model:encoder","kind":"model","name":"qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors","location":"text_encoders","instructions":"Add the MiniMax H3 text encoder."},
+    {"id":"model:video-vae","kind":"model","name":"minimax_h3_video_vae_fp16.safetensors","location":"vae","instructions":"Add the MiniMax H3 video VAE."},
+    {"id":"model:audio-vae","kind":"model","name":"minimax_h3_audio_vae_fp32.safetensors","location":"vae","instructions":"Add the MiniMax H3 audio VAE."}
+  ],"evidence":["The TwoAbove outpaint workflow with HyperFlow FL2VA completed a local portrait-to-landscape trial."]}],
+  "coverage":{"local":"implemented","hosted":"planned"},
+  "licenses":{"software":"TwoAbove H3 Video Outpaint (MIT), ComfyUI (GPL-3.0), and the separately installed HyperFlow loader.","weights":[{"name":"HyperFlow H3 Flash FL2VA and MiniMax H3 components","license":"See model publisher terms.","source":"https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash"}]},
+  "sources":[{"url":"https://github.com/TwoAbove/ComfyUI-H3VideoOutpaint/tree/59b51eff76e58ff06e9908c98d1d2df22c465a1e","observedAt":"2026-11-08","kind":"implementation"}],
+  "tickets":[],"audioPolicies":["preserve"]
+}

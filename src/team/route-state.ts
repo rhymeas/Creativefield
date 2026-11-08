@@ -66,7 +66,7 @@ export function routeState(input: RouteInput): RouteState {
     if(!input.catalogueKnown)return CHECKING;
     if(!parts[1]||!input.workflowIds?.includes(parts[1]))return unknown();
   }
-  if(section==="video"&&parts[1]==="transform"&&parts[2]&&!['person','motion','restyle','swap','edit'].includes(parts[2]))return unknown();
+  if(section==="video"&&parts[1]==="transform"&&parts[2]&&!['person','motion','restyle','swap','edit','reframe'].includes(parts[2]))return unknown();
   if(section==="image"&&parts[1]&&input.catalogueKnown&&!input.workflowIds?.includes(parts[1]))return unknown();
   if(section==="3d"&&parts[1]==="image"&&parts[2]&&parts[2]!=="auto"&&input.catalogueKnown&&!input.workflowIds?.includes(parts[2]))return unknown();
   switch (section) {

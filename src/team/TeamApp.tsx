@@ -15,6 +15,7 @@ import {usePhone,IconButton,Panel,Reveal,ExpandToggle,AmbientReelProvider,MediaE
 import {AuthPanel} from "./AuthPanel";
 import {ApiError,storeCloudKey,assetUrl,composerAssets,composerResultAssets,mergeAssets,request,workspacePath,type Asset,type Call,type RequestOptions,type Run,type User,type Workspace,type Project,type Worker,type Catalogue} from "./api";
 import {TeamComposer} from "./TeamComposer";
+import {VIDEO_REFRAME_HASH,VIDEO_REFRAME_ID} from "../capabilities/video-reframe";
 import {TeamLibrary,TeamRuns} from "./TeamLibrary";
 import {renderTime} from "./RunDevelop";
 import {feedMode,feedScope} from "./media-feed";
@@ -61,6 +62,7 @@ import {RecreateMediaProvider,RecreateProvider,type RecreateMedia,type RecreateR
 /** A worker's kind comes from the server; the shared Worker type does not carry it yet. */
 export type VideoWorkspaceMode="create"|"edit"|"trim"|"storyboard"|"keyframes"|"effects"|"transform"|"replace"|"workflow";
 export function videoWorkflowMode(manifest:CapabilityManifestV2):VideoWorkspaceMode{
+  if(manifest.id===VIDEO_REFRAME_ID)return "transform";
   if(manifest.id==="video-edit")return "trim";
   if(isMaskedEdit(manifest))return "edit";
   if(isEffectClips(manifest.id))return "effects";
@@ -632,6 +634,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   /* Restore a finished run's recorded inputs and settings in its original tool.
      Multi-step tools without a complete draft mapping offer no recreate action. */
   const recreatePlace=(m:Catalogue[number])=>{
+    if(m.id===VIDEO_REFRAME_ID)return {hash:VIDEO_REFRAME_HASH,mode:"transform" as const};
     if(isOpenJutsuSingleSwap(m.id))return {hash:`openjutsu/${m.id}`,mode:"transform" as const};
     if(m.category==="motion")return {hash:"video/transform/motion",mode:"transform" as const};
     if(isMaskedEdit(m))return swapMaskRoute&&swapEditRoute?{hash:"video/edit",mode:"edit" as const}:undefined;

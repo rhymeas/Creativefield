@@ -88,6 +88,7 @@ export function restoreDraft(m:CapabilityManifestV2,saved:unknown):Draft {
  *  where the words just add a movement or a mood. A masked edit or a voice take says what changes in
  *  words, an effect's words are the instruction, and motion transfer needs them to say what happens. */
 export function promptOptional(m:CapabilityManifestV2):boolean{
+  if(m.id==="hyperflow-video-reframe")return true;
   if(m.mediaContract||m.voiceContract||m.category==="motion")return false;
   // These prompts are the instruction itself, not an example: the object swap names the thing to change, and
   // OpenJutsu's default tells H3 to put the picture's person into the clip. Sent empty, H3 returned the source unchanged.
