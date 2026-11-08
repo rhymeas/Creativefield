@@ -3,7 +3,7 @@ import {hasQualifiedDurationMapping} from "../capabilities/timing";
 import {assetMatchesPort} from "../capabilities/assets";
 import type {Asset,ReusableElement,Worker} from "./api";
 import {defaultDraft,draftErrors,h3GeneratedAudio,workerReadiness,type ElementInputBinding} from "./state";
-import {isSelectedVideoCreate} from "../capabilities/tasks";
+import {isFlashVideoCreate,isSelectedVideoCreate} from "../capabilities/tasks";
 
 export type Shot={key:string;prompt:string;durationSeconds:number|string;settings:{title?:string;audioPolicy:"mute"|"preserve"|"replace"|"mix";elementInputs:Record<string,ElementInputBinding>;cameraHint?:string;capabilityId?:string;generation?:{capabilityId:string;version:string;routeId:"local";controls:Record<string,string|number|boolean>}};assets:Array<{role:string;assetId:string}>};
 export type ShotPayload=Omit<Shot,"key"|"durationSeconds">&{durationSeconds:number;planKey?:string};
@@ -33,8 +33,8 @@ export type AssemblyReadiness={state:string;missing:string[];instructions:string
 export const defaultAssembly:Assembly={width:1280,height:720,fps:24,audioPolicy:"mute"};
 export const outputSizes=[{id:"landscape",label:"16:9 · 1280 × 720",width:1280,height:720},{id:"portrait",label:"9:16 · 720 × 1280",width:720,height:1280},{id:"square",label:"1:1 · 1024 × 1024",width:1024,height:1024}];
 export function eligible(m:CapabilityManifestV2){return m.coverage.local==="implemented"&&["t2v","i2v","flf2v"].includes(m.category)&&hasQualifiedDurationMapping(m);}
-/** Existing shots retain their original workflows; new choices use the approved video models. */
-export function storyboardCreationModels(manifests:CapabilityManifestV2[]){return manifests.filter(m=>eligible(m)&&isSelectedVideoCreate(m.id));}
+/** Existing shots retain their original workflows; new shots use the qualified Flash packs. */
+export function storyboardCreationModels(manifests:CapabilityManifestV2[]){return manifests.filter(m=>eligible(m)&&isFlashVideoCreate(m.id));}
 export function storyboardModelProblem(shot:Shot):string|undefined{
   const id=shot.settings.generation?.capabilityId;
   return id&&!isSelectedVideoCreate(id)?"Choose a MiniMax H3 model before rendering this shot.":undefined;
