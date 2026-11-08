@@ -5,7 +5,7 @@ export const DEVELOP_LIVE_STATES = new Set([
 ]);
 
 /** What a running job is doing, in plain words, when the server names its stage. */
-const STAGE_WORDS: Record<string, string> = { preparing: "Getting ready", thinking: "Thinking", working: "Working on it", rendering: "Rendering", upscaling: "Sharpening" };
+const STAGE_WORDS: Record<string, string> = { preparing: "Getting ready", thinking: "Thinking", working: "Working on it", rendering: "Rendering", upscaling: "Upscaling" };
 
 /** Presentation follows the ledger; requesting cancellation is not confirmation. */
 export function developPresentation(state: string, frame: DevelopPreview | null, previewUrl?: string) {
@@ -25,5 +25,7 @@ export function developPresentation(state: string, frame: DevelopPreview | null,
     detail: undefined,
     progress: steps ? Math.min(1, Math.max(0, frame!.value! / frame!.max!)) : undefined,
     active: !terminal,
+    /* One short word for the clock: no step counts, so it stays small. */
+    stage: terminal || state === "cancel_requested" ? undefined : state === "pending" || state === "queued" ? "Queued" : frame?.stage ? STAGE_WORDS[frame.stage] : undefined,
   };
 }

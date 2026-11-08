@@ -5,7 +5,7 @@ import type { ApiGraph } from "../src/workflow/build";
 import { apiToUi } from "../src/workflow/api-to-ui";
 import { uiToApi, type ObjectInfo } from "../src/workflow/ui-to-api";
 import type { CapabilityManifestV2, Invocation } from "../src/capabilities/types";
-import { assertLocalGraphPolicy, OPENJUTSU_ADVANCED_CLASSES } from "../src/capabilities/policy";
+import { assertLocalGraphPolicy, localWorkflowClasses } from "../src/capabilities/policy";
 import { member, HttpError } from "./auth";
 import { withSubmittedIds } from "./comfy-editor";
 import { publicGraph } from "./runs";
@@ -24,7 +24,7 @@ const mediaFields: Record<string, string[]> = {
 /** Retain the run's output contract and permit only media already belonging to
  * the original run. New project assets need to pass the normal asset admission. */
 export function validateRunEdit(original: ApiGraph, edited: ApiGraph, manifest: CapabilityManifestV2): void {
-  assertLocalGraphPolicy(edited, manifest.id === "openjutsu-h3-advanced" ? OPENJUTSU_ADVANCED_CLASSES : undefined);
+  assertLocalGraphPolicy(edited, localWorkflowClasses(manifest.id));
   const media = new Set<string>();
   for (const node of Object.values(original)) for (const field of mediaFields[node.class_type] ?? []) {
     const value = node.inputs[field]; if (typeof value === "string") media.add(value);

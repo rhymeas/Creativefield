@@ -1,0 +1,395 @@
+{
+  "10": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "GREYBLOCK.mp4"
+    },
+    "_meta": {
+      "title": "Grey-block clip"
+    }
+  },
+  "11": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "10",
+        0
+      ]
+    }
+  },
+  "20": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "CHARACTER.png"
+    },
+    "_meta": {
+      "title": "Character"
+    }
+  },
+  "21": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "PROP.png"
+    },
+    "_meta": {
+      "title": "Vehicle or prop"
+    }
+  },
+  "22": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "LOCATION.png"
+    },
+    "_meta": {
+      "title": "Location"
+    }
+  },
+  "23": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "ADDITIONAL_REFERENCE.png"
+    },
+    "_meta": {
+      "title": "Additional reference"
+    }
+  },
+  "40": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "fps": 24,
+      "images": [
+        "2122",
+        0
+      ],
+      "audio": [
+        "source-audio-choice",
+        0
+      ]
+    }
+  },
+  "41": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "filename_prefix": "ComfyField/previs-to-video",
+      "format": "auto",
+      "codec": "auto",
+      "video": [
+        "40",
+        0
+      ]
+    }
+  },
+  "2115": {
+    "class_type": "ResolutionSelector",
+    "inputs": {
+      "aspect_ratio": "16:9 (Widescreen)",
+      "megapixels": 0.9,
+      "multiple": 32
+    },
+    "_meta": {
+      "title": "Resolution Selector (Size)"
+    }
+  },
+  "2119": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_fp16.safetensors"
+    },
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "2120": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+    },
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "2121": {
+    "class_type": "VAEDecodeAudio",
+    "inputs": {
+      "samples": [
+        "2125",
+        0
+      ],
+      "vae": [
+        "2120",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAE Decode Audio"
+    }
+  },
+  "2122": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "2125",
+        0
+      ],
+      "vae": [
+        "2119",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "2123": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "2124": {
+    "class_type": "HyperFlowSigmas",
+    "inputs": {
+      "model": [
+        "2127",
+        0
+      ],
+      "steps": 6
+    },
+    "_meta": {
+      "title": "HyperFlow Flash schedule"
+    }
+  },
+  "2125": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "guider": [
+        "2126",
+        0
+      ],
+      "latent_image": [
+        "2136",
+        1
+      ],
+      "noise": [
+        "2129",
+        0
+      ],
+      "sampler": [
+        "2123",
+        0
+      ],
+      "sigmas": [
+        "2124",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "2126": {
+    "class_type": "BasicGuider",
+    "inputs": {
+      "conditioning": [
+        "2136",
+        0
+      ],
+      "model": [
+        "2127",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Basic Guider"
+    }
+  },
+  "2127": {
+    "class_type": "HyperFlowGGUFLoader",
+    "inputs": {
+      "unet_name": "minimax_h3_ref2va_hyperflow_flash_14b-Q4_K_M.gguf"
+    },
+    "_meta": {
+      "title": "HyperFlow H3 Flash Ref2VA"
+    }
+  },
+  "2128": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "device": "default",
+      "type": "minimax"
+    },
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "2129": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 304792529092339
+    },
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "2131": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "max(5, round(a * 24)) + (5 - (max(5, round(a * 24)) % 17)) % 17",
+      "values.a": [
+        "2132",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Math Expression"
+    }
+  },
+  "2132": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 5
+    },
+    "_meta": {
+      "title": "Float (Duration)"
+    }
+  },
+  "2136": {
+    "class_type": "MiniMaxH3ReferenceToVideo",
+    "inputs": {
+      "audio_vae": [
+        "2120",
+        0
+      ],
+      "clip": [
+        "2128",
+        0
+      ],
+      "height": [
+        "2115",
+        1
+      ],
+      "length": [
+        "2131",
+        1
+      ],
+      "prompt": "subject_definitions\n<Video 1> = a grey-block previsualisation clip: untextured grey shapes that stand for the people, vehicles and places of the shot. <Picture 1> = the main character. <Picture 2> = a vehicle or prop. <Picture 3> = the location.\nsummary\nTurn <Video 1> into a finished live-action film shot. Keep the camera move, framing, timing, motion and blocking of <Video 1> exactly. Every grey shape becomes the real thing it stands for: the grey figure becomes the person in <Picture 1> with the same face, hair and clothes; the grey vehicle or prop becomes the one in <Picture 2>; the grey surroundings become the place in <Picture 3>.\nretention_analysis\nPreserve from <Video 1>: camera path, lens feel, framing, every movement and its timing, the position and scale of every object. Replace: all grey untextured surfaces with real materials, light and detail.\ndetailed_description\nPhotoreal, cinematic natural light, real textures, believable shadows and reflections, slight film grain.\noverall_soundscape\nNatural sound of the scene: engine, wind, traffic or ambience that fits the action.\nnon_diegetic_music\nN/A",
+      "ref_image_size": "match",
+      "vae": [
+        "2119",
+        0
+      ],
+      "width": [
+        "2115",
+        0
+      ],
+      "ref_videos.ref_video_0": [
+        "11",
+        0
+      ],
+      "ref_images.ref_image_0": [
+        "20",
+        0
+      ],
+      "ref_images.ref_image_1": [
+        "21",
+        0
+      ],
+      "ref_images.ref_image_2": [
+        "22",
+        0
+      ],
+      "ref_images.ref_image_3": [
+        "23",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "MiniMax H3 Reference to Video"
+    }
+  },
+  "source-audio-enabled": {
+    "class_type": "PrimitiveBoolean",
+    "inputs": {
+      "value": false
+    },
+    "_meta": {
+      "title": "Use original audio"
+    }
+  },
+  "source-audio-duration": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a / 24",
+      "values.a": [
+        "2131",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Generated video duration"
+    }
+  },
+  "source-audio-silence": {
+    "class_type": "EmptyAudio",
+    "inputs": {
+      "duration": [
+        "source-audio-duration",
+        0
+      ],
+      "sample_rate": 48000,
+      "channels": 2
+    }
+  },
+  "source-audio-pad": {
+    "class_type": "AudioConcat",
+    "inputs": {
+      "audio1": [
+        "11",
+        1
+      ],
+      "audio2": [
+        "source-audio-silence",
+        0
+      ],
+      "direction": "after"
+    }
+  },
+  "source-audio-trim": {
+    "class_type": "TrimAudioDuration",
+    "inputs": {
+      "audio": [
+        "source-audio-pad",
+        0
+      ],
+      "start_index": 0,
+      "duration": [
+        "source-audio-duration",
+        0
+      ]
+    }
+  },
+  "source-audio-choice": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": [
+        "source-audio-enabled",
+        0
+      ],
+      "on_false": [
+        "2121",
+        0
+      ],
+      "on_true": [
+        "source-audio-trim",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Generated or original audio"
+    }
+  }
+}

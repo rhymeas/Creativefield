@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import type { ApiGraph } from "../src/workflow/build";
 import type { CapabilityManifestV2 } from "../src/capabilities/types";
-import { assertLocalGraphPolicy, OPENJUTSU_ADVANCED_CLASSES } from "../src/capabilities/policy";
+import { assertLocalGraphPolicy, localWorkflowClasses } from "../src/capabilities/policy";
 import type { Pool } from "pg";
 
 /** The difference is made against the public graph shown to the editor. Applying it
@@ -63,6 +63,6 @@ export async function applyStoredRunGraphEdits(pool: Pool, workspaceId: string, 
   const row = (await pool.query("SELECT original_graph,edited_graph FROM run_graph_edits WHERE workspace_id=$1 AND run_id=$2", [workspaceId, runId])).rows[0];
   if (!row) return fresh;
   const graph = applyRunGraphEdits(row.original_graph as ApiGraph, row.edited_graph as ApiGraph, fresh);
-  assertLocalGraphPolicy(graph, manifest.id === "openjutsu-h3-advanced" ? OPENJUTSU_ADVANCED_CLASSES : undefined);
+  assertLocalGraphPolicy(graph, localWorkflowClasses(manifest.id));
   return graph;
 }

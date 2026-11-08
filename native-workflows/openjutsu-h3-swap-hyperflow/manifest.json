@@ -1,0 +1,369 @@
+{
+  "schemaVersion": 2,
+  "id": "openjutsu-h3-swap-hyperflow",
+  "version": "0.2.0",
+  "title": "OpenJutsu character swap (HyperFlow H3 Flash)",
+  "category": "replacement",
+  "description": "Swap the person in a clip for the character in one picture. The scene, the camera, the performance and the clip's own sound stay. Runs HyperFlow H3 Flash on this computer; one clip of 5 to 15 seconds with the person in its first frame. A clip where the person leaves the frame stops with a message.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Your video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "30",
+        "field": "file"
+      }
+    },
+    {
+      "id": "character_image",
+      "label": "Character",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "9",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Swapped clip",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Direction",
+      "type": "string",
+      "default": "Replace the selected person in <Video 1> with the character in <Picture 1>. Use the complete character from <Picture 1>, preserving its distinctive shape, proportions, features, limbs and clothing without cutting them off. Ignore the background, setting and light of <Picture 1>. Keep everything else of <Video 1> unchanged: background, framing, aspect ratio, other people, camera, light, performance and audio timing.",
+      "binding": {
+        "node": "801",
+        "field": "prompt"
+      }
+    },
+    {
+      "id": "start_time",
+      "label": "Start (seconds)",
+      "type": "number",
+      "min": 0,
+      "max": 3600,
+      "step": 0.5,
+      "default": 0,
+      "binding": {
+        "node": "trim",
+        "field": "start_time"
+      }
+    },
+    {
+      "id": "seconds",
+      "label": "Length (seconds)",
+      "type": "number",
+      "min": 5,
+      "max": 15,
+      "step": 1,
+      "default": 5,
+      "binding": {
+        "node": "trim",
+        "field": "duration"
+      },
+      "alsoBindings": [
+        {
+          "node": "31",
+          "field": "duration_seconds"
+        }
+      ]
+    },
+    {
+      "id": "resolution",
+      "label": "Size",
+      "type": "select",
+      "options": [
+        480,
+        768
+      ],
+      "default": 768,
+      "binding": {
+        "node": "31",
+        "field": "resolution"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 4294967295,
+      "default": 20261031,
+      "binding": {
+        "node": "801",
+        "field": "seed"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "openjutsu-h3-swap-hyperflow",
+      "requirements": [
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install a ComfyUI version providing CLIPLoader (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install a ComfyUI version providing VAELoader (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install a ComfyUI version providing LoadImage (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Install a ComfyUI version providing LoadVideo (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:H3CharacterSwapPrepareVideo",
+          "kind": "node",
+          "name": "H3CharacterSwapPrepareVideo",
+          "instructions": "Install Akatz Labs' h3_character_swap node pack (akatz-labs/h3-character-swap-tool worker_nodes/h3_character_swap at 0670e4f) with Comfy's build patch (comfy-openjutsu build/h3_character_swap.patch)."
+        },
+        {
+          "id": "node:SelectCLIPDevice",
+          "kind": "node",
+          "name": "SelectCLIPDevice",
+          "instructions": "Install a ComfyUI version providing SelectCLIPDevice (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:CheckpointLoaderSimple",
+          "kind": "node",
+          "name": "CheckpointLoaderSimple",
+          "instructions": "Install a ComfyUI version providing CheckpointLoaderSimple (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Install a ComfyUI version providing CLIPTextEncode (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:ImageFromBatch",
+          "kind": "node",
+          "name": "ImageFromBatch",
+          "instructions": "Install a ComfyUI version providing ImageFromBatch (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:SAM3_Detect",
+          "kind": "node",
+          "name": "SAM3_Detect",
+          "instructions": "Install a ComfyUI version providing SAM3_Detect (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:H3CharacterSwapSelectSubject",
+          "kind": "node",
+          "name": "H3CharacterSwapSelectSubject",
+          "instructions": "Install Akatz Labs' h3_character_swap node pack (akatz-labs/h3-character-swap-tool worker_nodes/h3_character_swap at 0670e4f) with Comfy's build patch (comfy-openjutsu build/h3_character_swap.patch)."
+        },
+        {
+          "id": "node:SAM3_VideoTrack",
+          "kind": "node",
+          "name": "SAM3_VideoTrack",
+          "instructions": "Install a ComfyUI version providing SAM3_VideoTrack (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:SAM3_TrackToMask",
+          "kind": "node",
+          "name": "SAM3_TrackToMask",
+          "instructions": "Install a ComfyUI version providing SAM3_TrackToMask (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:H3CharacterSwapRecoverMasks",
+          "kind": "node",
+          "name": "H3CharacterSwapRecoverMasks",
+          "instructions": "Install Akatz Labs' h3_character_swap node pack (akatz-labs/h3-character-swap-tool worker_nodes/h3_character_swap at 0670e4f) with Comfy's build patch (comfy-openjutsu build/h3_character_swap.patch)."
+        },
+        {
+          "id": "node:H3CharacterSwapExpandMask",
+          "kind": "node",
+          "name": "H3CharacterSwapExpandMask",
+          "instructions": "Install Akatz Labs' h3_character_swap node pack (akatz-labs/h3-character-swap-tool worker_nodes/h3_character_swap at 0670e4f) with Comfy's build patch (comfy-openjutsu build/h3_character_swap.patch)."
+        },
+        {
+          "id": "node:H3CharacterSwapModels",
+          "kind": "node",
+          "name": "H3CharacterSwapModels",
+          "instructions": "Install Akatz Labs' h3_character_swap node pack (akatz-labs/h3-character-swap-tool worker_nodes/h3_character_swap at 0670e4f) with Comfy's build patch (comfy-openjutsu build/h3_character_swap.patch)."
+        },
+        {
+          "id": "node:H3CharacterSwapShot",
+          "kind": "node",
+          "name": "H3CharacterSwapShot",
+          "instructions": "Install Akatz Labs' h3_character_swap node pack (akatz-labs/h3-character-swap-tool worker_nodes/h3_character_swap at 0670e4f) with Comfy's build patch (comfy-openjutsu build/h3_character_swap.patch)."
+        },
+        {
+          "id": "node:H3CharacterSwapWindowPlan",
+          "kind": "node",
+          "name": "H3CharacterSwapWindowPlan",
+          "instructions": "Install Akatz Labs' h3_character_swap node pack (akatz-labs/h3-character-swap-tool worker_nodes/h3_character_swap at 0670e4f) with Comfy's build patch (comfy-openjutsu build/h3_character_swap.patch)."
+        },
+        {
+          "id": "node:H3CharacterSwapController",
+          "kind": "node",
+          "name": "H3CharacterSwapController",
+          "instructions": "Install Akatz Labs' h3_character_swap node pack (akatz-labs/h3-character-swap-tool worker_nodes/h3_character_swap at 0670e4f) with Comfy's build patch (comfy-openjutsu build/h3_character_swap.patch)."
+        },
+        {
+          "id": "node:H3CharacterSwapAssemble",
+          "kind": "node",
+          "name": "H3CharacterSwapAssemble",
+          "instructions": "Install Akatz Labs' h3_character_swap node pack (akatz-labs/h3-character-swap-tool worker_nodes/h3_character_swap at 0670e4f) with Comfy's build patch (comfy-openjutsu build/h3_character_swap.patch)."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Install a ComfyUI version providing CreateVideo (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install a ComfyUI version providing SaveVideo (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "node:Video Slice",
+          "kind": "node",
+          "name": "Video Slice",
+          "instructions": "Install a ComfyUI version providing Video Slice (0.41 or newer for MiniMax H3)."
+        },
+        {
+          "id": "model:h3-text",
+          "kind": "model",
+          "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+          "location": "text_encoders",
+          "bytes": 15687142551,
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors into ComfyUI models/text_encoders."
+        },
+        {
+          "id": "model:h3-video-vae",
+          "kind": "model",
+          "name": "minimax_h3_video_vae_fp16.safetensors",
+          "location": "vae",
+          "bytes": 5207808496,
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install minimax_h3_video_vae_fp16.safetensors into ComfyUI models/vae."
+        },
+        {
+          "id": "model:h3-audio-vae",
+          "kind": "model",
+          "name": "minimax_h3_audio_vae_fp32.safetensors",
+          "location": "vae",
+          "bytes": 605254808,
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install minimax_h3_audio_vae_fp32.safetensors into ComfyUI models/vae."
+        },
+        {
+          "id": "model:sam3.1-multiplex-fp16",
+          "kind": "model",
+          "name": "sam3.1_multiplex_fp16.safetensors",
+          "location": "checkpoints",
+          "source": "https://huggingface.co/Comfy-Org/sam3.1",
+          "instructions": "Install sam3.1_multiplex_fp16.safetensors into ComfyUI models/checkpoints; review the Meta SAM license."
+        },
+        {
+          "id": "node:HyperFlowGGUFLoader",
+          "kind": "node",
+          "name": "HyperFlowGGUFLoader",
+          "instructions": "Install the reviewed HyperFlow H3 Flash loader."
+        },
+        {
+          "id": "node:HyperFlowSigmas",
+          "kind": "node",
+          "name": "HyperFlowSigmas",
+          "instructions": "Install the reviewed HyperFlow H3 Flash sampler schedule."
+        },
+        {
+          "id": "node:HyperFlowH3CharacterSwapSettings",
+          "kind": "node",
+          "name": "HyperFlowH3CharacterSwapSettings",
+          "instructions": "Install the reviewed OpenJutsu Flash scheduler adaptation on the local Flash worker."
+        },
+        {
+          "id": "model:hyperflow",
+          "kind": "model",
+          "name": "minimax_h3_ref2va_hyperflow_flash_14b-Q4_K_M.gguf",
+          "location": "unet_gguf",
+          "source": "https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash",
+          "instructions": "Add the HyperFlow H3 Flash Ref2VA Q4 model to the worker's GGUF model list."
+        }
+      ],
+      "evidence": [
+        "2026-11-07: Direct ComfyUI tests of the six-step Flash scheduler produced a 21-frame masked swap and a 42-frame two-window continuation at 24 fps with source audio and no empty tracking frames in the latter test."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Workflow: Comfy-Org/comfy-openjutsu (MIT), built on Akatz Labs' H3 Character Swap. Node pack h3_character_swap and Comfy's patch: GPL-3.0. ComfyUI core: GPL-3.0. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "MiniMax H3 text encoder and VAEs",
+        "license": "MiniMax H3 model license as published with the weights; read it before any distribution or commercial use.",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "name": "SAM 3.1 multiplex FP16",
+        "license": "Meta SAM License (custom); review before distribution or commercial use.",
+        "source": "https://huggingface.co/Comfy-Org/sam3.1"
+      },
+      {
+        "name": "HyperFlow H3 Flash Ref2VA",
+        "license": "See the model card for the published HyperFlow model terms.",
+        "source": "https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/Comfy-Org/comfy-openjutsu/blob/70ec62df0eda7c58697ea3ac2050588513651583/workflows/swap.api.json",
+      "observedAt": "2026-10-31",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://github.com/Video-Rebirth/hyperflow-h3-flash",
+      "observedAt": "2026-11-07",
+      "kind": "implementation"
+    }
+  ],
+  "credit": {
+    "name": "Comfy OpenJutsu",
+    "url": "https://github.com/Comfy-Org/comfy-openjutsu/blob/70ec62df0eda7c58697ea3ac2050588513651583/workflows/swap.api.json",
+    "license": "MIT; node pack GPL-3.0 by Akatz Labs",
+    "what": "The swap workflow"
+  },
+  "tickets": [],
+  "audioPolicies": [
+    "preserve"
+  ]
+}

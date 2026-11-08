@@ -1,4 +1,5 @@
 import type {CapabilityManifestV2,Readiness,ReadinessState} from "../capabilities/types";
+import {isObjectSwapWorkflow,isOpenJutsuSingleSwap} from "../capabilities/tasks";
 import {capabilityReadiness} from "../capabilities/readiness";
 import {capabilitySurface as surfaceOf} from "../capabilities/surfaces";
 import type {Worker} from "./api";
@@ -21,6 +22,12 @@ export function soleReadyWorker(manifest:CapabilityManifestV2,workers:Worker[],p
 export function composerReadyWorker(manifest:CapabilityManifestV2,workers:Worker[],presetId?:string,preferredId?:string):string {
   const ready=workers.filter(worker=>workerReadiness(manifest,worker,undefined,presetId).state==="ready");
   return ready.find(worker=>worker.id===preferredId)?.id??ready.sort((a,b)=>a.id.localeCompare(b.id))[0]?.id??"";
+}
+/** The stock worker can be online while the worker that actually runs HyperFlow is stopped. */
+export function composerHyperflowRecoveryWorker(manifest:CapabilityManifestV2,workers:Worker[],presetId?:string):Worker|undefined {
+  const usesHyperflow=manifest.routes.some(route=>route.requirements.some(requirement=>requirement.name==="HyperFlowGGUFLoader"));
+  if(!usesHyperflow)return;
+  return workers.find(worker=>worker.enabled&&worker.can_start&&worker.managed_family==="hyperflow"&&workerReadiness(manifest,worker,undefined,presetId).state==="offline");
 }
 const readinessRank:Record<ReadinessState,number>={ready:0,unsupported:1,credentials_required:2,download_required:3,install_required:4,incompatible:5,offline:6};
 export function bestWorkerReadiness(manifest:CapabilityManifestV2,workers:Worker[],now=Date.now(),presetId?:string):Readiness {
@@ -58,7 +65,7 @@ export function hyperflowImageHandoff(source:CapabilityManifestV2,target:Capabil
   return {...next,controls,audioPolicy:target.audioPolicies.includes(current.audioPolicy)?current.audioPolicy:next.audioPolicy};
 }
 /** These H3 creation graphs decode generated audio; replace retains that output. */
-export function h3GeneratedAudio(m:CapabilityManifestV2){return ["h3-t2v","h3-i2v","h3-flf2v","h3-effects","hyperflow-h3-flash-i2v","hyperflow-h3-flash-t2v","hyperflow-h3-flash-flf2v"].includes(m.id)&&m.audioPolicies.includes("replace");}
+export function h3GeneratedAudio(m:CapabilityManifestV2){return ["h3-t2v","h3-i2v","h3-flf2v","h3-effects","hyperflow-h3-flash-i2v","hyperflow-h3-flash-t2v","hyperflow-h3-flash-flf2v","previs-to-video-hyperflow"].includes(m.id)&&m.audioPolicies.includes("replace");}
 export function defaultDraft(m:CapabilityManifestV2):Draft {
   return {controls:Object.fromEntries(m.controls.filter(c=>!c.disabledReason&&c.default!==undefined).map(c=>[c.id,c.default])) as Draft["controls"],inputs:{},elementInputs:{},audioPolicy:m.voiceContract||h3GeneratedAudio(m)?"replace":m.audioPolicies.includes("preserve")?"preserve":"mute"};
 }
@@ -84,7 +91,7 @@ export function promptOptional(m:CapabilityManifestV2):boolean{
   if(m.mediaContract||m.voiceContract||m.category==="motion")return false;
   // These prompts are the instruction itself, not an example: the object swap names the thing to change, and
   // OpenJutsu's default tells H3 to put the picture's person into the clip. Sent empty, H3 returned the source unchanged.
-  if(m.id==="h3-object-swap"||m.id==="openjutsu-h3-swap"||m.id==="previs-to-video")return false;
+  if(isObjectSwapWorkflow(m.id)||isOpenJutsuSingleSwap(m.id)||m.id==="previs-to-video"||m.id==="previs-to-video-hyperflow")return false;
   if(surfaceOf(m)!=="video-create")return false;
   return m.controls.some(c=>c.id==="prompt"&&!c.disabledReason)&&m.inputs.some(port=>port.required);
 }

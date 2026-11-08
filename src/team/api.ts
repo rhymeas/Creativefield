@@ -13,7 +13,7 @@ export type ReusableElement={id:string;name:string;kind:"character"|"product"|"e
 export type CharacterReference={ordinal:number;assetId:string;assetProjectId:string|null;assetSha256:string;assetMediaType:string;assetContentType:string;assetBytes:number|string;assetMetadata:Record<string,unknown>};
 export type CharacterRecord={id:string;projectId:string;elementId:string;name:string;description:string;createdAt:string;usage?:{referenceRuns:number;completedShots:number};referencePack:{version:1;references:CharacterReference[]}};
 export type CreatedCharacter=CharacterRecord&{repeated:boolean};
-export type Worker={id:string;name:string;enabled:boolean;origin:string;checked_at:string|null;inventory:WorkerInventory|null;can_start?:boolean};
+export type Worker={id:string;name:string;enabled:boolean;origin:string;checked_at:string|null;inventory:WorkerInventory|null;can_start?:boolean;managed_family?:"default"|"hyperflow"};
 export type Run={id:string;project_id:string;worker_id?:string|null;created_by:string;capability_id:string;capability_version:string;state:string;error:string|null;remote_id?:string|null;transport?:string;output_ids:string[];output_content_type?:string|null;scene?:number|null;shot?:number|null;take?:number|null;created_at:string;updated_at:string;invocation?:Pick<Invocation,"controls"|"inputs"> & Partial<Omit<Invocation,"controls"|"inputs">>};
 export class ApiError extends Error {constructor(readonly status:number,message:string){super(message);}}
 export type RequestOptions={signal?:AbortSignal;timeoutMs?:number};

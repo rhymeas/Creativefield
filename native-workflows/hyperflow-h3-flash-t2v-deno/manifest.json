@@ -94,7 +94,8 @@
       "label": "Finish",
       "type": "select",
       "options": [
-        "upscale"
+        "upscale",
+        "hd-upscale"
       ],
       "default": "upscale",
       "binding": {

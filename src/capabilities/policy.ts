@@ -135,9 +135,25 @@ export function assertRoutePolicy(route: RouteDefinition): void {
     if (forbiddenProvider(url.hostname)) throw new Error("Forbidden execution endpoint");
   }
 }
-export const OPENJUTSU_ADVANCED_CLASSES = new Set(["H3AdvancedSwapPlan", "H3TrackCrops", "H3TrackRoles", "H3RoleMask"]);
+const OPENJUTSU_ADVANCED_CLASSES = new Set(["H3AdvancedSwapPlan", "H3TrackCrops", "H3TrackRoles", "H3RoleMask"]);
 // Only the individually reviewed sampler and HyperFlow loader used by the pinned local template.
-export const HYPERFLOW_QUALITY_CLASSES = new Set(["HyperFlowGGUFLoader", "HyperFlowSigmas", "DenoMiniMaxH3TiledSampler", "MiniMaxH3AddGuide"]);
+const HYPERFLOW_CORE_CLASSES = new Set(["HyperFlowGGUFLoader", "HyperFlowSigmas"]);
+const OPENJUTSU_FLASH_CLASSES = new Set([...HYPERFLOW_CORE_CLASSES, "HyperFlowH3CharacterSwapSettings"]);
+const HYPERFLOW_QUALITY_CLASSES = new Set([...HYPERFLOW_CORE_CLASSES, "DenoMiniMaxH3TiledSampler", "MiniMaxH3AddGuide"]);
+const HYPERFLOW_WORKFLOWS = new Set([
+  "hyperflow-h3-flash-i2v",
+  "hyperflow-h3-flash-t2v",
+  "hyperflow-h3-flash-t2v-deno",
+  "hyperflow-h3-flash-flf2v",
+  "hyperflow-h3-flash-flf2v-deno",
+]);
+
+export function localWorkflowClasses(workflowId: string): ReadonlySet<string> | undefined {
+  if (workflowId === "openjutsu-h3-advanced") return OPENJUTSU_ADVANCED_CLASSES;
+  if (workflowId === "openjutsu-h3-swap-hyperflow") return OPENJUTSU_FLASH_CLASSES;
+  if (workflowId === "previs-to-video-hyperflow" || workflowId === "h3-object-swap-hyperflow") return HYPERFLOW_CORE_CLASSES;
+  if (HYPERFLOW_WORKFLOWS.has(workflowId)) return HYPERFLOW_QUALITY_CLASSES;
+}
 
 export function assertLocalGraphPolicy(graph: ApiGraph, additionalClasses: ReadonlySet<string> = new Set()): void {
   if (!Object.keys(graph).length) throw new Error("Workflow is empty");

@@ -2,6 +2,7 @@ import {createHash} from "node:crypto";
 import sharp from "sharp";
 import {VISION_CLIP, visionGraph} from "./reference-describe";
 import type {Worker} from "./ai-text/local-comfy";
+import {isOpenJutsuSingleSwap} from "../src/capabilities/tasks";
 
 /** The boxes refer to the oriented image, normalized to 0..1000.  Only a clearly isolated,
  * complete front view of repeated views of the SAME character can be cropped automatically. */
@@ -16,7 +17,7 @@ export type PreparedCharacterReference =
 
 /** Only character ports of the two local OpenJutsu workflows should be isolated. */
 export function needsOpenJutsuReferencePreparation(workflowId:string,role:string):boolean {
-  return workflowId==="openjutsu-h3-swap"&&role==="character_image"
+  return isOpenJutsuSingleSwap(workflowId)&&role==="character_image"
     ||workflowId==="openjutsu-h3-advanced"&&/^reference_image(?:_[234])?$/.test(role);
 }
 

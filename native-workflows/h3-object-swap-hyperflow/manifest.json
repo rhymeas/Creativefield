@@ -1,0 +1,461 @@
+{
+  "schemaVersion": 2,
+  "id": "h3-object-swap-hyperflow",
+  "version": "0.1.0",
+  "title": "Swap a thing (HyperFlow H3 Flash)",
+  "category": "replacement",
+  "description": "Change one thing in a clip into the thing in a picture. Name what to change and keep the scene, movement and original sound.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Your video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "5",
+        "field": "video"
+      }
+    },
+    {
+      "id": "character_image",
+      "label": "Picture of the new thing",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "2",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Changed clip",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "What to change",
+      "type": "string",
+      "default": "jacket",
+      "binding": {
+        "node": "18",
+        "field": "text"
+      },
+      "alsoBindings": [
+        {
+          "node": "7",
+          "field": "target"
+        }
+      ]
+    },
+    {
+      "id": "change_to",
+      "label": "What it becomes (optional, the picture is enough)",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "7",
+        "field": "change_to"
+      }
+    },
+    {
+      "id": "clip_seconds",
+      "label": "Length (seconds)",
+      "type": "select",
+      "options": [
+        5,
+        8,
+        10
+      ],
+      "default": 5,
+      "binding": {
+        "node": "7",
+        "field": "clip_seconds"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 777,
+      "binding": {
+        "node": "7",
+        "field": "seed"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "h3-object-swap-hyperflow",
+      "requirements": [
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:ImageScaleToMaxDimension",
+          "kind": "node",
+          "name": "ImageScaleToMaxDimension",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:TextGenerate",
+          "kind": "node",
+          "name": "TextGenerate",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:VHS_LoadVideo",
+          "kind": "node",
+          "name": "VHS_LoadVideo",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:TrimAudioDuration",
+          "kind": "node",
+          "name": "TrimAudioDuration",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:H3ObjectSwapPlan",
+          "kind": "node",
+          "name": "H3ObjectSwapPlan",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:KSamplerSelect",
+          "kind": "node",
+          "name": "KSamplerSelect",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:CheckpointLoaderSimple",
+          "kind": "node",
+          "name": "CheckpointLoaderSimple",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3GenerationProfile",
+          "kind": "node",
+          "name": "MiniMaxH3GenerationProfile",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3ChainPlanModern",
+          "kind": "node",
+          "name": "MiniMaxH3ChainPlanModern",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3SourceTimeline",
+          "kind": "node",
+          "name": "MiniMaxH3SourceTimeline",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3ChainLoopStart",
+          "kind": "node",
+          "name": "MiniMaxH3ChainLoopStart",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3ChainCurrent",
+          "kind": "node",
+          "name": "MiniMaxH3ChainCurrent",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3ReferenceToVideo",
+          "kind": "node",
+          "name": "MiniMaxH3ReferenceToVideo",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:H3SourceSlice",
+          "kind": "node",
+          "name": "H3SourceSlice",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:ComfyMathExpression",
+          "kind": "node",
+          "name": "ComfyMathExpression",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:ImageFromBatch",
+          "kind": "node",
+          "name": "ImageFromBatch",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:RandomNoise",
+          "kind": "node",
+          "name": "RandomNoise",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:SAM3_VideoTrack",
+          "kind": "node",
+          "name": "SAM3_VideoTrack",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:H3PeopleMask",
+          "kind": "node",
+          "name": "H3PeopleMask",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:H3GreyMannequins",
+          "kind": "node",
+          "name": "H3GreyMannequins",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:GrowMaskWithBlur",
+          "kind": "node",
+          "name": "GrowMaskWithBlur",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:H3ClipShots",
+          "kind": "node",
+          "name": "H3ClipShots",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:H3FillShots",
+          "kind": "node",
+          "name": "H3FillShots",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:PreviewAny",
+          "kind": "node",
+          "name": "PreviewAny",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3ContexMaskGridPreview",
+          "kind": "node",
+          "name": "MiniMaxH3ContexMaskGridPreview",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:PreviewImage",
+          "kind": "node",
+          "name": "PreviewImage",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3FantasticVideoEditLatent",
+          "kind": "node",
+          "name": "MiniMaxH3FantasticVideoEditLatent",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3ContexMaskedTarget",
+          "kind": "node",
+          "name": "MiniMaxH3ContexMaskedTarget",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3ChainContext",
+          "kind": "node",
+          "name": "MiniMaxH3ChainContext",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:BasicGuider",
+          "kind": "node",
+          "name": "BasicGuider",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:SamplerCustomAdvanced",
+          "kind": "node",
+          "name": "SamplerCustomAdvanced",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:VAEDecodeAudio",
+          "kind": "node",
+          "name": "VAEDecodeAudio",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3LoopTrim",
+          "kind": "node",
+          "name": "MiniMaxH3LoopTrim",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3ChainSegmentSave",
+          "kind": "node",
+          "name": "MiniMaxH3ChainSegmentSave",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3ChainReview",
+          "kind": "node",
+          "name": "MiniMaxH3ChainReview",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3ChainLoopEnd",
+          "kind": "node",
+          "name": "MiniMaxH3ChainLoopEnd",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "node:MiniMaxH3ChainAssemble",
+          "kind": "node",
+          "name": "MiniMaxH3ChainAssemble",
+          "instructions": "Install the node packs of D3voz/openjutsu (comfyui-h3-oneclick-swap, ComfyUI-MiniMaxH3-Context-Loop, ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VideoHelperSuite) on a ComfyUI 0.41 or newer; set VHS_FORCE_FFMPEG_PATH to the bundled ffmpeg."
+        },
+        {
+          "id": "model:h3-text",
+          "kind": "model",
+          "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors into ComfyUI models/text_encoders."
+        },
+        {
+          "id": "model:describer",
+          "kind": "model",
+          "name": "qwen3vl_8b_int8_convrot.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/Comfy-Org",
+          "instructions": "Install qwen3vl_8b_int8_convrot.safetensors into ComfyUI models/text_encoders."
+        },
+        {
+          "id": "model:h3-video-vae",
+          "kind": "model",
+          "name": "minimax_h3_video_vae_fp16.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install minimax_h3_video_vae_fp16.safetensors into ComfyUI models/vae."
+        },
+        {
+          "id": "model:h3-audio-vae",
+          "kind": "model",
+          "name": "minimax_h3_audio_vae_fp32.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install minimax_h3_audio_vae_fp32.safetensors into ComfyUI models/vae."
+        },
+        {
+          "id": "model:sam3.1-multiplex-fp16",
+          "kind": "model",
+          "name": "sam3.1_multiplex_fp16.safetensors",
+          "location": "checkpoints",
+          "source": "https://huggingface.co/Comfy-Org/sam3.1",
+          "instructions": "Install sam3.1_multiplex_fp16.safetensors into ComfyUI models/checkpoints."
+        },
+        {
+          "id": "node:HyperFlowGGUFLoader",
+          "kind": "node",
+          "name": "HyperFlowGGUFLoader",
+          "instructions": "Install the reviewed HyperFlow H3 Flash loader on the local worker."
+        },
+        {
+          "id": "node:HyperFlowSigmas",
+          "kind": "node",
+          "name": "HyperFlowSigmas",
+          "instructions": "Install the reviewed HyperFlow H3 Flash sampler schedule."
+        },
+        {
+          "id": "model:hyperflow",
+          "kind": "model",
+          "name": "minimax_h3_ref2va_hyperflow_flash_14b-Q4_K_M.gguf",
+          "location": "unet_gguf",
+          "instructions": "Add the HyperFlow H3 Flash Ref2VA Q4 model to the worker's GGUF model list."
+        }
+      ],
+      "evidence": [
+        "2026-11-07: Adapted the existing Object Swap template to the six-step HyperFlow H3 Flash Ref2VA sampler. A short dance test swapped a blue dress for the reference red coat and preserved the scene and all 39 source frames with source audio."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Workflow: D3voz/openjutsu (MIT). Node packs: comfyui-h3-oneclick-swap (MIT), Fantastic PromptBuilder (MIT), ComfyUI-MiniMaxH3-Context-Loop (license file in its repo), KJNodes and VideoHelperSuite (GPL-3.0); installed in the separate H3 ComfyUI, not included. ComfyUI core: GPL-3.0.",
+    "weights": [
+      {
+        "name": "HyperFlow H3 Flash Ref2VA",
+        "license": "See the model publisher's license.",
+        "source": "https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash"
+      },
+      {
+        "name": "MiniMax H3 text encoders, VAEs and SAM 3.1",
+        "license": "Each as published with its weights. See the model publishers' licenses.",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/D3voz/openjutsu/blob/7fe118b/workflows/object.api.json",
+      "observedAt": "2026-10-31",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://github.com/Video-Rebirth/hyperflow-h3-flash",
+      "observedAt": "2026-11-06",
+      "kind": "implementation"
+    }
+  ],
+  "credit": {
+    "name": "Openjutsu (D3voz)",
+    "url": "https://github.com/D3voz/openjutsu/tree/7fe118b",
+    "license": "MIT",
+    "what": "The object swap workflow"
+  },
+  "tickets": [],
+  "audioPolicies": [
+    "preserve"
+  ]
+}
