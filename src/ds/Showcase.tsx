@@ -497,7 +497,7 @@ export default function Showcase() {
               <MediaCard quiet media={<Video size={28} />} info={<><span>a-very-long-file-name-that-needs-to-be-cut-off-somewhere-source-clip-final.mp4</span><Meta>Validated mask</Meta></>} actions={fileActions} />
               <MediaCard quiet media={<Video size={28} />} info={<span>mask.mp4</span>} actions={fileActions} />
             </div>
-            <TopBar brand={<span>Brand</span>} current="#a" items={[{ label: "Video", href: "#a" }, { label: "Library", href: "#b" }, { label: "Projects", href: "#c", suffix: "Paket-Test", dropdown: { items: [{ id: "1", title: "Paket-Test", onSelect: () => {} }, { id: "2", title: "Launch Campaign", onSelect: () => {} }], selectedId: "1", footer: { id: "all", title: "All projects…", onSelect: () => {} } } }]} />
+            <TopBar brand={<span>Brand</span>} current="#a" items={[{ label: "Video", href: "#a", icon: <Video size={20}/> }, { label: "Library", href: "#b", icon: <Image size={20}/> }, { label: "Projects", href: "#c", suffix: "Paket-Test", dropdown: { items: [{ id: "1", title: "Paket-Test", onSelect: () => {} }, { id: "2", title: "Launch Campaign", onSelect: () => {} }], selectedId: "1", footer: { id: "all", title: "All projects…", onSelect: () => {} } } }]} />
           </div>
         </div>
         <Split>
@@ -1184,7 +1184,7 @@ function ToastDemo(){
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section style={{ marginBottom: 40 }}>
+    <section className="ds-showcase-section" style={{ marginBottom: 40 }}>
       <h2 style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".08em", color: "var(--text-secondary)", margin: "0 0 12px" }}>
         {title}
       </h2>

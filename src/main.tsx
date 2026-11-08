@@ -5,6 +5,7 @@ import {rootViewFromHash} from "./team/route-state";
 import "./ds/base.css";
 import "./ds/components.css";
 import "./ds/advanced-settings.css";
+import "./ds/mobile.css";
 const TeamApp=lazy(()=>import("./team/TeamApp"));
 const NodeGraphDesign=lazy(()=>import("./team/nodes/NodeGraphDesign").then(m=>({default:m.NodeGraphDesign})));
 // One app: the full studio is the only entry. #ds opens the design system showcase.

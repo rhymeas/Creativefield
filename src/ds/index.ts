@@ -15,3 +15,4 @@ export { DockStack } from "./DockStack";
 export {CompareWipe,MaskOverlay,DriftOverlay} from "./PrecisionCompare";
 export {WelcomeDialog} from "./WelcomeDialog";
 export {MosaicGrid,MosaicTile,mosaicAccent,mosaicSpan} from "./MosaicGrid";
+export {usePhone,useDragDismiss,useSwipeClose,PHONE_QUERY,pullFinishes} from "./gestures";

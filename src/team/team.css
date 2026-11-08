@@ -115,3 +115,14 @@
 .cf-start .ds-hero__media { margin-left:auto; width:min(calc(620px * var(--ui-scale)), 48%); }
 /* Promoted loops are framed a little high so faces and heads stay in the tile. */
 .cf-start .ds-preset--promo .ds-preset__art video { object-position:center 22%; }
+
+/* Phone (rule 27): the tool panel above its results, one column; the panel no longer sticks beside the feed. */
+@media (max-width: 760px) {
+  .cf-production { flex-direction:column; align-items:stretch; gap:var(--gap-section); }
+  .cf-production>.ds-panel { position:relative; top:auto; max-height:none; }
+  .cf-team__body { flex-direction:column; overflow:visible; }
+  .cf-team > .cf-team__body { padding:0; gap:0; }
+  .cf-team__content, .cf-team__main { overflow:visible; }
+  .cf-team { overflow-y:auto; overflow-x:hidden; }
+  .cf-start .ds-presetgrid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
