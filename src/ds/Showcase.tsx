@@ -1184,7 +1184,7 @@ function ToastDemo(){
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section style={{ marginBottom: 40 }}>
+    <section className="ds-showcase-section" style={{ marginBottom: 40 }}>
       <h2 style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".08em", color: "var(--text-secondary)", margin: "0 0 12px" }}>
         {title}
       </h2>

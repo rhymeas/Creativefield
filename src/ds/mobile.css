@@ -126,11 +126,25 @@
   .ds-viewer__frame :is(img, video), .ds-viewer:has(.ds-viewer__info) .ds-viewer__frame :is(img, video) { max-width: 100% !important; max-height: 62dvh; }
   .ds-viewer:has(.ds-viewer__info) .ds-viewer__panel { width: 100% !important; overflow: visible; flex: none; }
   .ds-viewer:has(.ds-viewer__frame[style*="--pull"]) { background: color-mix(in srgb, var(--surface-overlay) 60%, transparent); }
+
+  /* The /#ds showcase shows desktop specimens: each one scrolls sideways inside its section, the page never does. */
+  .ds-showcase-section { position: relative; overflow-x: auto; overscroll-behavior-x: contain; }
+  .ds-showcase-section .ds-bottomnav { position: relative; }
+
+  /* ── Welcome: a sheet like every dialog; 16 px gutters, two picks a row, the note above the action ── */
+  :root .ds-welcome { width: 100%; max-height: 92dvh; border-radius: var(--radius-2xl) var(--radius-2xl) 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); animation: ds-sheet-in var(--dur-med) var(--ease); }
+  :root .ds-welcome__stage { min-height: 240px; padding: var(--space-4) var(--pad-page-x); }
+  :root .ds-welcome__logo { top: var(--space-4); left: var(--pad-page-x); height: 48px; }
+  :root .ds-welcome__close { top: var(--space-4); right: var(--pad-page-x); width: 40px; }
+  :root .ds-welcome__picks { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: var(--space-2) var(--pad-page-x) var(--space-4); }
+  :root .ds-welcome__foot { flex-wrap: wrap; gap: var(--space-3); padding: var(--space-3) var(--pad-page-x) var(--space-4); }
+  :root .ds-welcome__note { flex: 1 1 100%; }
+  :root .ds-welcome__foot > :last-child { margin-left: auto; }
 }
 
 @keyframes ds-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
 
 @media (max-width: 760px) and (prefers-reduced-motion: reduce) {
-  .ds-mega, .ds-navdrop, .ds-moresheet, .ds-dialog, .ds-sheet__scrim { animation: none; }
+  .ds-mega, .ds-navdrop, .ds-moresheet, .ds-dialog, .ds-welcome, .ds-sheet__scrim { animation: none; }
   .ds-bottomnav__tab, .ds-bottomnav__icon { transition: none; }
 }
