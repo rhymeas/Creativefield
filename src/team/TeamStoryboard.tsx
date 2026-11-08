@@ -2,7 +2,7 @@ import {useCallback,useEffect,useRef,useState,type ReactNode} from "react";
 import {Clapperboard,Trash2} from "lucide-react";
 import {Button,Dialog,EmptyState,GenerateButton,IconButton,Meta,TextField,Notice,Panel,Row,SectionHeader,ShotStrip,ShotTile,StatusText,Toolbar,type ShotMediaDrop} from "../ds";
 import type {CapabilityManifestV2} from "../capabilities/types";
-import {routeTask, type TaskId} from "../capabilities/tasks";
+import {isSelectedVideoCreate, routeTask, type TaskId} from "../capabilities/tasks";
 import {storyboardImageControls,storyboardImageSibling} from "../capabilities/storyboard-image-route";
 import {acceptsMediaType,readExampleFile} from "../ds/example-media";
 import {resolveImageReference} from "../image/image-reference";
@@ -116,7 +116,7 @@ export function BoardEditor({board,picker,user,workspace,project,catalogue,worke
   function updateShot(next:Shot){setDraft(d=>({...d,shots:d.shots.map(s=>s.key===next.key?next:s)}));}
   /** A new shot inherits the storyboard's cast reference when one shot already carries it,
    *  so an added shot keeps the same character instead of falling back to plain text-to-video. */
-  function castBase(){const donor=draft.shots.find(s=>(s.settings.elementInputs.start_image||s.assets.some(a=>a.role==="start_image"))&&creationModels.some(m=>m.id===s.settings.generation?.capabilityId));if(!donor)return;const current=creationModels.find(m=>m.id===donor.settings.generation?.capabilityId),cast=current?.inputs.some(p=>p.id==="start_image"&&p.type==="image")&&current.inputs.every(p=>!p.required||p.id==="start_image")?current:pickModel("video.from-image");return cast?{donor,cast}:undefined;}
+  function castBase(){const donor=draft.shots.find(s=>(s.settings.elementInputs.start_image||s.assets.some(a=>a.role==="start_image"))&&isSelectedVideoCreate(s.settings.generation?.capabilityId??""));if(!donor)return;const current=creationModels.find(m=>m.id===donor.settings.generation?.capabilityId),cast=current?.inputs.some(p=>p.id==="start_image"&&p.type==="image")&&current.inputs.every(p=>!p.required||p.id==="start_image")?current:pickModel("video.from-image");return cast?{donor,cast}:undefined;}
   function newShotInheriting(base?:CapabilityManifestV2){const inherited=castBase();const shot=newShot(base);return inherited?inheritShotStartImage(shot,inherited.donor):shot;}
   function pickModel(task: TaskId) {
     return routeTask(task, creationModels.filter(model => workers.some(worker => workerReadiness(model, worker).state === "ready")))?.pack

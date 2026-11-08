@@ -1,5 +1,6 @@
 import type { CapabilityManifestV2, Readiness, Requirement, WorkerInventory } from "./types";
 import { assertRoutePolicy } from "./policy";
+import { isEffectClips } from "./tasks";
 
 /** Where a worker's model files live. A local ComfyUI lists them under /models; Comfy Cloud
  *  keeps its own files and has no folder endpoint, so the probe records "cloud" instead. */
@@ -23,7 +24,7 @@ export function capabilityReadiness(manifest: CapabilityManifestV2, routeId: str
   if (!route && manifest.routes.some(r => r.execution === "comfy_cloud")) return { state: "unsupported", reasons: [CLOUD_ONLY_REASON], missing: [] };
   if (!route || route.implementation === "planned") return { state: "unsupported", reasons: ["This execution route has not been implemented and qualified."], missing: [] };
   if(presetId&&!manifest.presets.some(p=>p.id===presetId))return {state:"incompatible",reasons:["The selected effect is unavailable in this workflow."],missing:[]};
-  if(manifest.id==="h3-effects"&&presetId&&!route.requirements.some(r=>r.id===`model:h3-effect-${presetId}`))return {state:"incompatible",reasons:["The selected effect has no verified model requirement."],missing:[]};
+  if(isEffectClips(manifest.id)&&presetId&&!route.requirements.some(r=>r.id===`model:h3-effect-${presetId}`))return {state:"incompatible",reasons:["The selected effect has no verified model requirement."],missing:[]};
   try { assertRoutePolicy(route); } catch { return { state: "incompatible", reasons: ["Execution route violates the independent-provider policy."], missing: [] }; }
   const cloudRoute = route.execution === "comfy_cloud";
   if (route.execution !== "local_comfy" && !cloudRoute) return { state: "unsupported", reasons: ["Hosted execution requires a qualified server adapter; worker inventory and saved credentials do not enable it."], missing: [] };
@@ -39,7 +40,7 @@ export function capabilityReadiness(manifest: CapabilityManifestV2, routeId: str
     ? !cloudFiles || cloudFiles.includes(r.name) || inventory.models.includes(r.name) || inventory.models.includes(`${r.location}/${r.name}`)
     : inventory.models.includes(`${r.location}/${r.name}`);
   // The H3 effect embeddings are alternatives, not a bundle used by every run.
-  const required=manifest.id==="h3-effects"?route.requirements.filter(r=>!r.id.startsWith("model:h3-effect-")||r.id===`model:h3-effect-${presetId}`):route.requirements;
+  const required=isEffectClips(manifest.id)?route.requirements.filter(r=>!r.id.startsWith("model:h3-effect-")||r.id===`model:h3-effect-${presetId}`):route.requirements;
   const missing = required.filter(r => r.kind === "node" ? !inventory.nodes.includes(r.name)
     : r.kind === "model" ? !hasModel(r)
     : r.kind === "credential" ? !inventory.credentials.includes(r.name) : true);

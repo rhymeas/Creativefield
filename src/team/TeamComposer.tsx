@@ -7,7 +7,7 @@ import {insertReferenceMention,modelPromptReferences,usesH3Prompt} from "./promp
 import {addKnownAssetDragType} from "./asset-drag";
 import {TrimToFit} from "./TrimToFit";
 import {DEFAULT_MIN_FREE_SHARE} from "../capabilities/hardware";
-import {isSelectedVideoCreate,routeImageToVideoDraft} from "../capabilities/tasks";
+import {isEffectClips,isObjectSwapWorkflow,isFlashVideoCreate,routeImageToVideoDraft} from "../capabilities/tasks";
 import {endFrameControls,endFrameFinishPair,endFramePair,endFrameRoute,isEndFrameVariant,withOptionalEndImage} from "./end-frame";
 import {lazy,Suspense,useCallback,useEffect,useMemo,useRef,useState,type ReactNode} from "react";
 import { acceptsFile, Button, SegmentedTabs, UploadPair, useToast, Checkbox, TextField, Collapsible, GenerateButton, Meta, Notice, Panel, PromptField, Params, ParamButton, ReferenceTray, Row, Rule, Thumb, ToggleRow, Dialog, ShimmerText, GestureStage, CameraPathPreview, LinkButton, PresetGrid, PresetCard, HowItWorks } from "../ds";
@@ -18,7 +18,7 @@ import {ToolHero} from "./heroes";
 import {ProductionContent} from "./ProductionWorkspace";
 import type {CapabilityManifestV2} from "../capabilities/types";
 import {ApiError,loadAiText,assetUrl,workspacePath,composerAssets,mergeAssets,type Asset,type Call,type Project,type ReusableElement,type User,type Worker,type Workspace} from "./api";
-import {bestWorkerReadiness,composerReadyWorker,defaultDraft,draftErrors,draftKey,draftPromptForHandoff,h3GeneratedAudio,hyperflowImageHandoff,promptOptional,restoreDraft,submissionIntent,workerReadiness,type Draft} from "./state";
+import {bestWorkerReadiness,composerHyperflowRecoveryWorker,composerReadyWorker,defaultDraft,draftErrors,draftKey,draftPromptForHandoff,h3GeneratedAudio,hyperflowImageHandoff,promptOptional,restoreDraft,submissionIntent,workerReadiness,type Draft} from "./state";
 import {plainProblem,plainReasons,workerBlocker} from "./problems";
 import {audienceOf,settingsLabel} from "./audience";
 import {TeamRuns} from "./TeamLibrary";
@@ -62,11 +62,11 @@ export const audioChoice=(manifest:CapabilityManifestV2)=>manifest.audioPolicies
 export function sizeLabel(id:string,value:unknown){const n=Number(value);if(id==="resolution")return Number.isFinite(n)?`${n}p`:String(value);return n<=0.5?"480p":n<=1?"720p":n<=1.6?"900p":`${n} MP`;}
 /** The Advanced dialog holds the settings the panel keeps out of sight. Motion adds its pose text and its negative prompt. */
 export function advancedControls(manifest:CapabilityManifestV2,motionRoute:boolean,nativeCamera:boolean){
-  const inline=["width","height","length","seconds","prompt","seed","megapixels","resolution",...frameControls(manifest).ids,...(["hyperflow-h3-flash-i2v","hyperflow-h3-flash-t2v"].includes(manifest.id)?["quality"]:[]),...(manifest.id==="openjutsu-h3-advanced"?["roles"]:[]),...(nativeCamera?["camera_pose","speed"]:[])];
+  const inline=["width","height","length","seconds","prompt","seed","megapixels","resolution",...frameControls(manifest).ids,...(["hyperflow-h3-flash-i2v","hyperflow-h3-flash-t2v","h3-effects-hyperflow"].includes(manifest.id)?["quality"]:[]),...(manifest.id==="openjutsu-h3-advanced"?["roles"]:[]),...(nativeCamera?["camera_pose","speed"]:[])];
   return manifest.controls.filter(control=>!inline.includes(control.id)&&(motionRoute?control.id==="motion_prompt"||control.id==="negative":control.id!=="motion_prompt"));
 }
 /** Lip sync is an audio tool, so Create Video leaves it out; a workflow already open stays in its own list. */
-export const createVideoCandidate=(manifest:CapabilityManifestV2,_openId?:string)=>capabilitySurface(manifest)==="video-create"&&isSelectedVideoCreate(manifest.id);
+export const createVideoCandidate=(manifest:CapabilityManifestV2,_openId?:string)=>capabilitySurface(manifest)==="video-create"&&isFlashVideoCreate(manifest.id);
 /** The first sentence of a workflow's description, short enough for one line under its name in the Model list. */
 export function firstSentence(text:string){
   const clean=text.trim().replace(/\s+/g," "),end=clean.search(/\.\s/),first=(end>0?clean.slice(0,end):clean).replace(/\.$/,"");
@@ -83,7 +83,13 @@ export function motionClipNotice(seconds:number|null){
 export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,user,workspace,project,workers,call,canQueue,authorized,onQueued,workflowIds,top,initialInputs,onUseImage,workflowInfo,onWorkerSettings,onModels,onRunLocal}:{workflowInfo?:ReactNode;initialInputs?:Record<string,string>;onUseImage?:(assetId:string)=>void;manifest:CapabilityManifestV2;catalogue:CapabilityManifestV2[];onCapability:(id:string)=>void;user:User;workspace:Workspace;project:Project;workers:Worker[];call:Call;canQueue:boolean;authorized:boolean;onQueued:()=>void;/** Restrict the workflow picker, for a workspace with clearly separated modes. */workflowIds?:string[];/** Shown first in the panel, e.g. the Change page's choice of tool. */top?:ReactNode;/** The place that registers ComfyUI, so a missing worker can be added from here. */onWorkerSettings?:()=>void;/** The models and nodes a workflow needs, so a missing file can be added from here. */onModels?:()=>void;/** The same run on this computer, when the chosen cloud route cannot start. */onRunLocal?:()=>void}){
   /* The end image is optional on Wan 2.2 14B: it is one model for the person, with two graphs behind it. */
   const endPair=useMemo(()=>endFramePair(chosenManifest,catalogue),[chosenManifest,catalogue]);
-  const manifest=useMemo(()=>withOptionalEndImage(chosenManifest,endPair),[chosenManifest,endPair]);
+  const textDeno=chosenManifest.id==="hyperflow-h3-flash-t2v"?catalogue.find(m=>m.id==="hyperflow-h3-flash-t2v-deno"&&m.coverage.local==="implemented"):undefined;
+  const manifest=useMemo(()=>{
+    const display=withOptionalEndImage(chosenManifest,endPair);
+    if(!textDeno)return display;
+    const finishes=textDeno.controls.find(control=>control.id==="quality")?.options??[];
+    return {...display,controls:display.controls.map(control=>control.id==="quality"?{...control,default:"upscale",options:["normal",...finishes]}:control)};
+  },[chosenManifest,endPair,textDeno]);
   const key=draftKey(user.id,workspace.id,project.id,manifest.id);
   /* The one person on this PC has Settings; a shared workspace calls it Team settings. */
   const settingsPlace=settingsLabel(audienceOf(user));
@@ -103,7 +109,8 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const [requirements,setRequirements]=useState<{state:string;missing:string[];instructions:string}|null>(null);
   const [drivingSeconds,setDrivingSeconds]=useState<number|null>(null);
   const [starting,setStarting]=useState(false),[checkingWorker,setCheckingWorker]=useState(false),mounted=useRef(true),referenceDropEpoch=useRef(0);
-  useEffect(()=>()=>{mounted.current=false;referenceDropEpoch.current++;},[]);
+  const recoveryAttempt=useRef<string|null>(null);
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;referenceDropEpoch.current++;};},[]);
 
   const assetEpoch=useRef(0),loadingAssetsRef=useRef(false),uploadGate=useRef(operationGate());
   const masked=isMaskedEdit(manifest),contract=manifest.mediaContract;
@@ -126,7 +133,8 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   useEffect(()=>{if(authorized)return;invalidateOperation(uploadGate.current);setBusy("");},[authorized,workspace.id,project.id,manifest.id]);
   useEffect(()=>{if(!authorized||!masked)return;let current=true;setRequirements(null);void call<{state:string;missing:string[];instructions:string}>(workspacePath(workspace.id,"masked-edit-requirements")).then(value=>{if(current)setRequirements(value);}).catch(e=>{if(current)setError((e as Error).message);});return()=>{current=false;};},[authorized,masked,call,workspace.id]);
   const renderEndPair=endFrameFinishPair(manifest,endPair,catalogue,draft.controls.quality??"upscale");
-  const textFinish=manifest.id==="hyperflow-h3-flash-t2v"&&draft.controls.quality==="upscale"?catalogue.find(m=>m.id==="hyperflow-h3-flash-t2v-deno"&&m.coverage.local==="implemented"):undefined;
+  const usesTextFinish=manifest.id==="hyperflow-h3-flash-t2v"&&["upscale","hd-upscale"].includes(String(draft.controls.quality));
+  const textFinish=usesTextFinish?textDeno:undefined;
   const executionManifest=manifest.id==="hyperflow-h3-flash-i2v"&&draft.inputs.end_image&&renderEndPair?renderEndPair:textFinish??manifest;
   const workerId=composerReadyWorker(executionManifest,workers,draft.presetId,preferredWorkerId);
   const worker=workers.find(w=>w.id===workerId);
@@ -137,7 +145,8 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const ready=readiness?.state==="ready"&&manifest.coverage.local==="implemented"&&(!masked||requirements?.state==="ready");
   /* A stopped ComfyUI is the usual reason a model cannot run here. The screen stays open, names it and
      starts it, then waits for the worker to answer so nobody reloads (rule 36). */
-  const sleeping=readiness.state==="offline"?workers.filter(w=>w.enabled).sort((a,b)=>Number(!!b.can_start)-Number(!!a.can_start))[0]:undefined;
+  const hyperflowRecovery=worker?undefined:composerHyperflowRecoveryWorker(executionManifest,workers,draft.presetId);
+  const sleeping=worker?undefined:hyperflowRecovery??(readiness.state==="offline"?workers.filter(w=>w.enabled).sort((a,b)=>Number(!!b.can_start)-Number(!!a.can_start))[0]:undefined);
   /* One cause, said once, in the problem bar, carrying the one action that clears it (rules 36, 42).
      The Generate button does not repeat it: its footer line covers this draft only. */
   const blocker=workerBlocker({worker,workers,readiness,offlineWorker:sleeping,starting,settings:settingsPlace,canRunLocal:!!onRunLocal,guest:!!user.guest});
@@ -148,13 +157,20 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
       await call(workspacePath(workspace.id,`workers/${target.id}/start`),"POST");
       for(let tries=0;tries<45&&mounted.current;tries++){
         await new Promise(resolve=>setTimeout(resolve,4000));
+        if(!mounted.current)return;
         const result=await call<{inventory:{online?:boolean}}>(workspacePath(workspace.id,`workers/${target.id}/probe`),"POST").catch(()=>null);
-        if(result?.inventory.online)break;
+        if(result?.inventory.online){onQueued();return;}
       }
-      onQueued();
+      if(mounted.current){setError("ComfyUI did not reconnect. Check the worker and try again.");onQueued();}
     }catch(e){if(mounted.current)setError((e as Error).message);}
     finally{if(mounted.current)setStarting(false);}
   }
+  useEffect(()=>{
+    if(worker){recoveryAttempt.current=null;return;}
+    if(!authorized||!user.localSingleUser||user.guest||workspace.role!=="admin"||!hyperflowRecovery||starting||recoveryAttempt.current===hyperflowRecovery.id)return;
+    recoveryAttempt.current=hyperflowRecovery.id;
+    void startComfy(hyperflowRecovery);
+  },[worker,authorized,user.localSingleUser,user.guest,workspace.role,hyperflowRecovery,starting]);
   async function checkWorker(){
     if(!sleeping||workspace.role!=="admin"){onQueued();return;}
     setCheckingWorker(true);
@@ -246,7 +262,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   async function queue(){
     if(!canQueue||busy||(!pending&&(!ready||!valid)))return;
     if(!pending&&manifest.id==="hyperflow-h3-flash-i2v"&&draft.inputs.end_image&&(draft.controls.quality??"upscale")!=="normal"&&renderEndPair?.id!=="hyperflow-h3-flash-flf2v-deno"){setError("Deno upscale is unavailable for start and end images on this setup. Choose Normal or install the required workflow.");return;}
-    if(!pending&&manifest.id==="hyperflow-h3-flash-t2v"&&draft.controls.quality==="upscale"&&!textFinish){setError("Deno upscale is unavailable on this setup. Choose Normal or install the required workflow.");return;}
+    if(!pending&&usesTextFinish&&!textFinish){setError("Deno upscale is unavailable on this setup. Choose Normal or install the required workflow.");return;}
     setBusy("queue");setError("");setSaved("");
     const consent={...(webcamSelected?{webcam:true}:{}),...(manifest.voiceContract?{voice:voiceConsent}:{})};
     /* A switched-off prompt is not sent: an empty text is a run without words, not an example prompt. */
@@ -264,7 +280,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const resolutions=Object.entries(manifest.resolutions??{}),selectedResolution=resolutions.find(([,s])=>s.width===draft.controls.width&&s.height===draft.controls.height)?.[0]??"";
   const surface=capabilitySurface(manifest);
   /* An effect screen explains the chosen effect in the panel itself: what it does and what it needs. */
-  const guide=effectGuide(manifest.id),promptCopy=manifest.id==="h3-object-swap"?{label:"What to change",placeholder:"Name one thing in the clip, for example the jacket"}:effectPromptCopy(guide);
+  const guide=effectGuide(manifest.id),promptCopy=isObjectSwapWorkflow(manifest.id)?{label:"What to change",placeholder:"Name one thing in the clip, for example the jacket"}:isEffectClips(manifest.id)?undefined:effectPromptCopy(guide);
   const candidates=useMemo(()=>catalogue.filter(m=>m.coverage.local==="implemented"&&(workflowIds?workflowIds.includes(m.id):surface==="motion"?capabilitySurface(m)==="motion":surface==="video-edit"?isMaskedEdit(m):surface==="video-enhance"?capabilitySurface(m)==="video-enhance":surface==="video-effect"?capabilitySurface(m)==="video-effect":createVideoCandidate(m,manifest.id)&&(m.id===manifest.id||!isEndFrameVariant(m.id)))),[catalogue,surface,workflowIds,manifest.id]);
   const createSurface=createVideoCandidate(manifest,manifest.id)||masked;
   const imageTarget=createSurface&&!masked&&!manifest.inputs.some(port=>port.type==="image")?routeImageToVideoDraft(candidates.filter(m=>workers.some(w=>workerReadiness(m,w).state==="ready")),candidates)?.pack:undefined;
@@ -275,7 +291,8 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
     }
     onCapability(id);
   }
-  const workflowOptions:TeamChoiceOption[]=candidates.map(m=>{const candidates=workers.map(w=>workerReadiness(m,w)),r=candidates.find(r=>r.state==="ready")??candidates[0];return {value:m.id,label:m.title,note:firstSentence(m.description),icon:m.mediaContract?<Sparkles size={16}/>:<Video size={16}/>,status:!r||r.state==="offline"?"offline":r.state==="ready"?"ready":r.state==="download_required"?"missing":"incompatible",detail:r?.state==="ready"?undefined:plainReasons(r?.reasons??[],{settings:settingsPlace})||`Connect ComfyUI in ${settingsPlace} before queueing.`};});
+  const availableWorkflows=candidates.map(m=>({m,r:bestWorkerReadiness(m,workers)}));
+  const workflowOptions:TeamChoiceOption[]=availableWorkflows.map(({m,r})=>({value:m.id,label:m.title,note:firstSentence(m.description),icon:m.mediaContract?<Sparkles size={16}/>:<Video size={16}/>,status:!r||r.state==="offline"?"offline":r.state==="ready"?"ready":r.state==="download_required"?"missing":"incompatible",detail:r?.state==="ready"?undefined:plainReasons(r?.reasons??[],{settings:settingsPlace})||`Connect ComfyUI in ${settingsPlace} before queueing.`}));
   const length=manifest.controls.find(c=>c.id==="length"),seed=manifest.controls.find(c=>c.id==="seed");
   /* Output size sits next to Duration: megapixels (MiniMax H3 templates) or a short-side resolution (OpenJutsu). */
   /* Length in seconds: "length", or OpenJutsu's clip "seconds". */
@@ -283,6 +300,13 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
   const lengthLabel=(value:number)=>manifest.id==="h3-effects"?`${Number((value/24).toFixed(1))}s`:`${value}s`;
   const lengthOptions=lengthControl?.options?.length?lengthControl.options.map(value=>({value:Number(value),label:lengthLabel(Number(value))})):Array.from({length:Math.floor((lengthControl?.max??10)-(lengthControl?.min??1))+1},(_,i)=>{const value=(lengthControl?.min??1)+i;return {value,label:`${value} ${value===1?"second":"seconds"}`};});
   const size=frame.size;
+  const finishLabels={normal:"Normal",upscale:"Upscale","hd-upscale":"HD upscale"};
+  const finishOptions=Object.entries(finishLabels).filter(([value])=>{
+    if(value==="normal")return true;
+    if(manifest.id==="hyperflow-h3-flash-t2v")return textDeno?.controls.some(control=>control.id==="quality"&&control.options?.includes(value));
+    return !draft.inputs.end_image||endFrameFinishPair(manifest,endPair,catalogue,"upscale")?.id==="hyperflow-h3-flash-flf2v-deno";
+  }).map(([value,label])=>({value,label}));
+  const finishValue=String(draft.controls.quality??"upscale");
   /* A newly chosen start picture sets the format once; a format picked afterwards, or restored by Recreate, stays. */
   function followPicture(role:string,id:string){if(role!=="start_image"||!id||!aspect?.options)return;const picture=new Image();picture.onload=()=>{const format=picture.naturalHeight?nearestFormat(picture.naturalWidth/picture.naturalHeight,aspect.options!):undefined;if(format!==undefined)setDraft(d=>d.inputs[role]===id?{...d,controls:{...d.controls,[aspect.id]:format as string|number}}:d);};picture.src=assetUrl(workspace.id,id);}
   function setInput(role:string,id:string){followPicture(role,id);if(contract&&role===contract.sourceInput)invalidateOperation(uploadGate.current);setDraft(d=>{let inputs={...d.inputs},elementInputs={...d.elementInputs};if(contract&&role===contract.sourceInput)inputs=clearMaskForSource(inputs,manifest);if(id){inputs[role]=id;delete elementInputs[role];}else delete inputs[role];return {...d,inputs,elementInputs};});if(contract&&role===contract.sourceInput){setFiles(f=>({...f,[contract.maskInput]:null}));setBusy("");}}
@@ -402,8 +426,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
         {manifest.id==="openjutsu-h3-advanced"&&manifest.controls.filter(c=>c.id==="roles").map(c=><div key={c.id}>{controlField(c)}</div>)}
         {manifest.controls.filter(c=>c.id==="motion_prompt"&&!motionRoute).map(c=><div key={c.id}>{controlField(c)}</div>)}
         {(size||qualityOptions.length>0||lengthControl||aspect||count)&&<Params>{size?<ParamButton disabled={locked} title="Size" icon={<Maximize2 size={16}/>} label={sizeLabel(size.id,draft.controls[size.id]??size.default)} value={String(draft.controls[size.id]??size.default)} onChange={v=>changeControl(size.id,size.options?.find(o=>String(o)===v)??v)} options={(size.options??[]).map(o=>({value:String(o),label:sizeLabel(size.id,o)}))}/>:qualityOptions.length>0?<ParamButton disabled={locked} title="Size" icon={<Maximize2 size={16}/>} label={quality?.label??"Choose size"} value={selectedResolution} options={qualityOptions} onChange={id=>{if(locked)return;const selected=manifest.resolutions![id];setDraft(d=>({...d,controls:{...d.controls,width:selected.width,height:selected.height}}));}}/>:null}{lengthControl&&<ParamButton disabled={locked} title="Duration" icon={<Clock size={16}/>} label={lengthLabel(Number(draft.controls[lengthControl.id]??lengthControl.default))} value={Number(draft.controls[lengthControl.id]??lengthControl.default)} onChange={v=>changeControl(lengthControl.id,Number(v))} options={lengthOptions}/>}{aspect&&<ParamButton<string|number> disabled={locked} title="Aspect ratio" icon={<RectangleHorizontal size={16}/>} label={String(draft.controls[aspect.id]??aspect.default??aspect.options![0])} value={(draft.controls[aspect.id]??aspect.default??aspect.options![0]) as string|number} onChange={v=>changeControl(aspect.id,v)} options={aspect.options!.map(o=>({value:o as string|number,label:String(o)}))}/>}{count&&<ParamButton<number> disabled={locked} title="Images" icon={<Images size={16}/>} label={`${Number(draft.controls[count.id]??count.default??count.min)} ${Number(draft.controls[count.id]??count.default??count.min)===1?"image":"images"}`} value={Number(draft.controls[count.id]??count.default??count.min)} onChange={v=>changeControl(count.id,Number(v))} options={countOptions(count).map(n=>({value:n,label:String(n)}))}/>}</Params>}
-        {["hyperflow-h3-flash-i2v","hyperflow-h3-flash-t2v"].includes(manifest.id)&&manifest.controls.some(c=>c.id==="quality")&&<ParamButton disabled={locked} title="Finish" icon={<Sparkles size={16}/>} label={String(draft.controls.quality??"upscale")==="hd-upscale"?"HD upscale":String(draft.controls.quality??"upscale")==="upscale"?"Upscale":"Normal"} value={String(draft.controls.quality??"upscale")} options={[{value:"normal",label:"Normal"},...(!draft.inputs.end_image||catalogue.some(m=>m.id==="hyperflow-h3-flash-flf2v-deno"&&m.coverage.local==="implemented")?[{value:"upscale",label:"Upscale"},...(manifest.id==="hyperflow-h3-flash-i2v"?[{value:"hd-upscale",label:"HD upscale"}]:[])]:[])]} onChange={v=>changeControl("quality",v)}/>}
-        {manifest.id==="hyperflow-h3-flash-t2v"&&manifest.controls.some(c=>c.id==="quality")&&<Meta>Add a start image to use HD upscale.</Meta>}
+        {["hyperflow-h3-flash-i2v","hyperflow-h3-flash-t2v","h3-effects-hyperflow"].includes(manifest.id)&&manifest.controls.some(c=>c.id==="quality")&&<ParamButton disabled={locked} title="Finish" icon={<Sparkles size={16}/>} label={finishLabels[finishValue as keyof typeof finishLabels]??"Normal"} value={finishValue} options={finishOptions} onChange={v=>changeControl("quality",v)}/>}
         {manifest.id==="hyperflow-h3-flash-i2v"&&draft.inputs.end_image&&renderEndPair?.id!=="hyperflow-h3-flash-flf2v-deno"&&draft.controls.quality!=="normal"&&<Meta>Deno finish is unavailable for this start and end image workflow.</Meta>}
         <Row subtle disabled={locked} label="Advanced settings" display="Optional controls" onClick={()=>setAdvancedOpen(true)}/>
       </fieldset>
@@ -440,7 +463,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
         <span className="cf-scroll-reserve" aria-hidden/>
       </fieldset>
     </div>
-  </Panel><ProductionContent><TeamRuns workspace={workspace} project={project} user={user} call={call} canEdit={canQueue} authorized={authorized} version={runVersion} titles={catalogueTitles(catalogue)} capabilityId={[manifest.id,...(endPair?[endPair.id]:[]),...(cameraPathModel?[cameraPathModel.id]:[])]} feed={feedKind(manifest)?feedScope(catalogue,feedKind(manifest)!,[manifest.id,...(endPair?[endPair.id]:[]),...(cameraPathModel?[cameraPathModel.id]:[])]):undefined} examples={manifest.outputs.some(p=>p.type==="video")?"video":manifest.outputs.some(p=>p.type==="image")?"image":undefined} outputAction={onUseImage?run=>run.output_ids[0]?<Button variant="secondary" onClick={()=>onUseImage(run.output_ids[0])}>Use for 3D</Button>:null:undefined} hero={latest=>(capabilitySurface(manifest)==="image"||(!manifest.outputs.some(p=>p.type==="video")&&manifest.category!=="3d"))?undefined:<ToolHero latest={latest} kind={manifest.id==="h3-effects"?"effects":manifest.category==="3d"?"model3d":capabilitySurface(manifest)==="motion"||manifest.category==="motion"?"motion":capabilitySurface(manifest)==="video-effect"?"restyle":"create"} workflowId={manifest.id}/>} /></ProductionContent><Dialog className="ds-advanced-dialog" open={advancedOpen&&!locked} title="Advanced" onClose={closeAdvanced} footer={<Button variant="primary" onClick={closeAdvanced}>Done</Button>}><div className="cf-advanced-grid">
+  </Panel><ProductionContent><TeamRuns workspace={workspace} project={project} user={user} call={call} canEdit={canQueue} authorized={authorized} version={runVersion} titles={catalogueTitles(catalogue)} capabilityId={[manifest.id,...(endPair?[endPair.id]:[]),...(cameraPathModel?[cameraPathModel.id]:[])]} feed={feedKind(manifest)?feedScope(catalogue,feedKind(manifest)!,[manifest.id,...(endPair?[endPair.id]:[]),...(cameraPathModel?[cameraPathModel.id]:[])]):undefined} examples={manifest.outputs.some(p=>p.type==="video")?"video":manifest.outputs.some(p=>p.type==="image")?"image":undefined} outputAction={onUseImage?run=>run.output_ids[0]?<Button variant="secondary" onClick={()=>onUseImage(run.output_ids[0])}>Use for 3D</Button>:null:undefined} hero={latest=>(capabilitySurface(manifest)==="image"||(!manifest.outputs.some(p=>p.type==="video")&&manifest.category!=="3d"))?undefined:<ToolHero latest={latest} kind={isEffectClips(manifest.id)?"effects":manifest.category==="3d"?"model3d":capabilitySurface(manifest)==="motion"||manifest.category==="motion"?"motion":capabilitySurface(manifest)==="video-effect"?"restyle":"create"} workflowId={manifest.id}/>} /></ProductionContent><Dialog className="ds-advanced-dialog" open={advancedOpen&&!locked} title="Advanced" onClose={closeAdvanced} footer={<Button variant="primary" onClick={closeAdvanced}>Done</Button>}><div className="cf-advanced-grid">
     {(nativeSpeedControl||(audioChoice(manifest)&&!masked))&&<div className="cf-advanced-grid__full"><Params>
       {nativeSpeedControl&&<ParamButton disabled={locked} title="Camera speed" icon={<Gauge size={16}/>} label={`${Number(draft.controls.speed??nativeSpeedControl.default??1)}×`} value={Number(draft.controls.speed??nativeSpeedControl.default??1)} onChange={v=>changeControl("speed",v)} options={speedOptions}/>}
       {audioChoice(manifest)&&!masked&&<ParamButton disabled={locked} title="Audio" icon={<Volume2 size={16}/>} label={manifest.voiceContract&&draft.audioPolicy==="replace"?"Voice take":h3GeneratedAudio(manifest)&&draft.audioPolicy==="replace"?"Generate sound":audioLabels[draft.audioPolicy]} value={draft.audioPolicy} onChange={v=>setDraft(d=>({...d,audioPolicy:v}))} options={manifest.audioPolicies.map(p=>({value:p,label:manifest.voiceContract&&p==="replace"?"Voice take":h3GeneratedAudio(manifest)&&p==="replace"?"Generate sound":audioLabels[p]}))}/>}

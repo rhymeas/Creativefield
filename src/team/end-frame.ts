@@ -9,8 +9,7 @@ export const isEndFrameVariant=(id:string)=>PAIRED.has(id);
 /** The first/last-frame sibling of a model, when the catalogue has it. */
 export function endFramePair(manifest:CapabilityManifestV2,catalogue:CapabilityManifestV2[]){
   const id=END_FRAME_PAIRS[manifest.id];
-  const usable=(m:CapabilityManifestV2,match:string)=>m.id===match&&m.coverage.local==="implemented"&&m.inputs.some(p=>p.id==="end_image");
-  return id?(catalogue.find(m=>usable(m,id))??(manifest.id==="hyperflow-h3-flash-i2v"?catalogue.find(m=>usable(m,"h3-flf2v")):undefined)):undefined;
+  return catalogue.find(m=>m.id===id&&m.coverage.local==="implemented"&&m.inputs.some(p=>p.id==="end_image"));
 }
 
 /** The Deno finish has its own requirements; the native first/last graph stays usable without it. */
@@ -38,8 +37,5 @@ export function endFrameRoute(manifest:CapabilityManifestV2,pair:CapabilityManif
 export function endFrameControls(manifest:CapabilityManifestV2,pair:CapabilityManifestV2|undefined,inputs:Record<string,string>,controls:Record<string,string|number|boolean>):Record<string,string|number|boolean>{
   if(manifest.id!=="hyperflow-h3-flash-i2v"||!pair||!inputs.end_image)return controls;
   const width=Number(controls.width??576),height=Number(controls.height??1024);
-  if(pair.id==="hyperflow-h3-flash-flf2v"||pair.id==="hyperflow-h3-flash-flf2v-deno")return {prompt:controls.prompt??"",seed:controls.seed??20261031,length:controls.length??3,width,height,steps:6,...(pair.id.endsWith("-deno")?{quality:controls.quality??"upscale"}:{})};
-  const ratio=width/height;
-  const aspect=ratio>1.5?"16:9 (Widescreen)":ratio<0.67?"9:16 (Portrait Widescreen)":ratio>1.15?"4:3 (Standard)":ratio<0.87?"3:4 (Portrait Standard)":"1:1 (Square)";
-  return {prompt:controls.prompt??"",seed:controls.seed??20261031,length:controls.length??3,aspect_ratio:aspect,megapixels:0.9,turbo:true};
+  return {prompt:controls.prompt??"",seed:controls.seed??20261031,length:controls.length??3,width,height,steps:6,...(pair.id.endsWith("-deno")?{quality:controls.quality??"upscale"}:{})};
 }

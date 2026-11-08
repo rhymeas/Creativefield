@@ -22,8 +22,8 @@ export const TASKS: Readonly<Record<TaskId, Task>> = {
   "video.first-last": { label: "First and last frame", candidates: ["hyperflow-h3-flash-flf2v", "h3-flf2v"], reason: "HyperFlow H3 Flash animates between two images" },
   "video.upscale": { label: "Upscale video", candidates: ["seedvr2-video-upscale", "nvidia-vfx-upscale"], reason: "SeedVR2: restores faces and texture, steady over time" },
   "video.swap-person": { label: "Replace character", candidates: ["openjutsu-h3-swap"], reason: "MiniMax H3 character swap" },
-  "video.swap-thing": { label: "Swap a thing", candidates: ["h3-object-swap"], reason: "MiniMax H3 object swap" },
-  "video.previs": { label: "Grey-block to video", candidates: ["previs-to-video"], reason: "MiniMax H3 turns grey shapes into your character, vehicle and place" },
+  "video.swap-thing": { label: "Swap a thing", candidates: ["h3-object-swap-hyperflow"], reason: "HyperFlow H3 Flash object swap" },
+  "video.previs": { label: "Grey-block to video", candidates: ["previs-to-video-hyperflow", "previs-to-video"], reason: "HyperFlow H3 Flash turns grey shapes into your character, vehicle and place" },
 };
 
 export type Routed<T> = { task: TaskId; pack: T; reason: string; fallback: boolean };
@@ -41,18 +41,26 @@ export function routeTask<T extends { id: string }>(task: TaskId, ready: readonl
 /** Every pack a task may use, so screens can keep the others out of their default picks. */
 export const taskPacks = (task: TaskId): readonly string[] => TASKS[task].candidates;
 
+const videoCreationTasks = ["video.create", "video.from-image", "video.first-last"] as const;
+
 /** Model choices for video creation under the current H3-only selection. */
 export function isSelectedVideoCreate(id:string):boolean {
-  return (['video.create','video.from-image','video.first-last'] as const).some(task=>taskPacks(task).includes(id));
+  return videoCreationTasks.some(task=>taskPacks(task).includes(id));
 }
 
-/** The selected H3 picture-to-video workflow and its actual image input. */
+export const isObjectSwapWorkflow = (id: string) => id === "h3-object-swap" || taskPacks("video.swap-thing").includes(id);
+export const EFFECT_CLIP_WORKFLOWS = ["h3-effects-hyperflow", "h3-effects"] as const;
+export const isEffectClips = (id: string) => EFFECT_CLIP_WORKFLOWS.some(workflow => workflow === id);
+/** Keep the Flash experiment addressable for explicit runs and recreation. */
+export const isOpenJutsuSingleSwap = (id: string) => id === "openjutsu-h3-swap-hyperflow" || taskPacks("video.swap-person").includes(id);
+
+/** Create Video has been qualified on Flash. The shared lists still serve Storyboard and Keyframes. */
+export const isFlashVideoCreate = (id: string) => videoCreationTasks.some(task => taskPacks(task)[0] === id);
+
+/** The Create Video handoff uses the Flash picture-to-video graph, even in an offline draft. */
 export function routeImageToVideo<T extends {id:string;inputs:readonly {id:string;type:string}[]}>(ready:readonly T[]):{pack:T;inputId:string}|undefined {
-  const supported=ready.filter(pack=>pack.inputs.some(port=>port.type==='image'&&['start_image','character_image'].includes(port.id)));
-  const selected=routeTask('video.from-image',supported)?.pack;
-  if(!selected)return undefined;
-  const port=selected.inputs.find(input=>input.type==='image'&&['start_image','character_image'].includes(input.id));
-  return port?{pack:selected,inputId:port.id}:undefined;
+  const pack=ready.find(item=>item.id===taskPacks('video.from-image')[0]&&item.inputs.some(port=>port.type==='image'&&port.id==='start_image'));
+  return pack?{pack,inputId:'start_image'}:undefined;
 }
 
 /** Preparing a draft does not require a running worker; prefer one when available. */

@@ -2,7 +2,7 @@ import type { Pool,PoolClient } from "pg";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { createHash } from "node:crypto";
-import { openAsBlob } from "node:fs";
+import { createReadStream, openAsBlob } from "node:fs";
 import {withVideoAudio} from "./silent-video-audio";
 import { readFile } from "node:fs/promises";
 import { Readable } from "node:stream";
@@ -63,6 +63,9 @@ import {durableArtifactStorageKeys,exactImageArtifactSlotSpecs,planArtifactSlots
 import type {ImageArtifactDeclarationV1,ImageArtifactsContractV1} from "../src/capabilities/image-artifacts";
 import {PngValidationError} from "./image-artifacts-validation";
 import {alignedImageInputSnapshotSchema} from "./image-input-admission";
+import {isObjectSwapWorkflow,isOpenJutsuSingleSwap} from "../src/capabilities/tasks";
+import {hyperflowStillReference} from "./hyperflow-reference";
+import {usesH3AudioPolish,withPolishedH3Audio} from "./h3-audio-polish";
 
 const base="/api/v1/workspaces/:workspaceId";
 const ws=z.object({workspaceId:z.uuid()}),item=ws.extend({id:z.uuid()});
@@ -529,14 +532,14 @@ export class ExecutionService {
     try{return await inspectCharacterReference(worker,image,{signal:AbortSignal.any([controller.signal,AbortSignal.timeout(240000)])});}
     finally{clearInterval(timer);}
   }
-  private async uploadInputs(run:any,worker:any,assets:any[],motion?:{role:string;storageKey:string;filename:string},addSilentAudio=false,padAudioTail=false,inspectCharacterWorkflow=""):Promise<Record<string,string>>{
+  private async uploadInputs(run:any,worker:any,assets:any[],motion?:{role:string;storageKey:string;filename:string},addSilentAudio=false,padAudioTail=false,workflowId=""):Promise<Record<string,string>>{
     const inputs:Record<string,string>={};
     for(const asset of assets){
       const isMotion=motion?.role===asset.role;
       const filename=isMotion?motion!.filename:`comfyfield-${run.id}-${asset.id}.${extension(asset.content_type)}`;
       if(Object.values(inputs).includes(filename)){inputs[asset.role]=filename;continue;}
       const source=await this.store.file(run.workspace_id,isMotion?motion!.storageKey:asset.storage_key);
-      if(needsOpenJutsuReferencePreparation(inspectCharacterWorkflow,asset.role)){
+      if(needsOpenJutsuReferencePreparation(workflowId,asset.role)){
         const bytes=await readFile(source);
         const prepared=await prepareOpenJutsuUpload(bytes,asset.content_type,(image)=>this.inspectCharacterForRun(run,worker,image));
         if(prepared.kind==="ambiguous")throw new Error(prepared.reason);
@@ -549,8 +552,10 @@ export class ExecutionService {
           return this.uploadInput(worker,uploadName,await openAsBlob(file,{type:prepared?"video/x-matroska":asset.content_type}),asset.role);
         },{padTail:padAudioTail});
       }else{
-        const data=await openAsBlob(source,{type:isMotion?"video/mp4":asset.content_type});
-        inputs[asset.role]=await this.uploadInput(worker,filename,data,asset.role);
+        const still=await hyperflowStillReference(source,workflowId,asset.role,asset.content_type);
+        const uploadName=still?filename.replace(/\.[^.]+$/, "-still.png"):filename;
+        inputs[asset.role]=Object.values(inputs).includes(uploadName)?uploadName:await this.uploadInput(worker,uploadName,
+          still?new Blob([new Uint8Array(still)],{type:"image/png"}):await openAsBlob(source,{type:isMotion?"video/mp4":asset.content_type}),asset.role);
       }
     }
     return inputs;
@@ -657,21 +662,21 @@ export class ExecutionService {
         }
       }
       const sourceFrames=await this.replaceSourceFrames(run,assets,bundle.manifest);
-      const inputs=await this.uploadInputs(run,worker,assets,undefined,["h3-object-swap","openjutsu-h3-advanced"].includes(bundle.manifest.id),bundle.manifest.id==="openjutsu-h3-advanced",worker.kind!=="cloud"?bundle.manifest.id:"");
+      const inputs=await this.uploadInputs(run,worker,assets,undefined,(isObjectSwapWorkflow(bundle.manifest.id)||bundle.manifest.id==="openjutsu-h3-advanced"),bundle.manifest.id==="openjutsu-h3-advanced",worker.kind!=="cloud"?bundle.manifest.id:"");
       const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,compileRunGraph(bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
       // A cancellation before prompt submission can complete without touching the worker queue.
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
       if(current.state==="cancel_requested") { await this.finish(run,"canceled");return; }
       await this.pool.query("UPDATE runs SET graph=$1,updated_at=now() WHERE workspace_id=$2 AND id=$3",[JSON.stringify(graph),run.workspace_id,run.id]);
       remoteAttempted=true;
-      const response=await this.fetch(worker,"/prompt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:graph,client_id:run.id,extra_data:{preview_method:bundle.manifest.id==="openjutsu-h3-swap"?"none":"latent2rgb",comfyfield:{runId:run.id,workspaceId:run.workspace_id}}})});
+      const response=await this.fetch(worker,"/prompt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:graph,client_id:run.id,extra_data:{preview_method:isOpenJutsuSingleSwap(bundle.manifest.id)?"none":"latent2rgb",comfyfield:{runId:run.id,workspaceId:run.workspace_id}}})});
       if(response.status===400) { await this.finish(run,"failed","Worker rejected the workflow inputs");return; }
       const result=await response.json() as {prompt_id?:string};
       if(!response.ok||!result.prompt_id)throw new Error("Submission outcome unknown");
       await this.pool.query("UPDATE runs SET remote_id=$1,state=CASE WHEN state='cancel_requested' THEN state ELSE 'queued' END,updated_at=now() WHERE workspace_id=$2 AND id=$3",[result.prompt_id,run.workspace_id,run.id]);
       await this.event(run.workspace_id,run.id,"queued");
     } catch(error) {
-      if(!remoteAttempted&&["openjutsu-h3-swap","openjutsu-h3-advanced"].includes(manifest?.id??"")){
+      if(!remoteAttempted&&manifest&&(isOpenJutsuSingleSwap(manifest.id)||manifest.id==="openjutsu-h3-advanced")){
         const state=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0]?.state;
         if(state==="cancel_requested"){await this.finish(run,"canceled");return;}
       }
@@ -714,7 +719,7 @@ export class ExecutionService {
          only accepts the names the server made, and the stored graph keeps those names. */
       const cloud=worker.kind==="cloud";
       const named=Object.fromEntries(assets.map(asset=>[asset.role,`comfyfield-${run.id}-${asset.id}.${extension(asset.content_type)}`]));
-      const inputs=cloud?named:await this.uploadInputs(run,worker,assets,undefined,["h3-object-swap","openjutsu-h3-advanced"].includes(bundle.manifest.id),bundle.manifest.id==="openjutsu-h3-advanced",bundle.manifest.id);
+      const inputs=cloud?named:await this.uploadInputs(run,worker,assets,undefined,(isObjectSwapWorkflow(bundle.manifest.id)||bundle.manifest.id==="openjutsu-h3-advanced"),bundle.manifest.id==="openjutsu-h3-advanced",bundle.manifest.id);
       const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,compileRunGraph(bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
       if(current.state==="cancel_requested"){await this.finish(run,"canceled");return;}
@@ -731,7 +736,7 @@ export class ExecutionService {
       await this.pool.query("UPDATE runs SET remote_id=$1,state=CASE WHEN state='cancel_requested' THEN state ELSE 'queued' END,updated_at=now() WHERE workspace_id=$2 AND id=$3",[job.id,run.workspace_id,run.id]);
       await this.event(run.workspace_id,run.id,"queued",{transport:"sdk",remoteId:job.id});
     } catch(error) {
-      if(!remoteAttempted&&["openjutsu-h3-swap","openjutsu-h3-advanced"].includes(run.capability_id)){
+      if(!remoteAttempted&&(isOpenJutsuSingleSwap(run.capability_id)||run.capability_id==="openjutsu-h3-advanced")){
         const state=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0]?.state;
         if(state==="cancel_requested"){await this.finish(run,"canceled");return;}
       }
@@ -998,7 +1003,7 @@ export class ExecutionService {
     const revision=(await this.pool.query("SELECT id,sha256,manifest FROM workflow_revisions WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.workflow_revision_id])).rows[0];
     if(!revision){await this.finish(run,"failed","Pinned workflow revision is unavailable");return;}
     const manifest=revision.manifest as CapabilityBundle["manifest"];
-    const openJutsuTracking=manifest.id==="openjutsu-h3-swap"?readOpenJutsuTracking(graph,entry.outputs):undefined;
+    const openJutsuTracking=isOpenJutsuSingleSwap(manifest.id)?readOpenJutsuTracking(graph,entry.outputs):undefined;
     const contract=manifest.outputContract,imageContract=manifest.imageArtifacts,motion=motionContractFor(manifest);
     if(imageContract){
       try{await this.ingestImageArtifacts(run,worker,entry,revision,manifest,imageContract);}
@@ -1058,14 +1063,24 @@ export class ExecutionService {
           try{const glb=await probeGlb(filename);last.contentType=glb.contentType;last.metadata={...glb,generation:{runId:run.id,capabilityId:run.capability_id,capabilityVersion:run.capability_version,routeId:run.route_id,workerId:run.worker_id,seed:run.invocation?.controls?.seed}};}
           catch{throw new PermanentArtifactError("Worker output is not a valid GLB model");}
         }else{
-          try{last.metadata=await probeVideo(filename);}catch(error){if(error instanceof MediaProbeUnavailableError)throw error;throw new PermanentArtifactError("Worker output is not a valid encoded video");}
+          let video:Awaited<ReturnType<typeof probeVideo>>;
+          try{video=await probeVideo(filename);}catch(error){if(error instanceof MediaProbeUnavailableError)throw error;throw new PermanentArtifactError("Worker output is not a valid encoded video");}
+          last.metadata=video;
           if(openJutsuTracking)last.metadata={...last.metadata,openJutsuTracking};
-          last.contentType=(last.metadata as Awaited<ReturnType<typeof probeVideo>>).container?.includes("webm")?"video/webm":"video/mp4";
+          last.contentType=video.container?.includes("webm")?"video/webm":"video/mp4";
           if(run.invocation.mediaSnapshot)last.metadata={...last.metadata,...await verifyMaskedOutput(filename,run.invocation.mediaSnapshot)};
           if(expectedMotion&&motionRow?.receipt){
             const verified=await this.motionDeps.verify({store:this.store,workspaceId:run.workspace_id,key:last.key},expectedMotion);
             last.metadata={...last.metadata,motionOutput:verified,motionSourceSha256:motionRow.receipt.sourceSha256,motionNormalizedSha256:motionRow.receipt.normalizedSha256,motionGraphDigest:motionRow.graphDigest};
             last.contentType="video/mp4";
+          }
+          if(onThisComputer(worker)&&video.hasAudio&&last.contentType==="video/mp4"&&usesH3AudioPolish(manifest.id)){
+            const polished=await withPolishedH3Audio(filename,output=>this.store.put(run.workspace_id,createReadStream(output))).catch(()=>undefined);
+            if(polished){
+              const originalKey=last.key;
+              Object.assign(last,polished,{metadata:{...last.metadata,audioPolish:{originalTrack:1,defaultTrack:0}}});
+              await this.store.remove(run.workspace_id,originalKey).catch(()=>{});
+            }
           }
         }
       }

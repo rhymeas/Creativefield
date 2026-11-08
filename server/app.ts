@@ -58,7 +58,7 @@ import {chatgptImageRoutes} from './chatgpt-images';
 import { startGuestCleanup } from "./guest-cleanup";
 import type {ChatgptNative} from './chatgpt-native';
 import {ExportProfileError,exportProfile,exportReadiness,exportVideo,type ExportResult} from "./export-profiles";
-import {managedLocalComfyOrigin,startLocalComfy,type LocalComfyStarter} from "./local-comfy-start";
+import {managedLocalComfyFamily,managedLocalComfyOrigin,startLocalComfy,type LocalComfyStarter} from "./local-comfy-start";
 
 export const workspaceParam = z.object({ workspaceId: z.uuid() });
 export const idParam = workspaceParam.extend({ id: z.uuid() });
@@ -191,10 +191,10 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
     /* Name then id, never the storage order: probing a worker rewrites its row, and without an
        ORDER BY the list came back in a different order after a probe, so the worker cards swapped
        places between two visits of the same screen. */
-    return (await pool.query("SELECT id,name,origin,kind,enabled,checked_at,inventory FROM workers WHERE workspace_id=$1 ORDER BY name,id", [workspaceId])).rows.map(worker=>({
-      ...worker,
-      can_start:config.localSingleUser&&worker.kind==="local"&&worker.enabled&&managedLocalComfyOrigin(worker.origin),
-    }));
+    return (await pool.query("SELECT id,name,origin,kind,enabled,checked_at,inventory FROM workers WHERE workspace_id=$1 ORDER BY name,id", [workspaceId])).rows.map(worker=>{
+      const managedFamily=config.localSingleUser&&worker.kind==="local"&&worker.enabled?managedLocalComfyFamily(worker.origin):undefined;
+      return {...worker,can_start:!!managedFamily,...(managedFamily?{managed_family:managedFamily}:{})};
+    });
   });
   app.post(`${base}/workers`, async request => {
     const { workspaceId } = workspaceParam.parse(request.params); await member(pool, request, workspaceId, "admin");

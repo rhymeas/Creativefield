@@ -100,8 +100,8 @@ export function buildHyperflowFirstLastFinish(template:ApiGraph, quality:"upscal
 }
 
 /** Text-only finishing uses the tested FL2VA draft, without inventing a reference image. */
-export function selectHyperflowTextFinish(template:ApiGraph, quality:"normal"|"upscale"):ApiGraph {
-  if(quality!=="normal"&&quality!=="upscale")throw new Error("Unknown HyperFlow text finish");
+export function selectHyperflowTextFinish(template:ApiGraph, quality:HyperflowQuality):ApiGraph {
+  if(quality!=="normal"&&quality!=="upscale"&&quality!=="hd-upscale")throw new Error("Unknown HyperFlow text finish");
   const commonIds=["1","2","3","4","5","6","7","8","9","10","12"];
   const branch=quality==="normal"?["11","13","14"]:["finish:up-model","finish:up","finish:sigmas","finish:tiled","finish:decode","finish:video","finish:save"];
   const classes:Record<string,string>={...expected,"5":"MiniMaxH3ImageToVideo"};
@@ -110,9 +110,12 @@ export function selectHyperflowTextFinish(template:ApiGraph, quality:"normal"|"u
     if(template[id]?.class_type!==classes[id])throw new Error(`HyperFlow text finish is missing the expected node ${id}`);
     graph[id]=structuredClone(template[id]);
   }
-  if(quality==="upscale"){
+  if(quality!=="normal"){
     const width=Number(graph["5"].inputs.width),height=Number(graph["5"].inputs.height);
-    Object.assign(graph["finish:up"].inputs,{width:32*Math.round(width*1.44/32),height:32*Math.round(height*1.44/32)});
+    // Text has no original HD image to guide the refinement. Use the same
+    // Deno pass at a higher output resolution for HD.
+    const scale=quality==="hd-upscale"?1.875:1.44;
+    Object.assign(graph["finish:up"].inputs,{width:32*Math.round(width*scale/32),height:32*Math.round(height*scale/32)});
     graph["finish:tiled"].inputs.seed=graph["8"].inputs.noise_seed;
   }
   for(const [id,node] of Object.entries(graph))for(const value of Object.values(node.inputs)){

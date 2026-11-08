@@ -3,7 +3,7 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {Button,Dialog,GenerateButton,IconButton,InlineSelect,LabeledRow,Meta,Notice,Panel,PromptField,Thumb,ThumbGrid,UploadSlot} from '../ds';
 import type {CapabilityManifestV2} from '../capabilities/types';
 import {hasQualifiedDurationMapping} from '../capabilities/timing';
-import {isSelectedVideoCreate,routeTask} from '../capabilities/tasks';
+import {isFlashVideoCreate,routeTask} from '../capabilities/tasks';
 import {ApiError,assetUrl,composerAssets,mergeAssets,workspacePath,type Asset,type AssetPage,type Call,type Project,type User,type Worker,type Workspace} from './api';
 import {workerReadiness} from './state';
 import {planKeyframeSegments,qualifyKeyframeTiming,keyframePositions,keyframeInsertPositions,insertKeyframe,moveKeyframeImage,fitKeyframesToModel,removeKeyframe,type Keyframe} from './keyframe-plan';
@@ -26,7 +26,7 @@ type Pending={board:Board;request:{revision:number;workerId:string;idempotencyKe
 type Draft={modelId:string;frames:Keyframe[];prompts:string[];fps?:number;orientation?:'landscape'|'portrait';turbo?:boolean};
 const timeLabel=(frame:number,fps:number)=>`${Number((frame/fps).toFixed(2))}s`;
 const imageTypes='image/png,image/jpeg,image/webp';
-export const keyframeModels=(catalogue:CapabilityManifestV2[])=>catalogue.filter(m=>isSelectedVideoCreate(m.id)&&m.coverage.local==='implemented'&&m.audioPolicies.includes('mute')&&[16,24,25,30,60].includes(m.timing?.fps??0)&&m.inputs.some(p=>p.id==='start_image'&&p.type==='image')&&m.inputs.some(p=>p.id==='end_image'&&p.type==='image')&&hasQualifiedDurationMapping(m));
+export const keyframeModels=(catalogue:CapabilityManifestV2[])=>catalogue.filter(m=>isFlashVideoCreate(m.id)&&m.coverage.local==='implemented'&&m.audioPolicies.includes('mute')&&[16,24,25,30,60].includes(m.timing?.fps??0)&&m.inputs.some(p=>p.id==='start_image'&&p.type==='image')&&m.inputs.some(p=>p.id==='end_image'&&p.type==='image')&&hasQualifiedDurationMapping(m));
 export const draftFrameRate=(draft:Pick<Draft,'modelId'|'fps'>,catalogue:CapabilityManifestV2[],fallback:number)=>draft.fps??catalogue.find(m=>m.id===draft.modelId)?.timing?.fps??fallback;
 function readDraft(key:string):Draft|null{try{const value=JSON.parse(localStorage.getItem(`${key}:draft`)??'null');return value&&typeof value.modelId==='string'&&Array.isArray(value.frames)&&value.frames.length>=2&&value.frames.length<=4&&value.frames.every((f:Keyframe)=>typeof f.assetId==='string'&&Number.isSafeInteger(f.frame)&&f.frame>=0)&&Array.isArray(value.prompts)&&value.prompts.length===value.frames.length-1&&value.prompts.every((p:unknown)=>typeof p==='string')?value:null;}catch{return null;}}
 

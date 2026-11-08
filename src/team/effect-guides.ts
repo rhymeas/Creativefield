@@ -10,6 +10,14 @@ export type EffectGuide={
 const SHORT_CLIP="Drop a video, up to 5 s";
 
 const GUIDES:Record<string,EffectGuide>={
+  "h3-effects-hyperflow":{
+    summary:"Turns a photo into a short video with a chosen effect.",
+    steps:[
+      {title:"Add a photo",text:"Choose the picture you want to animate."},
+      {title:"Choose an effect",text:"Pick a look, such as Fire breath or Storm magic."},
+      {title:"Generate the clip",text:"Choose Normal, Upscale or HD upscale, then press Generate."},
+    ],
+  },
   "vace-canny-restyle":{
     summary:"Gives your clip a new look. Its motion and outlines stay.",
     clipHint:SHORT_CLIP,

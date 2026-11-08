@@ -1,6 +1,8 @@
 /** Decorative loops shown behind model cards and section surfaces. Generated promo clips are
     illustrative, while docs/REELS.md describes the separately recorded workflow examples. */
 
+import {isOpenJutsuSingleSwap} from "../capabilities/tasks";
+
 /** Feature cards, by the workflow they run. Restyle and Effects share the VACE family: the reference
     route is the restyle card, the canny presets are the effects looks. */
 const REELS = {
@@ -8,8 +10,11 @@ const REELS = {
   "h3-i2v": "/examples/promo/video-studio.mp4",
   "h3-flf2v": "/examples/promo/video-studio.mp4",
   "h3-effects": "/examples/promo/effects-lab.mp4",
+  "h3-effects-hyperflow": "/examples/promo/effects-lab.mp4",
   "h3-object-swap": "/examples/promo/swap-thing.mp4",
+  "h3-object-swap-hyperflow": "/examples/promo/swap-thing.mp4",
   "openjutsu-h3-swap": "/examples/squarehead/jutsu-01.mp4",
+  "openjutsu-h3-swap-hyperflow": "/examples/squarehead/jutsu-01.mp4",
 
   "wan-animate2-distilled": "/reels/mj-07.mp4",
   "wan21-vace-masked-edit": "/reels/feature-swap.mp4",
@@ -58,8 +63,8 @@ export const LIBRARY_EXAMPLE_VIDEOS = [...FEATURED_VIDEO_EXAMPLES,...SQUAREHEAD_
 
 /** These clips illustrate each area; they are not claims that the named workflow made the clip. */
 export function promoReelForCapability(ids?:string|string[]){
-  const map:Record<string,string>={"h3-t2v":"video-studio","h3-i2v":"video-studio","h3-flf2v":"video-studio","h3-effects":"effects-lab","h3-object-swap":"swap-thing","openjutsu-h3-swap":"reshoot"};
-  if([ids??""].flat().includes("openjutsu-h3-swap"))return SQUAREHEAD_EXAMPLE_VIDEOS[0];
+  const map:Record<string,string>={"h3-t2v":"video-studio","h3-i2v":"video-studio","h3-flf2v":"video-studio","h3-effects":"effects-lab","h3-effects-hyperflow":"effects-lab","h3-object-swap":"swap-thing","h3-object-swap-hyperflow":"swap-thing","openjutsu-h3-swap":"reshoot"};
+  if([ids??""].flat().some(isOpenJutsuSingleSwap))return SQUAREHEAD_EXAMPLE_VIDEOS[0];
   const name=[ids??""].flat().map(id=>map[id]).find(Boolean);
   return name?`/examples/promo/${name}.mp4`:undefined;
 }

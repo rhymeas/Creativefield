@@ -1,8 +1,8 @@
-import {routeTask} from "../../capabilities/tasks";
+import {isSelectedVideoCreate,routeTask} from "../../capabilities/tasks";
 import {assetMatchesPort} from "../../capabilities/assets";
 import type {CapabilityManifestV2} from "../../capabilities/types";
 import type {CharacterRecord,ReusableElement} from "../api";
-import {storyboardCreationModels,type ShotPayload} from "../storyboard-state";
+import {eligible,type ShotPayload} from "../storyboard-state";
 import {defaultDraft,h3GeneratedAudio} from "../state";
 
 export const MAX_SCENES=20;
@@ -10,7 +10,7 @@ export const WORDS_PER_SECOND=2.5;
 
 /** A character reference is one starting image, not an instruction to end on a second portrait. */
 export function personaWorkflows(catalogue:CapabilityManifestV2[],elements:Array<ReusableElement|undefined>){
-  return elements.length?storyboardCreationModels(catalogue).filter(model=>model.category==="i2v"&&elements.every(element=>characterWorkflowReady(model,element))):[];
+  return elements.length?catalogue.filter(model=>model.category==="i2v"&&eligible(model)&&isSelectedVideoCreate(model.id)&&elements.every(element=>characterWorkflowReady(model,element))):[];
 }
 export function choosePersonaWorkflow(workflows:CapabilityManifestV2[],savedId:string){
   return workflows.find(model=>model.id===savedId)??routeTask("video.from-image",workflows)?.pack??workflows[0];

@@ -1,6 +1,6 @@
 import { secondsToWanFrames, type ApiGraph } from "../workflow/build";
 import type { CapabilityBundle, Invocation } from "./types";
-import { assertCloudGraphPolicy, assertLocalGraphPolicy, assertRoutePolicy, OPENJUTSU_ADVANCED_CLASSES, HYPERFLOW_QUALITY_CLASSES } from "./policy";
+import { assertCloudGraphPolicy, assertLocalGraphPolicy, assertRoutePolicy, localWorkflowClasses } from "./policy";
 import {buildHyperflowFirstLastFinish, buildHyperflowQuality, selectHyperflowTextFinish, type HyperflowQuality} from "./hyperflow-quality";
 import {h3Frames} from "./timing";
 import {omitMissingReferences} from "./optional-image-references";
@@ -17,7 +17,7 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
   /* A cloud route compiles the same template; only where the graph runs differs. */
   const cloud = route?.execution === "comfy_cloud";
   if (!route || (route.execution !== "local_comfy" && !cloud) || !allowed || !template) throw new Error("Selected route is unavailable");
-  const graphPolicy = cloud ? assertCloudGraphPolicy : (graph: ApiGraph) => assertLocalGraphPolicy(graph, manifest.id === "openjutsu-h3-advanced" ? OPENJUTSU_ADVANCED_CLASSES : ["hyperflow-h3-flash-i2v", "hyperflow-h3-flash-t2v", "hyperflow-h3-flash-t2v-deno", "hyperflow-h3-flash-flf2v", "hyperflow-h3-flash-flf2v-deno"].includes(manifest.id) ? HYPERFLOW_QUALITY_CLASSES : undefined);
+  const graphPolicy = cloud ? assertCloudGraphPolicy : (graph: ApiGraph) => assertLocalGraphPolicy(graph, localWorkflowClasses(manifest.id));
   assertRoutePolicy(route); graphPolicy(template);
   const silentImageOperation=manifest.imageArtifacts&&manifest.audioPolicies.length===0&&invocation.audioPolicy==="mute";
   if (!silentImageOperation&&!manifest.audioPolicies.includes(invocation.audioPolicy)) throw new Error("Audio policy is not supported by this workflow");
@@ -156,9 +156,9 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
     graph["5"].inputs.length = h3Frames(Number(graph["5"].inputs.length), 24);
   }
   if(manifest.id === "hyperflow-h3-flash-t2v" && (values.quality ?? "normal")!=="normal") throw new Error("Upscale requires the HyperFlow Deno workflow");
-  if(manifest.id === "hyperflow-h3-flash-t2v-deno") graph=selectHyperflowTextFinish(graph,"upscale");
+  if(manifest.id === "hyperflow-h3-flash-t2v-deno") graph=selectHyperflowTextFinish(graph,values.quality==="hd-upscale"?"hd-upscale":"upscale");
   if(manifest.id === "hyperflow-h3-flash-flf2v-deno") graph=buildHyperflowFirstLastFinish(graph,String(values.quality ?? "hd-upscale") as "upscale"|"hd-upscale");
-  if (manifest.id === "hyperflow-h3-flash-i2v") {
+  if (manifest.id === "hyperflow-h3-flash-i2v" || manifest.id === "h3-effects-hyperflow") {
     graph = buildHyperflowQuality(graph, {
       quality: String(values.quality ?? "upscale") as HyperflowQuality,
       image: invocation.inputs.start_image,

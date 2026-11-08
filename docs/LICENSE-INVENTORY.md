@@ -1,6 +1,14 @@
 # License inventory (REL-04)
 
+`openjutsu-h3-swap-hyperflow` adapts the MIT-licensed Comfy OpenJutsu single-character graph below, retaining the separate Akatz Labs GPL-3.0 node pack with a six-step Flash scheduler adaptation. The **MiniMax H3 text encoder and VAEs**, SAM 3.1, and **HyperFlow H3 Flash Ref2VA** remain separately installed.
+
+`h3-object-swap-hyperflow` adapts the [MIT-licensed OpenJutsu Object Swap workflow](https://github.com/D3voz/openjutsu/blob/7fe118b/workflows/object.api.json) to HyperFlow H3 Flash Ref2VA. MiniMax H3 text encoders, VAEs and SAM 3.1 are installed separately under their publishers' terms, along with the Flash weights and required node packs.
+
 `hyperflow-h3-flash-t2v` and `hyperflow-h3-flash-flf2v` use the upstream ComfyUI HyperFlow Flash workflows and nodes. `hyperflow-h3-flash-i2v`, `hyperflow-h3-flash-t2v-deno` and `hyperflow-h3-flash-flf2v-deno` also use the separately reviewed [Deno sampler](https://github.com/Deno2026/comfyui-deno-custom-nodes). **HyperFlow H3 Flash and MiniMax H3 components** are installed separately, not bundled. Review the applicable model terms before use or redistribution; see the [HyperFlow model card](https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash) and [ComfyUI integration](https://github.com/Video-Rebirth/ComfyUI-HyperFlow-Flash).
+
+`h3-effects-hyperflow` reuses the HyperFlow image-to-video graph and Deno finish. The **MiniMax H3 effect embeddings** used by its presets are separate downloads governed by the [published MiniMax H3 model terms](https://huggingface.co/Comfy-Org/MiniMax-H3).
+
+`previs-to-video-hyperflow` adapts Comfy Org's MiniMax H3 Video Restyling graph using **HyperFlow H3 Flash Ref2VA** with the **Qwen3-VL 32B encoder and H3 VAEs**. It uses ComfyUI core and the HyperFlow loader. [Original workflow](https://comfy.org/hub/workflows/minimax-h3-video-restyling-58a3f7167dba/) · [HyperFlow model card](https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash) · [MiniMax H3 model files](https://huggingface.co/Comfy-Org/MiniMax-H3)
 
 The Audio workspace uses a graph adapted from the [ControlFoley text-and-video example](https://github.com/YJX-Research/comfyui-controlfoley-official/blob/c918ad7/example_workflows/04_tv2a_text_video.json) under Apache-2.0. The ControlFoley weights are separate and licensed under CC BY-NC 4.0.
 

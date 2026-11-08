@@ -48,7 +48,33 @@ export function VideoEditStudio({workspace,project,call,requirements,onChanged,u
     return()=>controller.abort();
   },[initialAssetId,historyLoaded,locked,workspace.id,project.id,call]);
   useEffect(()=>{let current=true;const saved=typeof sessionStorage==="undefined"?null:readPendingVideoEdit(sessionStorage,storageKey);if(saved)setDraft(saved.draft);void (async()=>{const jobs=await call<VideoEditJob[]>(workspacePath(workspace.id,`video-extensions?projectId=${project.id}`));if(!current)return;setHistory(jobs);let restored=jobs.find(item=>videoEditActive(item.state));if(saved){const found=await call<VideoEditJob[]>(workspacePath(workspace.id,`video-extensions?projectId=${project.id}&requestKey=${encodeURIComponent(saved.key)}`));if(!current)return;if(found[0]){restored=found[0];sessionStorage.removeItem(storageKey);setPending(null);}}if(restored){setJob(restored);setDraft(saved?.draft??draftFromVideoEditJob(restored));}setHistoryLoaded(true);})().catch(e=>{if(current)setError((e as Error).message);});return()=>{current=false;};},[storageKey,call,workspace.id,project.id]);
-  useEffect(()=>{if(!draft.videoAssetId){setPlan(null);return;}let current=true;const controller=new AbortController();setInspecting(true);setPlan(null);void (async()=>{const next=await call<VideoEditPlan>(workspacePath(workspace.id,"video-extension-plans"),"POST",planRequest(project.id,draft.videoAssetId,0,1),{signal:controller.signal});const asset=await call<Asset>(workspacePath(workspace.id,`assets/${draft.videoAssetId}`),"GET",undefined,{signal:controller.signal});if(!current)return;if(asset.project_id!==project.id)throw new Error("Choose a video from this project.");setAssets(old=>old.some(item=>item.id===asset.id)?old:[asset,...old]);setPlan(next);setDraft(old=>old.videoAssetId===next.source.sourceAssetId&&!old.endFrameExclusive?{...old,endFrameExclusive:String(next.source.frameCount)}:old);})().catch(e=>{if(current)setError((e as Error).message);}).finally(()=>{if(current)setInspecting(false);});return()=>{current=false;controller.abort();};},[draft.videoAssetId,workspace.id,project.id,call]);
+  useEffect(()=>{
+    const sourceId=draft.videoAssetId;
+    if(!sourceId){setPlan(null);setInspecting(false);return;}
+    const controller=new AbortController(),{signal}=controller;
+    setInspecting(true);setPlan(null);
+    void (async()=>{
+      let next:VideoEditPlan;
+      try{
+        next=await call<VideoEditPlan>(workspacePath(workspace.id,"video-extension-plans"),"POST",planRequest(project.id,sourceId,0,1),{signal});
+      }catch(error){
+        if(signal.aborted||!canEdit||!(error instanceof ApiError)||error.status!==422)throw error;
+        const ready=await call<Asset>(workspacePath(workspace.id,"video-sources/prepare"),"POST",{projectId:project.id,assetId:sourceId},{signal});
+        if(signal.aborted)return;
+        if(ready.id===sourceId)throw error;
+        setAssets(old=>mergeAssets([ready],old));
+        setDraft(old=>old.videoAssetId===sourceId?{...old,videoAssetId:ready.id,startFrame:"0",endFrameExclusive:""}:old);
+        return;
+      }
+      const asset=await call<Asset>(workspacePath(workspace.id,`assets/${sourceId}`),"GET",undefined,{signal});
+      if(signal.aborted)return;
+      if(asset.project_id!==project.id)throw new Error("Choose a video from this project.");
+      setAssets(old=>old.some(item=>item.id===asset.id)?old:[asset,...old]);
+      setPlan(next);
+      setDraft(old=>old.videoAssetId===sourceId&&!old.endFrameExclusive?{...old,endFrameExclusive:String(next.source.frameCount)}:old);
+    })().catch(error=>{if(!signal.aborted)setError((error as Error).message);}).finally(()=>{if(!signal.aborted)setInspecting(false);});
+    return()=>controller.abort();
+  },[draft.videoAssetId,workspace.id,project.id,call,canEdit]);
   useEffect(()=>{if(!job||!videoEditActive(job.state))return;let current=true,timer:ReturnType<typeof setTimeout>;const poll=async()=>{try{const next=await call<VideoEditJob>(workspacePath(workspace.id,`video-extensions/${job.id}`));if(!current)return;setJob(next);setHistory(old=>[next,...old.filter(item=>item.id!==next.id)]);if(videoEditActive(next.state))timer=setTimeout(poll,1500);else if(next.state==="succeeded"){await load();onChanged();}}catch(e){if(current)setError((e as Error).message);}};timer=setTimeout(poll,700);return()=>{current=false;clearTimeout(timer);};},[job?.id,job?.state,workspace.id,call,load,onChanged,refreshJob]);
   const update=(key:"startFrame"|"endFrameExclusive",value:string)=>{if(locked)return;setDraft(old=>({...old,[key]:value}));setError("");};
   const updateAudio=(preserve:boolean)=>{if(locked)return;setDraft(old=>({...old,audioPolicy:preserve?"preserve":"mute"}));setError("");};
