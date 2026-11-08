@@ -1,6 +1,7 @@
 import { selectProblems } from "./problems";
 import {EXAMPLE_DRAG,readExampleFile} from "./example-media";
 import { useModalFocus } from "./useModalFocus";
+import {useDragDismiss,useSwipeClose} from "./gestures";
 import {linkMediaPlayback} from "./linked-playback";
 import "./media-input-paste.css";
 import {
@@ -35,7 +36,7 @@ const cx = (...c: Array<string | false | null | undefined>) => c.filter(Boolean)
 /* ── TopBar ─────────────────────────────────────────────────── */
 
 export type MegaItem = { id: string; icon?: ReactNode; title: string; text?: string; badge?: { text: string; tone?: "accent" | "hot" | "soft" }; onSelect: () => void };
-export type NavItem = { label: string; href: string; onSelect?: () => void; badge?: { text: string; tone?: "accent" | "hot" | "soft" }; menu?: { features: MegaItem[]; models: MegaItem[] }; /** A short list under the item (projects). The chosen entry is shown right after the label. */ dropdown?: { items: MegaItem[]; selectedId?: string; footer?: MegaItem }; suffix?: string };
+export type NavItem = { label: string; href: string; onSelect?: () => void; badge?: { text: string; tone?: "accent" | "hot" | "soft" }; menu?: { features: MegaItem[]; models: MegaItem[] }; /** A short list under the item (projects). The chosen entry is shown right after the label. */ dropdown?: { items: MegaItem[]; selectedId?: string; footer?: MegaItem }; suffix?: string; /** On a phone, an item with an icon is a tab in the bottom bar; the others move into its More sheet. */ icon?: ReactNode };
 
 export function TopBar({
   brand,
@@ -43,12 +44,15 @@ export function TopBar({
   secondary,
   current,
   end,
+  more,
 }: {
   brand: ReactNode;
   items: NavItem[];
   secondary?: NavItem[];
   current: string;
   end?: ReactNode;
+  /** Extra controls at the end of the phone More sheet (Run on, workspace). */
+  more?: ReactNode;
 }) {
   const navRef=useRef<HTMLElement>(null);
   useEffect(()=>{navRef.current?.querySelector<HTMLElement>('[aria-current="page"]')?.scrollIntoView({block:"nearest",inline:"nearest"});},[current]);
@@ -75,7 +79,8 @@ export function TopBar({
           <ChevronDown size={12} aria-hidden />
         </button>
         {openMenu === it.href && (
-          <div className="ds-navdrop" role="menu">
+          <div className="ds-navdrop" role="menu" data-sheet>
+            <span className="ds-sheet__grab" data-sheet-grab aria-hidden />
             {it.dropdown.items.map((i) => (
               <button key={i.id} type="button" role="menuitemradio" aria-checked={i.id === it.dropdown!.selectedId} className="ds-menu__item" onClick={() => { setOpenMenu(null); i.onSelect(); }}>
                 <span className="ds-navdrop__check">{i.id === it.dropdown!.selectedId && <Check size={14} />}</span>
@@ -112,15 +117,41 @@ export function TopBar({
       {it.badge && <Badge tone={it.badge.tone}>{it.badge.text}</Badge>}
     </a>
     );
+  /* The phone bar: tabs for the items with an icon, then More for the rest. A tab with a menu opens it as a sheet. */
+  const all=[...items,...(secondary??[])],tabs=all.filter(it=>it.icon),rest=all.filter(it=>!it.icon);
+  const tab=(it:NavItem)=>{
+    const selected=it.href===current||(openMenu===it.href);
+    const press=()=>{if(it.menu||it.dropdown){setOpenMenu(o=>o===it.href?null:it.href);return;}setOpenMenu(null);if(it.onSelect)it.onSelect();else location.hash=it.href.replace(/^#/,"");};
+    return <button key={it.href} type="button" className="ds-bottomnav__tab" aria-current={it.href===current?"page":undefined} data-open={openMenu===it.href||undefined} onClick={press}>
+      <span className="ds-bottomnav__icon" aria-hidden>{it.icon}</span><span className="ds-bottomnav__label">{it.label}</span>{selected&&<span className="ds-bottomnav__dot" aria-hidden/>}
+    </button>;
+  };
+  const sheets=useRef<HTMLDivElement>(null);
+  const closeMenu=useCallback(()=>setOpenMenu(null),[]);
+  useDragDismiss(sheets,closeMenu,!!openMenu);
   return (
     <header className="ds-topbar">
       <span className="ds-topbar__brand">{brand}</span>
+      <div ref={sheets} className="ds-topbar__sheets">
       <nav ref={navRef} className="ds-topbar__nav" aria-label="Main">
         {items.map(link)}
         {secondary && secondary.length > 0 && <span className="ds-topbar__sep" aria-hidden />}
         {secondary?.map(link)}
       </nav>
+      {openMenu==="__more"&&<div className="ds-moresheet" role="menu" data-sheet data-sheet-scroll data-megamenu>
+        <span className="ds-sheet__grab" data-sheet-grab aria-hidden />
+        {rest.map(it=>it.dropdown?<Fragment key={it.href}><span className="ds-moresheet__title">{it.label}</span>{it.dropdown.items.map(i=><button key={i.id} type="button" role="menuitemradio" aria-checked={i.id===it.dropdown!.selectedId} className="ds-menu__item" onClick={()=>{setOpenMenu(null);i.onSelect();}}><span className="ds-navdrop__check">{i.id===it.dropdown!.selectedId&&<Check size={14}/>}</span>{i.title}</button>)}{it.dropdown.footer&&<button type="button" role="menuitem" className="ds-menu__item" onClick={()=>{setOpenMenu(null);it.dropdown!.footer!.onSelect();}}><span className="ds-navdrop__check">{it.dropdown.footer.icon}</span>{it.dropdown.footer.title}</button>}</Fragment>
+          :it.menu?<button key={it.href} type="button" role="menuitem" className="ds-menu__item" onClick={()=>setOpenMenu(it.href)}><span className="ds-navdrop__check"/>{it.label}<ChevronRight size={14} className="ds-moresheet__next" aria-hidden/></button>
+          :<button key={it.href} type="button" role="menuitem" className="ds-menu__item" aria-current={it.href===current?"page":undefined} onClick={()=>{setOpenMenu(null);if(it.onSelect)it.onSelect();else location.hash=it.href.replace(/^#/,"");}}><span className="ds-navdrop__check">{it.href===current&&<Check size={14}/>}</span>{it.label}</button>)}
+        {more&&<div className="ds-moresheet__more">{more}</div>}
+      </div>}
+      </div>
+      {openMenu&&<span className="ds-sheet__scrim" aria-hidden />}
       <div className="ds-topbar__end">{end}</div>
+      <nav className="ds-bottomnav" aria-label="Sections" data-megamenu>
+        {tabs.map(tab)}
+        {(rest.length>0||more)&&<button type="button" className="ds-bottomnav__tab" data-open={openMenu==="__more"||undefined} aria-expanded={openMenu==="__more"} onClick={()=>setOpenMenu(o=>o==="__more"?null:"__more")}><span className="ds-bottomnav__icon" aria-hidden><GripIcon size={20}/></span><span className="ds-bottomnav__label">More</span>{(openMenu==="__more"||rest.some(it=>it.href===current))&&<span className="ds-bottomnav__dot" aria-hidden/>}</button>}
+      </nav>
     </header>
   );
 }
@@ -147,7 +178,8 @@ export function MegaMenu({ features, models, onPick }: { features: MegaItem[]; m
     </div>
   );
   return (
-    <div className="ds-mega" role="menu">
+    <div className="ds-mega" role="menu" data-sheet data-sheet-scroll>
+      <span className="ds-sheet__grab" data-sheet-grab aria-hidden />
       {column("Features", features)}
       {column("Models", models, true)}
     </div>
@@ -3129,10 +3161,13 @@ export function MediaViewer({ open, src, name, onClose, actions, onActivate, med
     try{await run();if(revision===generation.current)onClose();}catch(cause){if(revision===generation.current)setError((cause as Error).message);}finally{if(revision===generation.current)setBusy(false);}
   }
   useModalFocus(open&&!annotationOpen&&!chooser, panel, onClose);
+  /* On a phone the media can be swiped down to close the full view. */
+  const swipeFrame=useRef<HTMLDivElement>(null);
+  useSwipeClose(swipeFrame,onClose,open&&!annotationOpen&&!chooser&&!crop);
   if (!open) return null;
   return createPortal(
-    <div className="ds-viewer" role="dialog" aria-modal="true" aria-label={name} tabIndex={-1} ref={panel} onClick={event=>event.stopPropagation()} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="ds-viewer__frame" onMouseDown={event=>{if(event.target===event.currentTarget)onClose();}}>
+    <div className="ds-viewer" role="dialog" aria-modal="true" aria-label={name} tabIndex={-1} ref={panel} data-sheet-scroll onClick={event=>event.stopPropagation()} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="ds-viewer__frame" ref={swipeFrame} onMouseDown={event=>{if(event.target===event.currentTarget)onClose();}}>
         {mediaType === "video" ? compare?<div className="ds-viewer__video-pair"><figure><figcaption>{compare.name}</figcaption><video ref={reference} src={compare.src} aria-label={compare.name} controls muted playsInline preload="metadata"/></figure><figure><figcaption>Result</figcaption><video ref={primary} src={current.src} aria-label="Comparison result" controls playsInline preload="metadata"/></figure></div>:<video ref={primary} src={current.src} aria-label={current.name} controls autoPlay playsInline onDoubleClick={onActivate} /> : <div className="ds-viewer__image" data-cropping={!!crop||undefined}
           onPointerDown={event=>{if(!crop||busy)return;event.preventDefault();start.current=point(event);event.currentTarget.setPointerCapture(event.pointerId);setCrop({...start.current,w:0,h:0});}}
           onPointerMove={event=>{if(!crop||!start.current)return;const end=point(event),a=start.current;setCrop({x:Math.min(a.x,end.x),y:Math.min(a.y,end.y),w:Math.abs(a.x-end.x),h:Math.abs(a.y-end.y)});}}
@@ -4169,19 +4204,22 @@ export function Dialog({
   const titleId = useId();
   const panel = useRef<HTMLDivElement>(null);
   useModalFocus(open, panel, onClose);
+  /* On a phone the dialog is a bottom sheet: pull its head down to close it. */
+  useDragDismiss(panel, onClose, open);
 
   if (!open) return null;
   const content=(
     <div className="ds-dialog__scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={cx("ds-dialog", wide && "ds-dialog--wide", className)} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} ref={panel}>
-        <header className="ds-dialog__head">
+      <div className={cx("ds-dialog", wide && "ds-dialog--wide", className)} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} ref={panel} data-sheet>
+        <span className="ds-sheet__grab" data-sheet-grab aria-hidden />
+        <header className="ds-dialog__head" data-sheet-grab>
           <h2 id={titleId} className="ds-dialog__title">{title}</h2>
           <IconButton label="Close" onClick={onClose}>
             <X size={16} />
           </IconButton>
         </header>
         <InDialogContext.Provider value={true}>
-          <div className="ds-dialog__body">{children}</div>
+          <div className="ds-dialog__body" data-sheet-scroll>{children}</div>
         </InDialogContext.Provider>
         {footer && <footer className="ds-dialog__foot">{footer}</footer>}
       </div>

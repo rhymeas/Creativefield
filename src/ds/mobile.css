@@ -1,0 +1,136 @@
+/*
+ * Phone layout (rule 27). One breakpoint, 760 px, the same as PHONE_QUERY in gestures.ts.
+ * Above it nothing here applies except hiding the phone-only parts. Below it the shell becomes:
+ * a slim top bar (logo, job queue, account), the page in one column with 16 px gutters, the panel's
+ * main action pinned above a bottom tab bar, and every menu and dialog as a bottom sheet.
+ * Layout and spacing only come from tokens; colours and type stay those of the desktop components.
+ */
+
+/* Phone-only parts are absent on desktop. */
+.ds-bottomnav, .ds-sheet__grab, .ds-sheet__scrim { display: none; }
+.ds-topbar__sheets { display: contents; }
+
+@media (max-width: 760px) {
+  :root {
+    --ui-scale: 1;                                   /* touch targets at full size */
+    --pad-page-x: 16px;
+    --pad-page-y: 16px;
+    --pad-page: 16px;
+    --gap-section: 20px;
+    --panel-w: 100%;
+    --bottomnav-h: calc(60px + env(safe-area-inset-bottom, 0px));
+    --frame-w: 100%;
+    --bar-inset: 16px;
+  }
+  html, body, #root { min-width: 0; }
+  body { overflow-x: hidden; }
+
+  /* ── Top bar: logo left, job queue and account right; sections move to the bottom ── */
+  .ds-topbar { height: calc(52px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) var(--pad-page-x) 0; gap: var(--space-2); }
+  .ds-topbar__brand { margin-right: auto; height: 30px; }
+  .ds-topbar__end { margin-left: 0; }
+  .ds-topbar__sheets { display: block; position: static; }
+  .ds-topbar__nav { position: fixed; z-index: 45; width: 0; height: 0; overflow: visible; visibility: hidden; }
+
+  /* ── Bottom tab bar ── */
+  .ds-bottomnav {
+    display: flex; position: fixed; z-index: 40; left: 0; right: 0; bottom: 0;
+    height: var(--bottomnav-h); padding: 0 var(--space-2) env(safe-area-inset-bottom, 0px);
+    background: color-mix(in srgb, var(--surface-page) 92%, transparent);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--line-hairline);
+  }
+  .ds-bottomnav__tab {
+    position: relative; flex: 1; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    color: var(--text-tab-inactive); font-size: var(--text-2xs); line-height: var(--lh-2xs); font-weight: var(--weight-medium);
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  }
+  .ds-bottomnav__tab:active { transform: scale(.94); }
+  .ds-bottomnav__tab:is([aria-current="page"], [data-open]) { color: var(--accent); }
+  .ds-bottomnav__icon { display: grid; place-items: center; width: 44px; height: 28px; border-radius: var(--radius-full); transition: background var(--dur-med) var(--ease); }
+  .ds-bottomnav__tab:is([aria-current="page"], [data-open]) .ds-bottomnav__icon { background: var(--accent-soft); }
+  .ds-bottomnav__label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ds-bottomnav__dot { display: none; }
+
+  /* ── Sheets: menus, the More list and dialogs rise from the bottom ── */
+  .ds-sheet__scrim { display: block; position: fixed; inset: 0; z-index: 44; background: var(--surface-overlay); animation: ds-fade var(--dur-med) var(--ease); }
+  .ds-sheet__grab { display: block; flex: none; width: 40px; height: 4px; margin: var(--space-2) auto var(--space-1); border-radius: var(--radius-full); background: var(--line-strong); }
+  .ds-mega, .ds-navdrop, .ds-moresheet {
+    position: fixed !important; z-index: 45; visibility: visible;
+    left: 0 !important; right: 0 !important; top: auto !important; bottom: 0 !important;
+    width: auto !important; max-width: none !important; max-height: 82dvh; overflow-y: auto; overscroll-behavior: contain;
+    display: flex; flex-direction: column; gap: var(--space-1);
+    padding: 0 var(--pad-page-x) calc(var(--space-4) + env(safe-area-inset-bottom, 0px)) !important;
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0 !important;
+    background: var(--surface-panel); border: 1px solid var(--line-hairline); border-bottom: 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, .45);
+    animation: ds-sheet-in var(--dur-med) var(--ease);
+  }
+  .ds-mega { display: flex !important; flex-direction: column !important; }
+  .ds-mega__col { width: 100%; }
+  .ds-mega__list { grid-template-columns: minmax(0, 1fr) !important; }
+  .ds-moresheet__title { padding: var(--space-3) var(--space-3) var(--space-1); color: var(--text-meta); font-size: var(--text-2xs); }
+  .ds-moresheet .ds-menu__item, .ds-navdrop .ds-menu__item { min-height: 48px; }
+  .ds-moresheet__next { margin-left: auto; color: var(--text-meta); }
+  .ds-moresheet__more { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-3) var(--space-3) 0; border-top: 1px solid var(--line-hairline); margin-top: var(--space-2); }
+
+  .ds-dialog__scrim { align-items: flex-end !important; justify-content: stretch !important; padding: 0 !important; }
+  .ds-dialog, .ds-dialog--wide {
+    width: 100% !important; max-width: none !important; max-height: 92dvh !important;
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    animation: ds-sheet-in var(--dur-med) var(--ease);
+  }
+  .ds-dialog__head { padding-top: 0; }
+  .ds-dialog__foot { flex-wrap: wrap; }
+
+  /* ── Pages: one column, nothing under the bottom bar ── */
+  .cf-team { padding-bottom: var(--bottomnav-h); }
+  .cf-team > .cf-team__body { padding: 0; gap: 0; }
+  /* The work area is the page itself: no card frame around it, one 16 px gutter. */
+  .ds-canvas { border: 0; border-radius: 0; overflow: visible; }
+  .ds-canvas__body { overflow: visible; padding: var(--space-3) var(--pad-page-x) var(--pad-page-y); }
+  .ds-canvas__body .ds-page { padding-inline: 0; }
+  .ds-split { flex-direction: column; align-items: stretch; }
+  .ds-split > * { width: 100%; max-width: none; }
+  .ds-modetabs { justify-content: flex-start; gap: var(--space-5); overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
+  .ds-modetabs::-webkit-scrollbar { display: none; }
+  .ds-modetabs > * { flex: none; scroll-snap-align: start; }
+
+  /* Grids: two columns at most; the size slider has nothing to choose on a phone, so it is not shown. */
+  .ds-grid[class*="ds-density-cols-"]:not(.ds-density-cols-1) { --cols: 2; }
+  .ds-density { display: none; }
+  /* A hero stacks: words first, its moving picture under them at full width. */
+  .ds-hero { flex-direction: column; align-items: stretch; }
+  .ds-hero__media { width: 100%; }
+  .ds-search { min-width: 0; width: 100%; }
+
+  /* The tool panel keeps its desktop form at full width; its main action stays in reach above the tab bar. */
+  .ds-panel { width: 100%; max-height: none; align-self: stretch; }
+  .ds-panel__footer {
+    position: sticky !important; bottom: 0; z-index: 5;
+    padding-bottom: var(--space-3);
+    background: var(--surface-panel) !important; /* solid, also on a panel with a background reel */
+    box-shadow: 0 -12px 16px -4px var(--surface-panel);
+  }
+
+  /* ── Full view: media on top, details below, swipe the media down to close ── */
+  .ds-viewer, .ds-viewer:has(.ds-viewer__info) {
+    flex-direction: column !important; align-items: stretch !important; justify-content: flex-start !important;
+    padding: calc(var(--space-3) + env(safe-area-inset-top, 0px)) var(--pad-page-x) calc(var(--space-4) + env(safe-area-inset-bottom, 0px)) !important;
+    overflow-y: auto; overscroll-behavior: contain;
+  }
+  .ds-viewer__frame { touch-action: pan-x pinch-zoom; will-change: transform; }
+  .ds-viewer__frame :is(img, video), .ds-viewer:has(.ds-viewer__info) .ds-viewer__frame :is(img, video) { max-width: 100% !important; max-height: 62dvh; }
+  .ds-viewer:has(.ds-viewer__info) .ds-viewer__panel { width: 100% !important; overflow: visible; flex: none; }
+  .ds-viewer:has(.ds-viewer__frame[style*="--pull"]) { background: color-mix(in srgb, var(--surface-overlay) 60%, transparent); }
+}
+
+@keyframes ds-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+
+@media (max-width: 760px) and (prefers-reduced-motion: reduce) {
+  .ds-mega, .ds-navdrop, .ds-moresheet, .ds-dialog, .ds-sheet__scrim { animation: none; }
+  .ds-bottomnav__tab, .ds-bottomnav__icon { transition: none; }
+}
