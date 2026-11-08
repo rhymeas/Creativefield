@@ -38,7 +38,7 @@ export const sourceLinkedMaskSchema=z.object({
 }).strict();
 export const maskReviewReceiptSchema=z.object({
   validationVersion:z.literal(1),contract:z.literal("source_linked_mask_review_v1"),decision:z.enum(["approved","rejected"]),maskAssetId:z.uuid(),
-  maskSha256:digest,sourceAssetId:z.uuid(),sourceSha256:digest,projectId:z.uuid(),producerRunId:z.uuid(),reviewedBy:z.uuid(),reviewedAt:z.iso.datetime(),
+  maskSha256:digest,sourceAssetId:z.uuid(),sourceSha256:digest,projectId:z.uuid(),producerRunId:z.uuid(),reviewedBy:z.uuid(),reviewedAt:z.iso.datetime(),mode:z.literal("automatic_edit").optional(),
 }).strict();
 // Do not let a video MIME label enable playlist/concat demuxers and nested file reads.
 const inputOptions=["-v","error","-protocol_whitelist","file,pipe","-format_whitelist","mov,matroska,webm","-max_alloc","67108864","-threads","1"];

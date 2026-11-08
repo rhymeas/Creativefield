@@ -65,7 +65,7 @@ export type TrackingRunSnapshot = {
 export type MaskReviewDecisionReceipt = {
   validationVersion:1;contract:"source_linked_mask_review_v1";decision:"approved"|"rejected";
   maskAssetId:string;maskSha256:string;sourceAssetId:string;sourceSha256:string;projectId:string;producerRunId:string;
-  reviewedBy:string;reviewedAt:string;
+  reviewedBy:string;reviewedAt:string;mode?:"automatic_edit";
 };
 /** Server-derived receipt proving two upload validation receipts describe one
  * aligned still-image/mask pair. Geometry and semantic roles only; it does not

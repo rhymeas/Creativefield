@@ -9,10 +9,12 @@ import {fileSha256,maskReviewReceiptSchema,maskSnapshotSchema,normalizeMaskPair,
 import {maskedEditReadiness} from "./media-tools";
 import {transaction} from "./db";
 import type {MaskReviewDecisionReceipt,MaskSequenceSnapshot,SourceLinkedMaskSnapshot} from "../src/capabilities/types";
+import {flaggedMaskFrames,validatedMaskCoverage} from "../src/capabilities/mask-coverage";
 import {publicColumns} from "./run-submission";
 
 const digest=z.string().regex(/^[a-f0-9]{64}$/);
-const reviewBody=z.object({decision:z.enum(["approve","reject"]),expectedSha256:digest}).strict();
+const reviewBody=z.object({decision:z.enum(["approve","reject"]),expectedSha256:digest,mode:z.literal("automatic_edit").optional()}).strict()
+  .refine(body=>!body.mode||body.decision==="approve","Automatic edit can only accept a tracked mask");
 
 function invalid(message:string):never{throw new HttpError(422,message);}
 function maskSequence(receipt:SourceLinkedMaskSnapshot):MaskSequenceSnapshot{
@@ -21,7 +23,7 @@ function maskSequence(receipt:SourceLinkedMaskSnapshot):MaskSequenceSnapshot{
     width:receipt.width,height:receipt.height,fps:receipt.fps,frames:receipt.frames,timingDigest:receipt.timingDigest,semantics:receipt.semantics,
   };
 }
-type ReviewInput={workspaceId:string;maskAssetId:string;decision:"approve"|"reject";expectedSha256:string;reviewedBy:string};
+type ReviewInput=z.infer<typeof reviewBody>&{workspaceId:string;maskAssetId:string;reviewedBy:string};
 
 /** Transaction body exported for focused fault and idempotency tests. */
 export async function reviewSourceLinkedMask(client:PoolClient,store:DiskStore,input:ReviewInput):Promise<MaskReviewDecisionReceipt>{
@@ -53,7 +55,7 @@ export async function reviewSourceLinkedMask(client:PoolClient,store:DiskStore,i
   if(!source||source.id!==receipt.sourceAssetId||source.project_id!==asset.project_id||source.media_type!=="video"||!source.content_type?.startsWith("video/")||source.sha256!==receipt.sourceSha256)invalid("Tracked mask source lineage is no longer valid");
 
   const run=(await client.query(
-    "SELECT id,project_id,route_id,state,workflow_revision_id,output_ids FROM runs WHERE workspace_id=$1 AND id=$2",
+    "SELECT id,project_id,route_id,state,workflow_revision_id,output_ids,created_by FROM runs WHERE workspace_id=$1 AND id=$2",
     [input.workspaceId,receipt.producerRunId],
   )).rows[0];
   const outputs=Array.isArray(run?.output_ids)?run.output_ids:[];
@@ -70,6 +72,11 @@ export async function reviewSourceLinkedMask(client:PoolClient,store:DiskStore,i
   if(outputContract?.kind!=="source_linked_mask_v1"||outputContract.semantics!==receipt.semantics||requirement?.kind!=="model"||requirement.name!==receipt.requiredCheckpoint||requirement.version!==`sha256:${receipt.requiredCheckpointSha256}`)invalid("Tracked mask model lineage is no longer valid");
   const derived=maskSnapshotSchema.safeParse(maskSequence(receipt));
   if(!derived.success)invalid("Tracked mask media contract is invalid");
+  if(input.mode==="automatic_edit"){
+    if(input.decision!=="approve"||receipt.workflowId!=="sam31-video-mask"||receipt.routeId!=="local"||run.created_by!==input.reviewedBy)invalid("This mask requires manual review");
+    const coverage=validatedMaskCoverage(asset.metadata?.maskCoverage,receipt,asset.sha256);
+    if(!coverage||flaggedMaskFrames(coverage).length)invalid("Tracking could not isolate the target throughout the clip. Describe it more specifically or trim the clip.");
+  }
 
   let maskHash:string,sourceHash:string;
   try{
@@ -85,7 +92,7 @@ export async function reviewSourceLinkedMask(client:PoolClient,store:DiskStore,i
   const decision=input.decision==="approve"?"approved":"rejected";
   const review:MaskReviewDecisionReceipt={
     validationVersion:1,contract:"source_linked_mask_review_v1",decision,maskAssetId:asset.id,maskSha256:asset.sha256,
-    sourceAssetId:source.id,sourceSha256:source.sha256,projectId:asset.project_id,producerRunId:run.id,
+    sourceAssetId:source.id,sourceSha256:source.sha256,projectId:asset.project_id,producerRunId:run.id,...(input.mode?{mode:input.mode}:{}),
     reviewedBy:input.reviewedBy,reviewedAt:new Date().toISOString(),
   };
   maskReviewReceiptSchema.parse(review);
@@ -95,7 +102,7 @@ export async function reviewSourceLinkedMask(client:PoolClient,store:DiskStore,i
   await client.query("UPDATE assets SET metadata=$3 WHERE workspace_id=$1 AND id=$2",[input.workspaceId,asset.id,JSON.stringify(metadata)]);
   await client.query(
     "INSERT INTO run_events(workspace_id,run_id,state,detail) VALUES($1,$2,$3,$4)",
-    [input.workspaceId,run.id,`mask_review_${decision}`,JSON.stringify({maskAssetId:asset.id,decision,reviewedBy:input.reviewedBy})],
+    [input.workspaceId,run.id,`mask_review_${decision}`,JSON.stringify({maskAssetId:asset.id,decision,reviewedBy:input.reviewedBy,mode:input.mode})],
   );
   return review;
 }

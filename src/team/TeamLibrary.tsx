@@ -17,12 +17,20 @@ import {newestMediaFirst} from "./media-order";
 import {FEATURED_VIDEO_EXAMPLES,LIBRARY_EXAMPLE_VIDEOS,SQUAREHEAD_EXAMPLE_IMAGES,SQUAREHEAD_EXAMPLE_VIDEOS,promoReelForCapability} from "./reels";
 import {jobQueueTitle,runLocation} from "./job-queue";
 import {producerRunId,useRecreate,useRecreateById} from "./recreate";
-import {capabilityHasControl} from "../capabilities/lookup";
+import {capabilityHasControl,isTrackedMaskWorkflow} from "../capabilities/lookup";
 import {sharpenRunBody} from "./sharpen-run";
 import {libraryFeedAssets,useStoryboardFeed,type FeedScope} from "./media-feed";
 
 /** A click handler for a file whose run is known; nothing for a file that was uploaded. */
 const withRun=(runId:string|undefined,go:(runId:string)=>Promise<void>)=>runId?()=>void go(runId):undefined;
+
+function visibleRunInputs(workspaceId:string,run:Run){
+  const review=run.invocation?.maskReviewSnapshot;
+  const hiddenId=review?.mode==="automatic_edit"?review.maskAssetId:undefined;
+  return Object.entries(run.invocation?.inputs??{})
+    .filter(([,id])=>typeof id==="string"&&id&&id!==hiddenId)
+    .map(([port,id])=>({src:assetUrl(workspaceId,id),label:port.replaceAll("_"," "),video:/video|clip/i.test(port)}));
+}
 
 export function downloadJson(value:unknown,name:string){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:"application/json"}));const link=document.createElement("a");link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 export type RunTitles=Record<string,string>;
@@ -47,7 +55,11 @@ function ProjectRuns({workspace,project,call,canEdit,authorized,version,user,tit
   // Run details name the place a run happened. Only a worker row knows which ones are Comfy Cloud.
   useEffect(()=>{if(!authorized)return;let current=true;void call<Worker[]>(workspacePath(workspace.id,"workers")).then(list=>{if(current){setCloudWorkers(Object.fromEntries(list.filter(worker=>(worker as Worker&{kind?:string}).kind==="cloud").map(worker=>[worker.id,true])));setLocalWorkers(Object.fromEntries(list.filter(worker=>(worker as Worker&{kind?:string}).kind==="local").map(worker=>[worker.id,true])));}}).catch(()=>{});return()=>{current=false;};},[workspace.id,call,authorized]);
   useEffect(()=>{if(!authorized)return;let current=true;let timer:ReturnType<typeof setTimeout>;
-    async function poll(){try{const result=await call<Run[]>(workspacePath(workspace.id,`runs?projectId=${project.id}`));if(current){setRuns(feed?result.filter(run=>feed.capabilities.includes(run.capability_id)||!!run.output_content_type?.startsWith(`${feed.kind}/`)):capabilityId?result.filter(run=>[capabilityId].flat().includes(run.capability_id)):result);setError("");}}catch(e){if(current)setError((e as Error).message);}finally{if(current)timer=setTimeout(poll,4000);}}
+    async function poll(){try{const result=await call<Run[]>(workspacePath(workspace.id,`runs?projectId=${project.id}`));if(current){
+      const linkedId=!feed&&!capabilityId&&location.hash.startsWith("#library/runs/")?location.hash.split("/")[2]:undefined;
+      const visible=result.filter(run=>!isTrackedMaskWorkflow(run.capability_id)||run.id===linkedId);
+      setRuns(feed?visible.filter(run=>feed.capabilities.includes(run.capability_id)||!!run.output_content_type?.startsWith(`${feed.kind}/`)):capabilityId?visible.filter(run=>[capabilityId].flat().includes(run.capability_id)):visible);setError("");
+    }}catch(e){if(current)setError((e as Error).message);}finally{if(current)timer=setTimeout(poll,4000);}}
     void poll();return()=>{current=false;clearTimeout(timer);};
   },[workspace.id,project.id,call,authorized,version,update]);
   const linkedRunId=location.hash.split("/")[2];
@@ -102,7 +114,7 @@ function ProjectRuns({workspace,project,call,canEdit,authorized,version,user,tit
       {canOpenRunInNodes(run,localWorkers)&&<LinkButton variant="secondary" href={`#nodes/run/${encodeURIComponent(run.id)}`}>Open in Nodes</LinkButton>}
       {canEdit&&run.state==="succeeded"&&full.invocation&&full.worker_id&&full.invocation.controls.sharpen!==true&&capabilityHasControl(run.capability_id,"sharpen")&&<Button variant="secondary" disabled={canceling===run.id} onClick={()=>void sharpen(full)}>Sharpen this take</Button>}
       <Button variant="ghost" disabled={run.state==="pending"} onClick={()=>void exportGraph(run)}>Export workflow</Button>
-    </>} onRecreate={recreate(full)??(run.state==="succeeded"&&run.output_ids.length?()=>void recreateById(run.id):undefined)} inputs={Object.entries(full.invocation?.inputs??{}).filter(([,id])=>typeof id==="string"&&id).map(([port,id])=>({src:assetUrl(workspace.id,id),label:port.replaceAll("_"," "),video:/video|clip/i.test(port)}))} facts={runFacts(run,full)} details={<>{full.capability_id==="scail2-character-replace"&&full.invocation&&<RunReferenceInspection workspace={workspace.id} run={full} call={call}/>}{seenOf(full).length>0&&<FrameStrip label="What the model saw" items={seenOf(full)}/>}{run.error?<ClampText text={run.error} lines={2} title="Why this run failed"/>:null}<Meta parts={[`Version ${run.capability_version}`,run.id]}/></>}/>{run.state==="succeeded"&&(outputAction||canOpenRunInNodes(run,localWorkers))&&<Toolbar>{canOpenRunInNodes(run,localWorkers)&&<LinkButton variant="secondary" href={`#nodes/run/${encodeURIComponent(run.id)}`}>Open in Nodes</LinkButton>}{outputAction?.(run)}</Toolbar>}{run.capability_id==="wan22-flf2v-14b"&&run.state==="succeeded"&&run.output_ids[0]&&<RunFrameInspection workspace={workspace.id} runId={run.id} call={call} authorized={authorized} canEdit={canEdit}/>}</div>;};
+    </>} onRecreate={recreate(full)??(run.state==="succeeded"&&run.output_ids.length?()=>void recreateById(run.id):undefined)} inputs={visibleRunInputs(workspace.id,full)} facts={runFacts(run,full)} details={<>{full.capability_id==="scail2-character-replace"&&full.invocation&&<RunReferenceInspection workspace={workspace.id} run={full} call={call}/>}{seenOf(full).length>0&&<FrameStrip label="What the model saw" items={seenOf(full)}/>}{run.error?<ClampText text={run.error} lines={2} title="Why this run failed"/>:null}<Meta parts={[`Version ${run.capability_version}`,run.id]}/></>}/>{run.state==="succeeded"&&(outputAction||canOpenRunInNodes(run,localWorkers))&&<Toolbar>{canOpenRunInNodes(run,localWorkers)&&<LinkButton variant="secondary" href={`#nodes/run/${encodeURIComponent(run.id)}`}>Open in Nodes</LinkButton>}{outputAction?.(run)}</Toolbar>}{run.capability_id==="wan22-flf2v-14b"&&run.state==="succeeded"&&run.output_ids[0]&&<RunFrameInspection workspace={workspace.id} runId={run.id} call={call} authorized={authorized} canEdit={canEdit}/>}</div>;};
   const runTiles=shown.map(run=>runItem(run));
   /* The shared feed: every result of this kind in the project, newest first, the finished storyboard films among
      them, packed as a mosaic. The open app's results are marked, and can be shown alone. */
@@ -176,7 +188,7 @@ export function TeamLibrary({workspace,project,call,canEdit,authorized,version,u
     <ExampleTiles kind="video" videoSources={LIBRARY_EXAMPLE_VIDEOS}/>
     <ExampleTiles kind="image" imageSources={SQUAREHEAD_EXAMPLE_IMAGES}/>
   </>}</Block>
-  <MediaViewer open={!!viewing&&!viewing.content_type.startsWith("audio/")} src={viewing?assetUrl(workspace.id,viewing.id):""} name={viewing?.name??""} mediaType={viewing?.content_type.startsWith("video/")?"video":"image"} onClose={()=>setViewing(null)} onRecreate={canEdit?withRun(viewingRunId,recreateById):undefined} info={viewingRun?<MediaViewerInfo model={jobQueueTitle(viewingRun.capability_id,titles??{})} inputs={Object.entries(viewingRun.invocation?.inputs??{}).filter(([,id])=>typeof id==="string"&&!!id).map(([port,id])=>({src:assetUrl(workspace.id,id),label:port.replaceAll("_"," "),video:/video|clip/i.test(port)}))} prompt={String(viewingRun.invocation?.controls?.prompt??"")} facts={Object.entries(viewingRun.invocation?.controls??{}).filter(([key,value])=>key!=="prompt"&&(typeof value==="string"||typeof value==="number"||typeof value==="boolean")).map(([key,value])=>({label:key.replaceAll("_"," "),value:String(value)}))} date={new Date(viewingRun.created_at).toLocaleString()}/>:undefined}/>
+  <MediaViewer open={!!viewing&&!viewing.content_type.startsWith("audio/")} src={viewing?assetUrl(workspace.id,viewing.id):""} name={viewing?.name??""} mediaType={viewing?.content_type.startsWith("video/")?"video":"image"} onClose={()=>setViewing(null)} onRecreate={canEdit?withRun(viewingRunId,recreateById):undefined} info={viewingRun?<MediaViewerInfo model={jobQueueTitle(viewingRun.capability_id,titles??{})} inputs={visibleRunInputs(workspace.id,viewingRun)} prompt={String(viewingRun.invocation?.controls?.prompt??"")} facts={Object.entries(viewingRun.invocation?.controls??{}).filter(([key,value])=>key!=="prompt"&&(typeof value==="string"||typeof value==="number"||typeof value==="boolean")).map(([key,value])=>({label:key.replaceAll("_"," "),value:String(value)}))} date={new Date(viewingRun.created_at).toLocaleString()}/>:undefined}/>
   <Dialog open={!!viewing&&viewing.content_type.startsWith("audio/")} title={viewing?.name??"Audio preview"} onClose={()=>setViewing(null)} footer={<Button variant="ghost" onClick={()=>setViewing(null)}>Close</Button>}>{viewing&&<Suspense fallback={null}><SpeechAudioPlayer key={viewing.id} workspace={workspace.id} asset={viewing}/></Suspense>}</Dialog>
   <ConfirmDialog open={!!deleting} title="Delete this file?" text={deleting?`${deleting.name} will be removed from your library. If a project still needs the file, its stored copy and references will be retained.`:""} confirmLabel={deleteError?"Retry deletion":"Delete file"} error={deleteError} busy={!!deletingId} onCancel={()=>setDeleting(null)} onConfirm={()=>void removeAsset()}/>
   </>;

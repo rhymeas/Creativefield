@@ -52,12 +52,7 @@ export function SwapThingPanel({workspace,project,workerId,call,canEdit,onChange
 
   /** Find the thing with the run loop, then stop and show the mask. Every press is a new attempt, so Try again
    * queues new runs; a press after a reload reaches the run it already queued. Cancel stops the run that is working. */
-  /* A saved attempt whose inputs changed reaches the server with its old request key and is refused
-     ("Idempotency key was already used for a different request"): drop it and start a fresh attempt once. */
-  const generate=()=>guard("run",async()=>{
-    try{await startAttempt(chain);}
-    catch(e){if(!/Idempotency key was already used/.test((e as Error).message))throw e;edited();attempt.current+=1;await startAttempt(null);}
-  },"mask");
+  const generate=()=>guard("run",()=>startAttempt(chain),"mask");
   async function startAttempt(chain:ChainRecord|null){
     cancelled.current=false;setFailed(false);setCancelling(false);
     // A mask this chain already found is not found again: it is shown for review.
@@ -74,7 +69,7 @@ export function SwapThingPanel({workspace,project,workerId,call,canEdit,onChange
     let maskRun="",found:Asset|null=null;
     try{
       const [find]=record.steps as TrackedStep[];
-      const outputs=await runSwapAttempt({call,workspaceId:workspace.id,projectId:project.id,workerId,attempt:record.attempt,
+      const outputs=await runSwapAttempt({call,workspaceId:workspace.id,projectId:project.id,workerId,requestId:record.requestId,
         steps:[find],
         onStep:label=>{if(alive.current)setDoing(progressLabel(label));},
         onRun:id=>{if(id)maskRun=id;if(alive.current)setRunId(id);},
@@ -91,13 +86,15 @@ export function SwapThingPanel({workspace,project,workerId,call,canEdit,onChange
   }
 
   /** The mask is found in the background and used at once: change only its area, with that exact mask. */
-  async function runChange(approved:Asset){
+  async function runChange(mask:Asset){
     setFailed(false);setCancelling(false);
     const record=readChain(storage,key)??chain??beginChain({requestId:crypto.randomUUID(),attempt:attempt.current,input:saved(),steps:buildSwapSteps(req())});
     let editRun="";
     try{
-      const outputs=await runSwapAttempt({call,workspaceId:workspace.id,projectId:project.id,workerId,attempt:record.attempt,
-        steps:[swapEditStep(req(),approved.id)],
+      if(!mask.sha256)throw new Error("The tracked area could not be verified. Change the prompt to track it again.");
+      await call(workspacePath(workspace.id,`assets/${mask.id}/mask-review`),"POST",{decision:"approve",expectedSha256:mask.sha256,mode:"automatic_edit"});
+      const outputs=await runSwapAttempt({call,workspaceId:workspace.id,projectId:project.id,workerId,requestId:record.requestId,
+        steps:[swapEditStep(req(),mask.id)],
         onStep:label=>{if(alive.current)setDoing(progressLabel(label));},
         onRun:id=>{if(id)editRun=id;if(alive.current)setRunId(id);},
         onChanged,alive:()=>alive.current});

@@ -12,10 +12,6 @@ export type TrackedStep = SwapStep & {tracking?: Record<string, unknown>};
 /** What the step is doing, in the panel: "Find the red car…". */
 export function stepLabel(step: SwapStep): string { return `${step.label}…`; }
 
-/** One key per attempt and step. Pressing Generate again bumps the attempt, so a retry queues a new run;
- *  editing an input never changes a key that is already in flight. */
-export function attemptKey(attempt: number, stepId: string): string { return `swap-${attempt}-${stepId}`; }
-
 export type SwapStepBody = {
   projectId: string; workerId: string; idempotencyKey: string; capabilityId: string; version: string;
   routeId: "local"; inputs: Record<string, string>; elementInputs: Record<string, never>;
@@ -23,9 +19,9 @@ export type SwapStepBody = {
 };
 
 /** The body the server takes for one step of one attempt. */
-export function swapStepBody(step: TrackedStep, inputs: Record<string, string>, target: {projectId: string; workerId: string; attempt: number}): SwapStepBody {
+export function swapStepBody(step: TrackedStep, inputs: Record<string, string>, target: {projectId: string; workerId: string; requestId: string}): SwapStepBody {
   return {
-    projectId: target.projectId, workerId: target.workerId, idempotencyKey: attemptKey(target.attempt, step.id),
+    projectId: target.projectId, workerId: target.workerId, idempotencyKey: `swap-${target.requestId}-${step.id}`,
     capabilityId: step.capabilityId, version: step.version, routeId: "local",
     inputs, elementInputs: {}, controls: step.controls, audioPolicy: "mute",
     ...(step.tracking ? {tracking: step.tracking} : {}),
@@ -49,8 +45,8 @@ export function swapStopReason(run: Pick<Run, "state" | "error">): string {
 
 export type SwapAttempt = {
   call: Call; workspaceId: string; projectId: string; workerId: string;
-  /** Which press of Generate this is: 1 for the first, 2 for a retry. */
-  attempt: number; steps: TrackedStep[];
+  /** The persisted request ID, shared by the steps of this attempt. */
+  requestId: string; steps: TrackedStep[];
   /** The step now working, or "" when the attempt ends. */
   onStep?: (label: string) => void;
   /** The run that Cancel stops, or null when nothing is in flight. */
@@ -67,14 +63,14 @@ const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms
 
 /** Queue the steps in order, feed each step's output into the next, and return step id → output asset.
  *  Throws a `SwapStepError` naming the step that did not finish. */
-export async function runSwapAttempt({call, workspaceId, projectId, workerId, attempt, steps,
+export async function runSwapAttempt({call, workspaceId, projectId, workerId, requestId, steps,
   onStep, onRun, onChanged, waitMs = 3000, sleep = wait, alive = () => true}: SwapAttempt): Promise<Record<string, string>> {
   const outputs: Record<string, string> = {};
   try {
     for (const step of steps) {
       onStep?.(stepLabel(step));
       const inputs = Object.fromEntries(Object.entries(step.inputs).map(([key, value]) => [key, "asset" in value ? value.asset : outputs[value.step]]));
-      let run = await call<Run>(workspacePath(workspaceId, "runs"), "POST", swapStepBody(step, inputs, {projectId, workerId, attempt}));
+      let run = await call<Run>(workspacePath(workspaceId, "runs"), "POST", swapStepBody(step, inputs, {projectId, workerId, requestId}));
       onRun?.(run.id);
       onChanged?.();
       while (activeRun(run.state) && alive()) {
