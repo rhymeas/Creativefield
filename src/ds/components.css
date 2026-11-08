@@ -1563,6 +1563,9 @@ button.ds-thumb__art:disabled { opacity: 0.45; cursor: not-allowed; }
 @keyframes ds-develop-core { from { transform: scale(.7); opacity: .6; } to { transform: scale(1.1); opacity: 1; } }
 .ds-resulttile__develop[data-terminal] .ds-resulttile__grain { display: none; }
 .ds-resulttile__elapsed { position: absolute; z-index: 1; top: var(--space-3); right: var(--space-3); padding: 2px var(--space-2); border-radius: var(--radius-full); background: var(--surface-overlay); color: var(--text-secondary); font-size: var(--text-2xs); line-height: var(--lh-2xs); font-variant-numeric: tabular-nums; }
+.ds-generate__estimate { margin-left: var(--space-1); font-size: var(--text-2xs); font-weight: inherit; opacity: .6; font-variant-numeric: tabular-nums; }
+.ds-resulttile__stage { margin-right: var(--space-1); color: var(--text-tertiary); }
+.ds-resulttile__stage::after { content: "·"; margin-left: var(--space-1); }
 .ds-resulttile__developbar { position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-3); opacity: 0; transform: translateY(6px); transition: opacity var(--dur-fast) var(--ease), transform var(--dur-med) var(--ease); }
 .ds-resulttile:is(:hover, :focus-within) .ds-resulttile__developbar { opacity: 1; transform: none; }
 .ds-resulttile__developtext { transition: transform var(--dur-med) var(--ease); }

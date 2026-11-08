@@ -992,16 +992,20 @@ export function GenerateButton({
   busy,
   label,
   disabledReason,
+  estimate,
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   busy?: boolean;
   label?:ReactNode;
   disabledReason?:string;
+  /** How long this usually takes here ("~9 min"), set small after the word while it is idle. */
+  estimate?:ReactNode;
 }) {
   const button=(
     <button type="button" className="ds-generate" {...rest}>
       {busy ? <SparkleLoader size="sm" /> : <Sparkles size={14} />}
       {busy ? <ShimmerText>{label ?? "Generating"}</ShimmerText> : (label ?? "Generate")}
+      {!busy && estimate && <span className="ds-generate__estimate">{estimate}</span>}
     </button>
   );
   // The main action says why it cannot run in plain view, never only on hover.
@@ -2066,7 +2070,7 @@ export function ResultGrid({ count, aspect, label, children }: { count: number; 
 }
 
 /* ResultTile: one image in a ResultGrid, or its place while it is being made (pass a status instead of children). */
-export function ResultTile({ children, status, caption, actions, onOpen, develop, dragAsset, onRecreate, onDelete, deleteTitle = "Delete this file?", deleteText = "It is removed from this project for everyone." }: { /** Opens the tool this was made in with the same inputs and settings: the hover button bottom right. */ onRecreate?: () => void; /** Removes the tile after a confirm (rule 69): every upload, reference, film and example can go, not only results. */ onDelete?: () => Promise<void> | void; deleteTitle?: string; deleteText?: string; children?: ReactNode; status?: ReactNode; caption?: ReactNode; actions?: ReactNode; onOpen?: () => void; dragAsset?: { id: string; url: string; contentType?: string }; develop?: { src?: string; label: ReactNode; detail?: ReactNode; elapsed?: ReactNode; progress?: number; active?: boolean; onCancel?: () => void; cancelling?: boolean } }) {
+export function ResultTile({ children, status, caption, actions, onOpen, develop, dragAsset, onRecreate, onDelete, deleteTitle = "Delete this file?", deleteText = "It is removed from this project for everyone." }: { /** Opens the tool this was made in with the same inputs and settings: the hover button bottom right. */ onRecreate?: () => void; /** Removes the tile after a confirm (rule 69): every upload, reference, film and example can go, not only results. */ onDelete?: () => Promise<void> | void; deleteTitle?: string; deleteText?: string; children?: ReactNode; status?: ReactNode; caption?: ReactNode; actions?: ReactNode; onOpen?: () => void; dragAsset?: { id: string; url: string; contentType?: string }; develop?: { src?: string; label: ReactNode; detail?: ReactNode; elapsed?: ReactNode; /** One word for what the job does now ("Rendering", "Upscaling"), set small before the clock. */ stage?: ReactNode; progress?: number; active?: boolean; onCancel?: () => void; cancelling?: boolean } }) {
   const preview=useSurfacePreview({onRecreate});
   const open=onOpen??preview.open;
   const [removing,setRemoving]=useState(false),[deleting,setDeleting]=useState(false);
@@ -2088,7 +2092,7 @@ export function ResultTile({ children, status, caption, actions, onOpen, develop
               elapsed time sits top right and the ways out appear on hover. */}
           {develop.src && <img className="ds-resulttile__preview" src={develop.src} alt="" />}
           <span className="ds-resulttile__grain" aria-hidden="true" />
-          {develop.elapsed && <span className="ds-resulttile__elapsed">{develop.elapsed}</span>}
+          {develop.elapsed && <span className="ds-resulttile__elapsed">{develop.stage && develop.active !== false && <span className="ds-resulttile__stage">{develop.stage}</span>}{develop.elapsed}</span>}
           <span className="ds-resulttile__developtext">
             <span className="ds-resulttile__logo" aria-hidden="true" />
             {/* While it runs the shimmering logo says it; the words stay for screen readers. A stopped job shows them. */}

@@ -19,6 +19,7 @@ import {ApiError,storeCloudKey,assetUrl,composerAssets,composerResultAssets,merg
 import {TeamComposer} from "./TeamComposer";
 import {TransformVideo} from "./TransformVideo";
 import {TeamLibrary,TeamRuns} from "./TeamLibrary";
+import {renderTime} from "./RunDevelop";
 import {feedMode,feedScope} from "./media-feed";
 import {runLocation} from "./job-queue";
 import {JobQueueIndicator} from "./JobQueueIndicator";
@@ -634,6 +635,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
           ...(controls.aspect_ratio!==undefined?[{label:"Format",value:String(controls.aspect_ratio).replace(/ \(.*\)$/ ,"")}]:[]),
           ...(controls.length!==undefined?[{label:"Length",value:`${controls.length} s`}]:[]),
           ...(controls.seed!==undefined?[{label:"Seed",value:String(controls.seed)}]:[]),
+          ...(renderTime(run)?[{label:"Render time",value:renderTime(run)!}]:[]),
           {label:"Ran on",value:runLocation(run.transport,!!workers.find(worker=>worker.id===run.worker_id&&isCloudWorker(worker)))},
         ];
         const inputs=Object.entries(run.invocation?.inputs??{}).filter((entry):entry is [string,string]=>typeof entry[1]==="string"&&!!entry[1]).map(([port,id])=>({src:assetUrl(workspace.id,id),label:port.replaceAll("_"," "),video:/video|clip/i.test(port)}));

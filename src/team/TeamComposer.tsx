@@ -1,6 +1,8 @@
 import {SourceCredit,WorkflowDescription} from "./workflow-info";
 import {TeamMediaInput} from "./TeamMediaInput";
 import {nearestFormat} from "./picture-format";
+import {imageReaderName,promptStep} from "./prompt-steps";
+import {aboutTime} from "./RunDevelop";
 import {insertReferenceMention,modelPromptReferences,usesH3Prompt} from "./prompt-reference";
 import {addKnownAssetDragType} from "./asset-drag";
 import {TrimToFit} from "./TrimToFit";
@@ -15,7 +17,7 @@ import {catalogueTitles} from "./job-queue";
 import {ToolHero} from "./heroes";
 import {ProductionContent} from "./ProductionWorkspace";
 import type {CapabilityManifestV2} from "../capabilities/types";
-import {ApiError,assetUrl,workspacePath,composerAssets,mergeAssets,type Asset,type Call,type Project,type ReusableElement,type User,type Worker,type Workspace} from "./api";
+import {ApiError,loadAiText,assetUrl,workspacePath,composerAssets,mergeAssets,type Asset,type Call,type Project,type ReusableElement,type User,type Worker,type Workspace} from "./api";
 import {bestWorkerReadiness,composerReadyWorker,defaultDraft,draftErrors,draftKey,draftPromptForHandoff,h3GeneratedAudio,hyperflowImageHandoff,promptOptional,restoreDraft,submissionIntent,workerReadiness,type Draft} from "./state";
 import {plainProblem,plainReasons,workerBlocker} from "./problems";
 import {audienceOf,settingsLabel} from "./audience";
@@ -305,17 +307,35 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
     void(async()=>{for(let index=0;index<selected.length&&turn.isCurrent();index++){if(!await upload(ports[index].id,selected[index],turn.isCurrent))return;}if(turn.isCurrent()){invalidateReferenceDrop(referenceDropEpoch);setAddingReference(false);}})();
   }
   function setElementInput(role:string,value:string){setDraft(d=>chooseElementInput(d,role,value));setFiles(f=>({...f,[role]:null}));}
+  /* What the prompt writer is doing, as one shimmering word in its button, then "Done" for a moment. */
+  const [promptLabel,setPromptLabel]=useState<{text:string;done?:boolean}>();
+  /* The text the writer replaced, kept so one click brings it back; dropped once the prompt is edited. */
+  const [promptUndo,setPromptUndo]=useState<{before:string;after:string}>();
+  const [promptProblem,setPromptProblem]=useState<{text:string;settings:boolean}>();
+  /* How long a run with these settings usually takes here, from earlier finished runs. */
+  const [usual,setUsual]=useState<string>();
+  const usualKey=`${manifest.id}|${String(draft.controls.quality??"")}|${String(draft.controls.length??"")}`;
+  useEffect(()=>{let current=true;setUsual(undefined);const q=new URLSearchParams({capabilityId:manifest.id,...(draft.controls.quality!=null?{quality:String(draft.controls.quality)}:{}),...(draft.controls.length!=null?{length:String(draft.controls.length)}:{})});
+    void call<{estimate:{seconds:number}|null}>(workspacePath(workspace.id,`run-estimate?${q}`)).then(b=>{if(current&&b.estimate)setUsual(aboutTime(b.estimate.seconds));},()=>{});return()=>{current=false;};},[usualKey,workspace.id]);
   async function writeVideoPrompt(){
     const start=draft.inputs.start_image,end=draft.inputs.end_image,original=String(draft.controls.prompt??"");
     if(!start||locked)return;
-    setBusy("video-prompt");setError("");
+    setBusy("video-prompt");setError("");setPromptProblem(undefined);setPromptUndo(undefined);
+    let reader=imageReaderName();const began=Date.now();
+    const tick=()=>{if(mounted.current)setPromptLabel({text:promptStep(Date.now()-began,reader)});};
+    tick();const timer=setInterval(tick,500);
+    void loadAiText(call,workspace.id).then(settings=>{reader=imageReaderName(settings);tick();},()=>{});
+    let done=false;
     try{
       const answer=await call<{prompt:string}>(workspacePath(workspace.id,"video-prompt"),"POST",{projectId:project.id,startImageId:start,...(end?{endImageId:end}:{}),intent:original,seconds:Number(draft.controls.length??5)});
       if(!mounted.current)return;
       setDraft(current=>current.inputs.start_image===start&&current.inputs.end_image===end&&String(current.controls.prompt??"")===original?{...current,controls:{...current.controls,prompt:answer.prompt}}:current);
-      setPromptOn(true);
-    }catch(e){if(mounted.current)setError((e as Error).message);}
-    finally{if(mounted.current)setBusy("");}
+      setPromptOn(true);done=true;setPromptUndo({before:original,after:answer.prompt});
+    }catch(e){if(mounted.current){const text=(e as Error).message;setPromptProblem({text,settings:/Settings/.test(text)});}}
+    finally{
+      clearInterval(timer);
+      if(mounted.current){setBusy("");setPromptLabel(done?{text:"Done",done:true}:undefined);if(done)setTimeout(()=>{if(mounted.current)setPromptLabel(undefined);},1500);}
+    }
   }
   const toast=useToast();
   /* A failed request is said in everyday words; the raw text waits behind Details (rule 36). */
@@ -364,7 +384,8 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
     {pending&&<Notice tone="info" title="Request awaiting confirmation">The request is frozen. The Generate button checks and retries it with the same identifier, so no duplicate job is created.</Notice>}{masked&&requirements===null&&<ShimmerText>Checking FFmpeg and FFprobe…</ShimmerText>}
     {motionNotice&&<Notice inline>{motionNotice}</Notice>}
     {error&&failure&&<Notice priority={60} title={failure.title||"This request did not go through"} actions={<Button variant="secondary" disabled={!!busy||!canQueue} onClick={()=>void queue()}>Try again</Button>} details={error}>{failure.text}</Notice>}
-    {<GenerateButton disabled={!!busy} aria-disabled={!busy&&(!canQueue||(!pending&&(!ready||!valid)))} disabledReason={pending?undefined:[missing.length?`Add ${missing.map(p=>p.label.toLowerCase()).join(" and ")}.`:"",...errors].filter(Boolean).join(" ")||undefined} onClick={()=>{if(busy||!canQueue||(!pending&&(!ready||!valid))){if(!pending&&!ready)toast(blocker?.text??"This workflow cannot run here yet.");else if(!pending&&!valid)toast(missing[0]?`${missing[0].label}: select available shared ${missing[0].type} media.`:errors[0]??motionNotice??"This request is not ready yet.");return;}void queue();}} label={pending?"Check / retry same request":"Generate"}/>}
+    {<GenerateButton disabled={!!busy} aria-disabled={!busy&&(!canQueue||(!pending&&(!ready||!valid)))} disabledReason={pending?undefined:[missing.length?`Add ${missing.map(p=>p.label.toLowerCase()).join(" and ")}.`:"",...errors].filter(Boolean).join(" ")||undefined} onClick={()=>{if(busy||!canQueue||(!pending&&(!ready||!valid))){if(!pending&&!ready)toast(blocker?.text??"This workflow cannot run here yet.");else if(!pending&&!valid)toast(missing[0]?`${missing[0].label}: select available shared ${missing[0].type} media.`:errors[0]??motionNotice??"This request is not ready yet.");return;}void queue();}} label={pending?"Check / retry same request":"Generate"} estimate={pending?undefined:usual}/>}
+    {promptProblem&&<Notice priority={60} title="The prompt was not written" actions={<>{promptProblem.settings&&onWorkerSettings?<Button variant="secondary" onClick={onWorkerSettings}>Open Settings</Button>:<Button variant="secondary" disabled={locked} onClick={()=>void writeVideoPrompt()}>Try again</Button>}</>}>{promptProblem.text}</Notice>}
   </div>}>
     <div className="cf-form"><TeamChoice variant="model" label="Model" display={manifest.title.split(" (")[0]} subtitle={manifest.title.split(" (")[1]?.replace(")","")??"Local ComfyUI"} video={reelForManifest(manifest.id)??reelForSection("video")} value={manifest.id} options={workflowOptions} onChange={changeModel} disabled={locked}/>{top}{memoryTight&&<Notice inline title="Low free memory, a run may wait to start"/>}
       <fieldset disabled={locked} className="cf-fieldset">
@@ -377,7 +398,7 @@ export function TeamComposer({manifest:chosenManifest,catalogue,onCapability,use
         {masked&&source&&<ParamButton disabled={locked} title="Edit ideas" icon={<WandSparkles size={16}/>} label="Edit ideas" value={MASK_EDIT_IDEAS.find(idea=>idea.prompt===draft.controls.prompt)?.value??"custom"} options={MASK_EDIT_IDEAS.map(idea=>({value:idea.value as string,label:idea.label}))} onChange={value=>{const idea=MASK_EDIT_IDEAS.find(idea=>idea.value===value);if(idea)changeControl("prompt",idea.prompt);}}/>}
         {promptControl&&optionalPrompt&&<ToggleRow label="Prompt" checked={promptOn} onChange={setPromptOn} disabled={locked}/>}
         {promptControl&&(!optionalPrompt||promptOn)&&controlField(promptControl)}
-        {createSurface&&manifest.id==="hyperflow-h3-flash-i2v"&&draft.inputs.start_image&&<><Button variant="secondary" disabled={locked} onClick={()=>void writeVideoPrompt()}>{busy==="video-prompt"?"Writing prompt…":"Write prompt from images"}</Button><Meta>Sends your reference images to ChatGPT or your own text API.</Meta></>}
+        {createSurface&&manifest.id==="hyperflow-h3-flash-i2v"&&draft.inputs.start_image&&<><Button variant="secondary" disabled={locked} onClick={()=>void writeVideoPrompt()}>{busy==="video-prompt"&&promptLabel?<ShimmerText>{promptLabel.text}</ShimmerText>:promptLabel?.done?promptLabel.text:"Write prompt from images"}</Button>{promptUndo&&String(draft.controls.prompt??"")===promptUndo.after&&!busy&&<Button variant="ghost" onClick={()=>{const before=promptUndo.before;setDraft(d=>({...d,controls:{...d.controls,prompt:before}}));setPromptUndo(undefined);}}>Undo</Button>}<Meta>Sends your reference images to ChatGPT or your own text API.</Meta></>}
         {manifest.id==="openjutsu-h3-advanced"&&manifest.controls.filter(c=>c.id==="roles").map(c=><div key={c.id}>{controlField(c)}</div>)}
         {manifest.controls.filter(c=>c.id==="motion_prompt"&&!motionRoute).map(c=><div key={c.id}>{controlField(c)}</div>)}
         {(size||qualityOptions.length>0||lengthControl||aspect||count)&&<Params>{size?<ParamButton disabled={locked} title="Size" icon={<Maximize2 size={16}/>} label={sizeLabel(size.id,draft.controls[size.id]??size.default)} value={String(draft.controls[size.id]??size.default)} onChange={v=>changeControl(size.id,size.options?.find(o=>String(o)===v)??v)} options={(size.options??[]).map(o=>({value:String(o),label:sizeLabel(size.id,o)}))}/>:qualityOptions.length>0?<ParamButton disabled={locked} title="Size" icon={<Maximize2 size={16}/>} label={quality?.label??"Choose size"} value={selectedResolution} options={qualityOptions} onChange={id=>{if(locked)return;const selected=manifest.resolutions![id];setDraft(d=>({...d,controls:{...d.controls,width:selected.width,height:selected.height}}));}}/>:null}{lengthControl&&<ParamButton disabled={locked} title="Duration" icon={<Clock size={16}/>} label={lengthLabel(Number(draft.controls[lengthControl.id]??lengthControl.default))} value={Number(draft.controls[lengthControl.id]??lengthControl.default)} onChange={v=>changeControl(lengthControl.id,Number(v))} options={lengthOptions}/>}{aspect&&<ParamButton<string|number> disabled={locked} title="Aspect ratio" icon={<RectangleHorizontal size={16}/>} label={String(draft.controls[aspect.id]??aspect.default??aspect.options![0])} value={(draft.controls[aspect.id]??aspect.default??aspect.options![0]) as string|number} onChange={v=>changeControl(aspect.id,v)} options={aspect.options!.map(o=>({value:o as string|number,label:String(o)}))}/>}{count&&<ParamButton<number> disabled={locked} title="Images" icon={<Images size={16}/>} label={`${Number(draft.controls[count.id]??count.default??count.min)} ${Number(draft.controls[count.id]??count.default??count.min)===1?"image":"images"}`} value={Number(draft.controls[count.id]??count.default??count.min)} onChange={v=>changeControl(count.id,Number(v))} options={countOptions(count).map(n=>({value:n,label:String(n)}))}/>}</Params>}
