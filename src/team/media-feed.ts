@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState} from "react";
 import type {CapabilityManifestV2} from "../capabilities/types";
+import {isEffectClips} from "../capabilities/tasks";
 import {workspacePath,type Asset,type Call} from "./api";
 import type {BoardRender} from "./storyboard-state";
 
@@ -17,7 +18,7 @@ export function feedKind(manifest:Pick<CapabilityManifestV2,"outputs">|undefined
 export type FeedScope={kind:FeedKind;capabilities:string[];current?:string[];/** The mode each workflow makes things in, shown on its tiles. */modes?:Record<string,string>};
 const MODES:Record<string,string>={t2v:"Text to video",i2v:"Image to video",flf2v:"First and last frame",video:"Video",motion:"Motion transfer",replacement:"Replace",enhance:"Enhance",finishing:"Restyle",image:"Image",canvas:"Image edit",identity:"Character","3d":"3D",audio:"Audio"};
 /** The mode a workflow makes things in, in plain words. */
-export const feedMode=(manifest:Pick<CapabilityManifestV2,"category">)=>MODES[manifest.category]??manifest.category;
+export const feedMode=(manifest:Pick<CapabilityManifestV2,"id"|"category">)=>isEffectClips(manifest.id)?"Effects":MODES[manifest.category]??manifest.category;
 export function feedScope(catalogue:CapabilityManifestV2[],kind:FeedKind,current?:string[]):FeedScope{
   const members=catalogue.filter(m=>feedKind(m)===kind);
   return {kind,capabilities:members.map(m=>m.id),current,modes:Object.fromEntries(members.map(m=>[m.id,feedMode(m)]))};

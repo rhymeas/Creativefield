@@ -2,6 +2,7 @@ import sharp from "sharp";
 import { IMAGE_MAX_PIXELS } from "./image-media";
 
 const stillWorkflows = new Set([
+  "h3-effects-hyperflow",
   "hyperflow-h3-flash-i2v",
   "hyperflow-h3-flash-flf2v",
   "hyperflow-h3-flash-flf2v-deno",

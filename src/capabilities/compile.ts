@@ -158,7 +158,7 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
   if(manifest.id === "hyperflow-h3-flash-t2v" && (values.quality ?? "normal")!=="normal") throw new Error("Upscale requires the HyperFlow Deno workflow");
   if(manifest.id === "hyperflow-h3-flash-t2v-deno") graph=selectHyperflowTextFinish(graph,values.quality==="hd-upscale"?"hd-upscale":"upscale");
   if(manifest.id === "hyperflow-h3-flash-flf2v-deno") graph=buildHyperflowFirstLastFinish(graph,String(values.quality ?? "hd-upscale") as "upscale"|"hd-upscale");
-  if (manifest.id === "hyperflow-h3-flash-i2v") {
+  if (manifest.id === "hyperflow-h3-flash-i2v" || manifest.id === "h3-effects-hyperflow") {
     graph = buildHyperflowQuality(graph, {
       quality: String(values.quality ?? "upscale") as HyperflowQuality,
       image: invocation.inputs.start_image,

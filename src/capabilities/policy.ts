@@ -141,6 +141,7 @@ const HYPERFLOW_CORE_CLASSES = new Set(["HyperFlowGGUFLoader", "HyperFlowSigmas"
 const OPENJUTSU_FLASH_CLASSES = new Set([...HYPERFLOW_CORE_CLASSES, "HyperFlowH3CharacterSwapSettings"]);
 const HYPERFLOW_QUALITY_CLASSES = new Set([...HYPERFLOW_CORE_CLASSES, "DenoMiniMaxH3TiledSampler", "MiniMaxH3AddGuide"]);
 const HYPERFLOW_WORKFLOWS = new Set([
+  "h3-effects-hyperflow",
   "hyperflow-h3-flash-i2v",
   "hyperflow-h3-flash-t2v",
   "hyperflow-h3-flash-t2v-deno",

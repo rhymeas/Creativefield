@@ -1,5 +1,5 @@
 import type {CapabilityManifestV2,Readiness,ReadinessState} from "../capabilities/types";
-import {isObjectSwapWorkflow,isOpenJutsuSingleSwap} from "../capabilities/tasks";
+import {isEffectClips,isObjectSwapWorkflow,isOpenJutsuSingleSwap} from "../capabilities/tasks";
 import {capabilityReadiness} from "../capabilities/readiness";
 import {capabilitySurface as surfaceOf} from "../capabilities/surfaces";
 import type {Worker} from "./api";
@@ -65,7 +65,7 @@ export function hyperflowImageHandoff(source:CapabilityManifestV2,target:Capabil
   return {...next,controls,audioPolicy:target.audioPolicies.includes(current.audioPolicy)?current.audioPolicy:next.audioPolicy};
 }
 /** These H3 creation graphs decode generated audio; replace retains that output. */
-export function h3GeneratedAudio(m:CapabilityManifestV2){return ["h3-t2v","h3-i2v","h3-flf2v","h3-effects","hyperflow-h3-flash-i2v","hyperflow-h3-flash-t2v","hyperflow-h3-flash-flf2v","previs-to-video-hyperflow"].includes(m.id)&&m.audioPolicies.includes("replace");}
+export function h3GeneratedAudio(m:CapabilityManifestV2){return ["h3-t2v","h3-i2v","h3-flf2v","h3-effects","h3-effects-hyperflow","hyperflow-h3-flash-i2v","hyperflow-h3-flash-t2v","hyperflow-h3-flash-flf2v","previs-to-video-hyperflow"].includes(m.id)&&m.audioPolicies.includes("replace");}
 export function defaultDraft(m:CapabilityManifestV2):Draft {
   return {controls:Object.fromEntries(m.controls.filter(c=>!c.disabledReason&&c.default!==undefined).map(c=>[c.id,c.default])) as Draft["controls"],inputs:{},elementInputs:{},audioPolicy:m.voiceContract||h3GeneratedAudio(m)?"replace":m.audioPolicies.includes("preserve")?"preserve":"mute"};
 }
@@ -105,7 +105,10 @@ export function draftErrors(m:CapabilityManifestV2,draft:Draft):string[]{
   for(const c of m.controls){
     if(c.disabledReason)continue;
     const value=draft.controls[c.id]??c.default;
-    if(c.type==="string"&&(typeof value!=="string"||value.length>20000||(c.id==="prompt"&&!value.trim()&&!presetSetsPrompt&&!promptOptionalHere)))errors.push(`${c.label}: enter valid text.`);
+    if(c.type==="string"){
+      if(typeof value!=="string"||value.length>20000)errors.push(`${c.label}: enter valid text.`);
+      else if(c.id==="prompt"&&!value.trim()&&!presetSetsPrompt&&!promptOptionalHere)errors.push(isEffectClips(m.id)?"Choose an effect or describe what should happen.":`${c.label}: enter valid text.`);
+    }
     if(["number","integer"].includes(c.type)&&(typeof value!=="number"||!Number.isFinite(value)||(c.type==="integer"&&!Number.isSafeInteger(value))||(c.min!==undefined&&value<c.min)||(c.max!==undefined&&value>c.max)))errors.push(`${c.label}: enter a ${c.type==="integer"?"whole ":""}number${c.min!==undefined?` from ${c.min}`:""}${c.max!==undefined?` to ${c.max}`:""}.`);
     if(c.type==="select"&&!c.options?.includes(value as string|number))errors.push(`${c.label}: choose a supported option.`);
     if(c.type==="boolean"&&typeof value!=="boolean")errors.push(`${c.label}: choose on or off.`);

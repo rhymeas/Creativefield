@@ -13,7 +13,7 @@ export type StartTask = { /** One of a few promoted tiles: picture edge to edge,
 export const START_TASKS: StartTask[] = [
   { promo: true, video: "/examples/welcome-fotofield.mp4", id: "fix-picture", group: "Picture", label: "FotoField", text: "Our free, open-source photo editor: layers, masks and AI edits.", href: "#imageedit/layers", needs: "always", thumb: "/examples/fotofield.webp", featured: true },
   { promo: true, video: "/examples/promo/reshoot.mp4", id: "swap-person", group: "Video", label: "Replace character", text: "Put a face from a photo onto someone in a video.", href: "#video/replace", needs: "replace" },
-  { id: "effect-clips", group: "Video", label: "Effect clips", text: "One photo, one effect: breathe fire, call a storm, let flowers bloom.", href: "#video/effects", needs: "h3effects", workflow: "h3-effects" },
+  { id: "effect-clips", group: "Video", label: "Effect clips", text: "One photo, one effect: breathe fire, call a storm, let flowers bloom.", href: "#video/effects", needs: "h3effects" },
   { id: "block", group: "Video", label: "Block a shot", text: "Draw a grey layout with a camera move, then make it a shot.", href: "#block", needs: "block" },
   { id: "copy-moves", group: "Video", label: "Copy moves", text: "Make your character dance or move like someone in a video.", href: "#motion", needs: "motion" },
   { id: "new-look", group: "Video", label: "New look", text: "Same video as a cartoon, a painting or at night.", href: "#video/transform/restyle", needs: "restyle", thumb: "/reels/feature-effects.png" },

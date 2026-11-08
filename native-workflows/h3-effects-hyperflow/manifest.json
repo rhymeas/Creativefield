@@ -1,0 +1,353 @@
+{
+  "schemaVersion": 2,
+  "id": "h3-effects-hyperflow",
+  "version": "0.1.0",
+  "title": "HyperFlow H3 Flash Effects",
+  "category": "finishing",
+  "description": "Animate a photo with Fire breath, Storm magic and other MiniMax H3 effect presets. Choose a normal or Deno tiled finish.",
+  "inputs": [
+    {
+      "id": "start_image",
+      "label": "Start image",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "20",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Video",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Add to the effect",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "5",
+        "field": "prompt"
+      }
+    },
+    {
+      "id": "width",
+      "label": "Width",
+      "type": "integer",
+      "min": 256,
+      "max": 1024,
+      "default": 576,
+      "binding": {
+        "node": "5",
+        "field": "width"
+      }
+    },
+    {
+      "id": "height",
+      "label": "Height",
+      "type": "integer",
+      "min": 256,
+      "max": 1024,
+      "default": 1024,
+      "binding": {
+        "node": "5",
+        "field": "height"
+      }
+    },
+    {
+      "id": "length",
+      "label": "Length (seconds)",
+      "type": "number",
+      "min": 1,
+      "max": 15,
+      "step": 1,
+      "default": 5,
+      "binding": {
+        "node": "5",
+        "field": "length"
+      }
+    },
+    {
+      "id": "quality",
+      "label": "Finish",
+      "type": "select",
+      "options": [
+        "normal",
+        "upscale",
+        "hd-upscale"
+      ],
+      "default": "upscale",
+      "binding": {
+        "node": "ui:quality",
+        "field": "value"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 20261031,
+      "binding": {
+        "node": "8",
+        "field": "noise_seed"
+      }
+    }
+  ],
+  "presets": [
+    {
+      "id": "fire_breath",
+      "title": "Fire breath",
+      "values": {
+        "prompt": "embedding:minimaxh3_fire_breath The person in the picture takes a deep breath and breathes a huge stream of fire toward the camera."
+      },
+      "thumb": "/examples/effects/fire_breath.webp"
+    },
+    {
+      "id": "bullet_time",
+      "title": "Bullet time",
+      "values": {
+        "prompt": "embedding:minimaxh3_bullet_time The person in the picture leaps into the air; time freezes mid-jump and the camera circles around them in bullet time."
+      },
+      "thumb": "/examples/effects/bullet_time.webp"
+    },
+    {
+      "id": "blooming_flowers",
+      "title": "Blooming flowers",
+      "values": {
+        "prompt": "embedding:minimaxh3_blooming_flowers Flowers bloom and grow all around the person in the picture until they are surrounded by blossoms."
+      },
+      "thumb": "/examples/effects/blooming_flowers.webp"
+    },
+    {
+      "id": "four_seasons",
+      "title": "Four seasons",
+      "values": {
+        "prompt": "embedding:minimaxh3_four_seasons The seasons change around the person in the picture: spring blossoms, summer sun, autumn leaves and winter snow."
+      },
+      "thumb": "/examples/effects/four_seasons.webp"
+    },
+    {
+      "id": "kiss_camera",
+      "title": "Kiss to camera",
+      "values": {
+        "prompt": "embedding:minimaxh3_kiss_camera The person in the picture leans toward the camera, smiles and blows a kiss."
+      },
+      "thumb": "/examples/effects/kiss_camera.webp"
+    },
+    {
+      "id": "storm_magic",
+      "title": "Storm magic",
+      "values": {
+        "prompt": "embedding:minimaxh3_storm_magic The person in the picture calls down a storm; lightning crackles and wind whips around them."
+      },
+      "thumb": "/examples/effects/storm_magic.webp"
+    },
+    {
+      "id": "truman_show",
+      "title": "Film set reveal",
+      "values": {
+        "prompt": "embedding:minimaxh3_truman_show The person in the picture walks forward and touches the sky, which turns out to be a painted wall of a giant film set."
+      },
+      "thumb": "/examples/effects/truman_show.webp"
+    }
+  ],
+  "resolutions": {
+    "portrait": {
+      "width": 576,
+      "height": 1024
+    },
+    "landscape": {
+      "width": 1024,
+      "height": 576
+    },
+    "square": {
+      "width": 768,
+      "height": 768
+    },
+    "portrait-standard": {
+      "width": 768,
+      "height": 1024
+    },
+    "landscape-standard": {
+      "width": 1024,
+      "height": 768
+    }
+  },
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "h3-effects-hyperflow",
+      "requirements": [
+        {
+          "id": "node:HyperFlowGGUFLoader",
+          "kind": "node",
+          "name": "HyperFlowGGUFLoader",
+          "instructions": "Install the reviewed HyperFlow H3 Flash loader on the local worker."
+        },
+        {
+          "id": "node:HyperFlowSigmas",
+          "kind": "node",
+          "name": "HyperFlowSigmas",
+          "instructions": "Install the reviewed HyperFlow H3 Flash sampler schedule."
+        },
+        {
+          "id": "node:DenoMiniMaxH3TiledSampler",
+          "kind": "node",
+          "name": "DenoMiniMaxH3TiledSampler",
+          "instructions": "Install the separately reviewed Deno tiled sampler on the local worker."
+        },
+        {
+          "id": "node:MiniMaxH3AddGuide",
+          "kind": "node",
+          "name": "MiniMaxH3AddGuide",
+          "instructions": "Use a ComfyUI version with MiniMax H3 guide support."
+        },
+        {
+          "id": "model:hyperflow",
+          "kind": "model",
+          "name": "minimax_h3_ref2va_hyperflow_flash_14b-Q4_K_M.gguf",
+          "location": "unet_gguf",
+          "instructions": "Add the HyperFlow H3 Flash Ref2VA Q4 model to the worker's GGUF model list."
+        },
+        {
+          "id": "model:encoder",
+          "kind": "model",
+          "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+          "location": "text_encoders",
+          "instructions": "Add the MiniMax H3 text encoder."
+        },
+        {
+          "id": "model:video-vae",
+          "kind": "model",
+          "name": "minimax_h3_video_vae_fp16.safetensors",
+          "location": "vae",
+          "instructions": "Add the MiniMax H3 video VAE."
+        },
+        {
+          "id": "model:audio-vae",
+          "kind": "model",
+          "name": "minimax_h3_audio_vae_fp32.safetensors",
+          "location": "vae",
+          "instructions": "Add the MiniMax H3 audio VAE."
+        },
+        {
+          "id": "model:latent-upscaler",
+          "kind": "model",
+          "name": "minimax_h3_latent_upscaler_3d_conv_v1_fp16.safetensors",
+          "location": "latent_upscale_models",
+          "instructions": "Add the MiniMax H3 latent upscaler."
+        },
+        {
+          "id": "model:h3-effect-fire_breath",
+          "kind": "model",
+          "name": "minimaxh3_fire_breath.safetensors",
+          "location": "embeddings",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
+          "instructions": "Install minimaxh3_fire_breath.safetensors into ComfyUI models/embeddings."
+        },
+        {
+          "id": "model:h3-effect-bullet_time",
+          "kind": "model",
+          "name": "minimaxh3_bullet_time.safetensors",
+          "location": "embeddings",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
+          "instructions": "Install minimaxh3_bullet_time.safetensors into ComfyUI models/embeddings."
+        },
+        {
+          "id": "model:h3-effect-blooming_flowers",
+          "kind": "model",
+          "name": "minimaxh3_blooming_flowers.safetensors",
+          "location": "embeddings",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
+          "instructions": "Install minimaxh3_blooming_flowers.safetensors into ComfyUI models/embeddings."
+        },
+        {
+          "id": "model:h3-effect-four_seasons",
+          "kind": "model",
+          "name": "minimaxh3_four_seasons.safetensors",
+          "location": "embeddings",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
+          "instructions": "Install minimaxh3_four_seasons.safetensors into ComfyUI models/embeddings."
+        },
+        {
+          "id": "model:h3-effect-kiss_camera",
+          "kind": "model",
+          "name": "minimaxh3_kiss_camera.safetensors",
+          "location": "embeddings",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
+          "instructions": "Install minimaxh3_kiss_camera.safetensors into ComfyUI models/embeddings."
+        },
+        {
+          "id": "model:h3-effect-storm_magic",
+          "kind": "model",
+          "name": "minimaxh3_storm_magic.safetensors",
+          "location": "embeddings",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
+          "instructions": "Install minimaxh3_storm_magic.safetensors into ComfyUI models/embeddings."
+        },
+        {
+          "id": "model:h3-effect-truman_show",
+          "kind": "model",
+          "name": "minimaxh3_truman_show.safetensors",
+          "location": "embeddings",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
+          "instructions": "Install minimaxh3_truman_show.safetensors into ComfyUI models/embeddings."
+        }
+      ],
+      "evidence": ["2026-11-08: Fire breath completed in CreativeField Effects with HyperFlow H3 Flash, Deno Upscale and generated audio (832 × 1472, 73 frames at 24 fps)."]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "HyperFlow and the individually reviewed Deno sampler require their respective licenses.",
+    "weights": [
+      {
+        "name": "HyperFlow H3 Flash and MiniMax H3 components",
+        "license": "Check the model licenses before use.",
+        "source": "https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash"
+      },
+      {
+        "name": "MiniMax H3 effect embeddings",
+        "license": "MiniMax H3 model license as published with the weights.",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/Video-Rebirth/hyperflow-h3-flash",
+      "observedAt": "2026-11-06",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://github.com/Deno2026/comfyui-deno-custom-nodes",
+      "observedAt": "2026-11-06",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+      "observedAt": "2026-10-31",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "mute",
+    "replace"
+  ]
+}

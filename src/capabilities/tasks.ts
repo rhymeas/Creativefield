@@ -49,6 +49,8 @@ export function isSelectedVideoCreate(id:string):boolean {
 }
 
 export const isObjectSwapWorkflow = (id: string) => id === "h3-object-swap" || taskPacks("video.swap-thing").includes(id);
+export const EFFECT_CLIP_WORKFLOWS = ["h3-effects-hyperflow", "h3-effects"] as const;
+export const isEffectClips = (id: string) => EFFECT_CLIP_WORKFLOWS.some(workflow => workflow === id);
 /** Keep the Flash experiment addressable for explicit runs and recreation. */
 export const isOpenJutsuSingleSwap = (id: string) => id === "openjutsu-h3-swap-hyperflow" || taskPacks("video.swap-person").includes(id);
 
