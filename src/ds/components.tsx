@@ -346,7 +346,16 @@ export function LazyVideo({ src, poster, label, controls, className, draggable }
     player.observe(el);
     return () => { loader.disconnect(); player.disconnect(); };
   }, [controls, reduced, src]);
-  return <video ref={video} className={className} src={near ? src : undefined} poster={poster} muted={!controls} loop={!controls} controls={controls} playsInline preload={near ? "metadata" : "none"} draggable={draggable} aria-label={label} aria-hidden={label ? undefined : true} />;
+  // The player may have seen the tile before its source arrived; start it once the source is there.
+  useEffect(() => {
+    const el = video.current;
+    if (!near || !el || controls || reduced) return;
+    const r = el.getBoundingClientRect();
+    if (r.bottom > 0 && r.top < innerHeight) void el.play().catch(() => {});
+  }, [near, controls, reduced]);
+  // A still tile shows its first frame, not black (Safari paints nothing for preload="metadata" alone).
+  const shown = near ? (poster || src.includes("#") ? src : `${src}#t=0.1`) : undefined;
+  return <video ref={video} className={className} src={shown} poster={poster} muted={!controls} loop={!controls} controls={controls} playsInline preload={near ? "metadata" : "none"} draggable={draggable} aria-label={label} aria-hidden={label ? undefined : true} />;
 }
 
 /* ── Panel ──────────────────────────────────────────────────── */

@@ -127,6 +127,42 @@
   .ds-viewer:has(.ds-viewer__info) .ds-viewer__panel { width: 100% !important; overflow: visible; flex: none; }
   .ds-viewer:has(.ds-viewer__frame[style*="--pull"]) { background: color-mix(in srgb, var(--surface-overlay) 60%, transparent); }
 
+  /* ── Hero: on a phone its picture is the stage. The clip fills the block edge to edge, drifts slowly, and the
+        words rise over it from the bottom; the aurora glows sit behind the clip's edges. ── */
+  .ds-hero:not(.ds-hero--stage):has(> .ds-hero__media) {
+    position: relative; isolation: isolate; overflow: hidden;
+    min-height: min(56dvh, 460px); justify-content: flex-end;
+    margin: calc(-1 * var(--space-3)) calc(-1 * var(--pad-page-x)) var(--space-2);
+    padding: var(--space-8) var(--pad-page-x) var(--space-5);
+  }
+  .ds-hero:not(.ds-hero--stage) > .ds-hero__media { position: absolute; inset: 0; z-index: -1; width: auto; aspect-ratio: auto; }
+  .ds-hero:not(.ds-hero--stage) > .ds-hero__media .ds-hero__frame { border-radius: 0; background: var(--surface-page); }
+  .ds-hero:not(.ds-hero--stage) > .ds-hero__media .ds-hero__frame :is(video, img) {
+    width: 100%; height: 100%; object-fit: cover;
+    animation: ds-hero-kenburns 16s var(--ease) infinite alternate;
+  }
+  .ds-hero:not(.ds-hero--stage) > .ds-hero__media::after {
+    content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background:
+      linear-gradient(to top, var(--surface-page) 4%, color-mix(in srgb, var(--surface-page) 72%, transparent) 38%, color-mix(in srgb, var(--surface-page) 10%, transparent) 70%, color-mix(in srgb, var(--surface-page) 55%, transparent) 100%);
+  }
+  .ds-hero:not(.ds-hero--stage) > .ds-hero__media .ds-hero__glow { z-index: 3; width: 70%; opacity: 0.3; mix-blend-mode: screen; }
+  .ds-hero:not(.ds-hero--stage) .ds-hero__title { font-size: clamp(2.4rem, 11vw, 3.2rem); line-height: 0.98; text-shadow: 0 2px 24px color-mix(in srgb, var(--surface-page) 80%, transparent); }
+  .ds-hero:not(.ds-hero--stage) > .ds-hero__copy { margin-top: auto; }
+  .ds-hero:not(.ds-hero--stage) .ds-hero__text { color: var(--text-primary); opacity: 0.82; }
+  /* The tool pages' stage hero keeps its reel; it only loses the desktop's large padding. */
+  .ds-hero--stage { min-height: 300px; padding: var(--space-6) var(--pad-page-x) var(--space-5); justify-content: flex-end; }
+  .ds-hero--stage .ds-hero__title { font-size: clamp(2.2rem, 10vw, 3rem); }
+  .ds-hero__aside { width: 100%; margin-left: 0; }
+
+  /* ── Feed: a tight two-column mosaic, tiles keep their own shape, captions stay one small line ── */
+  .ds-mosaic__grid { column-gap: var(--space-2); }
+  .ds-mosaic__inner { padding-bottom: var(--space-2); }
+  .ds-resultgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+  .ds-resultgrid[data-masonry] { columns: 2; column-gap: var(--space-2); }
+  .ds-resultgrid[data-masonry] > * { margin-bottom: var(--space-2); }
+  .ds-resulttile__caption { max-width: calc(100% - 2 * var(--space-2)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   /* The /#ds showcase shows desktop specimens: each one scrolls sideways inside its section, the page never does. */
   .ds-showcase-section { position: relative; overflow-x: auto; overscroll-behavior-x: contain; }
   .ds-showcase-section .ds-bottomnav { position: relative; }

@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState,type CSSProperties,type ReactNode} from 'react';
 import './mosaic-grid.css';
 import {useDensity} from './components';
+import {usePhone} from './gestures';
 
 /* The shared result feed. Its columns follow the global size slider (useDensity) like every result grid; each
    tile is one column wide and as tall as its media. Tiles go, in feed order, into the column that is shortest so
@@ -33,8 +34,8 @@ export function MosaicGrid({label,head,children}:{label:string;
  /** The feed's header line; its `end` part (a filter) is revealed on hover or focus. */
  head?:{start:ReactNode;end?:ReactNode};children:ReactNode}){
  const grid=useRef<HTMLDivElement>(null),[density]=useDensity(),[narrow,setNarrow]=useState(false);
- useEffect(()=>{const el=grid.current;if(!el||typeof ResizeObserver==='undefined')return;const observer=new ResizeObserver(([entry])=>setNarrow(entry.contentRect.width<720));observer.observe(el);return()=>observer.disconnect();},[]);
- const cols=narrow?Math.min(2,density):density;
+ useEffect(()=>{const el=grid.current;if(!el)return;setNarrow(el.getBoundingClientRect().width<720);if(typeof ResizeObserver==='undefined')return;const observer=new ResizeObserver(([entry])=>setNarrow(entry.contentRect.width<720));observer.observe(el);return()=>observer.disconnect();},[]);
+ const phone=usePhone(),cols=narrow||phone?Math.min(2,density):density;
  /* Placement is measured, not declared: each tile's height comes from its media, so the grid places the cells
     itself whenever a tile changes size or the feed changes, and React never sets a cell's grid position. */
  useEffect(()=>{const el=grid.current;if(!el||typeof ResizeObserver==='undefined')return;
