@@ -54,7 +54,7 @@ Live reference: run `npm run dev` and open `http://localhost:5173/#ds`.
     | Waiting for content | `ResultSlot`, `Skeleton`, `SparkleLoader` |
     | Long text | `ClampText`, or a `PromptField` that grows |
     | Page and spacing | `Page`, `Split`, `Block`, `Toolbar`; a `Rule` line between zones |
-    | Navigation | `TopBar` (with `MegaMenu`), one `ContextBar`, `SegmentedTabs`, `UnderlineTabs` |
+    | Navigation | `TopBar` (with `FunctionMenu`, or `MegaMenu` for short lists), one `ContextBar`, `SegmentedTabs`, `UnderlineTabs` |
 
     If nothing fits, add the component to `src/ds/components.tsx`, show it in `Showcase.tsx`, and add a row here. The guard fails otherwise.
 25. **Long text never breaks the layout.** Text fields grow with their content up to `--prompt-max-lines` lines, then scroll and show an expand button that opens the full text in a modal. Compact `PromptField`s stop at four scaled lines. Read-only long text is clamped to a few lines with `ClampText` and a "Show all" button. Single-line labels (file names, titles) cut off with an ellipsis and carry the full text in `title`. Nothing overlaps: labels sit in the flow above their text, never on top of it.
@@ -140,6 +140,7 @@ Live reference: run `npm run dev` and open `http://localhost:5173/#ds`.
 | Component | Use for |
 |---|---|
 | `TopBar`, `Badge`, `Pill`, `Avatar` | Global navigation and account area. On a phone `TopBar` also draws the bottom tab bar and the More sheet (rule 27) |
+| `FunctionMenu`, `ModelMark` | The Video and Image menus: one row per function, with distinct 16:9 previews for each workflow. Tiles play their short preview on hover or keyboard focus and show the model inside the tile; no repeated model marks in the row heading. Entries are workflows, so the menu never says "Models"; marks are letters, never vendor logos |
 | `usePhone`, `useDragDismiss`, `useSwipeClose` (`gestures.ts`) | The phone breakpoint and the two touch gestures: pull a sheet down to close, swipe the full view down to close |
 | `UnderlineTabs` | Modes at the top of the control panel |
 | `SegmentedTabs` | Canvas views (History / How it works, List / Grid) |

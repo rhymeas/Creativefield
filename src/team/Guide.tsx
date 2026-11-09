@@ -17,51 +17,50 @@ const SECTIONS:{id:Section;label:string;icon:ReactNode}[]=[{id:"start",label:"St
    Comfy Cloud account; otherwise CreativeField runs on this computer. */
 export function Guide({hosted,cloudConnected,onClose,onCloudSignIn,onOpenWorkers}:{hosted:boolean;cloudConnected:boolean;onClose:()=>void;onCloudSignIn?:()=>void;onOpenWorkers?:()=>void}){
   const [section,setSection]=useState<Section>("start");
-  const download=<><LinkButton variant="primary" href={GITHUB_URL} target="_blank" rel="noreferrer">Open on GitHub</LinkButton><LinkButton variant="ghost" href={GITHUB_ZIP} rel="noreferrer">Download ZIP</LinkButton></>;
+  const download=<><LinkButton variant="brand" href={GITHUB_ZIP} rel="noreferrer"><Download size={14}/>Download ZIP</LinkButton><LinkButton variant="secondary" href={GITHUB_URL} target="_blank" rel="noreferrer">Open on GitHub</LinkButton></>;
   return <Dialog open wide title="How CreativeField works" onClose={onClose} footer={<Button variant="secondary" onClick={onClose}>Got it</Button>}>
     <div className="cf-form">
       <ModeTabs label="Guide section" value={section} onChange={setSection} items={SECTIONS}/>
       {section==="start"&&<HowItWorks title="Make something in three steps" lead="CreativeField turns a few words, a photo or a clip into pictures, video and 3D. You don't need to know anything about AI models."
         steps={[
-          {icon:<Wand2 size={20}/>,title:"Pick a tool",text:"Video, Image or 3D in the top bar; FotoField is in the Image menu. Each tool does one thing, such as a new picture or a moving clip."},
-          {icon:<ImageIcon size={20}/>,title:"Add words or a picture",text:"Describe what you want, or drop in a photo or clip to start from."},
-          {icon:<Sparkles size={20}/>,title:"Press Generate",text:hosted?"Comfy Cloud makes it, and the result appears right there and in the Library.":"Your computer makes it, and the result appears right there and in the Library."},
+          {icon:<Wand2 size={20}/>,title:"Pick a tool",clip:"/examples/guide/pick.mp4",text:"Video, Image or 3D in the top bar; FotoField is in the Image menu. Each tool does one thing, such as a new picture or a moving clip."},
+          {icon:<ImageIcon size={20}/>,title:"Add words or a picture",clip:"/examples/guide/prompt.mp4",text:"Describe what you want, or drop in a photo or clip to start from."},
+          {icon:<Sparkles size={20}/>,title:"Press Generate",clip:"/examples/guide/generate.mp4",text:hosted?"Comfy Cloud makes it, and the result appears right there and in the Library.":"Your computer makes it, and the result appears right there and in the Library."},
         ]}/>}
       {section==="run"&&<>
         <HowItWorks title="Who does the work" lead={'Making pictures and video needs a strong graphics card. "Run on" in the top bar picks who does it.'}
           steps={[
-            {icon:<Sparkles size={20}/>,title:"Comfy Router",text:"Top hosted models (FLUX 2 Pro for pictures, Seedance and Kling for video) on your own Comfy credits. Works on any Comfy plan, the free one included: sign in once with an API key from your Comfy account."},
-            {icon:<Cloud size={20}/>,title:"Comfy Cloud",text:"Runs the full ComfyUI workflows on Comfy's graphics cards with your credits. Comfy allows this on paid plans only."},
-            {icon:<Cpu size={20}/>,title:"Your own computer",text:hosted?"Free and fully private: download CreativeField and run it on a PC with a recent NVIDIA graphics card. A website can't do this part.":'Free and fully private: ComfyUI on this PC makes everything. Pick "This computer" under Run on.'},
-            {icon:<MessageCircle size={20}/>,title:"ChatGPT",text:hosted?"In the downloaded app, FotoField can edit pictures through your own ChatGPT sign-in and plan. It isn't offered on this website.":"FotoField can edit pictures through your own ChatGPT sign-in and plan. Pick ChatGPT under Run on, then sign in once in Settings, ChatGPT."},
+            {icon:<Sparkles size={20}/>,title:"Comfy Router",clip:"/examples/guide/runon.mp4",text:"Top hosted models (FLUX 2 Pro for pictures, Seedance and Kling for video) on your own Comfy credits. Works on any Comfy plan, the free one included: sign in once with an API key from your Comfy account."},
+            {icon:<Cloud size={20}/>,title:"Comfy Cloud",clip:"/examples/guide/runon.mp4",text:"Runs the full ComfyUI workflows on Comfy's graphics cards with your credits. Comfy allows this on paid plans only."},
+            {icon:<Cpu size={20}/>,title:"Your own computer",clip:"/examples/guide/runon.mp4",text:hosted?"Free and fully private: download CreativeField and run it on a PC with a recent NVIDIA graphics card. A website can't do this part.":'Free and fully private: ComfyUI on this PC makes everything. Pick "This computer" under Run on.'},
+            {icon:<MessageCircle size={20}/>,title:"ChatGPT",clip:"/examples/guide/settings.mp4",text:hosted?"In the downloaded app, FotoField can edit pictures through your own ChatGPT sign-in and plan. It isn't offered on this website.":"FotoField can edit pictures through your own ChatGPT sign-in and plan. Pick ChatGPT under Run on, then sign in once in Settings, ChatGPT."},
           ]}/>
         {hosted&&<Toolbar>{cloudConnected?<StatusText tone="ok">Signed in to Comfy Cloud</StatusText>:onCloudSignIn&&<Button variant="primary" onClick={onCloudSignIn}>Sign in to Comfy Cloud</Button>}<LinkButton variant="secondary" href={GITHUB_URL} target="_blank" rel="noreferrer">Download the app</LinkButton></Toolbar>}
       </>}
       {section==="worker"&&<>
         <HowItWorks title="What a worker is" lead="A worker is the computer that actually makes your pictures and videos. It runs ComfyUI, a free program that holds the AI models. CreativeField is the simple front: it sends your words and pictures to the worker and shows you what comes back."
           steps={hosted
-            ?[{icon:<Cloud size={20}/>,title:"Here, it is Comfy",text:"On this website Comfy does the work: Comfy Router models on any plan, Comfy Cloud workflows on a paid plan. Sign in once with your Comfy key; there is nothing to install."},
-              {icon:<Cpu size={20}/>,title:"Or your own PC",text:"Download CreativeField and install ComfyUI, and both run on your computer. A website can't reach a program on your computer."}]
-            :[{icon:<Download size={20}/>,title:"Install ComfyUI",text:"Get ComfyUI from comfy.org and start it. It answers at http://127.0.0.1:8188."},
-              {icon:<Cpu size={20}/>,title:"Add it here",text:"Settings, Workers: enter that address, then Probe. Its models then appear in Models."},
-              {icon:<Sparkles size={20}/>,title:"Make something",text:"A tool that needs a missing model says which one, and Models shows where it goes."}]}/>
+            ?[{icon:<Cloud size={20}/>,title:"Here, it is Comfy",clip:"/examples/guide/runon.mp4",text:"On this website Comfy does the work: Comfy Router models on any plan, Comfy Cloud workflows on a paid plan. Sign in once with your Comfy key; there is nothing to install."},
+              {icon:<Cpu size={20}/>,title:"Or your own PC",clip:"/examples/guide/settings.mp4",text:"Download CreativeField and install ComfyUI, and both run on your computer. A website can't reach a program on your computer."}]
+            :[{icon:<Download size={20}/>,title:"Install ComfyUI",clip:"/examples/guide/settings.mp4",text:"Get ComfyUI from comfy.org and start it. It answers at http://127.0.0.1:8188."},
+              {icon:<Cpu size={20}/>,title:"Add it here",clip:"/examples/guide/settings.mp4",text:"Settings, Workers: enter that address, then Probe. Its models then appear in Models."},
+              {icon:<Sparkles size={20}/>,title:"Make something",clip:"/examples/guide/generate.mp4",text:"A tool that needs a missing model says which one, and Models shows where it goes."}]}/>
         {(hosted?!cloudConnected&&onCloudSignIn:onOpenWorkers)&&<Toolbar>{hosted?<Button variant="primary" onClick={onCloudSignIn}>Sign in to Comfy Cloud</Button>:<Button variant="secondary" onClick={onOpenWorkers}>Open Workers</Button>}</Toolbar>}
       </>}
       {section==="data"&&<HowItWorks title="Where your things are kept" lead={hosted?"Here is exactly where each thing lives.":"CreativeField runs on this computer, so your things stay here."}
         steps={hosted
-          ?[{icon:<KeyRound size={20}/>,title:"Your Comfy Cloud key",text:"Saved in this browser only. The site holds it in memory while you use it and forgets it when it restarts; it is never written to disk or a database."},
-            {icon:<Monitor size={20}/>,title:"Drafts and choices",text:"Prompt drafts and choices such as this guide stay in this browser."},
-            {icon:<ImageIcon size={20}/>,title:"Pictures and videos",text:"Files you add and results you make sit in your own private workspace on this site, because Comfy Cloud needs them to render. No other visitor can open it, and everything is deleted after a day without a visit. Download what you want to keep; the downloaded app keeps every file on your computer."}]
-          :[{icon:<Monitor size={20}/>,title:"On this computer",text:"Projects, pictures, videos and keys are stored on this computer. Prompt drafts stay in this browser."},
-            {icon:<Cloud size={20}/>,title:"Cloud runs",text:"Only when you pick Comfy Cloud, Comfy Router or ChatGPT is a run's input sent to that service, on your own account."}]}/>}
+          ?[{icon:<KeyRound size={20}/>,title:"Your Comfy Cloud key",clip:"/examples/guide/settings.mp4",text:"Saved in this browser only. The site holds it in memory while you use it and forgets it when it restarts; it is never written to disk or a database."},
+            {icon:<Monitor size={20}/>,title:"Drafts and choices",clip:"/examples/guide/prompt.mp4",text:"Prompt drafts and choices such as this guide stay in this browser."},
+            {icon:<ImageIcon size={20}/>,title:"Pictures and videos",clip:"/examples/guide/library.mp4",text:"Files you add and results you make sit in your own private workspace on this site, because Comfy Cloud needs them to render. No other visitor can open it, and everything is deleted after a day without a visit. Download what you want to keep; the downloaded app keeps every file on your computer."}]
+          :[{icon:<Monitor size={20}/>,title:"On this computer",clip:"/examples/guide/runon.mp4",text:"Projects, pictures, videos and keys are stored on this computer. Prompt drafts stay in this browser."},
+            {icon:<Cloud size={20}/>,title:"Cloud runs",clip:"/examples/guide/runon.mp4",text:"Only when you pick Comfy Cloud, Comfy Router or ChatGPT is a run's input sent to that service, on your own account."}]}/>}
       {section==="download"&&<>
-        <HowItWorks title="Get CreativeField" lead="Free and open source. Run it on your own computer to keep everything private and render without cloud credits."
+        <HowItWorks title="Get CreativeField" action={download} lead="Free and open source. Run it on your own computer to keep everything private and render without cloud credits."
           steps={[
-            {icon:<Download size={20}/>,title:"Download",text:"Get the app from GitHub. The page explains how to install it; the ZIP holds the whole app."},
-            {icon:<Cpu size={20}/>,title:"Install ComfyUI",text:"CreativeField needs ComfyUI and a recent NVIDIA graphics card to make things on your computer."},
-            {icon:<Sparkles size={20}/>,title:"Start creating",text:"Open CreativeField in your browser. Everything stays on your computer."},
+            {icon:<Download size={20}/>,title:"Download",clip:"/examples/guide/download.mp4",text:"Get the app from GitHub. The page explains how to install it; the ZIP holds the whole app."},
+            {icon:<Cpu size={20}/>,title:"Install ComfyUI",clip:"/examples/guide/settings.mp4",text:"CreativeField needs ComfyUI and a recent NVIDIA graphics card to make things on your computer."},
+            {icon:<Sparkles size={20}/>,title:"Start creating",clip:"/examples/guide/generate.mp4",text:"Open CreativeField in your browser. Everything stays on your computer."},
           ]}/>
-        <Toolbar>{download}</Toolbar>
       </>}
     </div>
   </Dialog>;

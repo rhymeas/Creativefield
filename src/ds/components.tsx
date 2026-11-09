@@ -35,8 +35,8 @@ const cx = (...c: Array<string | false | null | undefined>) => c.filter(Boolean)
 
 /* ── TopBar ─────────────────────────────────────────────────── */
 
-export type MegaItem = { id: string; icon?: ReactNode; title: string; text?: string; badge?: { text: string; tone?: "accent" | "hot" | "soft" }; onSelect: () => void };
-export type NavItem = { label: string; href: string; onSelect?: () => void; badge?: { text: string; tone?: "accent" | "hot" | "soft" }; menu?: { features: MegaItem[]; models: MegaItem[] }; /** A short list under the item (projects). The chosen entry is shown right after the label. */ dropdown?: { items: MegaItem[]; selectedId?: string; footer?: MegaItem }; suffix?: string; /** On a phone, an item with an icon is a tab in the bottom bar; the others move into its More sheet. */ icon?: ReactNode };
+export type MegaItem = { id: string; icon?: ReactNode; title: string; text?: string; /** What it does in a few plain words ("text to image"), for sorting into a function row when the title does not say it. */ hint?: string; badge?: { text: string; tone?: "accent" | "hot" | "soft" }; onSelect: () => void };
+export type NavItem = { label: string; href: string; onSelect?: () => void; badge?: { text: string; tone?: "accent" | "hot" | "soft" }; menu?: { features: MegaItem[]; models: MegaItem[]; /** Rows by function; when set, the menu shows these instead of the two lists. */ groups?: MenuGroup[]; /** A quiet link at the end, such as All workflows. */ footer?: { label: string; onSelect: () => void } }; /** A short list under the item (projects). The chosen entry is shown right after the label. */ dropdown?: { items: MegaItem[]; selectedId?: string; footer?: MegaItem }; suffix?: string; /** On a phone, an item with an icon is a tab in the bottom bar; the others move into its More sheet. */ icon?: ReactNode };
 
 export function TopBar({
   brand,
@@ -103,7 +103,8 @@ export function TopBar({
           <ChevronDown size={12} aria-hidden />
         </button>
         {openMenu === it.href && (
-          <MegaMenu features={it.menu.features} models={it.menu.models} onPick={(i) => { setOpenMenu(null); i.onSelect(); }} />
+          it.menu.groups ? <FunctionMenu groups={it.menu.groups} footer={it.menu.footer && { label: it.menu.footer.label, onSelect: () => { setOpenMenu(null); it.menu!.footer!.onSelect(); } }} onPick={(i) => { setOpenMenu(null); i.onSelect(); }} />
+          : <MegaMenu features={it.menu.features} models={it.menu.models} onPick={(i) => { setOpenMenu(null); i.onSelect(); }} />
         )}
       </span>
     ) : it.onSelect ? (
@@ -182,6 +183,61 @@ export function MegaMenu({ features, models, onPick }: { features: MegaItem[]; m
       <span className="ds-sheet__grab" data-sheet-grab aria-hidden />
       {column("Features", features)}
       {column("Models", models, true)}
+    </div>
+  );
+}
+
+export type MenuTile = { id: string; title: string; /** The model that runs it; shown as a mark under the title. */ model?: string; text?: string; poster?: string; /** A short loop that plays while the tile is hovered or focused. */ clip?: string; /** Crop blurred sidebars baked into a portrait preview. */ fillPortrait?: "upper" | "center"; badge?: string; onSelect: () => void };
+export type MenuGroup = { id: string; title: string; text?: string; tiles: MenuTile[] };
+
+/** A short mark for a model name: its own letters, never a vendor logo. */
+const MARKS: Record<string, string> = { "FLUX 3 Klein": "FX", "FLUX 2 Pro": "FX", "Qwen Image 2.1": "QW", "Fibo 2.0": "FB", "Pruna P-H3": "PR", "HyperFlow H3 Flash": "H3", "MiniMax H3": "H3", "Wan 2.1 VACE": "WN", "Wan 2.1 VACE 1.3B": "WN", "Wan Animate 2": "WN", "SCAIL-2": "SC", "Real-ESRGAN": "ES", "FILM": "FI", "Seedance 2.5": "SD", "Kling": "KL" };
+export function ModelMark({ name, size = "md" }: { name: string; size?: "sm" | "md" }) {
+  const mark = MARKS[name] ?? name.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase();
+  return <span className={cx("ds-modelmark", size === "sm" && "ds-modelmark--sm")}><i aria-hidden>{mark}</i>{size === "md" && name}</span>;
+}
+
+function FunctionTile({ tile, onPick }: { tile: MenuTile; onPick: (t: MenuTile) => void }) {
+  const video = useRef<HTMLVideoElement>(null);
+  const [armed, setArmed] = useState(false);
+  const reduced = useReducedMotion();
+  const play = () => { if (reduced || !tile.clip) return; if (armed) void video.current?.play().catch(() => {}); else setArmed(true); };
+  const stop = () => { const v = video.current; if (v) { v.pause(); v.currentTime = 0; } setArmed(false); };
+  return (
+    <button type="button" role="menuitem" className="ds-fnmenu__tile" data-fill-portrait={tile.fillPortrait || undefined} onClick={() => onPick(tile)} onPointerEnter={play} onPointerLeave={stop} onFocus={play} onBlur={stop}>
+      {tile.poster && <img src={tile.poster} alt="" loading="lazy" draggable={false} />}
+      {tile.clip && armed && <video ref={video} src={tile.clip} autoPlay muted loop playsInline preload="auto" aria-hidden />}
+      {tile.badge && <span className="ds-fnmenu__badge">{tile.badge}</span>}
+      <span className="ds-fnmenu__cap">
+        <span className="ds-fnmenu__name">{tile.title}</span>
+        {tile.model ? <span className="ds-fnmenu__model"><ModelMark name={tile.model} size="sm" />{tile.model}</span> : tile.text && <span className="ds-fnmenu__model">{tile.text}</span>}
+      </span>
+    </button>
+  );
+}
+
+/** The Video and Image menus by function, with small tiles that play a rough preview on hover. */
+export function FunctionMenu({ groups, footer, onPick }: { groups: MenuGroup[]; footer?: { label: string; onSelect: () => void }; onPick: (t: MenuTile) => void }) {
+  /* Functions flow side by side and wrap when a line is full (at most FN_LINE tiles a line). The menu is as wide
+     as its widest line, so a short menu stays compact and a long one gets full rows. */
+  const FN_LINE = 5;
+  let line = 0, parts = 0, widest = 0, widestParts = 1;
+  for (const g of groups) { const n = Math.min(g.tiles.length, FN_LINE); if (line + n > FN_LINE) { line = n; parts = 1; } else { line += n; parts += 1; } if (line > widest || (line === widest && parts > widestParts)) { widest = line; widestParts = parts; } }
+  return (
+    <div className="ds-mega ds-fnmenu" style={{ "--fn-max": widest, "--fn-groups": widestParts } as CSSProperties} role="menu" data-sheet data-sheet-scroll>
+      <span className="ds-sheet__grab" data-sheet-grab aria-hidden />
+      {groups.map((g) => {
+        return (
+          <section key={g.id} className="ds-fnmenu__row" aria-label={g.title} style={{ "--fn-n": Math.min(g.tiles.length, FN_LINE) } as CSSProperties}>
+            <div className="ds-fnmenu__head">
+              <span className="ds-fnmenu__title">{g.title}</span>
+              {g.text && <span className="ds-fnmenu__text">{g.text}</span>}
+            </div>
+            <div className="ds-fnmenu__tiles">{g.tiles.map((t) => <FunctionTile key={t.id} tile={t} onPick={onPick} />)}</div>
+          </section>
+        );
+      })}
+      {footer && <button type="button" role="menuitem" className="ds-fnmenu__foot" onClick={footer.onSelect}>{footer.label}<ChevronRight size={14} aria-hidden /></button>}
     </div>
   );
 }
@@ -1067,7 +1123,7 @@ export function Button({
 }
 
 /* LinkButton: a Button that is a link (downloads, external pages). Same looks, same hug-the-text width. */
-export function LinkButton({ variant = "secondary", ...rest }: AnchorHTMLAttributes<HTMLAnchorElement> & { variant?: "primary" | "secondary" | "ghost" }) {
+export function LinkButton({ variant = "secondary", ...rest }: AnchorHTMLAttributes<HTMLAnchorElement> & { variant?: "primary" | "secondary" | "ghost" | "brand" }) {
   return <a {...rest} className={cx("ds-btn", `ds-btn--${variant}`, rest.className)} />;
 }
 
@@ -1098,6 +1154,11 @@ export function MediaCard({ media, title, meta, actions, info, quiet, onView, vi
 
 export function IconButton({ label, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
   return <button type="button" aria-label={label} title={label} {...rest} className={cx("ds-iconbtn", rest.className)} />;
+}
+
+/** An icon that leaves for another site (the project's GitHub page): looks like IconButton, opens in a new tab. */
+export function IconLink({ label, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement> & { label: string }) {
+  return <a target="_blank" rel="noreferrer noopener" aria-label={label} title={label} {...rest} className={cx("ds-iconbtn", rest.className)} />;
 }
 
 /* ── Canvas ─────────────────────────────────────────────────── */
@@ -4061,21 +4122,26 @@ export function HowItWorks({
   lead,
   steps,
   compact = false,
+  action,
 }: {
   title: string;
   lead: string;
-  steps: Array<{ icon: ReactNode; title: string; text: string }>;
+  /** The main action of this page (a download), at the top right beside the title. */
+  action?: ReactNode;
+  /** `clip`: a short zoomed-in loop of the step in the app; it fills the box and the icon becomes a small badge. */
+  steps: Array<{ icon: ReactNode; title: string; text: string; clip?: string }>;
   /** A short numbered list for side panels: no display title, steps stacked, text in one quiet line. */
   compact?: boolean;
 }) {
   return (
     <div className={cx("ds-howto", compact && "ds-howto--compact")} aria-label={compact ? title : undefined}>
-      {!compact && <h2 className="ds-display">{title}</h2>}
+      {!compact && (action ? <div className="ds-howto__head"><h2 className="ds-display">{title}</h2><div className="ds-howto__action">{action}</div></div> : <h2 className="ds-display">{title}</h2>)}
       {lead && <p className="ds-howto__lead">{lead}</p>}
       <div className="ds-steps">
         {steps.map((s, i) => (
           <div key={s.title} className="ds-step">
-            <div className="ds-step__art">
+            <div className="ds-step__art" data-clip={s.clip && !compact ? "" : undefined}>
+              {s.clip && !compact && <LazyVideo className="ds-step__clip" src={s.clip} />}
               <span className="ds-step__num">0{i + 1}</span>
               {s.icon}
             </div>

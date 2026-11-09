@@ -385,7 +385,7 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
   app.addHook("onClose",()=>directExecution.close());
   if (config.guestPerBrowser) { const guestCleanup = startGuestCleanup(pool, config.storageRoot); app.addHook("onClose", async () => guestCleanup.close()); }
   await videoFrameInspectionRoutes(app,pool,store);
-  const storyboards=await storyboardExecutionRoutes(app,pool,store,catalogue);
+  const storyboards=await storyboardExecutionRoutes(app,pool,store,catalogue,registry);
   await storyboardPlanRoutes(app,pool);
   await videoPromptRoutes(app,pool,store);
   await runEstimateRoutes(app,pool);

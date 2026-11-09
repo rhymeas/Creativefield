@@ -14,8 +14,16 @@ import {storyboardTiming} from "./storyboard-timing";
 import {filmName} from "../src/team/media-names";
 import {keyframeShotTiming} from "./keyframe-storyboard";
 import {modelPromptReferences,usesH3Prompt} from "../src/team/prompt-reference";
+import {ROUTER_MODELS} from "../src/capabilities/router-models";
+import {enqueueDirect} from "./providers/submission";
+import type {DirectRegistry} from "./providers/registry";
+import {guestRouterKey} from "./cloud-keys";
 
-export const generationSchema=z.object({capabilityId:z.string().max(120),version:z.string().max(40),routeId:z.literal("local"),controls:scalarControls.default({})}).strict();
+export const generationSchema=z.object({capabilityId:z.string().max(120),version:z.string().max(40),routeId:z.enum(["local","router"]),controls:scalarControls.default({})}).strict();
+/** A shot that runs on Comfy Router: the admission body for the direct route, kept until its turn. */
+type RouterShot={direct:true;body:Record<string,unknown>};
+/** Router video models a storyboard shot may use: they make video from words and an optional first frame. */
+export const storyboardRouterModels=()=>ROUTER_MODELS.filter(m=>m.features.includes("video-create"));
 const base="/api/v1/workspaces/:workspaceId",ws=z.object({workspaceId:z.uuid()}),item=ws.extend({id:z.uuid()});
 const active=["pending","generating","assembling","cancel_requested"],childActive=["pending","submitting","submission_unknown","queued","running","cancel_requested"];
 const columns="id,project_id,storyboard_id,revision,worker_id,created_by,assembly,state,error,output_asset_id,created_at,updated_at";
@@ -28,7 +36,7 @@ export class StoryboardService{
   private inFlight:Promise<void>|null=null;
   private stopped=false;
   private assemblyAbort=new Map<string,AbortController>();
-  constructor(readonly pool:Pool,readonly store:DiskStore){}
+  constructor(readonly pool:Pool,readonly store:DiskStore,readonly catalogue:CapabilityBundle[]=[],readonly registry?:DirectRegistry){}
   tick():Promise<void>{if(this.stopped)return Promise.resolve();if(this.inFlight)return this.inFlight;this.inFlight=this.reconcile().finally(()=>{this.inFlight=null;});return this.inFlight;}
   async close(){this.stopped=true;for(const a of this.assemblyAbort.values())a.abort();await this.inFlight;}
   interrupt(id:string){this.assemblyAbort.get(id)?.abort();}
@@ -56,8 +64,14 @@ export class StoryboardService{
       }
       for(const s of shots){
         if(!s.child_run_id){
-          const prepared=s.prepared as PreparedRun,key=`storyboard:${r.id}:${s.ordinal}`;
-          const child=await enqueuePreparedRun(client,r.workspace_id,r.created_by,prepared,key,hashToken(canonical(prepared)),{scene:1,shot:s.ordinal+1});
+          const prepared=s.prepared as PreparedRun|RouterShot,key=`storyboard:${r.id}:${s.ordinal}`;
+          let child:{id:string};
+          if("direct" in prepared){
+            /* A Router shot goes through the same admission as a cloud render from a panel. */
+            if(!this.registry)throw new Error("Cloud shots need the provider registry");
+            const body={...prepared.body,idempotencyKey:key} as any;
+            child=await enqueueDirect(client,this.catalogue,this.registry,r.workspace_id,r.created_by,body,hashToken(canonical(body)),k=>this.store.file(r.workspace_id,k));
+          }else child=await enqueuePreparedRun(client,r.workspace_id,r.created_by,prepared,key,hashToken(canonical(prepared)),{scene:1,shot:s.ordinal+1});
           await client.query("UPDATE storyboard_render_shots SET child_run_id=$1 WHERE workspace_id=$2 AND render_id=$3 AND ordinal=$4",[child.id,r.workspace_id,r.id,s.ordinal]);
           await setState(client,r,"generating");return null;
         }
@@ -71,7 +85,7 @@ export class StoryboardService{
       }
       if(r.state!=="assembling")await setState(client,r,"assembling");
       const clips=[];
-      for(const s of shots){const asset=(await client.query("SELECT storage_key FROM assets WHERE workspace_id=$1 AND id=$2",[r.workspace_id,s.output_asset_id])).rows[0];clips.push({key:asset.storage_key,frames:s.snapshot.frames,...(s.snapshot.assemblyStartFrame?{startFrame:s.snapshot.assemblyStartFrame}:{})});}
+      for(const s of shots){const asset=(await client.query("SELECT storage_key,metadata FROM assets WHERE workspace_id=$1 AND id=$2",[r.workspace_id,s.output_asset_id])).rows[0];clips.push({key:asset.storage_key,frames:s.snapshot.frames,...(s.snapshot.assemblyStartFrame?{startFrame:s.snapshot.assemblyStartFrame}:{}),...(asset.metadata?.audioPolish?.originalTrack===1?{originalAudioTrack:1}:{})});}
       return {render:r,clips};
     });
     if(!ready||this.stopped)return;
@@ -101,13 +115,13 @@ export class StoryboardService{
   }
 }
 
-export async function storyboardExecutionRoutes(app:FastifyInstance,pool:Pool,store:DiskStore,catalogue:CapabilityBundle[]){
-  const service=new StoryboardService(pool,store);
+export async function storyboardExecutionRoutes(app:FastifyInstance,pool:Pool,store:DiskStore,catalogue:CapabilityBundle[],registry?:DirectRegistry){
+  const service=new StoryboardService(pool,store,catalogue,registry);
   await storyboardStillRoutes(app,pool,catalogue);
   app.get(`${base}/storyboard-requirements`,async request=>{const {workspaceId}=ws.parse(request.params);await member(pool,request,workspaceId);return assemblyReadiness();});
   app.post(`${base}/storyboards/:id/renders`,async request=>{
     const {workspaceId,id}=item.parse(request.params),user=await member(pool,request,workspaceId,"creator");
-    const body=z.object({revision:z.number().int().positive(),workerId:z.uuid(),idempotencyKey:z.string().min(8).max(128),assembly:assemblySchema,approvedStillTakes:z.record(z.uuid(),z.uuid()).optional()}).strict().parse(request.body);
+    const body=z.object({revision:z.number().int().positive(),workerId:z.uuid().optional(),idempotencyKey:z.string().min(8).max(128),assembly:assemblySchema,approvedStillTakes:z.record(z.uuid(),z.uuid()).optional()}).strict().parse(request.body);
     const hash=hashToken(canonical({storyboardId:id,...body}));
     return transaction(pool,async client=>{
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`storyboard-request:${workspaceId}/${body.idempotencyKey}`]);
@@ -121,10 +135,28 @@ export async function storyboardExecutionRoutes(app:FastifyInstance,pool:Pool,st
       if(!shots.length||shots.length>32||shots.reduce((n,s)=>n+Number(s.duration_seconds),0)>300)throw new HttpError(422,"Choose 1–32 shots totaling no more than 300 seconds");
       if(body.assembly.keyframeBoundaries&&(shots.length>3||body.assembly.transition?.kind==='crossfade'||body.approvedStillTakes))throw new HttpError(422,'Keyframe animation needs up to three linked segments without a cross-fade or approved-still override.');
       if(body.approvedStillTakes&&(Object.keys(body.approvedStillTakes).length!==shots.length||shots.some(s=>!body.approvedStillTakes![s.plan_key])))throw new HttpError(422,"Approve one current still for every shot before animating");
-      const prepared=[];let previousEnd:string|undefined;
+      const prepared:any[]=[];let previousEnd:string|undefined;
       for(const shot of shots){
         const selected=generationSchema.safeParse(shot.settings.generation);
         if(!selected.success)throw new HttpError(422,`Shot ${shot.ordinal+1} needs an explicit local generation workflow`);
+        if(selected.data.routeId==="router"){
+          /* Cloud shot: one Comfy Router video model, a prompt, an optional first frame, whole seconds. */
+          const model=storyboardRouterModels().find(m=>m.id===selected.data.capabilityId);
+          if(!model)throw new HttpError(422,`Shot ${shot.ordinal+1} needs a Comfy Router video model`);
+          if(body.approvedStillTakes||body.assembly.keyframeBoundaries)throw new HttpError(422,"Approved stills and keyframe links run on this computer only");
+          if(!guestRouterKey(workspaceId)&&!(await client.query("SELECT id FROM provider_connections WHERE workspace_id=$1 AND provider_id=$2",[workspaceId,"comfy-router"])).rowCount)throw new HttpError(422,"Sign in with your Comfy key to render cloud shots");
+          const duration=model.controls.find(c=>c.id==="duration"),min=duration?.min??1,max=duration?.max??30;
+          const seconds=Number(shot.duration_seconds);
+          if(!Number.isFinite(seconds)||seconds<min||seconds>max)throw new HttpError(422,`Shot ${shot.ordinal+1} must be between ${min} and ${max} seconds on ${model.title}`);
+          const assets=(await client.query("SELECT role,asset_id FROM shot_assets WHERE workspace_id=$1 AND shot_id=$2",[workspaceId,shot.id])).rows;
+          const inputs=Object.fromEntries(assets.filter(a=>model.inputs.some(p=>p.id===a.role)).map(a=>[a.role,a.asset_id]));
+          const controlSeconds=Math.min(max,Math.max(min,Math.round(seconds))),frames=Math.round(seconds*body.assembly.fps);
+          const defaults=Object.fromEntries(model.controls.map(c=>[c.id,c.default]));
+          const runBody={projectId:board.project_id,capabilityId:model.id,version:"1.0.0",routeId:"router",inputs,controls:{...defaults,...Object.fromEntries(Object.entries(selected.data.controls).filter(([k])=>k!=="prompt"&&k!=="duration"&&model.controls.some(c=>c.id===k))),prompt:shot.prompt,duration:controlSeconds},audioPolicy:"mute",consent:{cloudCredits:true}};
+          prepared.push({run:{direct:true,body:runBody} as any,snapshot:{sourceShotId:shot.id,planKey:shot.plan_key,prompt:shot.prompt,durationSeconds:seconds,frames,effectiveDurationSeconds:frames/body.assembly.fps,controlSeconds,assets,settings:shot.settings}});
+          continue;
+        }
+        if(!body.workerId)throw new HttpError(422,"Choose a worker for shots that run on this computer");
         let g=selected.data,b=catalogue.find(b=>b.manifest.id===g.capabilityId);
         if(!b||!["t2v","i2v","flf2v"].includes(b.manifest.category)||!b.manifest.controls.some(c=>c.id==="length")||b.manifest.timing?.sourceTimed)throw new HttpError(422,"This storyboard route requires a duration-controlled video generation workflow");
         if(shot.settings.cameraHint?.trim())throw new HttpError(422,"Camera hints are not bound; add the description to the shot prompt explicitly");
@@ -156,12 +188,12 @@ export async function storyboardExecutionRoutes(app:FastifyInstance,pool:Pool,st
         const timing:ReturnType<typeof storyboardTiming>&Partial<ReturnType<typeof keyframeShotTiming>>=keyframeTiming?{...ordinaryTiming,...keyframeTiming}:ordinaryTiming;
         const imageCount=b.manifest.inputs.filter(p=>p.type==="image"&&(inputs[p.id]||elementInputs[p.id])).length;
         const modelPrompt=modelPromptReferences(shot.prompt,usesH3Prompt(b.manifest)?"h3":"plain",imageCount);
-        const run=await prepareInvocation(client,catalogue,workspaceId,{projectId:board.project_id,workerId:body.workerId,idempotencyKey:body.idempotencyKey,capabilityId:g.capabilityId,version:g.version,routeId:g.routeId,inputs,elementInputs,controls:{...g.controls,prompt:modelPrompt,length:timing.controlSeconds},audioPolicy:shot.settings.audioPolicy??"mute"});
+        const run=await prepareInvocation(client,catalogue,workspaceId,{projectId:board.project_id,workerId:body.workerId!,idempotencyKey:body.idempotencyKey,capabilityId:g.capabilityId,version:g.version,routeId:g.routeId,inputs,elementInputs,controls:{...g.controls,prompt:modelPrompt,length:timing.controlSeconds},audioPolicy:shot.settings.audioPolicy??"mute"});
         prepared.push({run,snapshot:{sourceShotId:shot.id,planKey:shot.plan_key,...(approval?{approvedStill:approval}:{}),prompt:shot.prompt,durationSeconds:Number(shot.duration_seconds),...timing,assets,settings:shot.settings}});
       }
       const renderId=newId();
-      const result=(await client.query(`INSERT INTO storyboard_renders(id,workspace_id,project_id,storyboard_id,revision,worker_id,created_by,idempotency_key,request_hash,assembly,state) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending') RETURNING ${columns}`,[renderId,workspaceId,board.project_id,id,body.revision,body.workerId,user.id,body.idempotencyKey,hash,JSON.stringify(body.assembly)])).rows[0];
-      for(const [ordinal,p] of prepared.entries())await client.query("INSERT INTO storyboard_render_shots(workspace_id,render_id,ordinal,snapshot,prepared,workflow_revision_id) VALUES($1,$2,$3,$4,$5,$6)",[workspaceId,renderId,ordinal,JSON.stringify(p.snapshot),JSON.stringify(p.run),p.run.revisionId]);
+      const result=(await client.query(`INSERT INTO storyboard_renders(id,workspace_id,project_id,storyboard_id,revision,worker_id,created_by,idempotency_key,request_hash,assembly,state) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending') RETURNING ${columns}`,[renderId,workspaceId,board.project_id,id,body.revision,body.workerId??null,user.id,body.idempotencyKey,hash,JSON.stringify(body.assembly)])).rows[0];
+      for(const [ordinal,p] of prepared.entries())await client.query("INSERT INTO storyboard_render_shots(workspace_id,render_id,ordinal,snapshot,prepared,workflow_revision_id) VALUES($1,$2,$3,$4,$5,$6)",[workspaceId,renderId,ordinal,JSON.stringify(p.snapshot),JSON.stringify(p.run),(p.run as any).revisionId??null]);
       await client.query("INSERT INTO storyboard_render_events(workspace_id,render_id,state) VALUES($1,$2,'pending')",[workspaceId,renderId]);return result;
     });
   });

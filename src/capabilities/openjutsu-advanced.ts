@@ -1,15 +1,33 @@
 import type { ApiGraph } from "../workflow/build";
 
+export const OPENJUTSU_ADVANCED_ID = "openjutsu-h3-advanced";
+export const OPENJUTSU_ADVANCED_FLASH_ID = "openjutsu-h3-advanced-hyperflow";
+export const isOpenJutsuAdvanced = (id: string) => id === OPENJUTSU_ADVANCED_ID || id === OPENJUTSU_ADVANCED_FLASH_ID;
+
 /** The upstream graph is pinned to D3voz/openjutsu 7fe118bb. The route remains
  * experimental; the caller must validate worker and model readiness. */
 type TitledNode = ApiGraph[string] & { _meta?: { title?: string } };
 type TitledGraph = Record<string, TitledNode>;
 const isLink = (value: unknown): value is [string, number] => Array.isArray(value) && value.length === 2 && typeof value[0] === "string" && Number.isInteger(value[1]);
 
+/** Read the target in phrases such as “replace the person with the robot from @Image 1”. */
+function targetBeforeImage(text: string): string | undefined {
+  const commands = [...text.matchAll(/\b(?:replace|swap)\b/gi)];
+  const last = commands.at(-1);
+  if (!last) return undefined;
+  return text.slice(last.index).match(/^(?:replace|swap)\s+(.+?)\s+with(?:\s+(?:the\s+)?[^,;.\n]+?\s+from)?\s*$/i)?.[1]?.trim();
+}
+
 /** Associate optional @Image mentions with the corresponding ordered role. */
 export function openJutsuRoles(text:string,count:number):string[] {
   const hits=[...text.matchAll(/@Image\s*(\d+)\b/gi)];
-  if(!hits.length)return text.split(/\r?\n/);
+  if(!hits.length){
+    // Explicit replacement instructions can identify targets without requiring
+    // reference mentions. Their order corresponds to the attached pictures.
+    const targets=[...text.matchAll(/\b(?:replace|swap)\s+([^.!?;\n]+?)\s+(?:with|for)\b/gi)]
+      .map(match=>match[1].trim());
+    return targets.length ? targets : text.split(/\r?\n/);
+  }
   const roles=Array<string>(count).fill("");
   const lines=text.split(/\r?\n/);
   if(lines.every(line => [...line.matchAll(/@Image\s*\d+\b/gi)].length <= 1)) {
@@ -21,7 +39,9 @@ export function openJutsuRoles(text:string,count:number):string[] {
       const before=line.slice(0,match.index).trim();
       const after=line.slice(match.index!+match[0].length).replace(/^[\s,:;\-]+|[\s,:;\-]+$/g,"");
       const replacement=before.match(/(?:replace|swap)\s+(.+?)\s+with\s*$/i);
-      roles[n]=replacement?.[1] ?? after;
+      const target=targetBeforeImage(before) ?? replacement?.[1];
+      if(target)roles[n]=target;
+      else if(!roles[n])roles[n]=after;
     }
     return roles;
   }
@@ -32,7 +52,9 @@ export function openJutsuRoles(text:string,count:number):string[] {
     const end=hits[i+1]?.index??text.length;
     const before=text.slice(i?hits[i-1].index!+hits[i-1][0].length:0,hits[i].index);
     const replacement=before.match(/\b(?:replace|swap|and)\s+([^,;]+?)\s+with\s*$/i);
-    roles[n]=replacement?.[1]?.trim()??text.slice(start,end).replace(/^[\s,:;\-]+|[\s,:;\-]+$/g,"");
+    const target=targetBeforeImage(before) ?? replacement?.[1]?.trim();
+    if(target)roles[n]=target;
+    else if(!roles[n])roles[n]=text.slice(start,end).replace(/^[\s,:;\-]+|[\s,:;\-]+$/g,"");
   }
   return roles;
 }

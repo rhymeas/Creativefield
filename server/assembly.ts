@@ -7,6 +7,7 @@ import {z} from "zod";
 import type {DiskStore} from "./storage";
 import {probeVideo} from "./media";
 import {finishingReadiness} from "./finishing-readiness";
+import {probeMedia,streamsOfType} from "./audio-processing-validation";
 
 const execute=promisify(execFile);
 const even=z.number().int().min(64).max(1920).refine(n=>n%2===0);
@@ -16,7 +17,7 @@ export const transitionSchema=z.object({kind:z.enum(["cut","crossfade"]),seconds
 export const assemblySchema=z.object({width:even,height:even,fps:z.union([z.literal(16),z.literal(24),z.literal(25),z.literal(30),z.literal(60)]),audioPolicy:z.enum(["mute","preserve"]),transition:transitionSchema.optional(),keyframeBoundaries:z.boolean().optional()}).strict();
 export type AssemblySettings=z.infer<typeof assemblySchema>;
 /** startFrame is measured after conversion to the assembly frame rate. */
-export type AssemblyClip={key:string;frames:number;startFrame?:number};
+export type AssemblyClip={key:string;frames:number;startFrame?:number;originalAudioTrack?:number};
 export class AssemblyError extends Error{}
 
 export async function assemblyReadiness(){
@@ -31,6 +32,7 @@ async function frameCount(file:string,signal:AbortSignal){
 /** Hard cuts with normalized, frame-counted segments. Accepts only resolved disk keys. */
 export async function assembleVideo(store:DiskStore,workspaceId:string,clips:AssemblyClip[],input:AssemblySettings,cancel:AbortSignal){
   const settings=assemblySchema.parse(input);
+  const keepOriginalAudio=settings.audioPolicy==="preserve"&&clips.some(c=>c.originalAudioTrack===1);
   if(!clips.length||clips.length>32||clips.some(c=>!Number.isSafeInteger(c.frames)||c.frames<1||!Number.isSafeInteger(c.startFrame??0)||(c.startFrame??0)<0)||clips.reduce((n,c)=>n+c.frames/settings.fps,0)>300)throw new AssemblyError("Unsupported storyboard timing");
   const signal=AbortSignal.any([cancel,AbortSignal.timeout(10*60*1000)]);
   const root=path.join(store.root,".assembly");await mkdir(root,{recursive:true});
@@ -50,9 +52,14 @@ export async function assembleVideo(store:DiskStore,workspaceId:string,clips:Ass
       if(settings.audioPolicy==="preserve"){
         if(!info.hasAudio)args.push("-f","lavfi","-i","anullsrc=r=48000:cl=stereo");
         filter+=`;[${info.hasAudio?"0:a:0":"1:a:0"}]asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,apad,atrim=start=${start/settings.fps}:duration=${seconds},asetpts=N/SR/TB[a]`;
+        if(keepOriginalAudio){
+          const tracks=info.hasAudio?streamsOfType(await probeMedia(source,"video"),"audio"):[];
+          const original=clip.originalAudioTrack===1&&tracks.length>1?"0:a:1":info.hasAudio?"0:a:0":"1:a:0";
+          filter+=`;[${original}]asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,apad,atrim=start=${start/settings.fps}:duration=${seconds},asetpts=N/SR/TB[original]`;
+        }
       }
       args.push("-filter_complex_threads","1","-filter_complex",filter,"-map","[v]");
-      if(settings.audioPolicy==="preserve")args.push("-map","[a]","-c:a","aac","-ar","48000","-ac","2");else args.push("-an");
+      if(settings.audioPolicy==="preserve")args.push("-map","[a]",...(keepOriginalAudio?["-map","[original]"]:[]),"-c:a","aac","-ar","48000","-ac","2");else args.push("-an");
       args.push("-c:v","libx264","-threads","2","-preset","veryfast","-crf","20","-pix_fmt","yuv420p","-t",String(seconds),"-map_metadata","-1","-fs",String(store.maxBytes+1),target);
       await run(args);
       scratchBytes+=(await stat(target)).size;
@@ -73,21 +80,23 @@ export async function assembleVideo(store:DiskStore,workspaceId:string,clips:Ass
       if(fade>=shortest)throw new AssemblyError(`A ${fade}s cross-fade is longer than the shortest shot (${shortest.toFixed(2)}s)`);
       const args=["-protocol_whitelist","file,pipe"];
       for(let i=0;i<clips.length;i++)args.push("-i",path.join(dir,`segment-${i}.mp4`));
-      const chain:string[]=[];let video="[0:v:0]",audio=settings.audioPolicy==="preserve"?"[0:a:0]":null;
+      const chain:string[]=[];let video="[0:v:0]",audio=settings.audioPolicy==="preserve"?"[0:a:0]":null,original=keepOriginalAudio?"[0:a:1]":null;
       let elapsed=clips[0].frames/settings.fps;
       for(let i=1;i<clips.length;i++){
         const offset=(elapsed-fade).toFixed(3);
         chain.push(`${video}[${i}:v:0]xfade=transition=fade:duration=${fade}:offset=${offset}[v${i}]`);
         video=`[v${i}]`;
         if(audio)chain.push(`${audio}[${i}:a:0]acrossfade=d=${fade}:c1=tri:c2=tri[a${i}]`),audio=`[a${i}]`;
+        if(original)chain.push(`${original}[${i}:a:1]acrossfade=d=${fade}:c1=tri:c2=tri[original${i}]`),original=`[original${i}]`;
         elapsed=elapsed+clips[i].frames/settings.fps-fade;
       }
       args.push("-filter_complex_threads","1","-filter_complex",chain.join(";"),"-map",video);
-      if(audio)args.push("-map",audio,"-c:a","aac","-ar","48000","-ac","2");else args.push("-an");
+      if(audio)args.push("-map",audio,...(original?["-map",original]:[]),"-c:a","aac","-ar","48000","-ac","2");else args.push("-an");
+      if(keepOriginalAudio)args.push("-disposition:a:0","default","-disposition:a:1","0","-metadata:s:a:0","handler_name=Polished audio","-metadata:s:a:1","handler_name=Original audio");
       args.push("-c:v","libx264","-threads","2","-preset","veryfast","-crf","20","-pix_fmt","yuv420p","-map_metadata","-1","-movflags","+faststart","-fs",String(store.maxBytes+1),output);
       await run(args);
     }else{
-      await run(["-protocol_whitelist","file,pipe","-f","concat","-safe","1","-i",path.join(dir,"segments.txt"),"-map","0:v:0",...(settings.audioPolicy==="preserve"?["-map","0:a:0"]:["-an"]),"-c","copy","-map_metadata","-1","-movflags","+faststart","-fs",String(store.maxBytes+1),output]);
+      await run(["-protocol_whitelist","file,pipe","-f","concat","-safe","1","-i",path.join(dir,"segments.txt"),"-map","0:v:0",...(settings.audioPolicy==="preserve"?["-map","0:a:0",...(keepOriginalAudio?["-map","0:a:1"]:[])]:["-an"]),"-c","copy","-map_metadata","-1",...(keepOriginalAudio?["-disposition:a:0","default","-disposition:a:1","0","-metadata:s:a:0","handler_name=Polished audio","-metadata:s:a:1","handler_name=Original audio"]:[]),"-movflags","+faststart","-fs",String(store.maxBytes+1),output]);
     }
     const metadata=await probeVideo(output),frames=await frameCount(output,signal);
     /* Hard cuts are exact: every frame of every shot, nothing lost. A cross-fade trims each join at
@@ -96,7 +105,7 @@ export async function assembleVideo(store:DiskStore,workspaceId:string,clips:Ass
     const durationTolerance=fade>0?0.25:0.12;
     if(Math.abs(frames-expectedFrames)>frameTolerance||metadata.width!==settings.width||metadata.height!==settings.height||Math.abs(metadata.durationSeconds-expectedFrames/settings.fps)>durationTolerance||metadata.hasAudio!==(settings.audioPolicy==="preserve"))throw new AssemblyError("Assembly output timing or media verification failed");
     signal.throwIfAborted();candidate=await store.put(workspaceId,createReadStream(output));
-    return {...candidate,metadata:{...metadata,frames,requestedDurationSeconds:expectedFrames/settings.fps,assembly:settings}};
+    return {...candidate,metadata:{...metadata,frames,requestedDurationSeconds:expectedFrames/settings.fps,assembly:settings,...(keepOriginalAudio?{audioPolish:{originalTrack:1,defaultTrack:0}}:{})}};
   }catch(e){
     if(candidate)await store.remove(workspaceId,candidate.key).catch(()=>{});
     if(e instanceof AssemblyError)throw e;

@@ -155,4 +155,6 @@ Declared weight group: Z-Image Turbo diffusion model, Qwen 3 4B encoder and AE V
 
 ### Experimental OpenJutsu advanced swap
 
+`openjutsu-h3-advanced-hyperflow` uses the same MIT-licensed OpenJutsu Advanced graph with [HyperFlow H3 Flash](https://github.com/Video-Rebirth/hyperflow-h3-flash) Ref2VA GGUF and its six-step schedule. MiniMax H3 encoders and VAEs, Qwen3-VL and SAM 3.1 remain separate downloads under their published terms.
+
 `openjutsu-h3-advanced` adapts the MIT-licensed [OpenJutsu advanced workflow](https://github.com/D3voz/openjutsu/tree/7fe118bb5a61fcfac0148e1bfea3dd29884dbf26). MiniMax H3, Qwen3-VL, SAM 3.1 and DMAD are not bundled; obtain each separately under its published terms. The workflow remains experimental and has not been verified with a real worker.

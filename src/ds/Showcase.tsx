@@ -21,9 +21,10 @@ import {ShotFrame} from "./ShotFrame";
 import {MosaicGrid,MosaicTile,mosaicAccent} from "./MosaicGrid";
 import {CameraPoseField,CameraPoseStage,describeCameraPose,type CameraPose} from "./CameraMovePicker";
 import welcomeLogo from "../assets/creativefield-logo-trim.png";
-import { ArrowUp, Repeat, Lock, Undo2, Download, Pencil, Maximize2, Camera, Plus, Search, Clock, Dices, LogOut, Settings, Video, History, Image, Info, MinusCircle, RectangleHorizontal, Sparkles, Brush, UserRound } from "lucide-react";
+import { ArrowUp, Github, Repeat, Lock, Undo2, Download, Pencil, Maximize2, Camera, Plus, Search, Clock, Dices, LogOut, Settings, Video, History, Image, Info, MinusCircle, RectangleHorizontal, Sparkles, Brush, UserRound } from "lucide-react";
 import {
   Steps,
+  IconLink,
   RotatingVideo,
   Avatar,
   Badge,
@@ -49,6 +50,8 @@ import {
   TopBar,
   UploadPair,
   MegaMenu,
+  FunctionMenu,
+  ModelMark,
   ToggleRow,
   Block,
   Collapsible,
@@ -295,6 +298,7 @@ export default function Showcase() {
     <>
       <a className="ds-iconbtn" href="#ds" aria-label="Download" title="Download"><Download size={14} /></a>
       <IconButton label="Edit"><Pencil size={14} /></IconButton>
+      <IconLink label="Source code on GitHub" href="https://github.com/rhymeas/Creativefield"><Github size={14} /></IconLink>
       <IconButton label="Full view"><Maximize2 size={14} /></IconButton>
     </>
   );
@@ -473,6 +477,23 @@ export default function Showcase() {
             </div>
           </div>
         </div>
+        <div style={{ position: "relative", height: 330, marginTop: 20, transform: "translateZ(0)" }}>
+          <FunctionMenu
+            groups={[
+              { id: "create", title: "Create a picture", text: "from a few words", tiles: [
+                { id: "a", title: "Text to image", model: "FLUX 3 Klein", poster: "/examples/promo/ad-studio.webp", clip: "/examples/promo/ad-studio.mp4", badge: "Fastest", onSelect: () => {} },
+                { id: "b", title: "Text to image", model: "Qwen Image 2.1", poster: "/examples/promo/persona-studio.webp", clip: "/examples/promo/persona-studio.mp4", onSelect: () => {} },
+              ] },
+              { id: "turn", title: "Turn and light", text: "same subject, new angle or light", tiles: [
+                { id: "c", title: "Camera angles", model: "FLUX 3 Klein", poster: "/examples/promo/angles.webp", clip: "/examples/menu/angles.mp4", onSelect: () => {} },
+                { id: "d", title: "FotoField", text: "Layers, masks and AI edits", poster: "/examples/features/edit.jpg", clip: "/examples/features/edit.mp4", fillPortrait: "upper", onSelect: () => {} },
+              ] },
+            ]}
+            footer={{ label: "All workflows", onSelect: () => {} }}
+            onPick={() => {}}
+          />
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}><ModelMark name="Qwen Image 2.1" /><ModelMark name="Pruna P-H3" /><ModelMark name="FLUX 3 Klein" size="sm" /></div>
       </Section>
 
       <Section title="Long text, uploads and media">

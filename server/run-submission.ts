@@ -1,3 +1,4 @@
+import {isOpenJutsuAdvanced} from "../src/capabilities/openjutsu-advanced";
 import {admitAlignedMask} from "./aligned-mask-admission";
 import {admitVideoContinuation} from "./video-continuation-input";
 import type {VideoExtensionPlan} from "./video-extension-plan";
@@ -113,7 +114,7 @@ export async function prepareInvocation(client:PoolClient,catalogue:CapabilityBu
     // Skip work that would be discarded, while preserving resolution of masks
     // that already name a previously cleaned copy through the existing path.
     if(original?.storage_key&&!masks.some(mask=>maskNamesSource(mask?.metadata,original))){
-      const cleaned=await admitCleanVideoSource(client,store,workspaceId,original,cleanRule.fps,!!bundle.manifest.replaceContract||videoProbe||bundle.manifest.id==="openjutsu-h3-advanced");
+      const cleaned=await admitCleanVideoSource(client,store,workspaceId,original,cleanRule.fps,!!bundle.manifest.replaceContract||videoProbe||isOpenJutsuAdvanced(bundle.manifest.id));
       if(cleaned&&masks.every(mask=>maskNamesSource(mask?.metadata,{id:cleaned.asset.id,sha256:cleaned.asset.sha256}))){
         assets[cleanRule.sourceInput]=cleaned.asset;
         resolved.inputIds[cleanRule.sourceInput]=cleaned.asset.id;

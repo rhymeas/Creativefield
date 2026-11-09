@@ -1,3 +1,4 @@
+import {isOpenJutsuAdvanced} from "./openjutsu-advanced";
 import type {CapabilityManifestV2} from "./types";
 import {isVideoProbe} from "./replace-video-probe";
 
@@ -13,7 +14,7 @@ export type CleanSourceRule={
 /** Tools that take a reference clip and change it, in the order their contracts name the clip. */
 export function cleanSourceRule(manifest:CapabilityManifestV2):CleanSourceRule|undefined{
   // This multi-person replacement pack predates replaceContract but still consumes a source clip.
-  if(manifest.id==="openjutsu-h3-advanced")return {sourceInput:"source_video",fps:24};
+  if(isOpenJutsuAdvanced(manifest.id))return {sourceInput:"source_video",fps:24};
   if(isVideoProbe(manifest.id))return {sourceInput:"source_video",fps:24};
   if(manifest.replaceContract)return {sourceInput:manifest.replaceContract.sourceInput,fps:24};
   if(manifest.motionContract)return {sourceInput:manifest.motionContract.motionInput,fps:24};

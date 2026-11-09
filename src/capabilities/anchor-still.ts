@@ -20,9 +20,11 @@ const PROMPT="11";
 /** What the still asks for when the pictures are the only description of the new people. The
  *  frame is the edit target, so the words pin the scene and let the eyes and clothes change. */
 export function anchorStillPrompt(twoPeople: boolean, extra = ""): string {
-  const base = twoPeople
-    ? "Keep the exact pose, position, size and light of both people. Change only their faces, hair and clothes. The person on the left becomes the person in the second picture. The person on the right becomes the person in the third picture. Copy the whole outfit and every accessory from each picture. Keep the background exactly as it is."
-    : "Keep the exact pose, position, size and light of the person. Change only the face, hair and clothes. The person becomes the person in the second picture. Copy the whole outfit and every accessory. Keep the background exactly as it is.";
+  const framing = "Edit the first picture in place. Keep its exact camera crop, subject scale, poses, light and background. Match the framing of the first picture even if the other pictures show more of the body.";
+  const assignment = twoPeople
+    ? "Replace the person on the left with the character in the second picture and the person on the right with the character in the third picture."
+    : "Replace the person with the character in the second picture.";
+  const base = `${framing} ${assignment} Replace the visible face, hair, clothes and accessories with the matching details from each character picture.`;
   const note = extra.trim();
   return note ? `${base}\n\n${note}` : base;
 }

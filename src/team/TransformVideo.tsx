@@ -6,7 +6,7 @@ import type {Readiness} from "../capabilities/types";
 import {TeamComposer} from "./TeamComposer";
 import {draftKey} from "./state";
 import {VIDEO_REFRAME_ID} from "../capabilities/video-reframe";
-import {backgroundManifest,seedBackgroundDraft,selectTransformManifest,TRANSFORM_MODES,transformCandidates,type RestyleKind,type TransformMode} from "./transform-video-state";
+import {backgroundManifest,restylePresentation,seedBackgroundDraft,selectTransformManifest,TRANSFORM_MODES,transformCandidates,type RestyleKind,type TransformMode} from "./transform-video-state";
 
 export type ChangeChoice=TransformMode|"person"|"reframe";
 const TOOL_LABELS:Record<ChangeChoice,string>={person:"Replace character",motion:"Motion transfer",swap:"Object swap",restyle:"Restyle",reframe:"Reframe"};
@@ -38,6 +38,8 @@ export function TransformVideo({manifests,statuses,user,workspace,project,worker
   const backgroundEdit=useMemo(()=>background?selectTransformManifest(manifests,statuses,"swap",picked?.mode==="swap"?picked.id:undefined):undefined,[background,manifests,statuses,picked]);
   const backgroundOn=choice==="restyle"&&kind==="background"&&!!backgroundEdit;
   const shown=backgroundOn?backgroundEdit:manifest,shownMode:TransformMode=backgroundOn?"swap":mode;
+  const displayShown=shown&&choice==="restyle"&&!backgroundOn?restylePresentation(shown):shown;
+  const displayCatalogue=choice==="restyle"&&!backgroundOn?manifests.map(restylePresentation):manifests;
   function chooseWorkflow(id:string){setPicked({mode:shownMode,id});onCapability(id);}
   function chooseKind(next:RestyleKind){
     if(next==="background"&&backgroundEdit){try{seedBackgroundDraft(localStorage,draftKey(user.id,workspace.id,project.id,backgroundEdit.id));}catch{/* A blocked browser store only costs the starting words. */}}
@@ -56,7 +58,7 @@ export function TransformVideo({manifests,statuses,user,workspace,project,worker
   if(choice==="person"&&replace)return <>{replace(switcher)}</>;
   if(choice==="swap"&&swapThing)return <>{swapThing(switcher)}</>;
   if(choice==="reframe"&&reframe)return <TeamComposer key={`${project.id}:${reframe.id}`} top={switcher} manifest={reframe} catalogue={manifests} workflowIds={[reframe.id]} onCapability={onCapability} user={user} workspace={workspace} project={project} workers={workers} call={call} canQueue={canQueue} authorized={authorized} onQueued={onQueued}/>;
-  return shown
-    ?<TeamComposer key={`${project.id}:${shown.id}`} top={top} manifest={shown} catalogue={manifests} workflowIds={candidates[shownMode].map(m=>m.id)} onCapability={chooseWorkflow} user={user} workspace={workspace} project={project} workers={workers} call={call} canQueue={canQueue} authorized={authorized} onQueued={onQueued}/>
+  return displayShown
+    ?<TeamComposer key={`${project.id}:${displayShown.id}`} top={top} manifest={displayShown} catalogue={displayCatalogue} workflowIds={candidates[shownMode].map(m=>m.id)} onCapability={chooseWorkflow} user={user} workspace={workspace} project={project} workers={workers} call={call} canQueue={canQueue} authorized={authorized} onQueued={onQueued}/>
     :<div className="cf-production"><Panel>{top}<EmptyState title={TOOL_LABELS[mode]} text="No workflow for this tool is ready on this computer yet. Models shows which workflows are set up and what each one still needs." action={onModels?<Button variant="secondary" onClick={onModels}>Open Models</Button>:undefined}/></Panel></div>;
 }

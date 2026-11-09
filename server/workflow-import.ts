@@ -7,6 +7,8 @@ import { validateCapability } from "../src/capabilities/validate";
 
 const IMAGE_OUTPUTS = new Set(["SaveImage", "SaveImageAdvanced"]);
 const VIDEO_OUTPUTS = new Set(["SaveVideo"]);
+/** A 3D model is collected from SaveGLB, as the native 3D packs do. */
+const MODEL_OUTPUTS = new Set(["SaveGLB"]);
 /** Media loaders a person fills in: the graph field that holds the file, and the kind of input it is. */
 const LOADERS = new Map<string, { media: "image" | "video" | "audio"; field: string }>([
   ["LoadImage", { media: "image", field: "image" }],
@@ -23,7 +25,7 @@ export type WorkflowMapping = {
   source: { name: string; nodes: number; outputs: number };
   inputs: Array<{ port: string; node: string; nodeType: string; field: string }>;
   controls: Array<{ control: string; node: string; nodeType: string; field: string }>;
-  outputs: Array<{ port: string; node: string; nodeType: string; media: "image" | "video" }>;
+  outputs: Array<{ port: string; node: string; nodeType: string; media: "image" | "video" | "model3d" }>;
   dependencies: Array<{ kind: "node" | "model"; name: string; location?: string }>;
   /** Values used by several nodes (for example both samplers of a Wan 2.2 high/low split) stay at the template value. */
   fixed?: Array<{ control: string; nodes: string[]; reason: string }>;
@@ -120,19 +122,19 @@ export function previewWorkflowImport(input: {
   }
 
   const outputs = Object.entries(graph)
-    .filter(([, node]) => IMAGE_OUTPUTS.has(node.class_type) || VIDEO_OUTPUTS.has(node.class_type))
+    .filter(([, node]) => IMAGE_OUTPUTS.has(node.class_type) || VIDEO_OUTPUTS.has(node.class_type) || MODEL_OUTPUTS.has(node.class_type))
     .sort(([left], [right]) => left.localeCompare(right, "en", { numeric: true }));
   if (!outputs.length) {
-    throw new WorkflowImportError([{ reason: "No supported SaveImage, SaveImageAdvanced or SaveVideo output was found" }]);
+    throw new WorkflowImportError([{ reason: "No supported SaveImage, SaveImageAdvanced, SaveVideo or SaveGLB output was found" }]);
   }
 
   const outputPorts: Port[] = [];
   const mappingOutputs: WorkflowMapping["outputs"] = [];
   for (const [index, [node, value]] of outputs.entries()) {
-    const media = VIDEO_OUTPUTS.has(value.class_type) ? "video" : "image";
-    const id = index === 0 ? media : `${media}_${index + 1}`;
+    const media = MODEL_OUTPUTS.has(value.class_type) ? "model3d" : VIDEO_OUTPUTS.has(value.class_type) ? "video" : "image";
+    const id = index === 0 ? (media === "model3d" ? "model" : media) : `${media === "model3d" ? "model" : media}_${index + 1}`;
     // The first output is the result; further Save nodes (previews, side-by-side) are kept but never required.
-    outputPorts.push({ id, label: (value as GraphNode)._meta?.title ?? (media === "video" ? "Video" : "Image"), type: media, required: index === 0 });
+    outputPorts.push({ id, label: (value as GraphNode)._meta?.title ?? (media === "video" ? "Video" : media === "model3d" ? "3D model (GLB)" : "Image"), type: media, required: index === 0 });
     mappingOutputs.push({ port: id, node, nodeType: value.class_type, media });
   }
 
@@ -274,7 +276,7 @@ export function previewWorkflowImport(input: {
     id: `imported-${slug(input.label ?? input.name)}`,
     version: "0.1.0",
     title: input.label ?? input.name.replace(/\.json$/i, ""),
-    category: outputPorts[0].type === "video" ? "video" : "image",
+    category: outputPorts[0].type === "video" ? "video" : outputPorts[0].type === "model3d" ? "3d" : "image",
     description: `Imported from the saved ComfyUI workflow ${input.name}. The app preserves this exact revision; it does not follow later edits in ComfyUI.`,
     inputs,
     outputs: outputPorts,

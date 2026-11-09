@@ -5,7 +5,7 @@ import type {Asset,ReusableElement,Worker} from "./api";
 import {defaultDraft,draftErrors,h3GeneratedAudio,workerReadiness,type ElementInputBinding} from "./state";
 import {isFlashVideoCreate,isSelectedVideoCreate} from "../capabilities/tasks";
 
-export type Shot={key:string;prompt:string;durationSeconds:number|string;settings:{title?:string;audioPolicy:"mute"|"preserve"|"replace"|"mix";elementInputs:Record<string,ElementInputBinding>;cameraHint?:string;capabilityId?:string;generation?:{capabilityId:string;version:string;routeId:"local";controls:Record<string,string|number|boolean>}};assets:Array<{role:string;assetId:string}>};
+export type Shot={key:string;prompt:string;durationSeconds:number|string;settings:{title?:string;audioPolicy:"mute"|"preserve"|"replace"|"mix";elementInputs:Record<string,ElementInputBinding>;cameraHint?:string;capabilityId?:string;generation?:{capabilityId:string;version:string;routeId:"local"|"router";controls:Record<string,string|number|boolean>}};assets:Array<{role:string;assetId:string}>};
 export type ShotPayload=Omit<Shot,"key"|"durationSeconds">&{durationSeconds:number;planKey?:string};
 export type PlannedShot={title:string;prompt:string;durationSeconds:number;shotIntent?:string;cameraIntent?:string};
 export function isStoryboardImage(asset:Asset,projectId:string){return asset.project_id===projectId&&asset.media_type==="image"&&asset.content_type.startsWith("image/");}
@@ -27,7 +27,7 @@ export type Board={id:string;project_id:string;name:string;revision:number;shots
 export type Assembly={width:number;height:number;fps:number;audioPolicy:"mute"|"preserve";/** Absent means hard cuts. A cross-fade overlaps neighbours and shortens the film. */transition?:{kind:"cut"|"crossfade";seconds:number}};
 export type BoardDraft={revision:number;shots:Shot[];workerId:string;assembly:Assembly;audioExplicit?:boolean};
 export type SaveIntent={revision:number;shots:ShotPayload[]};
-export type RenderIntent={revision:number;workerId:string;idempotencyKey:string;assembly:Assembly;approvedStillTakes?:Record<string,string>};
+export type RenderIntent={revision:number;workerId?:string;idempotencyKey:string;assembly:Assembly;approvedStillTakes?:Record<string,string>};
 export type BoardRender={id:string;project_id:string;created_by:string;revision:number;state:string;error:string|null;output_asset_id:string|null;created_at:string;assembly:Assembly;shots?:Array<{ordinal:number;snapshot:{planKey?:string;approvedStill?:{producerRunId:string;assetId:string;takeId:string};prompt:string;frames:number;effectiveDurationSeconds:number};state:string|null;error:string|null;child_run_id:string|null;output_asset_id:string|null;scene?:number|null;shot?:number|null;take?:number|null}>};
 export type AssemblyReadiness={state:string;missing:string[];instructions:string};
 export const defaultAssembly:Assembly={width:1280,height:720,fps:24,audioPolicy:"mute"};

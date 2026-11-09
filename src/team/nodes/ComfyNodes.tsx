@@ -1,6 +1,6 @@
 import { useEffect,useRef,useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { Button, Canvas, Collapsible, IconButton, Steps, DataRow, Dialog, EmptyState, InfoButton, LinkButton, Meta, Notice, SearchField, SectionHeader, SegmentedTabs, StatusText, TextField, UploadSlot, Working } from "../../ds";
+import { Thumb, ThumbGrid, Button, Canvas, Collapsible, IconButton, Steps, DataRow, Dialog, EmptyState, InfoButton, LinkButton, Meta, Notice, SearchField, SectionHeader, SegmentedTabs, StatusText, TextField, UploadSlot, Working } from "../../ds";
 import type { Worker, Workspace } from "../api";
 import type {CapabilityManifestV2} from "../../capabilities/types";
 import {request,workspacePath} from "../api";
@@ -28,7 +28,9 @@ type Mapping = {
 };
 type Readiness = { nodes: number; missingNodes: Array<{ class: string; count: number }>; models: Array<{ name: string; present: boolean; url?: string }>; state: "ready" | "partial" | "missing" };
 type HubCheck = { source: { name: string; url?: string; sha256: string }; readiness: Readiness; mapping?: Mapping; manifest?: { title: string }; errors: Array<{ node?: string; class?: string; reason: string }> };
-type ImportMode = "comfy" | "hub" | "file";
+type ImportMode = "templates" | "comfy" | "hub" | "file";
+type ComfyTemplate = { name: string; title: string; description: string; group: string; mediaType: string; api: boolean; models: string[]; url: string; runsOn: Array<"local"|"cloud">; customNodes: string[] };
+const CLOUD_ORIGIN = "https://cloud.comfy.org";
 type FeatureResult = { applied: boolean; errors?: string[]; workflowId?: string; revisionId?: string; version?: number; changes: { added: string[]; removed: string[]; changed: string[] } };
 /** "#nodes/feature/<capability id>" opens that feature's graph in the editor. */
 const featureFromHash = () => { const match = /^#nodes\/feature\/([a-z0-9][a-z0-9-]{0,79})$/.exec(location.hash); return match?.[1] ?? null; };
@@ -47,7 +49,7 @@ export function nodeStarters(catalogue:CapabilityManifestV2[],query:string){
 }
 
 /** The official editor uses a separate origin so extension scripts cannot read app APIs. */
-export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = false, serverOffline = false, canStartLocal = false, onChanged, onWorkerSettings }: { workspace: Workspace; workers: Worker[]; catalogue?:CapabilityManifestV2[]; tool?: ThreeDTool; canEdit?: boolean; serverOffline?: boolean; canStartLocal?: boolean; onChanged?: () => void | Promise<void>; /** Where a person registers or checks a worker. Every offline state leads here, so it is required. */ onWorkerSettings: () => void }) {
+export function ComfyNodes({ workspace, workers, catalogue=[], tool, importOnly = false, canEdit = false, serverOffline = false, canStartLocal = false, onChanged, onWorkerSettings }: { workspace: Workspace; workers: Worker[]; catalogue?:CapabilityManifestV2[]; tool?: ThreeDTool; /** Only the workflow list and the import, no node editor (online, on Comfy Cloud). */ importOnly?: boolean; canEdit?: boolean; serverOffline?: boolean; canStartLocal?: boolean; onChanged?: () => void | Promise<void>; /** Where a person registers or checks a worker. Every offline state leads here, so it is required. */ onWorkerSettings: () => void }) {
   // The editor proxy prefers an online local worker; don't let an earlier offline
   // entry hide the editor when another enabled worker is available.
   const worker = workers.find(candidate => candidate.enabled && candidate.inventory?.online === true)
@@ -73,7 +75,15 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
   const [shelfError,setShelfError]=useState("");
   const [shelfNotice,setShelfNotice]=useState("");
   const [shelfBusy,setShelfBusy]=useState("");
-  const [mode,setMode]=useState<ImportMode>("comfy");
+  const [mode,setMode]=useState<ImportMode>("templates");
+  /* The official Comfy templates: browse, pick one, and it is checked against this worker before it is saved. */
+  /* Where an import is checked and later runs: this computer or Comfy Cloud, when both are set up. */
+  const importTargets=workers.filter(w=>w.enabled),[importWorkerId,setImportWorkerId]=useState("");
+  const importWorker=importTargets.find(w=>w.id===importWorkerId)??worker;
+  const importCloud=importWorker?.origin===CLOUD_ORIGIN;
+  /* Only templates that can run on the chosen target: offered there by Comfy, and needing no extra node packs. */
+  const runnable=(t:ComfyTemplate)=>(!t.runsOn.length||t.runsOn.includes(importCloud?"cloud":"local"))&&!t.customNodes.length;
+  const [templates,setTemplates]=useState<ComfyTemplate[]>([]),[templateQuery,setTemplateQuery]=useState(""),[templateGroup,setTemplateGroup]=useState("All"),[templatePick,setTemplatePick]=useState<ComfyTemplate|null>(null);
   const [hubUrl,setHubUrl]=useState("");
   const [file,setFile]=useState<{name:string;json:string}|null>(null);
   const [check,setCheck]=useState<HubCheck|null>(null);
@@ -102,20 +112,21 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
       const list=await request<SavedWorkflow[]>(shelfPath);
       setSaved(list.map(item=>({...item,published_revision_id:item.published_revision_id??(item.published?item.revision_id:null)})));
       if(canEdit){
-        const result=await request<{names:string[]}>(`${shelfPath}/sources${worker?`?workerId=${encodeURIComponent(worker.id)}`:""}`);
+        const result=await request<{names:string[]}>(`${shelfPath}/sources${importWorker?`?workerId=${encodeURIComponent(importWorker.id)}`:""}`);
         setSources(result.names);
       }
     }catch(cause){setShelfError((cause as Error).message);}
   }
-  useEffect(()=>{if(showShelf&&!serverOffline)void loadShelf();},[workspace.id,worker?.id,canEdit,showShelf,serverOffline]);
+  useEffect(()=>{if(showShelf&&!serverOffline)void loadShelf();},[workspace.id,importWorker?.id,canEdit,showShelf,serverOffline]);
+  useEffect(()=>{if(!shelfOpen||mode!=="templates"||templates.length)return;void request<ComfyTemplate[]>(`${shelfPath}/templates`).then(setTemplates).catch(cause=>setShelfError((cause as Error).message));},[shelfOpen,mode,templates.length,shelfPath]);
 
   /** The chosen source as the import API expects it: a saved name, a Hub address or the file's text. */
-  const sourceBody=mode==="comfy"?(sourceName?{name:sourceName}:null):mode==="hub"?(hubUrl.trim()?{name:hubUrl.trim()}:null):(file?{json:file.json}:null);
+  const sourceBody=mode==="templates"?(templatePick?{name:templatePick.url}:null):mode==="comfy"?(sourceName?{name:sourceName}:null):mode==="hub"?(hubUrl.trim()?{name:hubUrl.trim()}:null):(file?{json:file.json}:null);
   async function checkSource(){
     if(!sourceBody)return;
     setShelfBusy("preview");setShelfError("");setShelfNotice("");setCheck(null);setPreview(null);
     try{
-      const result=await request<HubCheck>(`${shelfPath}/hub-check`,"POST",{...sourceBody,...(worker?{workerId:worker.id}:{})});
+      const result=await request<HubCheck>(`${shelfPath}/hub-check`,"POST",{...sourceBody,...(importWorker?{workerId:importWorker.id}:{})});
       setCheck(result);setPreview(result.mapping??null);
       if(!label&&result.manifest)setLabel(result.manifest.title);
     }catch(cause){setShelfError((cause as Error).message);}
@@ -126,7 +137,7 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
     if(!sourceName)return;
     setShelfBusy("preview");setShelfError("");setShelfNotice("");
     try{
-      const result=await request<{manifest:{title:string};mapping:Mapping}>(`${shelfPath}/preview`,"POST",{name:sourceName,...(worker?{workerId:worker.id}:{})});
+      const result=await request<{manifest:{title:string};mapping:Mapping}>(`${shelfPath}/preview`,"POST",{name:sourceName,...(importWorker?{workerId:importWorker.id}:{})});
       setPreview(result.mapping);
       if(!label)setLabel(result.manifest.title);
     }catch(cause){setPreview(null);setShelfError((cause as Error).message);}
@@ -136,9 +147,10 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
     if(!sourceBody||!label||!preview)return;
     setShelfBusy("import");setShelfError("");setShelfNotice("");
     try{
-      await request(shelfPath,"POST",{...sourceBody,label,...(worker?{workerId:worker.id}:{})});
+      const publish=mode==="templates"&&check?.readiness.state==="ready";
+      await request(shelfPath,"POST",{...sourceBody,label,...(publish?{published:true}:{}),...(importWorker?{workerId:importWorker.id}:{})});
       setShelfOpen(false);setPreview(null);setCheck(null);setSourceName("");setHubUrl("");setFile(null);setLabel("");
-      setShelfNotice("Workflow saved as a draft. Publish it to show it in the Video or Image menu.");
+      setShelfNotice(publish?"Added. It is in the Video, Image or 3D menu under its function now.":"Workflow saved as a draft. Publish it to show it in the Video or Image menu.");setTemplatePick(null);
       await loadShelf();
     }catch(cause){setShelfError((cause as Error).message);}
     finally{setShelfBusy("");}
@@ -265,8 +277,10 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
   const retryWorker=()=>void(workerRetry==="probe"||!workerStartable?checkWorker():startWorker());
   const retryConnection=()=>{if(onChanged)void onChanged();else location.reload();};
 
-  if(serverOffline)return <EmptyState stage title="CreativeField is offline" text="Reconnect to the team server to keep working on the node editor." action={<Button variant="secondary" onClick={retryConnection}>Retry connection</Button>}/>;
-  if (!worker || (worker.inventory?.online === false&&!workerConfirmedOnline)) {
+  /* Online without a Comfy Cloud sign-in there is nowhere to check or run an import, so nothing to offer but the sign-in. */
+  if(importOnly&&!worker)return <EmptyState stage title="Sign in to Comfy Cloud" text="Your Comfy Cloud account checks and runs the workflows you import. Sign in with your Comfy key." action={onWorkerSettings?<Button variant="secondary" onClick={onWorkerSettings}>Sign in</Button>:undefined}/>;
+  if(!importOnly&&serverOffline)return <EmptyState stage title="CreativeField is offline" text="Reconnect to the team server to keep working on the node editor." action={<Button variant="secondary" onClick={retryConnection}>Retry connection</Button>}/>;
+  if (!importOnly&&(!worker || (worker.inventory?.online === false&&!workerConfirmedOnline))) {
     /* A failed start or check is the same cause as the offline state, so it is said once, with the
        same action that clears it (rule 36, rule 42). */
     const fallback=!worker
@@ -287,12 +301,12 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
           : "ComfyUI is not answering. Open worker settings to check its address.";
     return <EmptyState stage title={title} text={workerError?`${plainProblem(workerError).text} ${text}`:text} action={action}/>;
   }
-  if(error)return <EmptyState stage title="Node editor unavailable" text={`${plainProblem(error).text} Trying again reloads the editor.`} action={<Button variant="secondary" onClick={()=>setVersion(value=>value+1)}>Try again</Button>}/>;
+  if(!importOnly&&error)return <EmptyState stage title="Node editor unavailable" text={`${plainProblem(error).text} Trying again reloads the editor.`} action={<Button variant="secondary" onClick={()=>setVersion(value=>value+1)}>Try again</Button>}/>;
 
   return <div className="cf-nodes">
     <Canvas workspace
-      toolbarStart={tool ? undefined : <SectionHeader large title="Node editor" />}
-      toolbarEnd={<>
+      toolbarStart={tool ? undefined : <SectionHeader large title={importOnly?"Your workflows":"Node editor"} />}
+      toolbarEnd={importOnly?undefined:<>
         <IconButton label="Reload the editor" onClick={() => { setLoaded(false); setVersion(value => value + 1); }}><RefreshCw size={14} /></IconButton>
         {src&&<LinkButton variant="secondary" href={src} target="_blank" rel="noopener noreferrer">Open in a new tab</LinkButton>}
       </>}
@@ -346,14 +360,14 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
                 : <Button variant="ghost" disabled={!!shelfBusy} onClick={() => void publish(item, true)}>Unpublish</Button>))}
         </div>)}</div></Collapsible> : <Meta>Import a saved workflow to use it in Image or Video.</Meta>}
       </div>}
-      {showShelf&&!feature&&!run&&nodeStarters(catalogue,"").length>0&&<div className="cf-nodes__shelf">
+      {!importOnly&&showShelf&&!feature&&!run&&nodeStarters(catalogue,"").length>0&&<div className="cf-nodes__shelf">
         <Collapsible title="Start from a workflow">
           <SearchField label="Search workflows" placeholder="Search workflows" value={starterQuery} onChange={setStarterQuery}/>
           {nodeStarters(catalogue,starterQuery).map(item=><DataRow key={item.id} title={item.title} meta={<Meta>{item.description}</Meta>} actions={<LinkButton variant="secondary" href={`#nodes/feature/${item.id}`}>Open in nodes</LinkButton>}/>)}
           {!nodeStarters(catalogue,starterQuery).length&&<Meta>No matching workflows.</Meta>}
         </Collapsible>
       </div>}
-      <div className="cf-nodes__stage">
+      {!importOnly&&<div className="cf-nodes__stage">
         {!loaded && (
           <div className="cf-nodes__loading" role="status">
             <Working label="Loading the node editor" hint="ComfyUI is starting up" />
@@ -368,7 +382,7 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
           allow="clipboard-read; clipboard-write"
           onLoad={() => setLoaded(true)}
         />}
-      </div>
+      </div>}
     </Canvas>
     <Dialog
       open={shelfOpen}
@@ -377,17 +391,25 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, canEdit = f
       footer={<>
         <Button variant="secondary" onClick={() => setShelfOpen(false)}>Cancel</Button>
         {sourceBody&&<Button variant="secondary" disabled={!!shelfBusy} onClick={() => void previewSource()}>Check the workflow</Button>}
-        {preview&&label.trim()&&<Button disabled={!!shelfBusy} onClick={() => void importSource()}>Save as draft app</Button>}
+        {preview&&label.trim()&&<Button disabled={!!shelfBusy} onClick={() => void importSource()}>{mode==="templates"&&check?.readiness.state==="ready"?"Add to my apps":"Save as draft app"}</Button>}
       </>}
     >
       <div className="cf-nodes__import">
         {!canEdit ? <Meta>Only workspace creators can import workflows.</Meta> : <>
-        <Steps items={[{ title: "Choose", text: "a workflow from ComfyUI, ComfyHub or a file" }, { title: "Check", text: "we find its inputs and what it needs" }, { title: "Save", text: "it becomes a draft app; publish it from the list" }]} />
-        <SegmentedTabs block label="Workflow source" value={mode} onChange={value => { setMode(value as ImportMode); setPreview(null); setCheck(null); setShelfError(""); }} items={[{ id: "comfy", label: "Saved in ComfyUI" }, { id: "hub", label: "ComfyHub" }, { id: "file", label: "File" }]} />
+        <Steps items={[{ title: "Choose", text: "a Comfy template, or a workflow from ComfyUI, ComfyHub or a file" }, { title: "Check", text: "we find its inputs and what it needs" }, { title: "Add", text: "ready ones go straight into the menu; others stay a draft" }]} />
+        {importTargets.length>1&&(mode==="templates"||mode==="comfy")&&<SegmentedTabs label="Check on" value={importWorker?.id??""} onChange={id=>{setImportWorkerId(id);setTemplatePick(null);setSourceName("");setPreview(null);setCheck(null);}} items={importTargets.map(w=>({id:w.id,label:w.origin===CLOUD_ORIGIN?"Comfy Cloud":w.name}))} />}
+        <SegmentedTabs block label="Workflow source" value={mode} onChange={value => { setMode(value as ImportMode); setPreview(null); setCheck(null); setShelfError(""); }} items={[{ id: "templates", label: "Comfy templates" }, { id: "comfy", label: importCloud?"Saved in Comfy Cloud":"Saved in ComfyUI" }, { id: "hub", label: "ComfyHub" }, { id: "file", label: "File" }]} />
         {mode==="comfy"&&(sources.length ? <div className="cf-nodes__sources">{sources.map(name => <Button key={name} variant={name === sourceName ? "primary" : "secondary"} onClick={() => { setSourceName(name); setLabel(name.replace(/\.json$/i,"")); setPreview(null); setShelfError(""); }}>{name.replace(/\.json$/i, "")}</Button>)}</div> : <Meta>No saved ComfyUI workflows found on this worker.</Meta>)}
+        {mode==="templates"&&<>
+          <SearchField label="Search Comfy templates" value={templateQuery} onChange={setTemplateQuery} placeholder="Search by name or model" />
+          <SegmentedTabs label="Template group" value={templateGroup} onChange={setTemplateGroup} items={["All",...Array.from(new Set(templates.map(t=>t.group)))].slice(0,8).map(g=>({id:g,label:g}))} />
+          {!templates.length?<Working label="Reading the Comfy template list" />:<ThumbGrid label="Comfy templates">{templates.filter(t=>runnable(t)&&(templateGroup==="All"||t.group===templateGroup)&&`${t.title} ${t.models.join(" ")} ${t.description}`.toLowerCase().includes(templateQuery.trim().toLowerCase())).slice(0,60).map(t=>
+            <Thumb key={t.name} src={`/api/v1${shelfPath}/templates/${encodeURIComponent(t.name)}/thumbnail`} label={t.title} badge={t.api?"API":undefined} info={<>{t.title}<br/>{t.description}</>} selected={templatePick?.name===t.name} onSelect={()=>{setTemplatePick(t);setLabel(t.title);setPreview(null);setCheck(null);setShelfError("");}} />)}</ThumbGrid>}
+          {templatePick&&<Meta parts={[templatePick.title,templatePick.models.join(", ")||null,templatePick.api?"Partner API: needs a Comfy account and credits":null]} />}
+        </>}
         {mode==="hub"&&<TextField label="Workflow address" value={hubUrl} onChange={value => { setHubUrl(value); setPreview(null); setCheck(null); }} placeholder="https://comfy.org/workflows/download/…" hint="A comfy.org workflow download link or a Comfy-Org GitHub file. Only this file is fetched; nothing is installed." />}
         {mode==="file"&&<UploadSlot label={file?file.name:"Choose workflow file"} hint="A ComfyUI workflow JSON export. The file is read locally and never installed." accept="application/json,.json" kinds={[]} onFile={async chosen => { if(!chosen){setFile(null);return;} setFile({name:chosen.name,json:await chosen.text()}); setLabel(chosen.name.replace(/\.json$/i,"")); setPreview(null); setCheck(null); }} />}
-        {!sourceBody&&<Meta>{mode==="comfy"?"Choose a saved workflow to preview it.":mode==="hub"?"Paste a workflow address to check it.":"Choose a workflow file to check it."}</Meta>}
+        {!sourceBody&&<Meta>{mode==="templates"?"Pick a template to check it.":mode==="comfy"?"Choose a saved workflow to preview it.":mode==="hub"?"Paste a workflow address to check it.":"Choose a workflow file to check it."}</Meta>}
         {check&&<div className="cf-nodes__mapping">
           <StatusText tone={check.readiness.state==="ready"?"ok":"warn"}>{READINESS_LABEL[check.readiness.state]}</StatusText>
           {check.readiness.missingNodes.map(node => <DataRow key={node.class} title={node.class} meta={<Meta parts={["Node class not installed", node.count>1?`${node.count} uses`:null]} />} status={<StatusText tone="warn">Missing</StatusText>} />)}

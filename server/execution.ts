@@ -19,6 +19,7 @@ import {stageForNode} from "./develop";
 import {chainKeyPrefix,chainPart,type JobPart} from "./progress";
 import {compileJutsuRelay,planJutsuRelay} from "../src/capabilities/jutsu";
 import {inspectReplaceClip} from "./replace-clip-check";
+import {isOpenJutsuAdvanced} from "../src/capabilities/openjutsu-advanced";
 import {readOpenJutsuTracking} from "./openjutsu-tracking";
 import {inspectCharacterReference,needsOpenJutsuReferencePreparation,prepareOpenJutsuUpload} from "./openjutsu-reference";
 import {requestSchema,publicColumns,canonical,extension,prepareInvocation,enqueuePreparedRun,cancelRun} from "./run-submission";
@@ -665,7 +666,7 @@ export class ExecutionService {
         }
       }
       const sourceFrames=await this.replaceSourceFrames(run,assets,bundle.manifest);
-      const inputs=await this.uploadInputs(run,worker,assets,undefined,(isObjectSwapWorkflow(bundle.manifest.id)||bundle.manifest.id==="openjutsu-h3-advanced"),bundle.manifest.id==="openjutsu-h3-advanced",worker.kind!=="cloud"?bundle.manifest.id:"");
+      const inputs=await this.uploadInputs(run,worker,assets,undefined,(isObjectSwapWorkflow(bundle.manifest.id)||isOpenJutsuAdvanced(bundle.manifest.id)),isOpenJutsuAdvanced(bundle.manifest.id),worker.kind!=="cloud"?bundle.manifest.id:"");
       const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,compileRunGraph(bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
       // A cancellation before prompt submission can complete without touching the worker queue.
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
@@ -679,7 +680,7 @@ export class ExecutionService {
       await this.pool.query("UPDATE runs SET remote_id=$1,state=CASE WHEN state='cancel_requested' THEN state ELSE 'queued' END,updated_at=now() WHERE workspace_id=$2 AND id=$3",[result.prompt_id,run.workspace_id,run.id]);
       await this.event(run.workspace_id,run.id,"queued");
     } catch(error) {
-      if(!remoteAttempted&&manifest&&(isOpenJutsuSingleSwap(manifest.id)||manifest.id==="openjutsu-h3-advanced")){
+      if(!remoteAttempted&&manifest&&(isOpenJutsuSingleSwap(manifest.id)||isOpenJutsuAdvanced(manifest.id))){
         const state=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0]?.state;
         if(state==="cancel_requested"){await this.finish(run,"canceled");return;}
       }
@@ -722,7 +723,7 @@ export class ExecutionService {
          only accepts the names the server made, and the stored graph keeps those names. */
       const cloud=worker.kind==="cloud";
       const named=Object.fromEntries(assets.map(asset=>[asset.role,`comfyfield-${run.id}-${asset.id}.${extension(asset.content_type)}`]));
-      const inputs=cloud?named:await this.uploadInputs(run,worker,assets,undefined,(isObjectSwapWorkflow(bundle.manifest.id)||bundle.manifest.id==="openjutsu-h3-advanced"),bundle.manifest.id==="openjutsu-h3-advanced",bundle.manifest.id);
+      const inputs=cloud?named:await this.uploadInputs(run,worker,assets,undefined,(isObjectSwapWorkflow(bundle.manifest.id)||isOpenJutsuAdvanced(bundle.manifest.id)),isOpenJutsuAdvanced(bundle.manifest.id),bundle.manifest.id);
       const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,compileRunGraph(bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
       if(current.state==="cancel_requested"){await this.finish(run,"canceled");return;}
@@ -739,7 +740,7 @@ export class ExecutionService {
       await this.pool.query("UPDATE runs SET remote_id=$1,state=CASE WHEN state='cancel_requested' THEN state ELSE 'queued' END,updated_at=now() WHERE workspace_id=$2 AND id=$3",[job.id,run.workspace_id,run.id]);
       await this.event(run.workspace_id,run.id,"queued",{transport:"sdk",remoteId:job.id});
     } catch(error) {
-      if(!remoteAttempted&&(isOpenJutsuSingleSwap(run.capability_id)||run.capability_id==="openjutsu-h3-advanced")){
+      if(!remoteAttempted&&(isOpenJutsuSingleSwap(run.capability_id)||isOpenJutsuAdvanced(run.capability_id))){
         const state=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0]?.state;
         if(state==="cancel_requested"){await this.finish(run,"canceled");return;}
       }
@@ -942,8 +943,12 @@ export class ExecutionService {
       // Not queued, not running and not in history: the worker no longer has this prompt (for example after a
       // ComfyUI restart), so it can never produce output. Finishing here ends an otherwise endless "cancel requested".
       if(!pending&&!running){if(!entry)await this.finish(run,"canceled");return;}
-      const response=await this.fetch(worker,`/jobs/${encodeURIComponent(run.remote_id)}/cancel`,{method:"POST"});
-      if(response.ok&&(await response.json() as {cancelled?:boolean}).cancelled)await this.finish(run,"canceled");
+      const path=`/jobs/${encodeURIComponent(run.remote_id)}/cancel`;
+      // Native ComfyUI exposes job cancellation under /api even when this
+      // worker uses unprefixed routes for the queue and history.
+      let response=await this.fetch(worker.api_prefix?worker:{...worker,api_prefix:"/api"},path,{method:"POST"});
+      if(!worker.api_prefix&&(response.status===404||response.status===405))response=await this.fetch(worker,path,{method:"POST"});
+      if(!running&&response.ok&&(await response.json() as {cancelled?:boolean}).cancelled)await this.finish(run,"canceled");
       return; // Never use global interrupt on a shared worker.
     }
     if(!pending&&!running&&!entry){

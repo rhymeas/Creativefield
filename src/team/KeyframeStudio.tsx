@@ -20,6 +20,7 @@ import {resolveImageReference} from '../image/image-reference';
 import {insertReferenceMention} from './prompt-reference';
 import {ROUTER_MODELS,type RouterModel} from '../capabilities/router-models';
 import {routerSegmentRuns} from './keyframe-router';
+import {TeamChoice} from './TeamChoice';
 
 type Board={id:string;revision:number};
 type Pending={board:Board;request:{revision:number;workerId:string;idempotencyKey:string;assembly:{width:number;height:number;fps:number;audioPolicy:'mute';keyframeBoundaries:true}}};
@@ -59,7 +60,8 @@ export function KeyframeStudio({workspace,project,user,catalogue,workers,call,au
  const locked=!!busy||!!pending||rendering||!canEdit;
  /* Planning keyframes works on any Run on choice. Animating uses this computer's keyframe models, or without them
     Seedance 2.5 on Comfy Router: one clip per segment, from its first to its last keyframe. */
- const routerModel:RouterModel|undefined=localEnabled?undefined:ROUTER_MODELS.find(m=>m.features.includes('keyframes'));
+ const routerModels=ROUTER_MODELS.filter(m=>m.features.includes('keyframes')),[routerId,setRouterId]=useState(routerModels[0]?.id??'');
+ const routerModel:RouterModel|undefined=localEnabled?undefined:routerModels.find(m=>m.id===routerId)??routerModels[0];
  const canRender=canEdit&&(localEnabled||!!routerModel);
  const [sent,setSent]=useState('');
  async function animateOnRouter(m:RouterModel){
@@ -112,7 +114,7 @@ export function KeyframeStudio({workspace,project,user,catalogue,workers,call,au
   const next:Pending={board:current,request:{revision:current.revision,workerId:readyWorker.id,idempotencyKey:crypto.randomUUID(),assembly:{width,height,fps,audioPolicy:'mute',keyframeBoundaries:true}}};try{sessionStorage.setItem(`${storageKey}:pending`,JSON.stringify(next));}catch{throw new Error('Request tracking is unavailable; no render was submitted.');}setPending(next);await send(next);
  }catch(e){if(e instanceof ApiError&&definitiveKeyframeRejection(e.status)){setPending(null);try{sessionStorage.removeItem(`${storageKey}:pending`);}catch{}}setError((e as Error).message);}finally{gate.current=false;setBusy('');}}
  return <div className="cf-production cf-keyframes"><Panel footer={<GenerateButton busy={busy==='render'||rendering} label={pending?'Retry submission':'Animate'} disabled={!canRender||!!busy||rendering||creationUncertain||(routerModel?frames.some(f=>!f.assetId):(!pending&&(!readyWorker||!!problem)))} disabledReason={routerModel?(frames.some(f=>!f.assetId)?'Add a picture to every keyframe':undefined):!localEnabled?'Choose This computer in the top bar to animate':!readyWorker?'A ready local model is needed':problem||undefined} onClick={()=>void generate()}/> }>
-  <div className="cf-form">{!localEnabled&&<Meta>{routerModel?`Animates on ${routerModel.title} through Comfy Router, one clip per segment, on your Comfy credits.`:'Choose This computer in the top bar to use local keyframe models.'}</Meta>}
+  <div className="cf-form">{routerModel&&routerModels.length>1&&<TeamChoice label="Model" display={routerModel.title} value={routerModel.id} disabled={!!busy||rendering} options={routerModels.map(m=>({value:m.id,label:m.title,note:'Comfy Router'}))} onChange={setRouterId}/>}{!localEnabled&&<Meta>{routerModel?`Animates on ${routerModel.title} through Comfy Router, one clip per segment, on your Comfy credits.`:'Choose This computer in the top bar to use local keyframe models.'}</Meta>}
    <KeyframeStrip frames={frames.map(f=>({frame:f.frame,filled:!!f.assetId}))} fps={fps} maxFrame={15*fps} disabled={locked} activeSegment={Math.min(activeSegment,frames.length-2)} positions={positionsFor} insertPositions={insertPositions} onMove={moveFrame} onReorder={reorder} onInsert={insertFrame} onRemove={frames.length>2?removeFrame:undefined} mention={mentionLabel} onMention={mentionFrame} end={<IconButton label="About keyframes" onClick={()=>setInfoOpen(true)}><Info size={16}/></IconButton>}
     media={index=><UploadSlot tile label={`Frame ${index+1}`} hint="" accept={imageTypes} kinds={['image']} preview={frames[index].assetId?assetUrl(workspace.id,frames[index].assetId):null} previewKind="image" disabled={locked} removeLabel={frames.length>2?`Remove frame ${index+1}`:`Clear frame ${index+1}`} onBrowse={()=>setPicker(index)} onFile={file=>{if(!file&&frames.length>2)removeFrame(index);else void upload(index,file);}} onAsset={id=>choose(index,id)}/>}/>
    <div>{frames.slice(1).map((frame,index)=><KeyframeSegment key={index} time={`${timeLabel(frames[index].frame,fps).replace(/s$/,'')}–${timeLabel(frame.frame,fps)}`} title={`Segment ${index+1}`} summary={prompts[index]} open={activeSegment===index} onToggle={()=>setActiveSegment(activeSegment===index?-1:index)}><PromptField textareaRef={segmentPrompt} tokens={['@Image 1','@Image 2']} compact label={`Segment ${index+1} prompt (optional)`} placeholder="Describe this transition" value={prompts[index]??''} disabled={locked} onChange={value=>setPrompts(old=>old.map((p,i)=>i===index?value:p))}/></KeyframeSegment>)}</div>

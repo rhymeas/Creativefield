@@ -70,6 +70,12 @@
   }
   .ds-mega { display: flex !important; flex-direction: column !important; }
   .ds-mega__col { width: 100%; }
+  /* Function menu as a sheet: each row slides sideways, tiles keep their size. */
+  .ds-fnmenu__tiles { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .ds-fnmenu__tiles::-webkit-scrollbar { display: none; }
+  .ds-fnmenu__tile { flex: none; width: 46%; scroll-snap-align: start; }
+  .ds-fnmenu__marks { display: none; }
+  .ds-fnmenu__row { width: 100%; }
   .ds-mega__list { grid-template-columns: minmax(0, 1fr) !important; }
   .ds-moresheet__title { padding: var(--space-3) var(--space-3) var(--space-1); color: var(--text-meta); font-size: var(--text-2xs); }
   .ds-moresheet .ds-menu__item, .ds-navdrop .ds-menu__item { min-height: 48px; }

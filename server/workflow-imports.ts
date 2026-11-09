@@ -14,6 +14,8 @@ import { fetchHubWorkflow, hubReadiness, isHubUrl, parseWorkflow } from "./hub-s
 import { uiToApi } from "../src/workflow/ui-to-api";
 import { assertLocalGraphPolicy } from "../src/capabilities/policy";
 import { loadServerCatalogue } from "./catalogue";
+import { comfyTemplates, comfyTemplateThumbnail } from "./comfy-templates";
+import { cloudKeyFor } from "./cloud-keys";
 import { checkFeatureEdit, featureFileName, newestFeatureFile, restoreFeatureIds } from "./feature-edit";
 
 const base = "/api/v1/workspaces/:workspaceId/workflow-imports";
@@ -48,11 +50,27 @@ async function workerFor(pool: Pool, workspaceId: string, workerId?: string): Pr
 }
 
 async function comfyJson<T>(worker: Worker, path: string): Promise<T> {
+  /* Comfy Cloud answers the same calls under its /api prefix and wants the account key on each one. */
+  const cloud = (worker as { kind?: string }).kind === "cloud";
+  const key = cloud ? cloudKeyFor((worker as { workspace_id?: string }).workspace_id) : undefined;
+  if (cloud && !key) throw new HttpError(422, "Sign in to Comfy Cloud to check workflows there");
+  const url = cloud ? `${worker.origin}${(worker as { api_prefix?: string }).api_prefix ?? "/api"}${path.replace(/^\/api(?=\/)/, "")}` : `${worker.origin}${path}`;
   let response: Response;
-  try { response = await fetch(`${worker.origin}${path}`, { signal: AbortSignal.timeout(30_000), redirect: "error" }); }
+  try { response = await fetch(url, { signal: AbortSignal.timeout(30_000), redirect: "error", ...(key ? { headers: { "X-API-Key": key } } : {}) }); }
   catch { throw new HttpError(502, "ComfyUI is not answering on this worker"); }
   if (!response.ok) throw new HttpError(502, `ComfyUI answered ${response.status} for ${path}`);
   return await response.json() as T;
+}
+
+/** Adds a Comfy Cloud route that runs the same graph with the same requirements as the imported local route. */
+export function withCloudRoute(manifest: CapabilityManifestV2): CapabilityManifestV2 {
+  if (manifest.routes.some(r => r.execution === "comfy_cloud")) return manifest;
+  const local = manifest.routes.find(r => r.execution === "local_comfy");
+  return {
+    ...manifest,
+    routes: [...manifest.routes, { id: "cloud", execution: "comfy_cloud", provider: "comfy-cloud", upstreamProviders: [], implementation: "implemented", endpointOrigin: "https://cloud.comfy.org", requirements: local?.requirements ?? [], evidence: ["Imported after a check against Comfy Cloud's own node list (GET /api/object_info)."] } as CapabilityManifestV2["routes"][number]],
+    coverage: { ...manifest.coverage, hosted: "implemented" },
+  };
 }
 
 function sourceNames(value: unknown): string[] {
@@ -80,11 +98,17 @@ async function source(worker: Worker, name: string): Promise<{ ui: UiWorkflow; r
 /** A pasted file has no address to fetch again; its hash stands in for the name. */
 const pastedName = (raw: string) => `pasted-${sha256(raw).slice(0, 12)}.json`;
 
-async function preview(worker: Worker, name: string, json?: string) {
+/** A readable name for a source: a file name without folders, query or .json, never a whole address. */
+export function sourceTitle(name: string): string {
+  const last = name.split(/[?#]/)[0].split("/").filter(Boolean).pop() ?? name;
+  return decodeURIComponent(last).replace(/\.json$/i, "");
+}
+
+async function preview(worker: Worker, name: string, json?: string, label?: string) {
   const input = json ? { ui: parseWorkflow(json), raw: json } : await source(worker, name);
   const objectInfo = await comfyJson<ObjectInfo>(worker, "/object_info");
   try {
-    const result = previewWorkflowImport({ name, ui: input.ui, objectInfo });
+    const result = previewWorkflowImport({ name: isHubUrl(name) ? sourceTitle(name) : name, ...(label?.trim() ? { label: label.trim() } : {}), ui: input.ui, objectInfo });
     return { ...result, raw: input.raw };
   } catch (error) {
     if (error instanceof WorkflowImportError) throw new HttpError(422, error.message);
@@ -123,6 +147,19 @@ export async function loadWorkspaceCatalogue(pool: Pool, baseCatalogue: Capabili
 }
 
 export async function workflowImportRoutes(app: FastifyInstance, pool: Pool) {
+  /* The official Comfy templates to browse; importing one goes through hub-check and the normal import. */
+  app.get(`${base}/templates`, async (request) => {
+    const { workspaceId } = z.object({ workspaceId: z.uuid() }).parse(request.params);
+    await member(pool, request, workspaceId);
+    try { return await comfyTemplates(); } catch { throw new HttpError(502, "The Comfy template list is not answering right now"); }
+  });
+  app.get(`${base}/templates/:name/thumbnail`, async (request, reply) => {
+    const { workspaceId, name } = z.object({ workspaceId: z.uuid(), name: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,120}$/) }).parse(request.params);
+    await member(pool, request, workspaceId);
+    const picture = await comfyTemplateThumbnail(name).catch(() => null);
+    if (!picture) throw new HttpError(404, "No preview picture");
+    return reply.header("Cache-Control", "private, max-age=86400").type(picture.type).send(picture.body);
+  });
   app.get(`${base}/sources`, async (request) => {
     const { workspaceId } = z.object({ workspaceId: z.uuid() }).parse(request.params);
     const { workerId } = workerQuery.parse(request.query);
@@ -186,7 +223,7 @@ export async function workflowImportRoutes(app: FastifyInstance, pool: Pool) {
     const body = importBody.parse(request.body);
     const user = await member(pool, request, workspaceId, "creator");
     const worker = await workerFor(pool, workspaceId, body.workerId);
-    const result = await preview(worker, body.name ?? "", body.json);
+    const result = await preview(worker, body.name ?? "", body.json, body.label);
     const sourceName = body.name ?? pastedName(result.raw);
     const slug = body.slug ? slugify(body.slug) : slugify(body.label || sourceName.replace(/\.json$/i, ""));
     if (!slug) throw new HttpError(422, "Workflow slug is empty");
@@ -194,7 +231,9 @@ export async function workflowImportRoutes(app: FastifyInstance, pool: Pool) {
       const existing = (await client.query("SELECT id, label FROM user_workflows WHERE workspace_id=$1 AND slug=$2", [workspaceId, slug])).rows[0];
       if (existing) throw new HttpError(409, `A workflow with slug ${slug} already exists; choose another label or slug`);
       const workflowId = newId(), revisionId = newId();
-      const manifest = bindIdentity(result.manifest, slug, 1);
+      const imported = bindIdentity(result.manifest, slug, 1);
+      /* Checked against Comfy Cloud: the app also gets the Cloud route, so it runs there with the visitor's key. */
+      const manifest = (worker as { kind?: string }).kind === "cloud" ? withCloudRoute(imported) : imported;
       const bundle = { manifest, template: result.graph };
       validateCapability(bundle);
       const inserted = await client.query("INSERT INTO user_workflows(id,workspace_id,slug,label,created_by) VALUES($1,$2,$3,$4,$5) ON CONFLICT(workspace_id,slug) DO NOTHING RETURNING id", [workflowId, workspaceId, slug, body.label, user.id]);
@@ -219,7 +258,7 @@ export async function workflowImportRoutes(app: FastifyInstance, pool: Pool) {
     const worker = await workerFor(pool, workspaceId, body.workerId);
     const name = body.name ?? latest?.source_name;
     if (!name) throw new HttpError(422, "No source workflow name is available for reimport");
-    const result = await preview(worker, name);
+    const result = await preview(worker, name, undefined, workflow.label);
     const created = await transaction(pool, async client => {
       // Serialize every revision/publication mutation on the stable parent.
       // Fetch the version after the lock: previews may finish concurrently.

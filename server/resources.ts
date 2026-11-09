@@ -221,8 +221,8 @@ export async function resourceRoutes(app: FastifyInstance, pool: Pool, store: Di
     return row;
   });
   app.delete(`${base}/assets/:id`, async request => {
-    const { workspaceId,id } = item.parse(request.params); await member(pool,request,workspaceId,"creator");
-    return deleteLibraryAsset(pool,store,workspaceId,id);
+    const { workspaceId,id } = item.parse(request.params); const user=await member(pool,request,workspaceId,"creator");
+    return deleteLibraryAsset(pool,store,workspaceId,id,user);
   });
   /* A finished or failed result can leave the results. Its record stays as history, its own outputs
      leave the library unless another run or a storyboard still uses them. */

@@ -5,7 +5,8 @@ import {buildHyperflowFirstLastFinish, buildHyperflowQuality, selectHyperflowTex
 import {h3Frames} from "./timing";
 import {omitMissingReferences} from "./optional-image-references";
 import {keepSourceSubjectPrompt} from "./keep-subject";
-import {openJutsuRoles,prepareOpenJutsuAdvancedCharacters} from "./openjutsu-advanced";
+import {isOpenJutsuAdvanced,openJutsuRoles,prepareOpenJutsuAdvancedCharacters} from "./openjutsu-advanced";
+import {addOpenJutsuUserInstruction,experimentalOpenJutsuRoles} from "./openjutsu-user-instruction";
 
 /** Compiles only server-owned templates. Asset filenames must have been resolved by
  * the server after workspace ownership checks, never supplied as browser paths. */
@@ -132,7 +133,7 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
       }
     }
   }
-  if (manifest.id === "openjutsu-h3-advanced") {
+  if (isOpenJutsuAdvanced(manifest.id)) {
     const ports = ["reference_image", "reference_image_2", "reference_image_3", "reference_image_4"];
     const filenames: string[] = [];
     let missing = false;
@@ -142,9 +143,15 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
       if (missing) throw new Error("Fill character references in order without empty slots.");
       filenames.push(filename);
     }
-    const roles = openJutsuRoles(String(values.prompt ?? values.roles ?? ""),filenames.length);
+    const userText = String(values.prompt ?? values.roles ?? "");
+    const roles = manifest.id === "openjutsu-h3-advanced-hyperflow"
+      ? experimentalOpenJutsuRoles(userText,filenames.length)
+      : openJutsuRoles(userText,filenames.length);
     while (roles.length && !roles[roles.length - 1].trim()) roles.pop();
     graph = prepareOpenJutsuAdvancedCharacters(graph, filenames, roles);
+    if (manifest.id === "openjutsu-h3-advanced-hyperflow") {
+      graph = addOpenJutsuUserInstruction(graph, userText, filenames.length);
+    }
   }
   /* The words are read after presets and defaults, because the look, the note and the clause meet there. */
   const promptControl = manifest.controls.find(c => c.id === "prompt" && !c.disabledReason);

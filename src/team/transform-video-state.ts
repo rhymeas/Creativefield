@@ -1,5 +1,4 @@
 import type {CapabilityManifestV2, Readiness} from "../capabilities/types";
-import {capabilitySurface} from "../capabilities/surfaces";
 import type {Catalogue} from "./api";
 import {isMaskedEdit} from "./masked-state";
 import {MASK_EDIT_IDEAS} from "./video-mask/edit-ideas";
@@ -20,7 +19,20 @@ export const TRANSFORM_MODES:{id:TransformMode;label:string;title:string;text:st
 const isMotion=(manifest:CapabilityManifestV2)=>manifest.category==="motion"&&manifest.inputs.some(port=>port.id==="motion_video");
 /** Restyle means a video-effect workflow driven by the clip itself. A depth-guided
  *  restyle needs a depth clip the user does not have, so it stays out of this mode. */
-const isRestyle=(manifest:CapabilityManifestV2)=>capabilitySurface(manifest)==="video-effect"&&/restyle/i.test(manifest.id)&&manifest.inputs.every(port=>!port.required||port.id==="source_video"||port.type!=="video");
+/** New look runs on HyperFlow H3 Flash only (user, 2026-11-09): the Wan VACE restyles are not good enough.
+ *  The Flash route takes the clip and a look picture; it was proven by a real restyle through our front. */
+export const FLASH_RESTYLE_ID="openjutsu-h3-advanced-hyperflow";
+const isRestyle=(manifest:CapabilityManifestV2)=>manifest.id===FLASH_RESTYLE_ID;
+
+/** Names for the same workflow when it is presented as a style tool. Keep the
+ * input IDs, bindings and original manifest untouched: OpenJutsu uses them too. */
+export function restylePresentation(manifest:CapabilityManifestV2):CapabilityManifestV2{
+  if(manifest.id!==FLASH_RESTYLE_ID)return manifest;
+  return {...manifest,title:"HyperFlow H3 Flash",description:"Use reference pictures and your instructions to give a video a new look.",inputs:manifest.inputs.map(port=>{
+    const match=/^reference_image(?:_([2-4]))?$/.exec(port.id);
+    return match?{...port,label:match[1]?`Style reference ${match[1]}`:"Style reference 1"}:port;
+  })};
+}
 
 /** Mode-to-capability contract used by the Transform workspace. */
 export function transformCandidates(manifests:Catalogue){

@@ -1,7 +1,7 @@
 import type {CapabilityManifestV2,Control,Port} from './types';
 
 export type CloudFeature='image-cutout'|'video-cutout'|'talk'|'effects'|'keyframes'|'video-upscale'|'image-upscale'|'image-create'|'image-edit'|'image-angles'|'image-relight'|'video-create'|'video-edit'|'replace-character'|'motion-transfer'|'restyle'|'object-swap'|'openjutsu'|'unsupported';
-export type RouterModel={id:string;model:string;title:string;features:CloudFeature[];kind:'flux'|'seedance'|'kling-edit'|'kling-motion'|'h3-reference'|'bfl-video-upscale'|'bria-upscale'|'h3-effect'|'kling-lipsync'|'bria-cutout'|'bria-video-cutout';output:'image'|'video';inputs:Port[];controls:Control[]};
+export type RouterModel={id:string;model:string;title:string;features:CloudFeature[];kind:'flux'|'seedance'|'kling-edit'|'kling-motion'|'h3-reference'|'bfl-video-upscale'|'bria-upscale'|'h3-effect'|'h3-create'|'kling-lipsync'|'bria-cutout'|'bria-video-cutout';output:'image'|'video';inputs:Port[];controls:Control[]};
 const prompt:Control={id:'prompt',label:'Prompt',type:'string',default:'',apiField:'prompt'};
 const seed:Control={id:'seed',label:'Seed',type:'integer',default:1,min:0,max:2147483647,apiField:'seed'};
 const image=(id:string,label:string,required=false):Port=>({id,label,type:'image',required});
@@ -38,7 +38,11 @@ export const ROUTER_MODELS:RouterModel[]=[
  {id:'router-image-upscale',model:'bria/image-edit-increase-resolution',title:'Bria Upscale',features:['image-upscale'],kind:'bria-upscale',output:'image',inputs:[image('source_image','Your image',true)],controls:[{id:'desired_increase',label:'Scale',type:'select',options:[2,4],default:2,apiField:'desired_increase'}]},
  /* First and last frame of one keyframe segment: Seedance takes both as content images with these roles. */
  {id:'router-seedance-keyframes',model:'byteplus/dreamina-seedance-2-5-260628',title:'Seedance 2.5 · first and last frame',features:['keyframes'],kind:'seedance',output:'video',inputs:[image('start_image','First frame',true),image('end_image','Last frame',true)],controls:[prompt,{id:'duration',label:'Seconds',type:'integer',min:4,max:30,default:5,apiField:'duration'},{id:'resolution',label:'Size',type:'select',options:['480p','720p','1080p'],default:'720p',apiField:'resolution'},seed]},
+ /* MiniMax H3 with a first and a last frame, the same request as H3 create with a last_frame image. */
+ {id:'router-h3-keyframes',model:'minimax/minimax-h3',title:'MiniMax H3 · first and last frame',features:['keyframes'],kind:'h3-create',output:'video',inputs:[image('start_image','First frame',true),image('end_image','Last frame',true)],controls:[prompt,{id:'duration',label:'Seconds',type:'integer',default:5,min:4,max:15,apiField:'duration'},{id:'resolution',label:'Size',type:'select',options:['768P','2K'],default:'768P',apiField:'resolution'},{...seed,max:4294967295}]},
  {id:'router-seedance-create',model:'byteplus/dreamina-seedance-2-5-260628',title:'Seedance 2.5',features:['video-create'],kind:'seedance',output:'video',inputs:[image('start_image','First frame')],controls:[prompt,{id:'duration',label:'Seconds',type:'integer',min:4,max:30,default:5,apiField:'duration'},{id:'resolution',label:'Size',type:'select',options:['480p','720p','1080p'],default:'480p',apiField:'resolution'},seed]},
+ /* MiniMax H3 through the Router: a prompt, and a first frame when one is given. Same request shape as the effects above. */
+ {id:'router-h3-create',model:'minimax/minimax-h3',title:'MiniMax H3',features:['video-create'],kind:'h3-create',output:'video',inputs:[image('start_image','First frame')],controls:[prompt,{id:'duration',label:'Seconds',type:'integer',default:5,min:4,max:15,apiField:'duration'},{id:'resolution',label:'Size',type:'select',options:['768P','2K'],default:'768P',apiField:'resolution'},{...seed,max:4294967295}]},
  {id:'router-kling-edit',model:'kling/kling-v3-omni',title:'Kling V3 Omni',features:['video-edit','replace-character','restyle','object-swap'],kind:'kling-edit',output:'video',inputs:[video,...reference],controls:klingControls},
  {id:'router-kling-motion',model:'kling/kling-v3-omni',title:'Kling V3 Omni',features:['motion-transfer'],kind:'kling-motion',output:'video',inputs:[video,image('reference_image','Character',true)],controls:[...klingControls,{id:'duration',label:'Seconds',type:'select',options:['3','5','10'],default:'5',apiField:'duration'}]},
 ];
@@ -49,7 +53,7 @@ export function routerInputProblem(m:RouterModel,assets:Record<string,{content_t
  let imageBytes=0;
  for(const [role,a] of Object.entries(assets)){
   if(a.content_type.startsWith('image/')){
-   if(m.kind==='h3-reference'||m.kind==='h3-effect'){if(!['image/png','image/jpeg','image/webp','image/gif'].includes(a.content_type))return 'Add a readable reference image.';continue;}
+   if(m.kind==='h3-reference'||m.kind==='h3-effect'||m.kind==='h3-create'){if(!['image/png','image/jpeg','image/webp','image/gif'].includes(a.content_type))return 'Add a readable reference image.';continue;}
    imageBytes+=Number(a.bytes);if(!['image/png','image/jpeg'].includes(a.content_type))return 'Use PNG or JPEG references for this cloud model.';
    if(m.kind.startsWith('kling')){const w=Number(a.metadata?.width),h=Number(a.metadata?.height),minimum=300;if(!w||!h||Math.min(w,h)<minimum||w/h>2.5||h/w>2.5)return `Kling references need at least ${minimum} pixels on each side and an aspect ratio between 1:2.5 and 2.5:1.`;}
   }else if(role==='source_video'){
