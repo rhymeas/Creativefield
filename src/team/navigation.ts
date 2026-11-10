@@ -85,6 +85,7 @@ export type NavigationInput={
 };
 
 type RunChoice={target:RunTarget;action:"select"|"sign-in"|"setup"|"consent"|"plan-required"};
+const runTargetLabels:Record<RunTarget,string>={local:"This computer",cloud:"Comfy Cloud",router:"Comfy Router",chatgpt:"ChatGPT"};
 type NamedScreen="make"|"projects"|"catalogue"|"audio";
 export type LibraryScreen={kind:"library";tab:"assets"}|{kind:"library";tab:"runs";linkedRunId?:string};
 type NodeEntry={kind:"feature"|"run";id:string};
@@ -200,6 +201,19 @@ function resolveTarget(input:NavigationInput,section:string,openJutsu?:ReturnTyp
     if(section==="image"||section==="imageedit"||selected==="chatgpt")choices.push({target:"chatgpt",action:"select"});
   }
   return {selected,choices};
+}
+
+function runTargetOption(value:RunTarget,input:NavigationInput){
+  const label=runTargetLabels[value];
+  if(value==="local")return {value,label};
+  if(value==="chatgpt")return {value,label,note:"Your sign-in · subscription quota"};
+  if(input.audience==="guest")return {value,label,note:"Sign in with your own Comfy key"};
+  if(value==="router")return input.audience==="local"
+    ?{value,label:"Comfy Router · BYOK",note:"Hosted models · your Comfy credits"}
+    :{value,label,note:"Ready · FLUX, Seedance and Kling on your Comfy credits"};
+  if(input.audience==="signed-in-guest"&&input.cloud.canSubmit===false)return {value,label,note:"Needs a paid Comfy plan"};
+  const connected=input.audience==="signed-in-guest"||input.cloud.worker;
+  return {value,label,note:connected?"Connected · uses your Comfy Cloud credits":"Set up a cloud worker · no render starts"};
 }
 
 function modelAvailability(input:NavigationInput){
@@ -408,6 +422,10 @@ export function resolveScreen(input:NavigationInput){
     :(reframeRequested||makeReal||studio)&&!hosted
     ? {selected:"local" as const,choices:targets.choices.filter(choice=>choice.target==="local")}
     : targets;
+  const runPicker=runTargets.choices.length?{
+    display:runTargetLabels[hosted&&!openJutsu&&runTargets.selected==="local"?"cloud":runTargets.selected],
+    options:runTargets.choices.map(choice=>runTargetOption(choice.target,input)),
+  }:null;
   const createWorkflow=createVideo
     ? selectedVideo&&selectableVideo(selectedVideo)?selectedVideo:routeTask("video.create",models.implemented)?.pack
     : undefined;
@@ -557,7 +575,7 @@ export function resolveScreen(input:NavigationInput){
     return {kind:section as NamedScreen};
   }
 
-  return {requestedHash,redirect,section,screen:screen(),tabs:tabs(),menu,runTargets,overlay,catalogueManifests,makeRealEntry,imageWorkflow,videoTabs,projectTabs,
+  return {requestedHash,redirect,section,screen:screen(),tabs:tabs(),menu,runTargets,runPicker,overlay,catalogueManifests,makeRealEntry,imageWorkflow,videoTabs,projectTabs,
     imageTabs:section==="image"&&imageWorkspace?.active?{...imageWorkspace,active:imageWorkspace.active}:null,
     access:input.access??"ready"};
 }

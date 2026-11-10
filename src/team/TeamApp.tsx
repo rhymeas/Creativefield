@@ -49,9 +49,9 @@ import {beginOperation,finishOperation,invalidateOperation,operationGate} from "
 import type {IntentTarget} from "./intent/router";
 import {nativeWorkflowHash,videoWorkflowMode,type VideoWorkspaceMode} from "./workflow-navigation";
 import {isOpenJutsuAdvanced} from "../capabilities/openjutsu-advanced";
-import {imageTabFor,imageTabTarget,resolveScreen,type AccountAction,type ImageTab,type ResolvedScreen,type VideoMenuId} from "./navigation";
+import {imageTabFor,imageTabTarget,resolveScreen,type AccountAction,type ImageTab,type ResolvedScreen,type RunTarget,type VideoMenuId} from "./navigation";
 export {imageTabFor,imageTabTarget,imageTabs} from "./navigation";
-export type {ImageTab} from "./navigation";
+export type {ImageTab,RunTarget} from "./navigation";
 import {sectionFromHash} from "./route-state";
 import {videoHashPart,videoWorkflowHash} from "../ui/studio-route";
 import {isMotionTransfer,selectTransformManifest} from "./transform-video-state";
@@ -66,19 +66,9 @@ export {videoWorkflowMode} from "./workflow-navigation";
 const VIDEO_MENU_ICONS:Partial<Record<VideoMenuId,typeof Sparkles>>={
   create:Video,trim:Scissors,storyboard:Clapperboard,motion:Move,enhance:Maximize2,
 };
-export type RunTarget="local"|"cloud"|"router"|"chatgpt";
 /** Comfy Cloud runs no job from an API key on its free tier: said once, with what to do. */
 export const CLOUD_PLAN_LINE="Comfy Cloud workflows need a paid Comfy plan. Comfy Router models (FLUX, Seedance, Kling) run on your credits on any plan.";
 export const isCloudWorker=(worker:Worker)=>(worker as Worker&{kind?:"local"|"cloud"}).kind==="cloud";
-/** Every creative canvas offers the cloud setup path; this computer remains the default. */
-/** `guest` is set for a hosted guest only: their cloud is connected by signing in with their own key. */
-export function runTargetOptions(workers:Worker[],imageEditing=false,guest?:{signedIn:boolean;cloudJobs?:boolean}):{value:RunTarget;label:string;note?:string}[]|undefined{
-  const connected=guest?.signedIn??workers.some(isCloudWorker);
-  /* A hosted guest renders on their own Comfy account only: this computer and ChatGPT are not offered online (rule 26).
-     Comfy Router models bill credits on any plan; Comfy Cloud workflows need a paid Comfy plan. */
-  if(guest)return [{value:"router",label:"Comfy Router",note:connected?"Ready · FLUX, Seedance and Kling on your Comfy credits":"Sign in with your own Comfy key"},{value:"cloud",label:"Comfy Cloud",note:!connected?"Sign in with your own Comfy key":guest.cloudJobs===false?"Needs a paid Comfy plan":"Connected · uses your Comfy Cloud credits"}];
-  return [{value:"local",label:"This computer"},{value:"cloud",label:"Comfy Cloud",note:connected?"Connected · uses your Comfy Cloud credits":"Set up a cloud worker · no render starts"},{value:"router",label:"Comfy Router · BYOK",note:"Hosted models · your Comfy credits"},...(imageEditing?[{value:"chatgpt" as const,label:"ChatGPT",note:"Your sign-in · subscription quota"}]:[])];
-}
 /** A run goes to the chosen target only; this computer stays the default. */
 export function targetWorkers(workers:Worker[],target:RunTarget):Worker[]{
   return target==="router"||target==="chatgpt"?[]:target==="cloud"?workers.filter(isCloudWorker):workers.filter(worker=>!isCloudWorker(worker));
@@ -222,7 +212,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   /* The Comfy account behind the cloud key, shown in the user menu. */
   const [account,setAccount]=useState<CloudAccountFacts|null>(null),[cloudSignIn,setCloudSignIn]=useState(reopenCloudSignIn),[guide,setGuide]=useState(false);
   useEffect(()=>{if(!authorized)return;let live=true;void call<NonNullable<typeof account>>(workspacePath(workspace.id,"cloud-account")).then(a=>{if(live)setAccount(a);}).catch(()=>{});return()=>{live=false;};},[authorized,workspace.id,call]);
-  const cloudWorker=workers.find(isCloudWorker),runChoices=runTargetOptions(workers,route==="image"||route==="imageedit"||runOn==="chatgpt",user.guest?{signedIn:!!account?.connected,cloudJobs:account?.canSubmit!==false}:undefined),runWorkers=targetWorkers(workers,runOn==="router"?"local":runOn),cloudConsentKey=`comfyfield.cloud-consent:v1:${user.id}:${workspace.id}`;
+  const cloudWorker=workers.find(isCloudWorker),runWorkers=targetWorkers(workers,runOn==="router"?"local":runOn),cloudConsentKey=`comfyfield.cloud-consent:v1:${user.id}:${workspace.id}`;
   useEffect(()=>{if(runOn==="cloud"&&!cloudWorker){setRunOn("local");setAskCloud(false);}},[runOn,cloudWorker]);
   /* A signed-in guest always runs on their Comfy Cloud, also after a reload. */
   /* A guest never runs on this computer: before signing in Run on is Comfy Router, whose panel offers the sign-in. */
@@ -376,7 +366,6 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const inpaintRoute=inpaintManifest&&inpaintWorker&&inpaintRouteId&&canCreate?{manifest:inpaintManifest,workerId:inpaintWorker.id,routeId:inpaintRouteId}:undefined;
   const openJutsuNav=route==="openjutsu"?navigation:undefined;
   const openJutsuScreen=resolved?.kind==="openjutsu"?resolved:undefined;
-  const screenRunChoices=runChoices?.filter(choice=>navigation.runTargets.choices.some(option=>option.target===choice.value));
   const openjutsuCanRunLocal=!!openJutsuNav?.runTargets.choices.some(option=>option.target==="local");
   const video=resolved.kind==="video"?resolved:undefined;
   const storyboard=resolved?.kind==="storyboard"?resolved:undefined;
@@ -774,11 +763,8 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
 
   /* A screen whose content fills the work area declares it on its page, and the WorkspaceBar reads only that
      declaration (rule 35), so no DS rule keeps a list of screen names. Reading pages stay capped. */
-  const activeTarget=navigation?.runTargets.selected??runOn;
-  const runOnLabel=activeTarget==="chatgpt"?"ChatGPT":activeTarget==="router"?"Comfy Router":
-    activeTarget==="cloud"||!openJutsuNav&&user.guest?"Comfy Cloud":"This computer";
-  const runOnControl=canCreate&&!!screenRunChoices?.length&&<TeamChoice label="Run on" variant="pill"
-    display={runOnLabel} value={activeTarget} options={screenRunChoices} onChange={value=>{
+  const runOnControl=navigation.runPicker&&<TeamChoice label="Run on" variant="pill"
+    display={navigation.runPicker.display} value={navigation.runTargets.selected} options={navigation.runPicker.options} onChange={value=>{
       if(!openJutsuNav){if(!studioRoute)pickRunOn(value);return;}
       if(value==="local"&&openjutsuCanRunLocal){setRunOn("local");location.hash="openjutsu";}
       else if(value==="router"){setRunOn("router");location.hash="openjutsu/cloud";}
