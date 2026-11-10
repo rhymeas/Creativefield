@@ -33,14 +33,14 @@ export type NavigationInput={
   localReady?:ReadonlySet<string>;
   routerFeatures?:ReadonlySet<CloudFeature>;
   requirements:{trim:Readiness;audio:Readiness;editArea:boolean};
-  studioReadiness?:{remix:boolean;marketing:boolean;replace:boolean;videoUpscale:boolean;cloudUpscale:boolean};
+  studioReadiness?:{marketing:boolean;replace:boolean;videoUpscale:boolean;cloudUpscale:boolean};
   selection?:{videoMode?:VideoWorkspaceMode;workflowId?:string;imageTab?:ImageTab;characterTab?:"characters"|"scenes"};
   models?:{open:boolean;returnHash?:string};
   openJutsuExperiment?:string;
 };
 
 type RunChoice={target:RunTarget;action:"select"|"sign-in"|"setup"|"consent"|"plan-required"};
-type NamedScreen="make"|"projects"|"library"|"catalogue"|"nodes"|"block"|"audio"|"motion"|"characters"|"influencer"|"remix"|"marketing";
+type NamedScreen="make"|"projects"|"library"|"catalogue"|"nodes"|"block"|"audio"|"motion"|"characters"|"influencer"|"marketing";
 type OpenJutsuSelection=ReturnType<typeof resolveOpenJutsu>["screen"];
 export type ResolvedScreen=
   | Exclude<RouteState,{kind:"screen"}>
@@ -48,6 +48,7 @@ export type ResolvedScreen=
   | {kind:"chatgpt";feature:"image-edit"|"image-angles"|"image-relight";assetId?:string}
   | {kind:"fotofield"|"imageedit";assetId?:string;entry?:ImageEditEntry}
   | {kind:"image";tab:ImageTab;workflowId?:string}
+  | {kind:"remix";manifest:CapabilityManifestV2;choices:CapabilityManifestV2[]}
   | {kind:"video";mode:VideoWorkspaceMode;workflowId?:string;change?:ReturnType<typeof changeChoiceFromHash>}
   | {kind:"storyboard";boardId?:string;target:"local"|"cloud"|"router"}
   | {kind:"keyframes";target:"local"|"router"}
@@ -63,6 +64,7 @@ export type ResolvedScreen=
 
 const imported=(manifest:CapabilityManifestV2)=>manifest.id.startsWith("imported-");
 const selectableImage=(manifest:CapabilityManifestV2)=>isImageWorkflow(manifest)&&(isSelectedImageModel(manifest.id)||imported(manifest));
+export const remixImageModel=(manifest:CapabilityManifestV2)=>["fibo2-edit","qwen-image-21-edit"].includes(manifest.id)&&selectableImage(manifest);
 const selectableVideo=(manifest:CapabilityManifestV2)=>capabilitySurface(manifest)==="video-enhance"||
   isCreateVideoWorkflow(manifest)&&(isFlashVideoCreate(manifest.id)||imported(manifest));
 const supportsCloud=(manifest:CapabilityManifestV2)=>manifest.routes.some(route=>route.execution==="comfy_cloud"&&route.implementation==="implemented");
@@ -79,6 +81,13 @@ export function imageTabFor(manifestId:string|undefined,route:string):ImageTab{
 export function imageTabTarget<T extends {id:string}>(tab:ImageTab,models:T[]):T|undefined{
   if(tab==="edit")return undefined;
   return routeTask(tab==="angles"?"image.angles":tab==="relight"?"image.relight":"image.create",models)?.pack;
+}
+
+export function selectStudioModel<T extends {id:string}>(choices:T[],ready:ReadonlySet<string>,current?:string,named?:string):T|undefined{
+  const requested=choices.find(model=>model.id===named);
+  const previous=choices.find(model=>model.id===current);
+  const available=choices.find(model=>ready.has(model.id));
+  return requested??(previous&&(!available||ready.has(previous.id))?previous:available??choices[0]);
 }
 
 function resolveTarget(input:NavigationInput,section:string,openJutsu?:ReturnType<typeof resolveOpenJutsu>){
@@ -114,7 +123,8 @@ function modelAvailability(input:NavigationInput){
   const localReady=input.localReady??input.ready;
   const previs=input.audience==="local"?routeTask("video.previs",catalogue.filter(manifest=>localReady.has(manifest.id)))?.pack:undefined;
   const defaultEffects=implemented.find(manifest=>isEffectClips(manifest.id)&&!isSupersededLocalVideoWorkflow(manifest.id));
-  return {catalogue,implemented,ready,image,previs,defaultEffects,
+  const remix=implemented.filter(remixImageModel);
+  return {catalogue,implemented,ready,image,previs,defaultEffects,remix,
     effects:!!defaultEffects&&input.ready.has(defaultEffects.id),
     motion:ready.some(manifest=>capabilitySurface(manifest)==="motion"),
     enhance:ready.some(manifest=>capabilitySurface(manifest)==="video-enhance")};
@@ -155,7 +165,7 @@ function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailabili
     replace:input.studioReadiness?.replace,motion:hasSurface("motion"),edit:hasSurface("video-edit"),
     restyle:hasSurface("video-effect"),video:models.implemented.some(isCreateVideoWorkflow),
     film:models.implemented.some(isCreateVideoWorkflow),image:models.image.length>0,vfx:input.studioReadiness?.videoUpscale,
-    remiximage:input.studioReadiness?.remix,adimage:input.studioReadiness?.marketing,
+    remiximage:models.remix.some(manifest=>(input.localReady??input.ready).has(manifest.id)),adimage:input.studioReadiness?.marketing,
   });
   const account=input.audience==="guest"?["sign-in"]:["guide","settings",...(signedIn?["sign-out-comfy"]:input.localSingleUser?[]:["sign-out"])];
   const settingsTabs=hosted?["account","workers"]:["account","chatgpt",...(input.workspaceAdmin?["members","workers","ai-text","providers"]:[])];
@@ -195,10 +205,12 @@ export function resolveScreen(input:NavigationInput){
   const reframeRequested=transform&&change==="reframe";
   const pinnedPrevis=videoMode==="workflow"&&selectedVideo&&taskPacks("video.previs").includes(selectedVideo.id)?selectedVideo:undefined;
   const makeReal=section==="video"?pinnedPrevis:undefined;
+  const remix=section==="remix";
+  const remixManifest=remix?selectStudioModel(models.remix,input.localReady??input.ready,input.selection?.workflowId,part):undefined;
   const localReady=input.canCreate?input.localReady??input.ready:input.ready;
   const reframe=transform&&!hosted?models.catalogue.find(manifest=>manifest.id===VIDEO_REFRAME_ID&&localReady.has(manifest.id)):undefined;
   const targets=resolveTarget(input,section,openJutsu);
-  const runTargets=(reframeRequested||makeReal)&&!hosted
+  const runTargets=(reframeRequested||makeReal||remix)&&!hosted
     ? {selected:"local" as const,choices:targets.choices.filter(choice=>choice.target==="local")}
     : targets;
   const createWorkflow=createVideo
@@ -240,6 +252,7 @@ export function resolveScreen(input:NavigationInput){
     if(root!=="app")return {kind:root};
     if(!input.hasProject||section==="projects")return {kind:"projects"};
     if(openJutsu)return {kind:"openjutsu",selection:openJutsu.screen};
+    if(remix&&hosted)return missing("Remix Studio runs on this computer","Open the local app to use its image editing workflows.");
     if(layers||hosted&&remoteEditAssetId)return {kind:"fotofield",assetId:editAssetId,...editEntry};
     const target=runTargets.selected;
     const feature=cloudFeature(section,videoMode,imageTab,change);
@@ -251,7 +264,7 @@ export function resolveScreen(input:NavigationInput){
       catalogueKnown:catalogueReady(input),video:hasRouter||!!createWorkflow,
       effects:hasRouter||effectAvailable,
       motion:hasRouter||models.implemented.some(manifest=>capabilitySurface(manifest)==="motion"),
-      image:hasRouter||(section==="marketing"?!!input.studioReadiness?.marketing:section==="remix"?!!input.studioReadiness?.remix:!!imageWorkflow),
+      image:hasRouter||(section==="marketing"?!!input.studioReadiness?.marketing:remix?!!remixManifest:!!imageWorkflow),
       audioKnown:input.requirements.audio!=="checking",audio:input.requirements.audio==="ready",
       trimKnown:input.requirements.trim!=="checking",trim:input.requirements.trim==="ready"});
     const named=section==="workflow"||section==="image"&&!!part||section==="video"&&!!part&&!modeFromHash||section==="3d"&&part==="image"&&!!detail&&detail!=="auto";
@@ -274,6 +287,7 @@ export function resolveScreen(input:NavigationInput){
       }
     }
     if(explicitWorkflow)return {kind:"workflow",manifest:explicitWorkflow};
+    if(remixManifest)return {kind:"remix",manifest:remixManifest,choices:models.remix};
     if(section==="video"){
       if(videoMode==="storyboard")return {kind:"storyboard",boardId:detail,target:hosted?"router":target==="cloud"?"cloud":"local"};
       if(videoMode==="keyframes")return {kind:"keyframes",target:target==="local"?"local":"router"};
