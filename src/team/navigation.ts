@@ -34,13 +34,13 @@ export type NavigationInput={
   routerFeatures?:ReadonlySet<CloudFeature>;
   requirements:{trim:Readiness;audio:Readiness;editArea:boolean};
   studioReadiness?:{replace:boolean;videoUpscale:boolean;cloudUpscale:boolean};
-  selection?:{videoMode?:VideoWorkspaceMode;workflowId?:string;imageTab?:ImageTab;characterTab?:"characters"|"scenes"};
+  selection?:{videoMode?:VideoWorkspaceMode;workflowId?:string;imageTab?:ImageTab};
   models?:{open:boolean;returnHash?:string};
   openJutsuExperiment?:string;
 };
 
 type RunChoice={target:RunTarget;action:"select"|"sign-in"|"setup"|"consent"|"plan-required"};
-type NamedScreen="make"|"projects"|"library"|"catalogue"|"nodes"|"block"|"audio"|"characters"|"influencer";
+type NamedScreen="make"|"projects"|"library"|"catalogue"|"nodes"|"block"|"audio";
 type OpenJutsuSelection=ReturnType<typeof resolveOpenJutsu>["screen"];
 export type ResolvedScreen=
   | Exclude<RouteState,{kind:"screen"}>
@@ -48,6 +48,7 @@ export type ResolvedScreen=
   | {kind:"chatgpt";feature:"image-edit"|"image-angles"|"image-relight";assetId?:string}
   | {kind:"fotofield"|"imageedit";assetId?:string;entry?:ImageEditEntry}
   | {kind:"image";tab:ImageTab;workflowId?:string}
+  | {kind:"characters";tab:"characters"|"scenes";imageEditor?:CapabilityManifestV2}
   | {kind:"remix"|"marketing";manifest:CapabilityManifestV2;choices:CapabilityManifestV2[]}
   | {kind:"motion";manifest:CapabilityManifestV2;workflowIds:string[]}
   | {kind:"video";mode:VideoWorkspaceMode;workflowId?:string;change?:ReturnType<typeof changeChoiceFromHash>}
@@ -227,9 +228,11 @@ export function resolveScreen(input:NavigationInput){
   const canCloudThreeD=cloudThreeD.some(manifest=>!namedThreeD||manifest.id===namedThreeD);
   const threeDTarget:RunTarget=targets.selected==="cloud"&&canCloudThreeD?"cloud":
     (hosted||targets.selected==="router")&&routerThreeD?"router":hosted?targets.selected:"local";
+  const characters=section==="characters"||section==="influencer";
+  const characterTab=section==="influencer"||part==="scenes"?"scenes":"characters";
   const audio=section==="audio",routerAudio=audio&&router("talk");
   const audioTarget:RunTarget=hosted||(targets.selected==="router"&&routerAudio)?"router":"local";
-  const runTargets=audio?{selected:audioTarget,choices:targets.choices.filter(choice=>
+  const runTargets=characters?{selected:targets.selected,choices:[]}:audio?{selected:audioTarget,choices:targets.choices.filter(choice=>
     choice.target==="local"||choice.target==="router"&&routerAudio)}
     :threeD==="image"?{selected:threeDTarget,choices:targets.choices.filter(choice=>
     choice.target==="local"||choice.target==="router"&&routerThreeD||choice.target==="cloud"&&canCloudThreeD)}
@@ -265,7 +268,7 @@ export function resolveScreen(input:NavigationInput){
         ["create","angles","relight",...(router("image-upscale")?["upscale"]:[]),...(router("image-cutout")?["cutout"]:[])]:menu.localImageTabs;
       return {active:items.includes(imageTab)||imageTab==="edit"?imageTab:items[0],items};
     }
-    if(section==="characters"||section==="influencer")return {active:section==="influencer"?"scenes":input.selection?.characterTab??"characters",items:["characters","scenes"]};
+    if(characters)return {active:characterTab,items:["characters","scenes"]};
     if(section==="3d")return {active:threeD&&menu.threeDTools.includes(threeD)?threeD:"overview",items:["overview",...menu.threeDTools]};
     return null;
   }
@@ -273,6 +276,11 @@ export function resolveScreen(input:NavigationInput){
   function screen():ResolvedScreen{
     if(root!=="app")return {kind:root};
     if(!input.hasProject||section==="projects")return {kind:"projects"};
+    if(characters){
+      const editors=hosted||!input.canCreate?[]:models.imageStudios.remix.filter(manifest=>localReady.has(manifest.id));
+      const imageEditor=selectReadyWorkflow(editors,localReady,taskPacks("image.edit")[0]);
+      return {kind:"characters",tab:characterTab,imageEditor};
+    }
     if(openJutsu)return {kind:"openjutsu",selection:openJutsu.screen};
     if(studio&&hosted)return missing(studio==="remix"?"Remix Studio runs on this computer":"Ad Studio runs on this computer","Open the local app to use its image editing workflows.");
     if(layers||hosted&&remoteEditAssetId)return {kind:"fotofield",assetId:editAssetId,...editEntry};

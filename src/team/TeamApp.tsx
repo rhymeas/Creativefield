@@ -13,7 +13,7 @@ import {ProjectCreateDialog,TeamProjects} from "./TeamProjects";
 import {useCallback,useEffect,useRef,useState,type ReactNode} from "react";
 import {usePhone,IconButton,IconLink,type NavItem,Panel,Reveal,ExpandToggle,AmbientReelProvider,MediaEditProvider,type MediaEditSource,type MediaToolSet,ScrollFades,useDensity,Button,EmptyState,Page,ShimmerText,ToastHost,UserMenu,ProblemBar,ProblemHost,Dialog,Meta,Notice,TopBar,WorkspaceBar,LinkButton} from "../ds";
 import {AuthPanel} from "./AuthPanel";
-import {ApiError,storeCloudKey,assetUrl,composerAssets,composerResultAssets,mergeAssets,request,workspacePath,type Asset,type Call,type RequestOptions,type Run,type User,type Workspace,type Project,type Worker,type Catalogue} from "./api";
+import {ApiError,storeCloudKey,assetUrl,composerAssets,composerResultAssets,mergeAssets,request,workspacePath,type Asset,type Call,type RequestOptions,type Run,type User,type Workspace,type Project,type Worker,type Catalogue,type CharacterRecord} from "./api";
 import {TeamComposer} from "./TeamComposer";
 import {VIDEO_REFRAME_HASH,VIDEO_REFRAME_ID} from "../capabilities/video-reframe";
 import {TeamLibrary,TeamRuns} from "./TeamLibrary";
@@ -39,7 +39,6 @@ import {isSelectedImageModel} from "../capabilities/image-model-selection";
 import {identityPhotosetWorkerAllowed} from "../image/identity-photoset";
 import {addCharacterReferences,defaultImageDraft,imageDraftWithReferences,imageRunBody,restoreImageRetakeDraft,type ImageDraft} from "../image/image-state";
 import {FLASH_EFFECT_CLIPS_ID,isEffectClips,isFlashVideoCreate,isOpenJutsuSingleSwap,isSupersededLocalVideoWorkflow,routeImageToVideo,routeImageToVideoDraft,routeTask} from "../capabilities/tasks";
-import type {CharacterMode} from "./characters/CharacterWorkspace";
 import type {AudioRequirements} from "./audio/state";
 import {videoModeFromHash,type VideoEditRequirements} from "./video-edit/state";
 import {AudioStudio,CharacterWorkspace,ChatgptImageStudio,CloudRenderStudio,ComfyNodes,ImageEditor,ImageStudio,ImageTo3DPanel,KeyframeStudio,ModelToolsPanel,TeamSettings,TeamStoryboard,TextTo3DPanel,ThreeDStudio,TransformVideo,VideoEditStudio} from "./lazy-screens";
@@ -160,7 +159,7 @@ export default function TeamApp(){
   </ProblemHost></ToastHost>;
 }
 
-const sectionOf=(route:string)=>route==="openjutsu"?"video":route;
+const sectionOf=(route:string)=>route==="openjutsu"?"video":route==="influencer"?"characters":route;
 /* `#video/camera` names a workflow; `#video/trim` names a mode, and a mode wins. */
 const videoWorkflowFromHash=(hash:string)=>videoModeFromHash(hash)?undefined:videoHashPart(hash);
 /* Imported workflows are the person's own choice, so they always appear; built-in ones follow the selected models. */
@@ -179,7 +178,6 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const [workers,setWorkers]=useState<Worker[]>([]),[catalogue,setCatalogue]=useState<Catalogue>([]),[capabilityId,setCapabilityId]=useState("");
   const [addressWorkflow,setAddressWorkflow]=useState<string|null>(()=>videoWorkflowFromHash(location.hash)??null);
   const [videoMode,setVideoMode]=useState<VideoWorkspaceMode>(()=>videoModeFromHash(location.hash)??"create");
-  const [characterMode,setCharacterMode]=useState<CharacterMode>("characters");
   const [imageDraft,setImageDraft]=useState<ImageDraft>({controls:{}}),[imageAssets,setImageAssets]=useState<Asset[]>([]),[imageRuns,setImageRuns]=useState<Run[]>([]),[imageBusy,setImageBusy]=useState(false),[imageIntentKey,setImageIntentKey]=useState("");
   const [storyboardImage,setStoryboardImage]=useState<{projectId:string;workspaceId:string;assetId:string}|null>(null);
   const [storyboardIdea,setStoryboardIdea]=useState<{projectId:string;workspaceId:string;text:string}|null>(null);
@@ -189,7 +187,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const [intentReference,setIntentReference]=useState<Asset|null>(null),[intentReferenceError,setIntentReferenceError]=useState(""),[intentUploading,setIntentUploading]=useState(false);
   const intentScope=useRef("");
   const intentReferenceGate=useRef(operationGate());
-  const [error,setError]=useState(""),[version,setVersion]=useState(0),[checking,setChecking]=useState(false),[,setCharacterCount]=useState(0),[audioRequirements,setAudioRequirements]=useState<AudioRequirements|null>(null),[videoEditRequirements,setVideoEditRequirements]=useState<VideoEditRequirements|null>(null);
+  const [error,setError]=useState(""),[version,setVersion]=useState(0),[checking,setChecking]=useState(false),[audioRequirements,setAudioRequirements]=useState<AudioRequirements|null>(null),[videoEditRequirements,setVideoEditRequirements]=useState<VideoEditRequirements|null>(null);
   const cloudDraftRef=useRef<{workspaceId:string;projectId:string;inputs:Record<string,string>;prompt:string}>();
   const [routerIncoming,setRouterIncoming]=useState<{workspaceId:string;projectId:string;inputs:Record<string,string>;prompt:string}>();
   const [routerImageTab,setRouterImageTab]=useState<ImageTab>("create");
@@ -204,7 +202,6 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   useEffect(()=>{if(!authorized)setModelsOpen(false);},[authorized]);
   useEffect(()=>{const update=()=>{const next=sectionFromHash(location.hash);setRouteHash(location.hash);setRoute(next);if(next==="catalogue")setModelsOpen(true);else modelsReturnHash.current=location.hash||"#make";const mode=videoModeFromHash(location.hash),workflow=videoWorkflowFromHash(location.hash);if(mode)setVideoMode(mode);else if(workflow)setVideoMode("create");setAddressWorkflow(workflow??null);};addEventListener("hashchange",update);return()=>removeEventListener("hashchange",update);},[]);
   useEffect(()=>{if(routeHash==="#video/transform/edit")location.hash="video/edit";},[routeHash]);
-  useEffect(()=>{if(route==="influencer")setCharacterMode("scenes");},[route]);
   const refresh=useCallback(()=>setVersion(v=>v+1),[]);
   useEffect(()=>{if(!authorized)return;const timer=setInterval(refresh,60000);return()=>clearInterval(timer);},[authorized,refresh]);
   useEffect(()=>{if(!authorized){setAudioRequirements(null);return;}let current=true;void call<AudioRequirements>(workspacePath(workspace.id,"audio-requirements")).then(result=>{if(current)setAudioRequirements(result);}).catch(()=>{if(current)setAudioRequirements(null);});return()=>{current=false;};},[authorized,workspace.id,call,version]);
@@ -275,8 +272,10 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     openJutsuExperiment:replaceRoute?.manifest.id,
     selection:{videoMode,workflowId:capabilityId,imageTab:routerImageTab},
   });
-  const navigation=["openjutsu","video","motion","block","workflow","image","imageedit","remix","marketing","3d","audio"].includes(route)?workspaceNavigation:undefined;
+  const navigation=["openjutsu","video","motion","block","workflow","image","imageedit","remix","marketing","3d","audio","characters","influencer"].includes(route)?workspaceNavigation:undefined;
   const resolved=navigation?.screen;
+  const characters=resolved?.kind==="characters"?resolved:undefined;
+  const characterEditor=characters?.imageEditor;
   const studio=resolved?.kind==="remix"||resolved?.kind==="marketing"?resolved:undefined;
   const motion=resolved?.kind==="motion"?resolved:undefined;
   const threeD=resolved?.kind==="3d"?resolved:undefined;
@@ -402,11 +401,11 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const readyManifests=catalogue.filter(m=>statuses[m.id]?.state==="ready"),readyImages=(studio?catalogue.filter(m=>localReady.has(m.id)):readyManifests).filter(isImageCapability),shownImages=catalogue.filter(m=>m.coverage.local==="implemented"&&isImageCapability(m)),readyEdit=readyManifests.some(isMaskedEdit),readyMotion=readyManifests.some(isMotionTransfer),readyEnhance=readyManifests.some(m=>m.category==="enhance"),readyEffects=readyManifests.some(m=>m.id===FLASH_EFFECT_CLIPS_ID);
   /* The image screen's own tabs: the open workflow decides which one is on, and a tab for a tool that is not
      ready here is never drawn (rule 26). */
-  const chatgptUnsupported=(navigation?.runTargets.selected??runOn)==="chatgpt"&&["video","motion","3d","characters","influencer"].includes(route);
+  const chatgptUnsupported=(navigation?.runTargets.selected??runOn)==="chatgpt"&&["video","motion","3d"].includes(route);
   const chatgpt=resolved?.kind==="chatgpt"?resolved:undefined;
   const renderScreen=route==="video"?videoScreen:resolved;
   const routerScreen=renderScreen?.kind==="router"?renderScreen:undefined;
-  const routerPage=renderScreen?!!routerScreen:runOn==="router"&&["video","characters","influencer"].includes(route);
+  const routerPage=renderScreen?!!routerScreen:runOn==="router"&&route==="video";
   const linkedImage=chatgpt?.assetId??routerScreen?.assetId;
   const incoming:{inputs:Record<string,string>;prompt:string}|undefined=linkedImage
     ?{inputs:routerScreen?.feature==="image-to-3d"?{image:linkedImage}:{source_image:linkedImage},prompt:""}:
@@ -428,6 +427,18 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     /* A guest sharpens a clip on Comfy Router: the Transform screen with that change chosen. */
     if(user.guest&&task.id==="sharpen"&&account?.canSubmit!==true){setVideoMode("transform");location.hash="video/transform/upscale";return;}
     const target=task.workflow?routeFor(task.workflow):undefined;setCapabilityId(target?.manifest.id??"");location.hash=task.href.slice(1);};
+  function openCharacterImages(record:CharacterRecord,target:Catalogue[number],projectId:string){
+    try{
+      const draft=imageDraftMemory.current[target.id]??defaultImageDraft(target);
+      const next=addCharacterReferences(target,draft,record,projectId);
+      imageDraftMemory.current[target.id]=next;
+      setImageDraft(next);
+      setImageIntentKey("");
+      setRunOn("local");
+      setCapabilityId(target.id);
+      location.hash=nativeWorkflowHash(target);
+    }catch(error){return (error as Error).message;}
+  }
   function useImageInStoryboard(target:Project,assetId:string){
     setStoryboardImage({workspaceId:workspace.id,projectId:target.id,assetId});
     setVideoMode("storyboard");
@@ -585,7 +596,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const canRunAnything=user.guest?!!account?.connected:workers.length>0||!!account?.connected,signInFirst=!!user.guest&&!account?.connected;
   const section=sectionOf(route);
   /* List-only areas keep a page hero. Production tools own their hero inside the shared right column. */
-  const pageHeroKind:HeroKind|undefined=route==="library"?"library":route==="characters"?"cast":route==="influencer"?"scenes":undefined;
+  const pageHeroKind:HeroKind|undefined=route==="library"?"library":characters?.tab==="characters"?"cast":characters?.tab;
   useDensity();
   /* One answer for a hash that names no screen or a screen this computer cannot run yet. */
   const fallback=(route==="video"?videoScreen:resolved)??routeState({
@@ -600,8 +611,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const fallbackNext=fallback.kind==="missing"&&!waiting?fallback.next:undefined;
   const fallbackTitle=waiting?"Waiting for the team server":fallback.kind==="missing"?fallback.title:"Checking what this computer can run";
   const fallbackText=fallback.kind==="missing"&&!waiting?fallback.text:undefined;
-  const studioPages=["characters"];
-  const topCurrent=modelsOpen?"#catalogue":studioPages.includes(section)?"#studios":`#${route==="openjutsu"?"video":route==="imageedit"?"image":route}`;
+  const topCurrent=modelsOpen?"#catalogue":section==="characters"?"#studios":`#${route==="openjutsu"?"video":route==="imageedit"?"image":route}`;
   async function savePreviewCrop(file:File){
     if(!canCreate||!project)throw new Error("Choose a project with creator access to save a crop.");
     const form=new FormData();form.append("file",file);
@@ -821,7 +831,11 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
           if(id!=="workflow")location.hash=id==="create"?"video":`video/${id}`;
         },items:navigation.tabs.items.map(id=>({id,label:VIDEO_TAB_LABELS[id]})),
       }
-        :section==="characters"&&project?{label:"Character workspace",value:route==="influencer"?"scenes":characterMode,onChange:(id:string)=>setCharacterMode(id as CharacterMode),items:[{id:"characters",label:"Cast"},{id:"scenes",label:"Scenes"}]}
+        :characters&&navigation?.tabs?{
+          label:"Character workspace",value:characters.tab,
+          onChange:id=>{location.hash=id==="scenes"?"characters/scenes":"characters";},
+          items:navigation.tabs.items.map(id=>({id,label:id==="scenes"?"Scenes":"Cast"})),
+        }
         :section==="image"&&project?{label:"Image workspace",value:navigation?.tabs?.active??imageTab,onChange:(id:string)=>{
           if(runOn==="router"||runOn==="chatgpt"){setRouterImageTab(id as ImageTab);location.hash=id==="edit"?"imageedit":"image";return;}
           if(id===imageTab)return;
@@ -880,7 +894,13 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
           precision={routeFor("flux2-klein-preserve-edit")} maskedEdit={routeFor("qwen-image-21-masked-edit")}
           upscale={routeFor("upscale-image-esrgan")} onOpenModels={openModels}
           onExitSubjectRelight={()=>{location.hash=`imageedit/${editScreen.kind==="fotofield"?"layers/":""}${editScreen.assetId??""}/modify`;}}/>
-        :(route==="characters"||route==="influencer")?<CharacterWorkspace mode={route==="influencer"?"scenes":characterMode} user={user} workspace={workspace} project={project} catalogue={catalogue} workers={runWorkers} call={call} authorized={authorized} canEdit={canCreate} onCount={setCharacterCount} onOpenStoryboard={boardId=>{setVideoMode("storyboard");location.hash=`video/storyboard/${encodeURIComponent(boardId)}`;}} onOpenCharacters={()=>setCharacterMode("characters")} onOpenImages={record=>{const target=readyImages.find(m=>m.id==="fibo2-edit")??readyImages.find(m=>m.id==="qwen-image-21-edit");if(!target)return "No compatible image edit model is ready.";try{const current=imageDraftMemory.current[target.id]??defaultImageDraft(target),next=addCharacterReferences(target,current,record,project.id);imageDraftMemory.current[target.id]=next;setImageDraft(next);setImageIntentKey("");setRunOn("local");setCapabilityId(target.id);location.hash=nativeWorkflowHash(target);return undefined;}catch(error){return (error as Error).message;}}}/>:resolved?.kind==="audio"&&audioRequirements?<AudioStudio userId={user.id} key={`${workspace.id}:${project.id}`} workspace={workspace} project={project} call={call} requirements={audioRequirements} onChanged={refresh} onLipSync={canCreate&&readyManifests.some(m=>!!m.voiceContract)?(assetId,imageAssetId)=>void useAudioInLipSync(assetId,imageAssetId):undefined}/>:
+        :characters?<CharacterWorkspace mode={characters.tab} user={user} workspace={workspace} project={project} catalogue={catalogue}
+          call={call} authorized={authorized} canEdit={canCreate}
+          onOpenStoryboard={boardId=>{setVideoMode("storyboard");location.hash=`video/storyboard/${encodeURIComponent(boardId)}`;}}
+          onOpenCharacters={()=>{location.hash="characters";}}
+          onOpenScenes={canCreate?()=>{location.hash="characters/scenes";}:undefined}
+          onOpenImages={characterEditor?record=>openCharacterImages(record,characterEditor,project.id):undefined}
+        />:resolved?.kind==="audio"&&audioRequirements?<AudioStudio userId={user.id} key={`${workspace.id}:${project.id}`} workspace={workspace} project={project} call={call} requirements={audioRequirements} onChanged={refresh} onLipSync={canCreate&&readyManifests.some(m=>!!m.voiceContract)?(assetId,imageAssetId)=>void useAudioInLipSync(assetId,imageAssetId):undefined}/>:
         editArea?changeScreen(project,"edit",editArea.ready&&swapEditRoute?
           <SwapThingPanel promptOnly modelTitle={swapEditRoute.manifest.title} key={`edit:${project.id}:${editArea.assetId??""}`}
             initialVideo={editArea.assetId} workspace={workspace} project={project} workerId={swapEditRoute.workerId}
