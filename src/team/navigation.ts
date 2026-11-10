@@ -41,7 +41,8 @@ export type NavigationInput={
 };
 
 type RunChoice={target:RunTarget;action:"select"|"sign-in"|"setup"|"consent"|"plan-required"};
-type NamedScreen="make"|"projects"|"library"|"catalogue"|"nodes"|"audio";
+type NamedScreen="make"|"projects"|"catalogue"|"nodes"|"audio";
+export type LibraryScreen={kind:"library";tab:"assets"}|{kind:"library";tab:"runs";linkedRunId?:string};
 type BlockDelivery={kind:"router"}|{kind:"previs"|"depth";manifest:CapabilityManifestV2};
 export type BlockScreen={kind:"block";delivery?:BlockDelivery}|{kind:"film-studio"};
 type OpenJutsuSelection=ReturnType<typeof resolveOpenJutsu>["screen"];
@@ -55,6 +56,7 @@ export type ResolvedScreen=
   | {kind:"remix"|"marketing";manifest:CapabilityManifestV2;choices:CapabilityManifestV2[]}
   | {kind:"motion";manifest:CapabilityManifestV2;workflowIds:string[]}
   | BlockScreen
+  | LibraryScreen
   | {kind:"video";mode:VideoWorkspaceMode;workflowId?:string;change?:ReturnType<typeof changeChoiceFromHash>}
   | {kind:"storyboard";boardId?:string;target:"local"|"cloud"|"router"}
   | {kind:"keyframes";target:"local"|"router"}
@@ -232,6 +234,7 @@ export function resolveScreen(input:NavigationInput){
   const canCloudThreeD=cloudThreeD.some(manifest=>!namedThreeD||manifest.id===namedThreeD);
   const threeDTarget:RunTarget=targets.selected==="cloud"&&canCloudThreeD?"cloud":
     (hosted||targets.selected==="router")&&routerThreeD?"router":hosted?targets.selected:"local";
+  const library=section==="library",libraryTab=part==="runs"?"runs":"assets";
   const characters=section==="characters"||section==="influencer";
   const characterTab=section==="influencer"||part==="scenes"?"scenes":"characters";
   const block=section==="block",filmStudio=block&&part==="film";
@@ -239,7 +242,7 @@ export function resolveScreen(input:NavigationInput){
   const blockTarget:RunTarget=blockRouter&&(hosted||targets.selected==="router")?"router":"local";
   const audio=section==="audio",routerAudio=audio&&router("talk");
   const audioTarget:RunTarget=hosted||(targets.selected==="router"&&routerAudio)?"router":"local";
-  const runTargets=characters||filmStudio?{selected:targets.selected,choices:[]}
+  const runTargets=library||characters||filmStudio?{selected:targets.selected,choices:[]}
     :block?{selected:blockTarget,choices:targets.choices.filter(choice=>choice.target==="router"?blockRouter:choice.target==="local")}
     :audio?{selected:audioTarget,choices:targets.choices.filter(choice=>
     choice.target==="local"||choice.target==="router"&&routerAudio)}
@@ -277,6 +280,7 @@ export function resolveScreen(input:NavigationInput){
         ["create","angles","relight",...(router("image-upscale")?["upscale"]:[]),...(router("image-cutout")?["cutout"]:[])]:menu.localImageTabs;
       return {active:items.includes(imageTab)||imageTab==="edit"?imageTab:items[0],items};
     }
+    if(library)return {active:libraryTab,items:["assets","runs"]};
     if(characters)return {active:characterTab,items:["characters","scenes"]};
     if(section==="3d")return {active:threeD&&menu.threeDTools.includes(threeD)?threeD:"overview",items:["overview",...menu.threeDTools]};
     return null;
@@ -285,6 +289,7 @@ export function resolveScreen(input:NavigationInput){
   function screen():ResolvedScreen{
     if(root!=="app")return {kind:root};
     if(!input.hasProject||section==="projects")return {kind:"projects"};
+    if(library)return libraryTab==="runs"?{kind:"library",tab:"runs",linkedRunId:detail}:{kind:"library",tab:"assets"};
     if(characters){
       const editors=hosted||!input.canCreate?[]:models.imageStudios.remix.filter(manifest=>localReady.has(manifest.id));
       const imageEditor=selectReadyWorkflow(editors,localReady,taskPacks("image.edit")[0]);
