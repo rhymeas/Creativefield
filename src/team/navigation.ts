@@ -227,7 +227,11 @@ export function resolveScreen(input:NavigationInput){
   const canCloudThreeD=cloudThreeD.some(manifest=>!namedThreeD||manifest.id===namedThreeD);
   const threeDTarget:RunTarget=targets.selected==="cloud"&&canCloudThreeD?"cloud":
     (hosted||targets.selected==="router")&&routerThreeD?"router":hosted?targets.selected:"local";
-  const runTargets=threeD==="image"?{selected:threeDTarget,choices:targets.choices.filter(choice=>
+  const audio=section==="audio",routerAudio=audio&&router("talk");
+  const audioTarget:RunTarget=hosted||(targets.selected==="router"&&routerAudio)?"router":"local";
+  const runTargets=audio?{selected:audioTarget,choices:targets.choices.filter(choice=>
+    choice.target==="local"||choice.target==="router"&&routerAudio)}
+    :threeD==="image"?{selected:threeDTarget,choices:targets.choices.filter(choice=>
     choice.target==="local"||choice.target==="router"&&routerThreeD||choice.target==="cloud"&&canCloudThreeD)}
     :(reframeRequested||makeReal||studio)&&!hosted
     ? {selected:"local" as const,choices:targets.choices.filter(choice=>choice.target==="local")}
@@ -273,6 +277,8 @@ export function resolveScreen(input:NavigationInput){
     if(studio&&hosted)return missing(studio==="remix"?"Remix Studio runs on this computer":"Ad Studio runs on this computer","Open the local app to use its image editing workflows.");
     if(layers||hosted&&remoteEditAssetId)return {kind:"fotofield",assetId:editAssetId,...editEntry};
     const target=runTargets.selected;
+    if(audio&&target==="router"&&routerAudio)return {kind:"router",feature:"talk"};
+    if(audio&&hosted)return missing("Audio is unavailable here","Choose an available tool from All tools.");
     if(section==="3d"){
       if(part&&(!threeD||!menu.threeDTools.includes(threeD)))return missing("This 3D tool is unavailable","Choose a tool from the 3D workspace.","#3d","3D overview");
       if(!input.canCreate)return {kind:"missing",title:"3D tools require creator access",text:"Ask your workspace administrator for creator access to open the 3D workspace."};
