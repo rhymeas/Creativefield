@@ -22,7 +22,6 @@ import {feedMode,feedScope} from "./media-feed";
 import {groupMenu} from "./menu-groups";
 import {runLocation} from "./job-queue";
 import {JobQueueIndicator} from "./JobQueueIndicator";
-import {routerModelsFor} from "../capabilities/router-models";
 import {TeamChoice} from "./TeamChoice";
 import {CapabilityCatalogue} from "../ui/CapabilityCatalogue";
 import {bestWorkerReadiness,defaultDraft,draftKey,restoreDraft,refreshWorkerInventory,workerReadiness} from "./state";
@@ -552,7 +551,8 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     setWorkers(result.workers);if(result.probeError)setError((result.probeError as Error).message);
   }catch(e){setWorkers([]);setError((e as Error).message);}finally{setChecking(false);}},[workers,call,workspace.id,workspace.role]);
   const allWorkflows={label:"All workflows",onSelect:()=>{location.hash="catalogue";}};
-  const guestImport=workspaceMenu.videoFooter==="import"?{label:"Add workflows from Comfy",onSelect:()=>{location.hash="nodes";}}:undefined;
+  const importWorkflows={label:"Add workflows from Comfy",onSelect:()=>{location.hash="nodes";}};
+  const menuFooter=(footer:typeof workspaceMenu.videoFooter)=>footer==="catalogue"?allWorkflows:footer==="import"?importWorkflows:undefined;
   const videoMenu:NonNullable<NavItem["menu"]>={
     features:workspaceMenu.video.map(({id,title,text,href})=>{
       const Icon=VIDEO_MENU_ICONS[id]??Sparkles;
@@ -565,23 +565,33 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       id:m.id,icon:<Sparkles size={18}/>,title:menuTitle(m),text:capabilityPurpose(m),
       ...(isImported(m.id)?{hint:importedHint(m)}:{}),onSelect:()=>choose(m.id),
     })),
-    footer:workspaceMenu.videoFooter==="catalogue"?allWorkflows:guestImport,
+    footer:menuFooter(workspaceMenu.videoFooter),
   };
   const threeDMenu:NonNullable<NavItem["menu"]>={features:NATIVE_THREE_D_TOOLS.filter(tool=>workspaceMenu.threeD.includes(tool.id)).map(tool=>({id:tool.id,icon:<Box size={18}/>,title:tool.title,text:tool.text,onSelect:()=>{location.hash=`3d/${tool.id}`;}})),
     /* Imported 3D workflows open in the general workflow screen, which runs any app and shows its model. */
     models:catalogue.filter(m=>workspaceMenu.threeDWorkflows.includes(m.id)).map(m=>({id:m.id,icon:<Box size={18}/>,title:menuTitle(m),text:capabilityPurpose(m),hint:m.inputs.some(p=>p.type==="image")?"image to 3d":"text to 3d",onSelect:()=>{location.hash=`workflow/${m.id}`;}}))};
-  /* The Image menu lists what exists, not only what the worker answers for right now: the page itself says when ComfyUI is offline. Editing lives in FotoField, reached from this menu. */
-  const menuImages=catalogue.filter(m=>m.coverage.local==="implemented"&&isImageCapability(m)),menuCreate=imageTabTarget("create",menuImages);
-  /* Online, every picture tool that has a Comfy Router contract gets its tile; nothing without one is shown. */
-  const guestImageTools=([["angles","Camera angles","Turn the subject to a new angle",routerModelsFor("image-angles")],["relight","Relight","Change the light and the mood",routerModelsFor("image-relight")],["upscale","Sharper and bigger","Upscale a picture",routerModelsFor("image-upscale")],["cutout","Cut out","Remove the background",routerModelsFor("image-cutout")]] as const).filter(([, , ,models])=>models.length>0).map(([tab,title,text,models])=>({id:`router-${tab}`,icon:<ImageIcon size={18}/>,title:`${models[0].title} ${title.toLowerCase()}`.replace(/^(.)/,c=>c),text,onSelect:()=>{setRouterImageTab(tab as ImageTab);location.hash="image";}}));
-  const imageMenu:NonNullable<NavItem["menu"]>=user.guest?{features:[{id:"create-image",icon:<ImageIcon size={18}/>,title:"Create Image",text:"Make a picture with FLUX 2 Pro on your Comfy credits",onSelect:()=>{location.hash="image";}},{id:"fotofield",icon:<Palette size={18}/>,title:"FotoField",text:"Our free photo editor: layers, masks and AI edits",onSelect:()=>{location.hash="imageedit/layers";}},...guestImageTools],models:[]}:{
-    features:[...(menuCreate?[{id:"create-image",icon:<ImageIcon size={18}/>,title:"Create Image",text:"Generate a durable image with local ComfyUI",onSelect:()=>{setCapabilityId(menuCreate.id);location.hash="image";}}]:[]),{id:"fotofield",icon:<Palette size={18}/>,title:"FotoField",text:"Our free photo editor: layers, masks and AI edits",onSelect:()=>{location.hash="imageedit";}},...menuImages.filter(m=>["flux2-klein-angles","flux2-klein-relight"].includes(m.id)).map(m=>({id:m.id,icon:<ImageIcon size={18}/>,title:m.id.endsWith("angles")?"Camera angles":"Relight",text:m.id.endsWith("angles")?"Explore another view of your image":"Change light and atmosphere",onSelect:()=>choose(m.id)}))],
-    models:menuImages.map(m=>({id:m.id,icon:<Sparkles size={18}/>,title:menuTitle(m),text:capabilityPurpose(m),...(isImported(m.id)?{hint:importedHint(m)}:{}),onSelect:()=>choose(m.id)})),
+  const imageMenu:NonNullable<NavItem["menu"]>={
+    features:workspaceMenu.image.map(({id,title,text,action})=>({
+      id,title,text,icon:id==="fotofield"?<Palette size={18}/>:<ImageIcon size={18}/>,
+      onSelect:()=>{
+        switch(action.kind){
+          case "open":location.hash=action.href;break;
+          case "create":setCapabilityId(action.workflowId);location.hash="image";break;
+          case "router":setRouterImageTab(action.tab);location.hash="image";break;
+          case "workflow":choose(action.workflowId);break;
+        }
+      },
+    })),
+    models:catalogue.filter(m=>workspaceMenu.imageWorkflows.includes(m.id)).map(m=>({
+      id:m.id,icon:<Sparkles size={18}/>,title:menuTitle(m),text:capabilityPurpose(m),
+      ...(isImported(m.id)?{hint:importedHint(m)}:{}),onSelect:()=>choose(m.id),
+    })),
+    footer:menuFooter(workspaceMenu.imageFooter),
   };
   /* Both menus show their entries as rows by function (FunctionMenu); "All workflows" opens the full list. */
   videoMenu.groups=groupMenu("video",[...videoMenu.features,...videoMenu.models]);
   threeDMenu.groups=groupMenu("3d",[...threeDMenu.features,...threeDMenu.models]);
-  imageMenu.groups=groupMenu("image",[...imageMenu.features,...imageMenu.models]);imageMenu.footer=user.guest?guestImport:allWorkflows;
+  imageMenu.groups=groupMenu("image",[...imageMenu.features,...imageMenu.models]);
   /* Until something can render (a guest signed in, or a worker or Comfy Cloud set up) Free input and Jobs only add noise,
      and a guest's account circle is just Sign in, far right. */
   const canRunAnything=user.guest?!!account?.connected:workers.length>0||!!account?.connected,signInFirst=workspaceAudience==="guest";

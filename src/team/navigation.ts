@@ -22,6 +22,19 @@ export type VideoMenuId="openjutsu"|"create"|"trim"|"edit"|"talk"|"storyboard"|"
 
 const videoEntry=(id:VideoMenuId,title:string,text:string,href:string)=>({id,title,text,href});
 
+type ImageMenuAction=
+  | {kind:"open";href:string}
+  | {kind:"create";workflowId:string}
+  | {kind:"router";tab:"angles"|"relight"|"upscale"|"cutout"}
+  | {kind:"workflow";workflowId:string};
+type ImageMenuEntry={id:string;title:string;text:string;action:ImageMenuAction};
+const routerImageTools=[
+  ["angles","camera angles","Turn the subject to a new angle"],
+  ["relight","relight","Change the light and the mood"],
+  ["upscale","sharper and bigger","Upscale a picture"],
+  ["cutout","cut out","Remove the background"],
+] as const;
+
 export type NavigationInput={
   hash:string;
   audience:"local"|"guest"|"signed-in-guest";
@@ -147,6 +160,32 @@ function modelAvailability(input:NavigationInput){
 }
 type Models=ReturnType<typeof modelAvailability>;
 
+function resolveImageMenu(hosted:boolean,models:Models,router:RouterAvailability):ImageMenuEntry[]{
+  const entries:ImageMenuEntry[]=[];
+  const create=imageTabTarget("create",models.image);
+  const createAction:ImageMenuAction|undefined=hosted?{kind:"open",href:"#image"}:create&&{kind:"create",workflowId:create.id};
+  if(createAction)entries.push({id:"create-image",title:"Create Image",
+    text:hosted?"Make a picture with FLUX 2 Pro on your Comfy credits":"Generate a durable image with local ComfyUI",
+    action:createAction});
+  entries.push({id:"fotofield",title:"FotoField",text:"Our free photo editor: layers, masks and AI edits",
+    action:{kind:"open",href:hosted?"#imageedit/layers":"#imageedit"}});
+  if(hosted){
+    for(const [tab,title,text] of routerImageTools){
+      const feature=`image-${tab}` as const;
+      const model=router(feature)?routerModelsFor(feature)[0]:undefined;
+      if(model)entries.push({id:`router-${tab}`,title:`${model.title} ${title}`,text,action:{kind:"router",tab}});
+    }
+    return entries;
+  }
+  const angles=taskPacks("image.angles")[0],relight=taskPacks("image.relight")[0];
+  for(const {id} of models.image){
+    if(id!==angles&&id!==relight)continue;
+    entries.push({id,title:id===angles?"Camera angles":"Relight",
+      text:id===angles?"Explore another view of your image":"Change light and atmosphere",action:{kind:"workflow",workflowId:id}});
+  }
+  return entries;
+}
+
 function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailability){
   const hosted=input.audience!=="local",signedIn=input.audience==="signed-in-guest";
   const cloudJobs=signedIn&&input.cloud.canSubmit===true;
@@ -168,13 +207,7 @@ function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailabili
     ...(enhance?[videoEntry("enhance","Video Upscale","Enhance video quality",nativeWorkflowHash(enhance))]:[]),
   ];
   const localImageTabs=(["create","angles","relight"] as const).filter(tab=>imageTabTarget(tab,models.image));
-  const image=[...(!hosted&&!localImageTabs.includes("create")?[]:["create"]),"fotofield"];
-  if(hosted){
-    for(const tab of ["angles","relight","upscale","cutout"] as const)if(router(`image-${tab}`))image.push(tab);
-  }else{
-    if(routeTask("image.angles",models.image)?.fallback===false)image.push("angles");
-    if(localImageTabs.includes("relight"))image.push("relight");
-  }
+  const image=resolveImageMenu(hosted,models,router);
   const hostedImageTo3D=router("image-to-3d")||cloudJobs&&input.cloud.worker&&models.threeDImages.some(supportsCloud);
   const threeDTools=NATIVE_THREE_D_TOOLS.filter(tool=>!hosted||tool.id==="viewer"||tool.id==="image"&&hostedImageTo3D).map(tool=>tool.id);
   const threeDWorkflows=hosted||!input.canCreate?[]:models.implemented.filter(manifest=>manifest.category==="3d"&&imported(manifest));
