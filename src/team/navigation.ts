@@ -22,6 +22,15 @@ export type VideoMenuId="openjutsu"|"create"|"trim"|"edit"|"talk"|"storyboard"|"
 
 const videoEntry=(id:VideoMenuId,title:string,text:string,href:string)=>({id,title,text,href});
 
+type VideoTabId=Exclude<VideoWorkspaceMode,"replace">|"openjutsu"|"makereal";
+type VideoTab={id:VideoTabId;label:string;href?:string;mode?:VideoWorkspaceMode};
+const VIDEO_TAB_LABELS:Record<VideoTabId,string>={
+  workflow:"Workflow",storyboard:"Storyboard",keyframes:"Keyframes",create:"Create Video",
+  edit:"Edit Area",transform:"Transform Video",openjutsu:"OpenJutsu",makereal:"Make it real",effects:"Effects",trim:"Trim",
+};
+const videoTab=(id:VideoTabId,href?:string,mode?:VideoWorkspaceMode):VideoTab=>({id,label:VIDEO_TAB_LABELS[id],href,mode});
+const videoModeTab=(mode:Exclude<VideoWorkspaceMode,"replace"|"workflow">)=>videoTab(mode,mode==="create"?"#video":`#video/${mode}`,mode);
+
 type ImageMenuAction=
   | {kind:"open";href:string}
   | {kind:"create";workflowId:string}
@@ -376,15 +385,27 @@ export function resolveScreen(input:NavigationInput){
   const entry=layers?assetId:detail;
   const editEntry:{entry?:ImageEditEntry}=entry==="annotate"||entry==="modify"||entry==="relight"?{entry}:{};
   const previsSelected=!!pinnedPrevis&&pinnedPrevis.id===models.previs?.id;
+  const makeRealEntry=models.previs?{manifest:models.previs,hash:nativeWorkflowHash(models.previs)}:undefined;
+  const videoTabs: {active:VideoTabId;items:VideoTab[]}|null=input.hasProject&&root==="app"&&(section==="video"||section==="openjutsu")?{
+    active:section==="openjutsu"?"openjutsu":previsSelected?"makereal":videoMode==="replace"?"transform":videoMode,
+    items:[
+      ...(videoMode==="workflow"&&!previsSelected&&selectedVideo
+        ?[videoTab("workflow",section==="openjutsu"?nativeWorkflowHash(selectedVideo):undefined,"workflow")]:[]),
+      ...(!hosted||router("video-create")?[videoModeTab("storyboard")]:[]),
+      ...(!hosted||router("keyframes")?[videoModeTab("keyframes")]:[]),
+      videoModeTab("create"),
+      ...(input.requirements.editArea?[videoModeTab("edit")]:[]),
+      videoModeTab("transform"),
+      ...(!hosted||router("openjutsu")?[videoTab("openjutsu","#openjutsu")]:[]),
+      ...(makeRealEntry?[videoTab("makereal",makeRealEntry.hash)]:[]),
+      ...(models.effects||hosted&&router("effects")?[videoModeTab("effects")]:[]),
+      ...(input.requirements.trim==="ready"?[videoModeTab("trim")]:[]),
+    ],
+  }:null;
 
   function tabs(){
     if(!input.hasProject||root!=="app")return null;
-    if(section==="video"||section==="openjutsu")return {
-      active:section==="openjutsu"?"openjutsu":previsSelected?"makereal":videoMode==="replace"?"transform":videoMode,
-      items:[...(videoMode==="workflow"&&!previsSelected?["workflow"]:[]),...(!hosted||router("video-create")?["storyboard"]:[]),
-        ...(!hosted||router("keyframes")?["keyframes"]:[]),"create",...(input.requirements.editArea?["edit"]:[]),"transform",
-        ...(!hosted||router("openjutsu")?["openjutsu"]:[]),...(models.previs?["makereal"]:[]),
-        ...(models.effects||hosted&&router("effects")?["effects"]:[]),...(input.requirements.trim==="ready"?["trim"]:[])]};
+    if(videoTabs)return {active:videoTabs.active,items:videoTabs.items.map(item=>item.id)};
     if(imageWorkspace)return {active:imageWorkspace.active,items:imageWorkspace.items.map(item=>item.id)};
     if(library)return {active:libraryTab,items:["assets","runs"]};
     if(characters)return {active:characterTab,items:["characters","scenes"]};
@@ -497,8 +518,7 @@ export function resolveScreen(input:NavigationInput){
     return {kind:section as NamedScreen};
   }
 
-  const makeRealEntry=models.previs?{manifest:models.previs,hash:nativeWorkflowHash(models.previs)}:undefined;
-  return {requestedHash,redirect,section,screen:screen(),tabs:tabs(),menu,runTargets,overlay,catalogueManifests,makeRealEntry,imageWorkflow,
+  return {requestedHash,redirect,section,screen:screen(),tabs:tabs(),menu,runTargets,overlay,catalogueManifests,makeRealEntry,imageWorkflow,videoTabs,
     imageTabs:section==="image"&&imageWorkspace?.active?{...imageWorkspace,active:imageWorkspace.active}:null,
     access:input.access??"ready"};
 }

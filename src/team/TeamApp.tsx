@@ -66,10 +66,6 @@ export {videoWorkflowMode} from "./workflow-navigation";
 const VIDEO_MENU_ICONS:Partial<Record<VideoMenuId,typeof Sparkles>>={
   create:Video,trim:Scissors,storyboard:Clapperboard,motion:Move,enhance:Maximize2,
 };
-const VIDEO_TAB_LABELS:Record<string,string>={
-  workflow:"Workflow",storyboard:"Storyboard",keyframes:"Keyframes",create:"Create Video",
-  edit:"Edit Area",transform:"Transform Video",openjutsu:"OpenJutsu",makereal:"Make it real",effects:"Effects",trim:"Trim",
-};
 export type RunTarget="local"|"cloud"|"router"|"chatgpt";
 /** Comfy Cloud runs no job from an API key on its free tier: said once, with what to do. */
 export const CLOUD_PLAN_LINE="Comfy Cloud workflows need a paid Comfy plan. Comfy Router models (FLUX, Seedance, Kling) run on your credits on any plan.";
@@ -408,7 +404,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     routerIncoming?.workspaceId===workspace.id&&routerIncoming.projectId===project?.id?routerIncoming:undefined;
   const imageTabs=navigation.imageTabs;
   const imageTab=resolved?.kind==="image"?resolved.tab:imageTabFor(manifest?.id,route);
-  const previsTarget=navigation?.makeRealEntry;
+  const videoTabs=navigation.videoTabs;
   const intentImage=imageTabTarget("create",readyImages),intentVideo=routeTask("video.create",readyManifests.filter(m=>isFlashVideoCreate(m.id)))?.pack,intentMotion=readyManifests.find(isMotionTransfer);
   const intentAvailable={image:intentReference?!!intentImageReferenceTarget(readyImages):!!intentImage,"image-edit":!!intentImageReferenceTarget(readyImages,manifest?.id),video:intentReference?!!routeImageToVideo(readyManifests.filter(isCreateVideoWorkflow)):!!intentVideo,motion:!!intentMotion,edit:readyEdit,trim:trimReady,storyboard:!!project&&canCreate,audio:audioReady};
   const choose=(id:string)=>{const selected=catalogue.find(m=>m.id===id);if(!selected||statuses[id]?.state!=="ready")return;setCapabilityId(id);if(isImageCapability(selected))setImageDraft(defaultImageDraft(selected));setVideoMode(videoWorkflowMode(selected));location.hash=nativeWorkflowHash(selected);};
@@ -952,13 +948,12 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     <div className="cf-team__body">
     <div className="cf-team__main ds-canvas">
     {workspaceBar&&<WorkspaceBar density={route!=="imageedit"}
-      tabs={section==="video"&&navigation?.tabs?{
-        label:"Video workspace",value:navigation.tabs.active??"create",onChange:id=>{
-          if(id==="openjutsu"){location.hash="openjutsu";return;}
-          if(id==="makereal"){if(previsTarget)location.hash=previsTarget.hash;return;}
-          setVideoMode(id as VideoWorkspaceMode);
-          if(id!=="workflow")location.hash=id==="create"?"video":`video/${id}`;
-        },items:navigation.tabs.items.map(id=>({id,label:VIDEO_TAB_LABELS[id]})),
+      tabs={videoTabs?{
+        label:"Video workspace",value:videoTabs.active,items:videoTabs.items,onChange:id=>{
+          const tab=videoTabs.items.find(item=>item.id===id);
+          if(tab?.mode)setVideoMode(tab.mode);
+          if(tab?.href)location.hash=tab.href;
+        },
       }
         :(characters||library)&&navigation?.tabs?{
           label:library?"Project content":"Character workspace",value:navigation.tabs.active,
