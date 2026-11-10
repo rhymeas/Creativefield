@@ -42,7 +42,6 @@ import type {AudioRequirements} from "./audio/state";
 import {videoModeFromHash,type VideoEditRequirements} from "./video-edit/state";
 import {AudioStudio,CharacterWorkspace,ChatgptImageStudio,CloudRenderStudio,ComfyNodes,ImageEditor,ImageStudio,ImageTo3DPanel,KeyframeStudio,ModelToolsPanel,TeamSettings,TeamStoryboard,TextTo3DPanel,ThreeDStudio,TransformVideo,VideoEditStudio} from "./lazy-screens";
 import {ComfyLibraryPanel} from "./ComfyLibrary";
-import {NATIVE_THREE_D_TOOLS} from "./three-d/tools";
 import {IntentDock} from "./intent/IntentDock";
 import {assetMatchesPort} from "../capabilities/assets";
 import {currentIntentReference,intentImageReferenceTarget,intentPromptDraft,intentReferenceDraft} from "./intent/reference";
@@ -567,9 +566,12 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     })),
     footer:menuFooter(workspaceMenu.videoFooter),
   };
-  const threeDMenu:NonNullable<NavItem["menu"]>={features:NATIVE_THREE_D_TOOLS.filter(tool=>workspaceMenu.threeD.includes(tool.id)).map(tool=>({id:tool.id,icon:<Box size={18}/>,title:tool.title,text:tool.text,onSelect:()=>{location.hash=`3d/${tool.id}`;}})),
+  const threeDMenu:NavItem["menu"]=workspaceMenu.threeD.canOpenMenu?{
+    features:workspaceMenu.threeD.tools.map(({id,title,text,href})=>({id,icon:<Box size={18}/>,title,text,onSelect:()=>{location.hash=href;}})),
     /* Imported 3D workflows open in the general workflow screen, which runs any app and shows its model. */
-    models:catalogue.filter(m=>workspaceMenu.threeDWorkflows.includes(m.id)).map(m=>({id:m.id,icon:<Box size={18}/>,title:menuTitle(m),text:capabilityPurpose(m),hint:m.inputs.some(p=>p.type==="image")?"image to 3d":"text to 3d",onSelect:()=>{location.hash=`workflow/${m.id}`;}}))};
+    models:workspaceMenu.threeD.workflows.map(({manifest:m,href})=>({id:m.id,icon:<Box size={18}/>,title:menuTitle(m),text:capabilityPurpose(m),
+      hint:m.inputs.some(p=>p.type==="image")?"image to 3d":"text to 3d",onSelect:()=>{location.hash=href;}})),
+  }:undefined;
   const imageMenu:NonNullable<NavItem["menu"]>={
     features:workspaceMenu.image.map(({id,title,text,action})=>({
       id,title,text,icon:id==="fotofield"?<Palette size={18}/>:<ImageIcon size={18}/>,
@@ -590,7 +592,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   };
   /* Both menus show their entries as rows by function (FunctionMenu); "All workflows" opens the full list. */
   videoMenu.groups=groupMenu("video",[...videoMenu.features,...videoMenu.models]);
-  threeDMenu.groups=groupMenu("3d",[...threeDMenu.features,...threeDMenu.models]);
+  if(threeDMenu)threeDMenu.groups=groupMenu("3d",[...threeDMenu.features,...threeDMenu.models]);
   imageMenu.groups=groupMenu("image",[...imageMenu.features,...imageMenu.models]);
   /* Until something can render (a guest signed in, or a worker or Comfy Cloud set up) Free input and Jobs only add noise,
      and a guest's account circle is just Sign in, far right. */
@@ -866,7 +868,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       onSettings={()=>user.guest?setCloudSignIn(true):setSettings(true)} onLocal={()=>setRunOn("local")}
       onFeature={f=>{location.hash=`video/transform/${f==="replace-character"?"person":f==="motion-transfer"?"motion":f==="object-swap"?"swap":f==="video-upscale"?"upscale":f==="video-cutout"?"cutout":"restyle"}`;}}/></section>),
     "3d":inProject(project=>threeD&&<section className="cf-team__content cf-nodes-page">
-        <ThreeDStudio tool={threeD.tool} tools={workspaceMenu.threeDTools} status={<ProblemBar/>}>
+        <ThreeDStudio tool={threeD.tool} navigation={workspaceMenu.threeD} status={<ProblemBar/>}>
       {threeD.tool==="image"?<ImageTo3DPanel manifest={threeD.manifest} workflows={threeD.choices}
         initialAssetId={threeD.assetId} onCapability={id=>{location.hash="3d/image/"+id+(threeD.assetId?"/"+threeD.assetId:"");}}
         {...studioAccess} project={project} workers={targetWorkers(workers,navigation.runTargets.selected)} onQueued={refresh}/>
@@ -874,7 +876,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
         project={project} workers={runWorkers} onQueued={refresh}/>
       :threeD.tool==="viewer"||threeD.tool==="mesh"||threeD.tool==="texture"?<ModelToolsPanel
         key={[project.id,threeD.tool,threeD.assetId].join(":")} mode={threeD.tool}
-        initialAssetId={threeD.assetId} tools={workspaceMenu.threeDTools}
+        initialAssetId={threeD.assetId} tools={workspaceMenu.threeD.tools.map(tool=>tool.id)}
         {...screenAccess} project={project} onChanged={refresh}/>:null}
         </ThreeDStudio>
       </section>),
@@ -944,7 +946,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     {guide&&<Guide hosted={!!user.guest} cloudConnected={!!account?.connected} onClose={()=>setGuide(false)} onCloudSignIn={user.guest?()=>{setGuide(false);setCloudSignIn(true);}:undefined} onOpenWorkers={user.guest||workspace.role!=="admin"?undefined:()=>{setGuide(false);openWorkerSettings();}}/>}
     {cloudSignIn&&<CloudSignIn workspaceId={workspace.id} call={call} onClose={()=>setCloudSignIn(false)} onSignedIn={signedInCloud}/>}
     <ScrollFades/><Reveal/>
-    <TopBar more={phone?<>{route!=="openjutsu"&&canRunAnything&&<ExpandToggle icon={<Sparkles size={16}/>} label="Free input" on={intentMode} onChange={setIntentMode}/>} {runOnControl}{workspaceControl}</>:undefined} brand={<img className="ds-topbar__brand-image" src={logo} alt="CreativeField"/>} current={topCurrent} items={[{label:"Video",href:"#video",menu:videoMenu,icon:<Clapperboard size={20}/>},{label:"Image",href:"#image",menu:imageMenu,icon:<ImageIcon size={20}/>},{label:"3D",href:"#3d",menu:canCreate?threeDMenu:undefined},
+    <TopBar more={phone?<>{route!=="openjutsu"&&canRunAnything&&<ExpandToggle icon={<Sparkles size={16}/>} label="Free input" on={intentMode} onChange={setIntentMode}/>} {runOnControl}{workspaceControl}</>:undefined} brand={<img className="ds-topbar__brand-image" src={logo} alt="CreativeField"/>} current={topCurrent} items={[{label:"Video",href:"#video",menu:videoMenu,icon:<Clapperboard size={20}/>},{label:"Image",href:"#image",menu:imageMenu,icon:<ImageIcon size={20}/>},{label:"3D",href:"#3d",menu:threeDMenu},
       ...(workspaceMenu.sections.includes("audio")?[{label:"Audio",href:"#audio"}]:[]),{label:"All tools",href:"#make",icon:<LayoutGrid size={20}/>},...(!workspaceMenu.sections.includes("nodes")?[]:[{label:"Models",href:"#catalogue",onSelect:openModels},{label:"Nodes",href:"#nodes"}])]} secondary={[{label:"Library",href:"#library",icon:<LibraryIcon size={20}/>},{label:"Projects",href:"#projects",suffix:project?.name,dropdown:{items:projects.map(p=>({id:p.id,title:p.name,onSelect:()=>setProjectId(p.id)})),selectedId:projectId,footer:canCreate?{id:"add",icon:<Plus size={14}/>,title:"Add project",onSelect:()=>setCreatingProject(true)}:undefined}}]} end={phone?<><IconLink label="Source code on GitHub" href="https://github.com/rhymeas/Creativefield"><Github size={18}/></IconLink><IconButton label="How it works" onClick={()=>setGuide(true)}><CircleHelp size={18}/></IconButton>{jobs}{signInFirst?<Button variant="primary" onClick={()=>setCloudSignIn(true)}>Sign in</Button>:<UserMenu initials={(account?.name??user.email).slice(0,1).toUpperCase()} name={account?.name??user.email} meta={account?.connected?<><Meta>{account.email}</Meta><Meta>{account.workspace}</Meta></>:<Meta parts={workspaceFacts(audienceOf(user),workspace)}/>} extra={account?.connected?<>
       {typeof account.credits==="number"&&<span className="ds-usermenu__row"><Meta>{`${account.credits.toLocaleString()} credits`}</Meta>{account.addCreditsUrl&&<LinkButton variant="ghost" href={account.addCreditsUrl} target="_blank" rel="noreferrer">{account.canSubmit===false?"Upgrade plan":"Add credits"}</LinkButton>}</span>}
       {account.canSubmit===false&&<Meta>{CLOUD_PLAN_LINE}</Meta>}

@@ -209,8 +209,12 @@ function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailabili
   const localImageTabs=(["create","angles","relight"] as const).filter(tab=>imageTabTarget(tab,models.image));
   const image=resolveImageMenu(hosted,models,router);
   const hostedImageTo3D=router("image-to-3d")||cloudJobs&&input.cloud.worker&&models.threeDImages.some(supportsCloud);
-  const threeDTools=NATIVE_THREE_D_TOOLS.filter(tool=>!hosted||tool.id==="viewer"||tool.id==="image"&&hostedImageTo3D).map(tool=>tool.id);
+  const threeDTools=NATIVE_THREE_D_TOOLS.filter(tool=>!hosted||tool.id==="viewer"||tool.id==="image"&&hostedImageTo3D)
+    .map(tool=>({...tool,href:`#3d/${tool.id}`}));
   const threeDWorkflows=hosted||!input.canCreate?[]:models.implemented.filter(manifest=>manifest.category==="3d"&&imported(manifest));
+  const threeD={canOpenMenu:input.canCreate,tools:threeDTools,
+    workflows:threeDWorkflows.map(manifest=>({manifest,href:`#workflow/${manifest.id}`})),
+    tabs:[{id:"overview",label:"Overview",href:"#3d"},...threeDTools.map(({id,title,href})=>({id,label:id==="workflows"?"Workflows":title,href}))]};
   const hasSurface=(surface:ReturnType<typeof capabilitySurface>)=>models.implemented.some(manifest=>capabilitySurface(manifest)===surface);
   const canMakeVideo=models.implemented.some(isCreateVideoWorkflow);
   const upscale=models.implemented.find(manifest=>manifest.id==="nvidia-vfx-upscale");
@@ -235,10 +239,12 @@ function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailabili
       : task);
   const account=input.audience==="guest"?["sign-in"]:["guide","settings",...(signedIn?["sign-out-comfy"]:input.localSingleUser?[]:["sign-out"])];
   const settingsTabs=hosted?["account","workers"]:["account","chatgpt",...(input.workspaceAdmin?["members","workers","ai-text","providers"]:[])];
-  return {sections,video,image,threeDTools,localImageTabs,tools,account,settingsTabs,
+  return {sections,video,image,threeD,localImageTabs,tools,account,settingsTabs,
     videoWorkflows:videoWorkflows.map(manifest=>manifest.id),imageWorkflows:hosted?[]:models.image.map(manifest=>manifest.id),
-    threeDWorkflows:threeDWorkflows.map(manifest=>manifest.id),threeD:input.canCreate?threeDTools:[],videoFooter:footer,imageFooter:footer};
+    videoFooter:footer,imageFooter:footer};
 }
+
+export type ThreeDNavigation=ReturnType<typeof resolveMenu>["threeD"];
 
 /** The stored graph link is scoped and validated by the editor server. */
 export const runFromHash=(hash:string)=>/^#nodes\/run\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.exec(hash)?.[1]??null;
@@ -356,7 +362,7 @@ export function resolveScreen(input:NavigationInput){
     }
     if(library)return {active:libraryTab,items:["assets","runs"]};
     if(characters)return {active:characterTab,items:["characters","scenes"]};
-    if(section==="3d")return {active:threeD&&menu.threeDTools.includes(threeD)?threeD:"overview",items:["overview",...menu.threeDTools]};
+    if(section==="3d")return {active:threeD&&menu.threeD.tools.some(tool=>tool.id===threeD)?threeD:"overview",items:menu.threeD.tabs.map(tab=>tab.id)};
     return null;
   }
 
@@ -394,7 +400,7 @@ export function resolveScreen(input:NavigationInput){
     if(audio&&target==="router"&&routerAudio)return {kind:"router",feature:"talk"};
     if(audio&&hosted)return missing("Audio is unavailable here","Choose an available tool from All tools.");
     if(section==="3d"){
-      if(part&&(!threeD||!menu.threeDTools.includes(threeD)))return missing("This 3D tool is unavailable","Choose a tool from the 3D workspace.","#3d","3D overview");
+      if(part&&!menu.threeD.tools.some(tool=>tool.id===threeD))return missing("This 3D tool is unavailable","Choose a tool from the 3D workspace.","#3d","3D overview");
       if(!input.canCreate)return {kind:"missing",title:"3D tools require creator access",text:"Ask your workspace administrator for creator access to open the 3D workspace."};
       if(target==="chatgpt")return {kind:"chatgpt-unavailable"};
       if(threeD!=="image")return {kind:"3d",tool:threeD??"overview",assetId:detail};
