@@ -279,8 +279,6 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     if(modelsOverlay.closeHash)location.hash=modelsOverlay.closeHash;
   };
   const resolved=navigation.screen;
-  const projectsScreen=resolved.kind==="projects";
-  const makeScreen=resolved.kind==="make";
   const characters=resolved?.kind==="characters"?resolved:undefined;
   const library=resolved?.kind==="library"?resolved:undefined;
   const nodes=resolved?.kind==="nodes"&&resolved;
@@ -590,10 +588,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const canRunAnything=user.guest?!!account?.connected:workers.length>0||!!account?.connected,signInFirst=workspaceAudience==="guest";
   const section=sectionOf(route);
   const workspaceBar=!catalogueScreen&&!nodes&&section!=="3d";
-  /* List-only areas keep a page hero. Production tools own their hero inside the shared right column. */
-  const pageHeroKind:HeroKind|undefined=library?"library":characters?.tab==="characters"?"cast":characters?.tab;
   useDensity();
-  const showScreen=resolved.kind!=="missing"&&resolved.kind!=="checking";
   /* While the server is away the problem bar already states the cause, so the body waits quietly. */
   const waiting=offline||!authorized||(!!error&&!catalogue.length);
   const fallbackNext=resolved.kind==="missing"&&!waiting?resolved.next:undefined;
@@ -790,9 +785,151 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       options={workspaces.map(w=>({value:w.id,label:w.name,note:w.role}))}/>
   </div>;
   const jobs=canRunAnything&&<JobQueueIndicator version={version} workspace={workspace} call={call} authorized={authorized} titles={catalogueTitles(catalogue)} onOpenRun={run=>{setProjectId(run.project_id);location.hash=`library/runs/${run.id}`;}}/>;
-  const fillPage=explicitWorkflow||block||route==="imageedit"||((route==="image"||studioRoute)&&!!manifest)
-    ||storyboard||keyframes||editArea||transform||trim
-    ||!!composerManifest;
+  const screenAccess={workspace,call,canEdit:canCreate};
+  const studioAccess={...screenAccess,user,authorized};
+  const inProject=(render:(project:Project)=>ReactNode)=>()=>project&&render(project);
+  const page=(children:ReactNode,layout?:"fill"|"workspace",hero?:HeroKind)=>(
+    <div className="cf-team__body">
+      <section className={`cf-team__content ds-page${layout?` ds-page--${layout}`:""}`}>
+        {hero&&<div className="cf-team__pagehero"><ToolHero kind={hero}/></div>}
+        {children}
+      </section>
+    </div>
+  );
+  const renderRecovery=inProject(()=><div className="cf-team__body">
+    <section className="cf-team__content"><Page narrow><EmptyState stage title={fallbackTitle} text={fallbackText} action={fallbackNext?<Button variant="secondary" onClick={()=>{location.hash=fallbackNext.href;}}>{fallbackNext.label}</Button>:undefined}/></Page></section>
+  </div>);
+  const renderBlock=inProject(project=>block&&page(<BlockWorkspace screen={block} key={project.id} workspace={workspace} project={project} call={call}
+    canCreate={canCreate} onQueued={refresh} depthRoute={id=>routeFor(id,localWorkers)}
+    presetTool={presetTool} onTarget={setRunOn}
+    onRouter={(id,prompt)=>setRouterIncoming({workspaceId:workspace.id,projectId:project.id,inputs:{source_video:id},prompt})}/>,"fill"));
+  const renderEdit=inProject(project=>editScreen&&page(<ImageEditor key={`${user.id}:${workspace.id}:${project.id}:${editScreen.assetId??""}`}
+    openAssetId={editScreen.assetId} openEntry={editScreen.entry} userId={user.id} freeInput={intentMode}
+    {...screenAccess} project={project} authorized={authorized}
+    inpaint={inpaintRoute} edit={editRoute} editOptions={editRoutes} segment={routeFor("sam3-image-segment")}
+    precision={routeFor("flux2-klein-preserve-edit")} maskedEdit={routeFor("qwen-image-21-masked-edit")}
+    upscale={routeFor("upscale-image-esrgan")} onOpenModels={openModels}
+    onExitSubjectRelight={()=>{location.hash=`imageedit/${editScreen.kind==="fotofield"?"layers/":""}${editScreen.assetId??""}/modify`;}}/>,"workspace"));
+  const renderImage=inProject(project=>page(manifest&&isImageCapability(manifest)?<ImageStudio
+    sharedFeed={<TeamRuns {...studioAccess} project={project} version={version}
+      titles={catalogueTitles(catalogue)} feed={feedScope(catalogue,"image",[manifest.id])}
+      examples="image" outputAction={run=>run.output_ids[0]?<>
+        <LinkButton variant="secondary" href={`#imageedit/${encodeURIComponent(run.output_ids[0])}`}>Edit image</LinkButton>
+        {canCreate&&<Button variant="secondary" onClick={()=>void useImageInVideo(run.output_ids[0])}>Use in video</Button>}
+        {canCreate&&studio?.kind==="marketing"&&<Button variant="secondary" onClick={()=>useImageInStoryboard(project,run.output_ids[0])}>Add to storyboard</Button>}
+      </>:null} hero={()=> <ToolHero kind={studio?.kind==="remix"?"remix":"picture"}/>}/>}
+    adStudio={studio?.kind==="marketing"} remixStudio={studio?.kind==="remix"}
+    modelOptions={(studio?.choices??imageModelsForTab(shownImages,imageTab)).map(m=>({value:m.id,label:m.title.split(" (")[0],note:capabilityPurpose(m)}))}
+    onModel={(id,inputs)=>{
+      const selected=(studio?.choices??catalogue).find(m=>m.id===id);
+      if(!selected)return;
+      const nextDraft=inputs?imageDraftWithReferences(selected,imageDraft,inputs)
+        :studio?imageDraftForTab(selected,imageDraftMemory.current,imageDraft)
+        :imageTabFor(manifest.id,route)==="create"&&imageTabFor(selected.id,route)==="create"?carryCreateDraft(selected,imageDraft)
+        :defaultImageDraft(selected);
+      setCapabilityId(id);
+      imageDraftMemory.current[id]=nextDraft;
+      setImageDraft(nextDraft);
+      location.hash=studio?`${studio.kind}/${id}`:nativeWorkflowHash(selected);
+    }}
+    key={`${project.id}:${manifest.id}`} workspace={workspace} project={project} manifest={manifest}
+    readiness={canCreate?(imageReadiness??{state:"offline",reasons:["Image readiness has not been checked."],missing:[]})
+      :{state:"unsupported",reasons:[workspace.role==="viewer"?"Viewer access is read-only.":"Sign in to generate images."],missing:[]}}
+    workerName={imageWorker?.name} onUseInVideo={canCreate?assetId=>void useImageInVideo(assetId):undefined}
+    onUseInStoryboard={canCreate&&studio?.kind==="marketing"?assetId=>useImageInStoryboard(project,assetId):undefined}
+    batchContext={{userId:user.id,workerId:imageWorker?.id??"",call,onChanged:refresh,photosetAllowed:identityPhotosetWorkerAllowed(user.localSingleUser,imageWorker?.origin)}}
+    assets={imageAssets} runs={imageRuns} sharedCreate={!studio&&imageTab==="create"}
+    createModelIds={shownImages.filter(m=>imageTabFor(m.id,"image")==="create").map(m=>m.id)}
+    draft={imageDraft} busy={imageBusy} onDraftChange={draft=>{setImageDraft(draft);imageDraftMemory.current[manifest.id]=draft;setImageIntentKey("");}}
+    onGenerate={draft=>void generateImage(draft)} onCancel={canCreate?cancelImageRun:undefined}
+    canCancelRun={run=>workspace.role==="admin"||run.created_by===user.id} onRetake={canCreate&&!imageIntentKey&&!imageBusy?retakeImage:undefined}/>:null,manifest?"fill":undefined));
+  const renderComposer=inProject(project=>page(composerManifest?<TeamComposer key={`${project.id}:${composerManifest.id}`} manifest={composerManifest}
+      workflowIds={effects?[effects.id]:motion?.workflowIds} onCapability={chooseWorkflow} {...composerProps} project={project} workers={makeReal?localWorkers:runWorkers}/>:null,composerManifest?"fill":undefined));
+  const screenRenderers={
+    openjutsu:inProject(project=>openJutsuScreen&&<section className="cf-team__content ds-page ds-page--fill">{renderOpenJutsu(project,openJutsuScreen.selection)}</section>),
+    "chatgpt-unavailable":inProject(()=><section className="cf-team__content"><Page narrow><EmptyState title="ChatGPT edits images here" text="This feature uses a different renderer. Choose this computer to continue here, or open the image editor for ChatGPT." action={<Button variant="secondary" onClick={()=>setRunOn("local")}>Use this computer</Button>}/></Page></section>),
+    chatgpt:inProject(project=>chatgpt&&<section className="cf-team__content">
+        <ChatgptImageStudio key={`${workspace.id}:${project.id}:${routeHash}:${chatgpt.feature}`} feature={chatgpt.feature}
+          {...screenAccess} incoming={incoming} project={project} user={user} version={version} onQueued={refresh}/>
+      </section>),
+    router:inProject(project=>routerScreen&&<section className="cf-team__content"><CloudRenderStudio key={`${workspace.id}:${project.id}:${route}:${videoMode}:${routerImageTab}:${linkedImage??""}:${changeChoiceFromHash(routeHash)}`}
+      {...screenAccess} incoming={incoming} feature={routerScreen.feature} project={project} user={user} version={version} onQueued={refresh}
+      onSettings={()=>user.guest?setCloudSignIn(true):setSettings(true)} onLocal={()=>setRunOn("local")}
+      onFeature={f=>{location.hash=`video/transform/${f==="replace-character"?"person":f==="motion-transfer"?"motion":f==="object-swap"?"swap":f==="video-upscale"?"upscale":f==="video-cutout"?"cutout":"restyle"}`;}}/></section>),
+    "3d":inProject(project=>threeD&&<section className="cf-team__content cf-nodes-page">
+        <ThreeDStudio tool={threeD.tool} tools={workspaceMenu.threeDTools} status={<ProblemBar/>}>
+      {threeD.tool==="image"?<ImageTo3DPanel manifest={threeD.manifest} workflows={threeD.choices}
+        initialAssetId={threeD.assetId} onCapability={id=>{location.hash="3d/image/"+id+(threeD.assetId?"/"+threeD.assetId:"");}}
+        {...studioAccess} project={project} workers={targetWorkers(workers,navigation.runTargets.selected)} onQueued={refresh}/>
+      :threeD.tool==="text"?<TextTo3DPanel {...studioAccess} key={project.id} catalogue={catalogue}
+        project={project} workers={runWorkers} onQueued={refresh}/>
+      :threeD.tool==="viewer"||threeD.tool==="mesh"||threeD.tool==="texture"?<ModelToolsPanel
+        key={[project.id,threeD.tool,threeD.assetId].join(":")} mode={threeD.tool}
+        initialAssetId={threeD.assetId} tools={workspaceMenu.threeDTools}
+        {...screenAccess} project={project} onChanged={refresh}/>:null}
+        </ThreeDStudio>
+      </section>),
+    nodes:()=>nodes&&<section className="cf-team__content cf-nodes-page"><ComfyNodes screen={nodes}
+        workspace={workspace} workers={targetWorkers(workers,nodes.target)} catalogue={catalogue.filter(m=>localReady.has(m.id))}
+        canEdit={canCreate} serverOffline={offline} onChanged={refresh} onWorkerSettings={openWorkerSettings}/></section>,
+    projects:()=><section className="cf-team__content"><Page narrow><TeamProjects
+        projects={projects} projectId={projectId} loading={projectsLoading&&!waiting} canCreate={canCreate}
+        onCreate={createProject} onOpen={id=>{setProjectId(id);location.hash="library";}}/></Page></section>,
+    checking:renderRecovery,
+    missing:renderRecovery,
+    block:renderBlock,
+    "film-studio":renderBlock,
+    workflow:inProject(project=>explicitWorkflow&&page(<TeamComposer key={`${project.id}:${routeHash}`} manifest={explicitWorkflow}
+      onCapability={choose} {...composerProps} project={project} workers={runWorkers}/>,"fill")),
+    make:inProject(()=>page(<StartScreen tools={workspaceMenu.tools} onOpen={openStartTask} hosted={workspaceAudience!=="local"}/>)),
+    imageedit:renderEdit,
+    fotofield:renderEdit,
+    characters:inProject(project=>characters&&page(<CharacterWorkspace {...studioAccess} mode={characters.tab} project={project} catalogue={catalogue}
+      onOpenStoryboard={boardId=>{setVideoMode("storyboard");location.hash=`video/storyboard/${encodeURIComponent(boardId)}`;}}
+      onOpenCharacters={()=>{location.hash="characters";}}
+      onOpenScenes={canCreate?()=>{location.hash="characters/scenes";}:undefined}
+      onOpenImages={characterEditor?record=>openCharacterImages(record,characterEditor,project.id):undefined}
+        />,undefined,characters.tab==="characters"?"cast":"scenes")),
+    audio:inProject(project=>audioRequirements&&page(<AudioStudio userId={user.id} key={`${workspace.id}:${project.id}`} workspace={workspace} project={project} call={call} requirements={audioRequirements} onChanged={refresh} onLipSync={canCreate&&readyManifests.some(m=>!!m.voiceContract)?(assetId,imageAssetId)=>void useAudioInLipSync(assetId,imageAssetId):undefined}/>)),
+    "edit-area":inProject(project=>editArea&&page(changeScreen(project,"edit",editArea.ready&&swapEditRoute?
+      <SwapThingPanel promptOnly modelTitle={swapEditRoute.manifest.title} key={`edit:${project.id}:${editArea.assetId??""}`}
+        {...screenAccess} initialVideo={editArea.assetId} project={project} workerId={swapEditRoute.workerId} onChanged={refresh}/>:
+      <EmptyState title="Video editing is not ready" text="Check the required local workflows in Models."
+        action={<Button variant="secondary" onClick={openModels}>Open Models</Button>}/>),"fill")),
+    trim:inProject(project=>trim&&videoEditRequirements&&page(<VideoEditStudio key={`${workspace.id}:${project.id}`} initialAssetId={trim.assetId}
+      {...screenAccess} project={project} requirements={videoEditRequirements} onChanged={refresh}
+      userId={user.id} extensionWorkerId={trimExtension?.workerId}
+      maxGenerationFrames={trimExtension?.manifest.controls.find(control=>control.id==="generation_frames")?.max??13}/>,"fill")),
+    transform:inProject(project=>transform&&page(<TransformVideo manifests={catalogue} statuses={statuses} user={user} workspace={workspace} project={project}
+      workers={transform.choice==="reframe"?localWorkers:runWorkers} call={call} canQueue={canCreate} authorized={authorized}
+      onCapability={setCapabilityId} onQueued={refresh} onModels={openModels} choice={transform.choice} reframe={transform.reframe}
+      swapThing={objectSwapLocal?top=><TeamComposer key={`${project.id}:${objectSwapLocal.id}`} top={top} manifest={objectSwapLocal}
+        workflowIds={[objectSwapLocal.id]} onCapability={choose} {...composerProps} project={project} workers={runWorkers}/>
+        :swapMaskRoute&&swapEditRoute?top=>changeScreen(project,"swap",<SwapThingPanel {...screenAccess} key={project.id}
+          top={top} project={project} workerId={swapEditRoute.workerId} onChanged={refresh}/>):undefined}
+        />,"fill")),
+    image:renderImage,
+    remix:renderImage,
+    marketing:renderImage,
+    keyframes:inProject(project=>keyframes&&page(<KeyframeStudio {...studioAccess} key={`${workspace.id}:${project.id}`} project={project}
+      catalogue={catalogue} workers={runWorkers}
+      localEnabled={keyframes.target==="local"} onChanged={refresh}/>,"fill")),
+    storyboard:inProject(project=>storyboard&&page(<TeamStoryboard key={`${project.id}:${storyboard.boardId??""}`}
+      initialBoardId={storyboard.boardId} runTarget={storyboard.target}
+      incomingPremise={storyboardIdea?.projectId===project.id&&storyboardIdea.workspaceId===workspace.id?storyboardIdea.text:undefined}
+      incomingAssetId={storyboardImage?.projectId===project.id&&storyboardImage.workspaceId===workspace.id?storyboardImage.assetId:undefined}
+      onPremiseConsumed={()=>setStoryboardIdea(null)} onIncomingConsumed={()=>setStoryboardImage(null)}
+      {...studioAccess} project={project} catalogue={catalogue} workers={targetWorkers(workers,storyboard.target)}/>,"fill")),
+    video:renderComposer,
+    motion:renderComposer,
+    effects:renderComposer,
+    "make-real":renderComposer,
+    library:inProject(project=>library&&page(<TeamLibrary {...studioAccess} screen={library} titles={catalogueTitles(catalogue)} key={project.id}
+      project={project} version={version} videoEditReady={trimReady} onEditVideo={asset=>{location.hash=`video/trim/${asset.id}`;}}/>,undefined,"library")),
+    catalogue:()=>null, // The Models dialog is owned by the shell.
+    showcase:()=>null, // Standalone roots are mounted by main.tsx.
+    "node-design":()=>null,
+  } satisfies Record<ResolvedScreen["kind"],()=>ReactNode>;
   return <div className="cf-team">
     <Welcome tools={workspaceMenu.tools} onOpen={openStartTask} onCloud={signInFirst?()=>setCloudSignIn(true):undefined}/>
     {guide&&<Guide hosted={!!user.guest} cloudConnected={!!account?.connected} onClose={()=>setGuide(false)} onCloudSignIn={user.guest?()=>{setGuide(false);setCloudSignIn(true);}:undefined} onOpenWorkers={user.guest||workspace.role!=="admin"?undefined:()=>{setGuide(false);openWorkerSettings();}}/>}
@@ -842,127 +979,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     {offline&&<Notice priority={100} title="Team server unavailable" actions={<Button variant="secondary" onClick={refresh}>Retry connection</Button>}>Drafts remain available. No execution route will be switched.</Notice>}
     {!authorized&&!offline&&<Notice priority={90} title="Reconnect to continue" actions={<Button variant="secondary" onClick={onReconnect}>Reconnect</Button>}>Your draft is preserved.</Notice>}
     {error&&!offline&&authorized&&failure&&<Notice priority={50} title={failure.title||undefined} actions={<Button variant="secondary" onClick={refresh}>Try again</Button>} details={error}>{failure.text}</Notice>}
-    {openJutsuScreen&&project
-      ?<section className="cf-team__content ds-page ds-page--fill">{renderOpenJutsu(project,openJutsuScreen.selection)}</section>
-      :resolved.kind==="chatgpt-unavailable"&&project?<section className="cf-team__content"><Page narrow><EmptyState title="ChatGPT edits images here" text="This feature uses a different renderer. Choose this computer to continue here, or open the image editor for ChatGPT." action={<Button variant="secondary" onClick={()=>setRunOn("local")}>Use this computer</Button>}/></Page></section>
-      :chatgpt&&project?<section className="cf-team__content">
-        <ChatgptImageStudio key={`${workspace.id}:${project.id}:${routeHash}:${chatgpt.feature}`} feature={chatgpt.feature}
-          incoming={incoming} workspace={workspace} project={project} user={user} call={call} version={version} canEdit={canCreate} onQueued={refresh}/>
-      </section>
-      :routerScreen&&project?<section className="cf-team__content"><CloudRenderStudio key={`${workspace.id}:${project.id}:${route}:${videoMode}:${routerImageTab}:${linkedImage??""}:${changeChoiceFromHash(routeHash)}`} incoming={incoming} feature={routerScreen.feature} workspace={workspace} project={project} user={user} call={call} version={version} canEdit={canCreate} onQueued={refresh} onSettings={()=>user.guest?setCloudSignIn(true):setSettings(true)} onLocal={()=>setRunOn("local")} onFeature={f=>{location.hash=`video/transform/${f==="replace-character"?"person":f==="motion-transfer"?"motion":f==="object-swap"?"swap":f==="video-upscale"?"upscale":f==="video-cutout"?"cutout":"restyle"}`;}}/></section>
-      :threeD&&project?<section className="cf-team__content cf-nodes-page">
-        <ThreeDStudio tool={threeD.tool} tools={workspaceMenu.threeDTools} status={<ProblemBar/>}>
-          {threeD.tool==="image"?<ImageTo3DPanel manifest={threeD.manifest} workflows={threeD.choices}
-            initialAssetId={threeD.assetId} onCapability={id=>{location.hash="3d/image/"+id+(threeD.assetId?"/"+threeD.assetId:"");}}
-            user={user} workspace={workspace} project={project} workers={targetWorkers(workers,navigation.runTargets.selected)}
-            call={call} canEdit={canCreate} authorized={authorized} onQueued={refresh}/>
-          :threeD.tool==="text"?<TextTo3DPanel key={project.id} catalogue={catalogue} user={user}
-            workspace={workspace} project={project} workers={runWorkers} call={call} canEdit={canCreate}
-            authorized={authorized} onQueued={refresh}/>
-          :threeD.tool==="viewer"||threeD.tool==="mesh"||threeD.tool==="texture"?<ModelToolsPanel
-            key={[project.id,threeD.tool,threeD.assetId].join(":")} mode={threeD.tool}
-            initialAssetId={threeD.assetId} tools={workspaceMenu.threeDTools}
-            workspace={workspace} project={project} call={call} canEdit={canCreate} onChanged={refresh}/>:null}
-        </ThreeDStudio>
-      </section>
-      :nodes?<section className="cf-team__content cf-nodes-page"><ComfyNodes screen={nodes}
-        workspace={workspace} workers={targetWorkers(workers,nodes.target)} catalogue={catalogue.filter(m=>localReady.has(m.id))}
-        canEdit={canCreate} serverOffline={offline} onChanged={refresh} onWorkerSettings={openWorkerSettings}/></section>
-      :catalogueScreen?null
-      :projectsScreen?<section className="cf-team__content"><Page narrow><TeamProjects
-        projects={projects} projectId={projectId} loading={projectsLoading&&!waiting} canCreate={canCreate}
-        onCreate={createProject} onOpen={id=>{setProjectId(id);location.hash="library";}}/></Page></section>
-      :<div className="cf-team__body">
-      {project&&!showScreen&&<section className="cf-team__content"><Page narrow><EmptyState stage title={fallbackTitle} text={fallbackText} action={fallbackNext?<Button variant="secondary" onClick={()=>{location.hash=fallbackNext.href;}}>{fallbackNext.label}</Button>:undefined}/></Page></section>}
-      {project&&showScreen&&<section className={`cf-team__content ds-page${editScreen?" ds-page--workspace":fillPage?" ds-page--fill":""}`}>
-        {pageHeroKind&&<div className="cf-team__pagehero"><ToolHero kind={pageHeroKind}/></div>}
-        {block?<BlockWorkspace screen={block} key={project.id} workspace={workspace} project={project} call={call}
-          canCreate={canCreate} onQueued={refresh} depthRoute={id=>routeFor(id,localWorkers)}
-          presetTool={presetTool} onTarget={setRunOn}
-          onRouter={(id,prompt)=>setRouterIncoming({workspaceId:workspace.id,projectId:project.id,inputs:{source_video:id},prompt})}/>:
-        explicitWorkflow?<TeamComposer key={`${project.id}:${routeHash}`} manifest={explicitWorkflow}
-          onCapability={choose} {...composerProps} project={project} workers={runWorkers}/>:
-        makeScreen?<StartScreen tools={workspaceMenu.tools} onOpen={openStartTask} hosted={workspaceAudience!=="local"}/>:
-        editScreen?<ImageEditor key={`${user.id}:${workspace.id}:${project.id}:${editScreen.assetId??""}`}
-          openAssetId={editScreen.assetId} openEntry={editScreen.entry} userId={user.id} freeInput={intentMode}
-          workspace={workspace} project={project} call={call} canEdit={canCreate} authorized={authorized}
-          inpaint={inpaintRoute} edit={editRoute} editOptions={editRoutes} segment={routeFor("sam3-image-segment")}
-          precision={routeFor("flux2-klein-preserve-edit")} maskedEdit={routeFor("qwen-image-21-masked-edit")}
-          upscale={routeFor("upscale-image-esrgan")} onOpenModels={openModels}
-          onExitSubjectRelight={()=>{location.hash=`imageedit/${editScreen.kind==="fotofield"?"layers/":""}${editScreen.assetId??""}/modify`;}}/>
-        :characters?<CharacterWorkspace mode={characters.tab} user={user} workspace={workspace} project={project} catalogue={catalogue}
-          call={call} authorized={authorized} canEdit={canCreate}
-          onOpenStoryboard={boardId=>{setVideoMode("storyboard");location.hash=`video/storyboard/${encodeURIComponent(boardId)}`;}}
-          onOpenCharacters={()=>{location.hash="characters";}}
-          onOpenScenes={canCreate?()=>{location.hash="characters/scenes";}:undefined}
-          onOpenImages={characterEditor?record=>openCharacterImages(record,characterEditor,project.id):undefined}
-        />:resolved?.kind==="audio"&&audioRequirements?<AudioStudio userId={user.id} key={`${workspace.id}:${project.id}`} workspace={workspace} project={project} call={call} requirements={audioRequirements} onChanged={refresh} onLipSync={canCreate&&readyManifests.some(m=>!!m.voiceContract)?(assetId,imageAssetId)=>void useAudioInLipSync(assetId,imageAssetId):undefined}/>:
-        editArea?changeScreen(project,"edit",editArea.ready&&swapEditRoute?
-          <SwapThingPanel promptOnly modelTitle={swapEditRoute.manifest.title} key={`edit:${project.id}:${editArea.assetId??""}`}
-            initialVideo={editArea.assetId} workspace={workspace} project={project} workerId={swapEditRoute.workerId}
-            call={call} canEdit={canCreate} onChanged={refresh}/>:
-          <EmptyState title="Video editing is not ready" text="Check the required local workflows in Models."
-            action={<Button variant="secondary" onClick={openModels}>Open Models</Button>}/>):
-        trim&&videoEditRequirements?<VideoEditStudio key={`${workspace.id}:${project.id}`} initialAssetId={trim.assetId}
-          workspace={workspace} project={project} call={call} requirements={videoEditRequirements} onChanged={refresh}
-          userId={user.id} canEdit={canCreate} extensionWorkerId={trimExtension?.workerId}
-          maxGenerationFrames={trimExtension?.manifest.controls.find(control=>control.id==="generation_frames")?.max??13}/>:
-        transform?<TransformVideo manifests={catalogue} statuses={statuses} user={user} workspace={workspace} project={project}
-          workers={transform.choice==="reframe"?localWorkers:runWorkers} call={call} canQueue={canCreate} authorized={authorized}
-          onCapability={setCapabilityId} onQueued={refresh} onModels={openModels} choice={transform.choice} reframe={transform.reframe}
-          swapThing={objectSwapLocal?top=><TeamComposer key={`${project.id}:${objectSwapLocal.id}`} top={top} manifest={objectSwapLocal}
-            workflowIds={[objectSwapLocal.id]} onCapability={choose} {...composerProps} project={project} workers={runWorkers}/>
-            :swapMaskRoute&&swapEditRoute?top=>changeScreen(project,"swap",<SwapThingPanel key={project.id} top={top} workspace={workspace}
-              project={project} workerId={swapEditRoute.workerId} call={call} canEdit={canCreate} onChanged={refresh}/>):undefined}
-        />:
-        (resolved?.kind==="image"||studio)&&manifest&&isImageCapability(manifest)?<ImageStudio
-          sharedFeed={<TeamRuns workspace={workspace} project={project} user={user} call={call} canEdit={canCreate}
-            authorized={authorized} version={version} titles={catalogueTitles(catalogue)} feed={feedScope(catalogue,"image",[manifest.id])}
-            examples="image" outputAction={run=>run.output_ids[0]?<>
-              <LinkButton variant="secondary" href={`#imageedit/${encodeURIComponent(run.output_ids[0])}`}>Edit image</LinkButton>
-              {canCreate&&<Button variant="secondary" onClick={()=>void useImageInVideo(run.output_ids[0])}>Use in video</Button>}
-              {canCreate&&studio?.kind==="marketing"&&<Button variant="secondary" onClick={()=>useImageInStoryboard(project,run.output_ids[0])}>Add to storyboard</Button>}
-            </>:null} hero={()=> <ToolHero kind={studio?.kind==="remix"?"remix":"picture"}/>}/>}
-          adStudio={studio?.kind==="marketing"} remixStudio={studio?.kind==="remix"}
-          modelOptions={(studio?.choices??imageModelsForTab(shownImages,imageTab)).map(m=>({value:m.id,label:m.title.split(" (")[0],note:capabilityPurpose(m)}))}
-          onModel={(id,inputs)=>{
-            const selected=(studio?.choices??catalogue).find(m=>m.id===id);
-            if(!selected)return;
-            const nextDraft=inputs?imageDraftWithReferences(selected,imageDraft,inputs)
-              :studio?imageDraftForTab(selected,imageDraftMemory.current,imageDraft)
-              :imageTabFor(manifest.id,route)==="create"&&imageTabFor(selected.id,route)==="create"?carryCreateDraft(selected,imageDraft)
-              :defaultImageDraft(selected);
-            setCapabilityId(id);
-            imageDraftMemory.current[id]=nextDraft;
-            setImageDraft(nextDraft);
-            location.hash=studio?`${studio.kind}/${id}`:nativeWorkflowHash(selected);
-          }}
-          key={`${project.id}:${manifest.id}`} workspace={workspace} project={project} manifest={manifest}
-          readiness={canCreate?(imageReadiness??{state:"offline",reasons:["Image readiness has not been checked."],missing:[]})
-            :{state:"unsupported",reasons:[workspace.role==="viewer"?"Viewer access is read-only.":"Sign in to generate images."],missing:[]}}
-          workerName={imageWorker?.name} onUseInVideo={canCreate?assetId=>void useImageInVideo(assetId):undefined}
-          onUseInStoryboard={canCreate&&studio?.kind==="marketing"?assetId=>useImageInStoryboard(project,assetId):undefined}
-          batchContext={{userId:user.id,workerId:imageWorker?.id??"",call,onChanged:refresh,photosetAllowed:identityPhotosetWorkerAllowed(user.localSingleUser,imageWorker?.origin)}}
-          assets={imageAssets} runs={imageRuns} sharedCreate={!studio&&imageTab==="create"}
-          createModelIds={shownImages.filter(m=>imageTabFor(m.id,"image")==="create").map(m=>m.id)}
-          draft={imageDraft} busy={imageBusy} onDraftChange={draft=>{setImageDraft(draft);imageDraftMemory.current[manifest.id]=draft;setImageIntentKey("");}}
-          onGenerate={draft=>void generateImage(draft)} onCancel={canCreate?cancelImageRun:undefined}
-          canCancelRun={run=>workspace.role==="admin"||run.created_by===user.id} onRetake={canCreate&&!imageIntentKey&&!imageBusy?retakeImage:undefined}/>:
-        keyframes?<KeyframeStudio key={`${workspace.id}:${project.id}`} workspace={workspace} project={project} user={user}
-          catalogue={catalogue} workers={runWorkers} call={call} authorized={authorized} canEdit={canCreate}
-          localEnabled={keyframes.target==="local"} onChanged={refresh}/>:
-        storyboard?<TeamStoryboard key={`${project.id}:${storyboard.boardId??""}`}
-          initialBoardId={storyboard.boardId} runTarget={storyboard.target}
-          incomingPremise={storyboardIdea?.projectId===project.id&&storyboardIdea.workspaceId===workspace.id?storyboardIdea.text:undefined}
-          incomingAssetId={storyboardImage?.projectId===project.id&&storyboardImage.workspaceId===workspace.id?storyboardImage.assetId:undefined}
-          onPremiseConsumed={()=>setStoryboardIdea(null)} onIncomingConsumed={()=>setStoryboardImage(null)}
-          user={user} workspace={workspace} project={project} catalogue={catalogue} workers={targetWorkers(workers,storyboard.target)}
-          call={call} authorized={authorized} canEdit={canCreate}/>:
-        composerManifest?
-          <TeamComposer key={`${project.id}:${composerManifest.id}`} manifest={composerManifest}
-            workflowIds={effects?[effects.id]:motion?.workflowIds} onCapability={chooseWorkflow} {...composerProps} project={project} workers={makeReal?localWorkers:runWorkers}/>:library?<TeamLibrary screen={library} titles={catalogueTitles(catalogue)} key={project.id} workspace={workspace} project={project} call={call} canEdit={canCreate} authorized={authorized} version={version} user={user} videoEditReady={trimReady} onEditVideo={asset=>{location.hash=`video/trim/${asset.id}`;}}/>:null}
-      </section>}
-    </div>}
+    {screenRenderers[resolved.kind]()}
     {intentMode&&route!=="openjutsu"&&route!=="imageedit"&&workspaceBar&&project&&<IntentDock imageWorkspace={["image","remix","marketing"].includes(route)} videoWorkspace={route==="video"||route==="motion"} value={intentText} onChange={setIntentText} onSubmit={runIntent} available={intentAvailable} busy={imageBusy||intentUploading} reference={intentReference?{name:intentReference.name,src:assetUrl(workspace.id,intentReference.id)}:undefined} referenceError={intentReferenceError} onReferenceAsset={id=>void intentAsset(id)} onReferenceFile={file=>void intentFile(file)} onRemoveReference={clearIntentReference}/>}
     </div>
     </div>
