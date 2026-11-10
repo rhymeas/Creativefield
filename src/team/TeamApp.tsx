@@ -22,7 +22,7 @@ import {feedMode,feedScope} from "./media-feed";
 import {groupMenu} from "./menu-groups";
 import {runLocation} from "./job-queue";
 import {JobQueueIndicator} from "./JobQueueIndicator";
-import {cloudFeature,routerModelsFor} from "../capabilities/router-models";
+import {routerModelsFor} from "../capabilities/router-models";
 import {TeamChoice} from "./TeamChoice";
 import {CapabilityCatalogue} from "../ui/CapabilityCatalogue";
 import {bestWorkerReadiness,defaultDraft,draftKey,restoreDraft,refreshWorkerInventory,workerReadiness} from "./state";
@@ -54,7 +54,7 @@ import {isOpenJutsuAdvanced} from "../capabilities/openjutsu-advanced";
 import {imageTabFor,imageTabTarget,resolveScreen,type ImageTab,type ResolvedScreen} from "./navigation";
 export {imageTabFor,imageTabTarget} from "./navigation";
 export type {ImageTab} from "./navigation";
-import {routeState,sectionFromHash} from "./route-state";
+import {sectionFromHash} from "./route-state";
 import {videoHashPart,videoWorkflowHash} from "../ui/studio-route";
 import {isMotionTransfer,selectTransformManifest} from "./transform-video-state";
 import {catalogueTitles} from "./job-queue";
@@ -220,8 +220,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       return routeTask("video.create",flash)?.pack.id??flash.find(m=>m.category==="t2v")?.id??"";
     });
   },[route,catalogue,videoMode]);
-  /* A link may name the video workflow: `#video/camera`. It selects once the list is known, and an
-     unknown id falls back to this screen's default. */
+  /* Remember a valid named video for the next visit to the bare video address. */
   useEffect(()=>{
     if(!addressWorkflow)return;
     const named=catalogue.find(m=>m.id===addressWorkflow);
@@ -387,8 +386,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const openJutsuScreen=resolved?.kind==="openjutsu"?resolved:undefined;
   const screenRunChoices=runChoices?.filter(choice=>navigation.runTargets.choices.some(option=>option.target===choice.value));
   const openjutsuCanRunLocal=!!openJutsuNav?.runTargets.choices.some(option=>option.target==="local");
-  const videoScreen=route==="video"&&(navigation?.pinnedMakeReal||videoMode!=="workflow")
-    &&(resolved?.kind!=="video"||resolved.mode==="create")?resolved:undefined;
+  const video=resolved.kind==="video"?resolved:undefined;
   const storyboard=resolved?.kind==="storyboard"?resolved:undefined;
   const keyframes=resolved?.kind==="keyframes"?resolved:undefined;
   const editArea=resolved?.kind==="edit-area"?resolved:undefined;
@@ -398,9 +396,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const trim=resolved?.kind==="trim"?resolved:undefined;
   const explicitWorkflow=resolved?.kind==="workflow"?resolved.manifest:undefined;
   const trimExtension=trim?routeFor("video-edit"):undefined;
-  const composerManifest=makeReal??effects??(videoScreen
-    ? catalogue.find(m=>videoScreen.kind==="video"&&m.id===videoScreen.workflowId)
-    : manifest);
+  const composerManifest=makeReal??effects??motion?.manifest??(video&&catalogue.find(m=>m.id===video.workflowId));
   // Prefer the local guided Qwen workflow for FotoField; it follows selected-object
   // replacement instructions on the verified cat-to-pumpkin case. Other models
   // remain available through the model selector and readiness determines fallback.
@@ -413,11 +409,8 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const readyManifests=catalogue.filter(m=>statuses[m.id]?.state==="ready"),readyImages=(studio?catalogue.filter(m=>localReady.has(m.id)):readyManifests).filter(isImageCapability),shownImages=catalogue.filter(m=>m.coverage.local==="implemented"&&isImageCapability(m)),readyEdit=readyManifests.some(isMaskedEdit),readyMotion=readyManifests.some(isMotionTransfer),readyEnhance=readyManifests.some(m=>m.category==="enhance");
   /* The image screen's own tabs: the open workflow decides which one is on, and a tab for a tool that is not
      ready here is never drawn (rule 26). */
-  const chatgptUnsupported=(navigation?.runTargets.selected??runOn)==="chatgpt"&&["video","motion","3d"].includes(route);
   const chatgpt=resolved?.kind==="chatgpt"?resolved:undefined;
-  const renderScreen=route==="video"?videoScreen:resolved;
-  const routerScreen=renderScreen?.kind==="router"?renderScreen:undefined;
-  const routerPage=renderScreen?!!routerScreen:runOn==="router"&&route==="video";
+  const routerScreen=resolved.kind==="router"?resolved:undefined;
   const linkedImage=chatgpt?.assetId??routerScreen?.assetId;
   const incoming:{inputs:Record<string,string>;prompt:string}|undefined=linkedImage
     ?{inputs:routerScreen?.feature==="image-to-3d"?{image:linkedImage}:{source_image:linkedImage},prompt:""}:
@@ -600,19 +593,12 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   /* List-only areas keep a page hero. Production tools own their hero inside the shared right column. */
   const pageHeroKind:HeroKind|undefined=library?"library":characters?.tab==="characters"?"cast":characters?.tab;
   useDensity();
-  /* One answer for a hash that names no screen or a screen this computer cannot run yet. */
-  const fallback=(route==="video"?videoScreen:resolved)??routeState({
-    section:route,mode:videoMode,hash:routeHash,workflowIds:catalogue.filter(m=>route==="video"?isVideoWorkflow(m):route==="image"?isImageCapability(m):true).map(m=>m.id),canCreate,
-    catalogueKnown:offline||!authorized||catalogue.length>0,
-    video:!!manifest,motion:false,image:shownImages.length>0,
-    audioKnown:true,audio:false,
-  });
-  const showScreen=fallback.kind!=="missing"&&fallback.kind!=="checking";
+  const showScreen=resolved.kind!=="missing"&&resolved.kind!=="checking";
   /* While the server is away the problem bar already states the cause, so the body waits quietly. */
   const waiting=offline||!authorized||(!!error&&!catalogue.length);
-  const fallbackNext=fallback.kind==="missing"&&!waiting?fallback.next:undefined;
-  const fallbackTitle=waiting?"Waiting for the team server":fallback.kind==="missing"?fallback.title:"Checking what this computer can run";
-  const fallbackText=fallback.kind==="missing"&&!waiting?fallback.text:undefined;
+  const fallbackNext=resolved.kind==="missing"&&!waiting?resolved.next:undefined;
+  const fallbackTitle=waiting?"Waiting for the team server":resolved.kind==="missing"?resolved.title:"Checking what this computer can run";
+  const fallbackText=resolved.kind==="missing"&&!waiting?resolved.text:undefined;
   const topCurrent=modelsOverlay.open?"#catalogue":section==="characters"?"#studios":`#${route==="openjutsu"?"video":route==="imageedit"?"image":route}`;
   async function savePreviewCrop(file:File){
     if(!canCreate||!project)throw new Error("Choose a project with creator access to save a crop.");
@@ -806,7 +792,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const jobs=canRunAnything&&<JobQueueIndicator version={version} workspace={workspace} call={call} authorized={authorized} titles={catalogueTitles(catalogue)} onOpenRun={run=>{setProjectId(run.project_id);location.hash=`library/runs/${run.id}`;}}/>;
   const fillPage=explicitWorkflow||block||route==="imageedit"||((route==="image"||studioRoute)&&!!manifest)
     ||storyboard||keyframes||editArea||transform||trim
-    ||((route==="video"||route==="motion")&&!!composerManifest);
+    ||!!composerManifest;
   return <div className="cf-team">
     <Welcome tools={workspaceMenu.tools} onOpen={openStartTask} onCloud={signInFirst?()=>setCloudSignIn(true):undefined}/>
     {guide&&<Guide hosted={!!user.guest} cloudConnected={!!account?.connected} onClose={()=>setGuide(false)} onCloudSignIn={user.guest?()=>{setGuide(false);setCloudSignIn(true);}:undefined} onOpenWorkers={user.guest||workspace.role!=="admin"?undefined:()=>{setGuide(false);openWorkerSettings();}}/>}
@@ -858,12 +844,12 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     {error&&!offline&&authorized&&failure&&<Notice priority={50} title={failure.title||undefined} actions={<Button variant="secondary" onClick={refresh}>Try again</Button>} details={error}>{failure.text}</Notice>}
     {openJutsuScreen&&project
       ?<section className="cf-team__content ds-page ds-page--fill">{renderOpenJutsu(project,openJutsuScreen.selection)}</section>
-      :chatgptUnsupported&&project?<section className="cf-team__content"><Page narrow><EmptyState title="ChatGPT edits images here" text="This feature uses a different renderer. Choose this computer to continue here, or open the image editor for ChatGPT." action={<Button variant="secondary" onClick={()=>setRunOn("local")}>Use this computer</Button>}/></Page></section>
+      :resolved.kind==="chatgpt-unavailable"&&project?<section className="cf-team__content"><Page narrow><EmptyState title="ChatGPT edits images here" text="This feature uses a different renderer. Choose this computer to continue here, or open the image editor for ChatGPT." action={<Button variant="secondary" onClick={()=>setRunOn("local")}>Use this computer</Button>}/></Page></section>
       :chatgpt&&project?<section className="cf-team__content">
         <ChatgptImageStudio key={`${workspace.id}:${project.id}:${routeHash}:${chatgpt.feature}`} feature={chatgpt.feature}
           incoming={incoming} workspace={workspace} project={project} user={user} call={call} version={version} canEdit={canCreate} onQueued={refresh}/>
       </section>
-      :routerPage&&project?<section className="cf-team__content"><CloudRenderStudio key={`${workspace.id}:${project.id}:${route}:${videoMode}:${routerImageTab}:${linkedImage??""}:${changeChoiceFromHash(location.hash)}`} incoming={incoming} feature={routerScreen?.feature??cloudFeature(route,videoMode,routerImageTab,changeChoiceFromHash(location.hash))} workspace={workspace} project={project} user={user} call={call} version={version} canEdit={canCreate} onQueued={refresh} onSettings={()=>user.guest?setCloudSignIn(true):setSettings(true)} onLocal={()=>setRunOn("local")} onFeature={f=>{location.hash=`video/transform/${f==="replace-character"?"person":f==="motion-transfer"?"motion":f==="object-swap"?"swap":f==="video-upscale"?"upscale":f==="video-cutout"?"cutout":"restyle"}`;}}/></section>
+      :routerScreen&&project?<section className="cf-team__content"><CloudRenderStudio key={`${workspace.id}:${project.id}:${route}:${videoMode}:${routerImageTab}:${linkedImage??""}:${changeChoiceFromHash(routeHash)}`} incoming={incoming} feature={routerScreen.feature} workspace={workspace} project={project} user={user} call={call} version={version} canEdit={canCreate} onQueued={refresh} onSettings={()=>user.guest?setCloudSignIn(true):setSettings(true)} onLocal={()=>setRunOn("local")} onFeature={f=>{location.hash=`video/transform/${f==="replace-character"?"person":f==="motion-transfer"?"motion":f==="object-swap"?"swap":f==="video-upscale"?"upscale":f==="video-cutout"?"cutout":"restyle"}`;}}/></section>
       :threeD&&project?<section className="cf-team__content cf-nodes-page">
         <ThreeDStudio tool={threeD.tool} tools={workspaceMenu.threeDTools} status={<ProblemBar/>}>
           {threeD.tool==="image"?<ImageTo3DPanel manifest={threeD.manifest} workflows={threeD.choices}
@@ -887,8 +873,8 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
         projects={projects} projectId={projectId} loading={projectsLoading&&!waiting} canCreate={canCreate}
         onCreate={createProject} onOpen={id=>{setProjectId(id);location.hash="library";}}/></Page></section>
       :<div className="cf-team__body">
-      {!routerPage&&project&&route!=="openjutsu"&&!showScreen&&<section className="cf-team__content"><Page narrow><EmptyState stage title={fallbackTitle} text={fallbackText} action={fallbackNext?<Button variant="secondary" onClick={()=>{location.hash=fallbackNext.href;}}>{fallbackNext.label}</Button>:undefined}/></Page></section>}
-      {!routerPage&&project&&route!=="openjutsu"&&showScreen&&<section className={`cf-team__content ds-page${route==="imageedit"?" ds-page--workspace":fillPage?" ds-page--fill":""}`}>
+      {project&&!showScreen&&<section className="cf-team__content"><Page narrow><EmptyState stage title={fallbackTitle} text={fallbackText} action={fallbackNext?<Button variant="secondary" onClick={()=>{location.hash=fallbackNext.href;}}>{fallbackNext.label}</Button>:undefined}/></Page></section>}
+      {project&&showScreen&&<section className={`cf-team__content ds-page${editScreen?" ds-page--workspace":fillPage?" ds-page--fill":""}`}>
         {pageHeroKind&&<div className="cf-team__pagehero"><ToolHero kind={pageHeroKind}/></div>}
         {block?<BlockWorkspace screen={block} key={project.id} workspace={workspace} project={project} call={call}
           canCreate={canCreate} onQueued={refresh} depthRoute={id=>routeFor(id,localWorkers)}
@@ -972,7 +958,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
           onPremiseConsumed={()=>setStoryboardIdea(null)} onIncomingConsumed={()=>setStoryboardImage(null)}
           user={user} workspace={workspace} project={project} catalogue={catalogue} workers={targetWorkers(workers,storyboard.target)}
           call={call} authorized={authorized} canEdit={canCreate}/>:
-        (route==="video"||motion)&&composerManifest?
+        composerManifest?
           <TeamComposer key={`${project.id}:${composerManifest.id}`} manifest={composerManifest}
             workflowIds={effects?[effects.id]:motion?.workflowIds} onCapability={chooseWorkflow} {...composerProps} project={project} workers={makeReal?localWorkers:runWorkers}/>:library?<TeamLibrary screen={library} titles={catalogueTitles(catalogue)} key={project.id} workspace={workspace} project={project} call={call} canEdit={canCreate} authorized={authorized} version={version} user={user} videoEditReady={trimReady} onEditVideo={asset=>{location.hash=`video/trim/${asset.id}`;}}/>:null}
       </section>}

@@ -45,13 +45,14 @@ type NamedScreen="make"|"projects"|"catalogue"|"audio";
 export type LibraryScreen={kind:"library";tab:"assets"}|{kind:"library";tab:"runs";linkedRunId?:string};
 type NodeEntry={kind:"feature"|"run";id:string};
 export type NodesScreen={kind:"nodes";target:"local";entry?:NodeEntry}|{kind:"nodes";target:"cloud"};
-type BlockDelivery={kind:"router"}|{kind:"previs"|"depth";manifest:CapabilityManifestV2};
-export type BlockScreen={kind:"block";delivery?:BlockDelivery}|{kind:"film-studio"};
+export type BlockDelivery={kind:"router"}|{kind:"previs"|"depth";manifest:CapabilityManifestV2};
+export type BlockScreen={kind:"block";delivery?:BlockDelivery}|{kind:"film-studio";delivery?:BlockDelivery};
 type OpenJutsuSelection=ReturnType<typeof resolveOpenJutsu>["screen"];
 export type ResolvedScreen=
   | Exclude<RouteState,{kind:"screen"}>
   | {kind:NamedScreen|"showcase"|"node-design"}
   | {kind:"chatgpt";feature:"image-edit"|"image-angles"|"image-relight";assetId?:string}
+  | {kind:"chatgpt-unavailable"}
   | {kind:"fotofield"|"imageedit";assetId?:string;entry?:ImageEditEntry}
   | {kind:"image";tab:ImageTab;workflowId?:string}
   | {kind:"characters";tab:"characters"|"scenes";imageEditor?:CapabilityManifestV2}
@@ -234,7 +235,8 @@ export function resolveScreen(input:NavigationInput){
   const namedVideo=section==="video"&&part&&!modeFromHash?models.catalogue.find(manifest=>manifest.id===part&&isVideoWorkflow(manifest)):undefined;
   const explicitWorkflow=section==="workflow"?models.catalogue.find(manifest=>manifest.id===part):undefined;
   const selectedVideo=namedVideo??models.catalogue.find(manifest=>manifest.id===input.selection?.workflowId&&isVideoWorkflow(manifest));
-  let videoMode=modeFromHash??(namedVideo?videoWorkflowMode(namedVideo):input.selection?.videoMode??"create");
+  const rememberedMode=input.selection?.videoMode;
+  let videoMode=modeFromHash??(namedVideo?videoWorkflowMode(namedVideo):rememberedMode==="workflow"&&!selectedVideo?"create":rememberedMode??"create");
   if(hosted&&(videoMode==="storyboard"&&!router("video-create")||videoMode==="keyframes"&&!router("keyframes")))videoMode="create";
   const createVideo=section==="video"&&videoMode==="create";
   const trim=section==="video"&&videoMode==="trim";
@@ -328,7 +330,10 @@ export function resolveScreen(input:NavigationInput){
       const imageEditor=selectReadyWorkflow(editors,localReady,taskPacks("image.edit")[0]);
       return {kind:"characters",tab:characterTab,imageEditor};
     }
-    if(filmStudio)return input.filmStudioInstalled?{kind:"film-studio"}:
+    if(filmStudio)return input.filmStudioInstalled?
+      // The studio hands a shot to the same Grey-block-to-video delivery the generator uses,
+      // so the two screens never pick different Make-it-real targets.
+      {kind:"film-studio",delivery:!hosted&&input.canCreate&&models.previs?{kind:"previs",manifest:models.previs}:undefined}:
       missing("Film Studio is unavailable here","You can draw a layout and make a shot in Block.","#block","Open Block");
     if(block){
       if(blockTarget==="router")return {kind:"block",delivery:{kind:"router"}};
@@ -350,6 +355,7 @@ export function resolveScreen(input:NavigationInput){
     if(section==="3d"){
       if(part&&(!threeD||!menu.threeDTools.includes(threeD)))return missing("This 3D tool is unavailable","Choose a tool from the 3D workspace.","#3d","3D overview");
       if(!input.canCreate)return {kind:"missing",title:"3D tools require creator access",text:"Ask your workspace administrator for creator access to open the 3D workspace."};
+      if(target==="chatgpt")return {kind:"chatgpt-unavailable"};
       if(threeD!=="image")return {kind:"3d",tool:threeD??"overview",assetId:detail};
       if(target==="router"&&routerThreeD)return {kind:"router",feature:"image-to-3d",assetId};
       if(!catalogueReady(input))return {kind:"checking"};
@@ -374,8 +380,9 @@ export function resolveScreen(input:NavigationInput){
       trimKnown:input.requirements.trim!=="checking",trim:input.requirements.trim==="ready"});
     const named=section==="workflow"||section==="image"&&!!part||section==="video"&&!!part&&!modeFromHash;
     if(named&&!catalogueReady(input))return {kind:"checking"};
-    if(trim&&target==="router"&&(!named||namedVideo))return {kind:"router",feature:"unsupported"};
     if((named||section==="video"&&modeFromHash==="transform")&&availability.kind==="missing")return availability;
+    if(target==="chatgpt"&&(section==="video"||motion))return {kind:"chatgpt-unavailable"};
+    if(trim&&target==="router"&&(!named||namedVideo))return {kind:"router",feature:"unsupported"};
     if(target==="chatgpt"&&(section==="image"||editingImage))return {
       kind:"chatgpt",feature:imageTab==="angles"?"image-angles":imageTab==="relight"?"image-relight":"image-edit",
       assetId:remoteEditAssetId,
@@ -385,6 +392,7 @@ export function resolveScreen(input:NavigationInput){
     if(routerScreen&&(createVideo||editArea||transform||effects||motion||section==="image"||editingImage)&&feature!=="unsupported")return {kind:"router",feature};
     if(motion&&hosted&&catalogueReady(input)&&!motionManifest)return missing("Motion Control uses Comfy Router here","Choose Comfy Router in Run on to transfer motion.");
     if(availability.kind!=="screen")return availability;
+    if(section==="video"&&videoMode==="workflow"&&target==="router"&&!hosted&&!makeReal)return {kind:"router",feature:"unsupported"};
     if(hosted&&named){
       const manifest=explicitWorkflow??models.catalogue.find(candidate=>candidate.id===part);
       if(target!=="cloud"||!manifest||!supportsCloud(manifest)){
@@ -417,6 +425,6 @@ export function resolveScreen(input:NavigationInput){
   }
 
   const makeRealEntry=models.previs?{manifest:models.previs,hash:nativeWorkflowHash(models.previs)}:undefined;
-  return {requestedHash,redirect,section,screen:screen(),tabs:tabs(),menu,runTargets,overlay,catalogueManifests,makeRealEntry,pinnedMakeReal:!!makeReal,imageWorkflow,
+  return {requestedHash,redirect,section,screen:screen(),tabs:tabs(),menu,runTargets,overlay,catalogueManifests,makeRealEntry,imageWorkflow,
     access:input.access??"ready"};
 }
