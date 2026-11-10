@@ -17,13 +17,13 @@ export const TASKS: Readonly<Record<TaskId, Task>> = {
   "image.angles": { label: "Camera angles", candidates: ["flux2-klein-angles", "qwen-image-21-angles"], reason: "FLUX 3 Klein angles" },
   "image.relight": { label: "Relight", candidates: ["flux2-klein-relight"], reason: "FLUX 3 Klein relight" },
   "image.upscale": { label: "Upscale image", candidates: ["z-image-2k-upscale", "upscale-image-esrgan"], reason: "Z-Image Turbo 2K: enlarges and adds fine detail" },
-  "video.create": { label: "Create video", candidates: ["hyperflow-h3-flash-t2v", "h3-t2v"], reason: "HyperFlow H3 Flash creates video with sound from a description" },
-  "video.from-image": { label: "Picture to video", candidates: ["hyperflow-h3-flash-i2v", "h3-i2v", "minimax-h3-video"], reason: "HyperFlow H3 Flash animates a reference image" },
-  "video.first-last": { label: "First and last frame", candidates: ["hyperflow-h3-flash-flf2v", "h3-flf2v"], reason: "HyperFlow H3 Flash animates between two images" },
+  "video.create": { label: "Create video", candidates: ["hyperflow-h3-flash-t2v"], reason: "HyperFlow H3 Flash creates video with sound from a description" },
+  "video.from-image": { label: "Picture to video", candidates: ["hyperflow-h3-flash-i2v"], reason: "HyperFlow H3 Flash animates a reference image" },
+  "video.first-last": { label: "First and last frame", candidates: ["hyperflow-h3-flash-flf2v"], reason: "HyperFlow H3 Flash animates between two images" },
   "video.upscale": { label: "Upscale video", candidates: ["seedvr2-video-upscale", "nvidia-vfx-upscale"], reason: "SeedVR2: restores faces and texture, steady over time" },
   "video.swap-person": { label: "Replace character", candidates: ["openjutsu-h3-swap"], reason: "MiniMax H3 character swap" },
   "video.swap-thing": { label: "Swap a thing", candidates: ["h3-object-swap-hyperflow"], reason: "HyperFlow H3 Flash object swap" },
-  "video.previs": { label: "Grey-block to video", candidates: ["previs-to-video-hyperflow", "previs-to-video"], reason: "HyperFlow H3 Flash turns grey shapes into your character, vehicle and place" },
+  "video.previs": { label: "Grey-block to video", candidates: ["previs-to-video-hyperflow"], reason: "HyperFlow H3 Flash turns grey shapes into your character, vehicle and place" },
 };
 
 export type Routed<T> = { task: TaskId; pack: T; reason: string; fallback: boolean };
@@ -42,19 +42,23 @@ export function routeTask<T extends { id: string }>(task: TaskId, ready: readonl
 export const taskPacks = (task: TaskId): readonly string[] => TASKS[task].candidates;
 
 const videoCreationTasks = ["video.create", "video.from-image", "video.first-last"] as const;
+const legacyVideoCreation = new Set(["h3-t2v", "h3-i2v", "h3-flf2v", "minimax-h3-video"]);
+const replacedVideoTools = new Set(["h3-effects", "h3-object-swap", "previs-to-video"]);
 
-/** Model choices for video creation under the current H3-only selection. */
+export const isSupersededLocalVideoWorkflow = (id: string) => legacyVideoCreation.has(id) || replacedVideoTools.has(id);
+
+/** Named legacy workflows remain valid for saved shots and explicit recreation. */
 export function isSelectedVideoCreate(id:string):boolean {
-  return videoCreationTasks.some(task=>taskPacks(task).includes(id));
+  return isFlashVideoCreate(id) || legacyVideoCreation.has(id);
 }
 
 export const isObjectSwapWorkflow = (id: string) => id === "h3-object-swap" || taskPacks("video.swap-thing").includes(id);
-export const EFFECT_CLIP_WORKFLOWS = ["h3-effects-hyperflow", "h3-effects"] as const;
-export const isEffectClips = (id: string) => EFFECT_CLIP_WORKFLOWS.some(workflow => workflow === id);
+export const FLASH_EFFECT_CLIPS_ID = "h3-effects-hyperflow";
+export const isEffectClips = (id: string) => id === FLASH_EFFECT_CLIPS_ID || id === "h3-effects";
 /** Keep the Flash experiment addressable for explicit runs and recreation. */
 export const isOpenJutsuSingleSwap = (id: string) => id === "openjutsu-h3-swap-hyperflow" || taskPacks("video.swap-person").includes(id);
 
-/** Create Video has been qualified on Flash. The shared lists still serve Storyboard and Keyframes. */
+/** Qualified workflows for new Create Video and Storyboard setups. */
 export const isFlashVideoCreate = (id: string) => videoCreationTasks.some(task => taskPacks(task)[0] === id);
 
 /** The Create Video handoff uses the Flash picture-to-video graph, even in an offline draft. */

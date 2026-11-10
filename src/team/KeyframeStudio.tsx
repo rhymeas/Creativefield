@@ -18,7 +18,7 @@ import {KeyframeOptions,KeyframeSegment,KeyframeStrip,type KeyframeMediaDrop} fr
 import {acceptsMediaType,readExampleFile} from '../ds/example-media';
 import {resolveImageReference} from '../image/image-reference';
 import {insertReferenceMention} from './prompt-reference';
-import {ROUTER_MODELS,type RouterModel} from '../capabilities/router-models';
+import {routerModelsFor,type RouterModel} from '../capabilities/router-models';
 import {routerSegmentRuns} from './keyframe-router';
 import {TeamChoice} from './TeamChoice';
 
@@ -60,7 +60,7 @@ export function KeyframeStudio({workspace,project,user,catalogue,workers,call,au
  const locked=!!busy||!!pending||rendering||!canEdit;
  /* Planning keyframes works on any Run on choice. Animating uses this computer's keyframe models, or without them
     Seedance 2.5 on Comfy Router: one clip per segment, from its first to its last keyframe. */
- const routerModels=ROUTER_MODELS.filter(m=>m.features.includes('keyframes')),[routerId,setRouterId]=useState(routerModels[0]?.id??'');
+ const routerModels=routerModelsFor('keyframes'),[routerId,setRouterId]=useState(routerModels[0]?.id??'');
  const routerModel:RouterModel|undefined=localEnabled?undefined:routerModels.find(m=>m.id===routerId)??routerModels[0];
  const canRender=canEdit&&(localEnabled||!!routerModel);
  const [sent,setSent]=useState('');

@@ -2,7 +2,7 @@ import { mkdtemp, rmdir, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { hasOwnVideoFinish } from "./chain-upscale";
 import { VIDEO_REFRAME_ID } from "../src/capabilities/video-reframe";
-import { ffmpegPath, probeMedia, runTool, streamsOfType } from "./audio-processing-validation";
+import { AudioProcessingError, ffmpegPath, probeMedia, runTool, streamsOfType, videoFrameTiming } from "./audio-processing-validation";
 
 const h3VideoPacks = new Set([
   VIDEO_REFRAME_ID,
@@ -45,6 +45,38 @@ export async function withPolishedH3Audio<T>(source: string, use: (file: string)
     const result = await probeMedia(output, "video");
     if (streamsOfType(result, "video").length !== 1 || streamsOfType(result, "audio").length !== originalAudio.length + 1) {
       throw new Error("Polished video does not contain the expected audio tracks");
+    }
+    return await use(output);
+  } finally {
+    await unlink(output).catch(() => {});
+    await rmdir(folder).catch(() => {});
+  }
+}
+
+/** An upscaler can return only one audio stream. Use the finished source's full soundtrack. */
+export async function withUpscaledH3Audio<T>(source: string, upscaled: string, use: (file: string) => Promise<T>): Promise<T> {
+  const [sourceMedia, sourceTiming, upscaledTiming] = await Promise.all([
+    probeMedia(source, "video"), videoFrameTiming(source, 0), videoFrameTiming(upscaled, 0),
+  ]);
+  const tracks = streamsOfType(sourceMedia, "audio").length;
+  if (tracks < 2 || sourceTiming.timingDigest !== upscaledTiming.timingDigest) {
+    throw new AudioProcessingError("The upscale cannot retain the finished clip's audio tracks and timing.");
+  }
+
+  const folder = await mkdtemp(join(dirname(upscaled), ".h3-upscale-audio-"));
+  const output = join(folder, "upscaled.mp4");
+  try {
+    await runTool(ffmpegPath(), [
+      "-hide_banner", "-loglevel", "error", "-nostdin", "-copyts",
+      "-protocol_whitelist", "file,pipe", "-format_whitelist", "mov,matroska,webm", "-i", upscaled,
+      "-protocol_whitelist", "file,pipe", "-format_whitelist", "mov", "-i", source,
+      "-map", "0:v:0", "-map", "1:a", "-c", "copy", "-disposition:a", "-default", "-disposition:a:0", "default",
+      "-metadata:s:a:0", "handler_name=Polished audio", "-metadata:s:a:1", "handler_name=Original audio",
+      "-movflags", "+faststart", output,
+    ], undefined, 30000);
+    const [result, timing] = await Promise.all([probeMedia(output, "video"), videoFrameTiming(output, 0)]);
+    if (streamsOfType(result, "audio").length !== tracks || timing.timingDigest !== upscaledTiming.timingDigest) {
+      throw new AudioProcessingError("The upscaled clip did not retain the expected audio tracks and timing.");
     }
     return await use(output);
   } finally {

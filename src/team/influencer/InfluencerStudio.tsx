@@ -35,7 +35,7 @@ function InfluencerWorkspace({user,workspace,project,catalogue,call,authorized,c
     ?<Notice priority={80} title="The scene builder didn't load" actions={<Button variant="secondary" onClick={()=>void refresh().catch(e=>setError((e as Error).message))}>Try again</Button>} details={error}>Reading the saved characters failed, so nothing could be planned. Trying again reads them once more; your draft is untouched.</Notice>
     :<ShimmerText>Loading the scene builder…</ShimmerText>;
   const cast=d.castIds.map(id=>characters.find(c=>c.id===id)).filter((c):c is CharacterRecord=>!!c),issues=influencerErrors(d,characters);
-  const workflows=personaWorkflows(catalogue,cast.map(c=>elements.find(e=>e.id===c.elementId))),workflow=choosePersonaWorkflow(workflows,workflowId);
+  const workflows=personaWorkflows(catalogue,cast.map(c=>elements.find(e=>e.id===c.elementId)),workflowId),workflow=choosePersonaWorkflow(workflows,workflowId);
   if(cast.length&&!workflow)issues.push("No qualified workflow can use the selected cast references. Remove an unavailable reference or choose another cast member.");
   if(workflow)issues.push(...personaReferenceErrors(d,characters,elements,workflow));
   const plan=shotPlan(d,characters,workflow);

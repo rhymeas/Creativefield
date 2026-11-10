@@ -55,6 +55,17 @@
         "node": "11",
         "field": "image"
       }
+    },
+    {
+      "id": "scene_guide",
+      "label": "Scene guide",
+      "type": "image",
+      "required": false,
+      "omitWhenMissing": true,
+      "binding": {
+        "node": "cf-openjutsu-scene-guide",
+        "field": "image"
+      }
     }
   ],
   "outputs": [

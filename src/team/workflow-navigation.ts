@@ -1,8 +1,22 @@
 import {isOpenJutsuAdvanced} from "../capabilities/openjutsu-advanced";
 import type {CapabilityManifestV2} from "../capabilities/types";
-import {isImageWorkflow,isVideoWorkflow} from "../capabilities/surfaces";
-import {isFlashVideoCreate,isSelectedVideoCreate} from "../capabilities/tasks";
+import {capabilitySurface,isCreateVideoWorkflow,isImageWorkflow,isVideoWorkflow} from "../capabilities/surfaces";
+import {isEffectClips,isFlashVideoCreate,isSelectedVideoCreate} from "../capabilities/tasks";
 import {VIDEO_REFRAME_HASH,VIDEO_REFRAME_ID} from "../capabilities/video-reframe";
+import {isMaskedEdit} from "./masked-state";
+import type {videoModeFromHash} from "./video-edit/state";
+
+export type VideoWorkspaceMode=NonNullable<ReturnType<typeof videoModeFromHash>>|"workflow";
+
+export function videoWorkflowMode(manifest:CapabilityManifestV2):VideoWorkspaceMode{
+  if(manifest.id===VIDEO_REFRAME_ID)return "transform";
+  if(manifest.id==="video-edit")return "trim";
+  if(isMaskedEdit(manifest))return "edit";
+  const surface=capabilitySurface(manifest);
+  if(isEffectClips(manifest.id)||surface==="video-effect")return "effects";
+  return isCreateVideoWorkflow(manifest)||surface==="video-enhance"?"create":"workflow";
+}
+
 /** Every runnable contract has a native panel; Nodes stays an explicit advanced action. */
 export function nativeWorkflowHash(m:CapabilityManifestV2):string {
   if(isOpenJutsuAdvanced(m.id))return `#openjutsu/${m.id}`;

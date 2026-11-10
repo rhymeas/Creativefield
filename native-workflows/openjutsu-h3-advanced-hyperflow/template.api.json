@@ -1021,6 +1021,10 @@
         "11",
         0
       ],
+      "ref_images.ref_image_4": [
+        "cf-openjutsu-scene-guide",
+        0
+      ],
       "ref_videos.ref_video_0": [
         "61",
         0
@@ -1461,6 +1465,15 @@
     "class_type": "AudioAdjustVolume",
     "_meta": {
       "title": "Mute the reference audio H3 hears"
+    }
+  },
+  "cf-openjutsu-scene-guide": {
+    "inputs": {
+      "image": "example.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Optional shared scene guide"
     }
   }
 }

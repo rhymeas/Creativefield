@@ -1,3 +1,4 @@
+import type {ImageEditEntry} from "../../team/navigation";
 import {dragLayerTransform,applyLayerTransform,transformCorner,type TransformHandle,type TransformPoint} from "./free-transform";
 import "../../ds/modify-controls.css";
 import {cloneLayerMask,effectiveLayerMaskKey} from "./layer-mask";
@@ -129,7 +130,7 @@ export type InpaintRoute = { manifest: CapabilityManifestV2; workerId: string; r
 const floor8 = (n: number) => Math.max(8, Math.floor(n / 8) * 8);
 const toPng = (canvas: HTMLCanvasElement) => new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("The image could not be exported."))), "image/png"));
 
-export function ImageEditor({ workspace, project, userId, call, canEdit, authorized, inpaint, edit: defaultEdit, editOptions = [], segment, precision, maskedEdit, upscale, openAssetId, freeInput = false, onOpenModels }: { workspace: Workspace; project: Project; userId:string; call: Call; canEdit: boolean; authorized: boolean; inpaint?: InpaintRoute; edit?: InpaintRoute; editOptions?: InpaintRoute[]; /** SAM 3.1: select parts by name. */ segment?: InpaintRoute; precision?: InpaintRoute; maskedEdit?: InpaintRoute; upscale?: InpaintRoute; /** An image from the Library to open right away (from Create Image). */ openAssetId?: string; freeInput?: boolean; onOpenModels?:()=>void }) {
+export function ImageEditor({ workspace, project, userId, call, canEdit, authorized, inpaint, edit: defaultEdit, editOptions = [], segment, precision, maskedEdit, upscale, openAssetId, openEntry, freeInput = false, onOpenModels, onExitSubjectRelight }: { workspace: Workspace; project: Project; userId:string; call: Call; canEdit: boolean; authorized: boolean; inpaint?: InpaintRoute; edit?: InpaintRoute; editOptions?: InpaintRoute[]; /** SAM 3.1: select parts by name. */ segment?: InpaintRoute; precision?: InpaintRoute; maskedEdit?: InpaintRoute; upscale?: InpaintRoute; /** An image from the Library to open right away (from Create Image). */ openAssetId?: string; openEntry?: ImageEditEntry; freeInput?: boolean; onOpenModels?:()=>void; onExitSubjectRelight?:()=>void }) {
   const [editModelId,setEditModelId]=useState(defaultEdit?.manifest.id ?? editOptions[0]?.manifest.id ?? "");
   const editModelChosen=useRef(false);
   useEffect(()=>{if(!editModelChosen.current&&defaultEdit)setEditModelId(defaultEdit.manifest.id);},[defaultEdit?.manifest.id]);
@@ -195,7 +196,7 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
   const [editIntent,setEditIntent]=useState<EditIntent>("auto");
   const [preserveOriginal,setPreserveOriginal]=useState(false);
   const [editScope,setEditScope]=useState<EditScope>("auto");
-  const [subjectRelight,setSubjectRelight]=useState(()=>typeof location!=="undefined"&&location.hash.endsWith("/relight"));
+  const subjectRelight=openEntry==="relight";
   const [selectionUnavailable,setSelectionUnavailable]=useState(false);
   const relightHandoff=useRef<string|null>(null);
   const [aiReference,setAiReference]=useState<Asset|null>(null),[referencePicker,setReferencePicker]=useState(false),[referenceBusy,setReferenceBusy]=useState(false);
@@ -297,26 +298,25 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
 
   const doc = hist?.present ?? null;
   useEffect(()=>{
-    if(!doc||(!location.hash.endsWith("/modify")&&!location.hash.endsWith("/annotate")&&!location.hash.endsWith("/relight")))return;
+    if(!doc||!openEntry)return;
     const frame=requestAnimationFrame(()=>{const panel=document.querySelector<HTMLElement>('.ds-dock[aria-label="AI"]');if(panel?.hasAttribute("data-collapsed"))panel.querySelector<HTMLButtonElement>(".ds-dock__toggle")?.click();panel?.querySelector<HTMLTextAreaElement>("textarea")?.focus();});
     return()=>cancelAnimationFrame(frame);
-  },[!!doc,openAssetId]);
+  },[!!doc,openAssetId,openEntry]);
   useEffect(()=>{
-    if(!doc||!openAssetId||!location.hash.endsWith("/annotate"))return;
+    if(!doc||!openAssetId||openEntry!=="annotate")return;
     const key=annotationStorageKey(workspace.id,openAssetId),raw=sessionStorage.getItem(key);
     if(!raw||annotationHandoff.current===raw)return;
     try{setAnnotations(imageAnnotationsSchema.parse(JSON.parse(raw)));setEditScope("image");setEditIntent("modify");annotationHandoff.current=raw;}catch{toast("The annotations could not be restored. Draw them again.");}
-  },[!!doc,openAssetId,location.hash]);
+  },[!!doc,openAssetId,openEntry]);
   useEffect(()=>{
-    if(!doc||!openAssetId||!location.hash.endsWith("/relight"))return;
+    if(!doc||!openAssetId||openEntry!=="relight")return;
     let raw:string|null=null;
     try{raw=sessionStorage.getItem(subjectRelightKey(workspace.id,project.id,openAssetId));}catch{toast("The relight instructions could not be read from browser storage.");return;}
     if(raw&&relightHandoff.current===raw)return;
     const handoff=readSubjectRelight(raw,{workspaceId:workspace.id,projectId:project.id,assetId:openAssetId});
-    setSubjectRelight(true);
     if(!handoff){toast("The relight instructions are unavailable. Return to Relight and choose Relight subject again.");return;}
     relightHandoff.current=raw;setAiPrompt(handoff.prompt);setEditIntent("modify");setEditScope("layer");setPreserveOriginal(true);setPreserveMode("replace");setPrecisionFeather(0);setAnnotations([]);setAiReference(null);setAiCharacter(null);clearCharacterPlacement();setExtraReferences([null,null]);setSubject("person");setTool(segment?"subject":"lasso");
-  },[!!doc,openAssetId,workspace.id,project.id]);
+  },[!!doc,openAssetId,openEntry,workspace.id,project.id]);
   function openAnnotations(){if(!doc)return;const canvas=blankCanvas(doc.width,doc.height);renderDoc(canvas.getContext("2d")!,{...doc,selection:null},{background:true});setAnnotationSrc(canvas.toDataURL("image/png"));}
   liveDoc.current=doc;
   const placementDraft=usePlacementDraft({scope:{userId,workspaceId:workspace.id,projectId:project.id,assetId:openAssetId??""},doc,bitmapRevision:bitmapsReady,character:aiCharacter,placementId:characterPlacement,prompt:aiPrompt,manifest:edit?.manifest,enabled:authorized&&canEdit&&!subjectRelight,call,currentDoc:()=>liveDoc.current,onRestore:(snapshot,record,mask,prompt)=>{
@@ -2208,7 +2208,7 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
                   {!modifyRouteReady && modifyFix && <Notice priority={40} title="AI Modify is not ready" actions={<Button variant="secondary" disabled={!canEdit||!authorized} onClick={modifyFix.run}>{modifyFix.label}</Button>}>{modifyUnavailableReason} The editor stays available while setup is incomplete.</Notice>}
                   <AnnotationEditor open={!!annotationSrc} src={annotationSrc} initial={annotations} onClose={()=>setAnnotationSrc("")} onApply={boxes=>{setAnnotations(boxes);setEditScope("image");setEditIntent("modify");setAnnotationSrc("");if(openAssetId)sessionStorage.setItem(annotationStorageKey(workspace.id,openAssetId),JSON.stringify(boxes));}}/>
                   <PromptField textareaRef={aiPromptArea} tokens={["@Image 1","@Image 2","@Image 3"]} compact labelOutside label="What should change" placeholder="e.g. change the winter scene to summer" value={aiPrompt} disabled={!!aiBusy} onChange={setAiPrompt} />
-                  {subjectRelight&&<><Meta>Select and review the subject mask before relighting. Pixels outside the effective mask use the precision workflow.</Meta><Button variant="secondary" disabled={!!aiBusy} onClick={()=>{setSubjectRelight(false);if(openAssetId)sessionStorage.removeItem(subjectRelightKey(workspace.id,project.id,openAssetId));location.hash=`imageedit/${openAssetId??""}/modify`;}}>Use normal editing</Button>{(precisionRun||precisionResult||precisionError)&&<Button variant="secondary" onClick={()=>setPrecisionOpen(true)}>Review edit</Button>}</>}
+                  {subjectRelight&&<><Meta>Select and review the subject mask before relighting. Pixels outside the effective mask use the precision workflow.</Meta><Button variant="secondary" disabled={!!aiBusy} onClick={()=>{if(openAssetId)sessionStorage.removeItem(subjectRelightKey(workspace.id,project.id,openAssetId));onExitSubjectRelight?.();}}>Use normal editing</Button>{(precisionRun||precisionResult||precisionError)&&<Button variant="secondary" onClick={()=>setPrecisionOpen(true)}>Review edit</Button>}</>}
                   {aiBusy ? (
                     <Working label={upscaling?"Upscaling…":AI_BUSY[aiBusy]} hint="ComfyUI is generating" />
                   ) : (

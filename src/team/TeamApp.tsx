@@ -38,7 +38,7 @@ import {capabilityPurpose,capabilitySurface,isCreateVideoWorkflow,isImageWorkflo
 import {isSelectedImageModel} from "../capabilities/image-model-selection";
 import {identityPhotosetWorkerAllowed} from "../image/identity-photoset";
 import {addCharacterReferences,defaultImageDraft,imageDraftWithReferences,imageRunBody,restoreImageRetakeDraft,type ImageDraft} from "../image/image-state";
-import {EFFECT_CLIP_WORKFLOWS,isEffectClips,isFlashVideoCreate,isOpenJutsuSingleSwap,routeImageToVideo,routeImageToVideoDraft,routeTask,taskPacks} from "../capabilities/tasks";
+import {FLASH_EFFECT_CLIPS_ID,isEffectClips,isFlashVideoCreate,isOpenJutsuSingleSwap,isSupersededLocalVideoWorkflow,routeImageToVideo,routeImageToVideoDraft,routeTask} from "../capabilities/tasks";
 import type {CharacterMode} from "./characters/CharacterWorkspace";
 import type {AudioRequirements} from "./audio/state";
 import {videoModeFromHash,type VideoEditRequirements} from "./video-edit/state";
@@ -50,8 +50,11 @@ import {assetMatchesPort} from "../capabilities/assets";
 import {currentIntentReference,intentImageReferenceTarget,intentPromptDraft,intentReferenceDraft} from "./intent/reference";
 import {beginOperation,finishOperation,invalidateOperation,operationGate} from "./operation-gate";
 import type {IntentTarget} from "./intent/router";
-import {nativeWorkflowHash} from "./workflow-navigation";
-import {OPENJUTSU_ADVANCED_ID,OPENJUTSU_ADVANCED_FLASH_ID,isOpenJutsuAdvanced} from "../capabilities/openjutsu-advanced";
+import {nativeWorkflowHash,videoWorkflowMode,type VideoWorkspaceMode} from "./workflow-navigation";
+import {isOpenJutsuAdvanced} from "../capabilities/openjutsu-advanced";
+import {imageTabFor,imageTabTarget,resolveScreen,type ImageTab,type ResolvedScreen} from "./navigation";
+export {imageTabFor,imageTabTarget} from "./navigation";
+export type {ImageTab} from "./navigation";
 import {routeState,sectionFromHash} from "./route-state";
 import {videoHashPart,videoWorkflowHash} from "../ui/studio-route";
 import {selectTransformManifest} from "./transform-video-state";
@@ -62,15 +65,11 @@ import logo from "../assets/creativefield-logo-trim.png";
 import {RecreateMediaProvider,RecreateProvider,type RecreateMedia,type RecreateRun} from "./recreate";
 
 /** A worker's kind comes from the server; the shared Worker type does not carry it yet. */
-export type VideoWorkspaceMode="create"|"edit"|"trim"|"storyboard"|"keyframes"|"effects"|"transform"|"replace"|"workflow";
-export function videoWorkflowMode(manifest:CapabilityManifestV2):VideoWorkspaceMode{
-  if(manifest.id===VIDEO_REFRAME_ID)return "transform";
-  if(manifest.id==="video-edit")return "trim";
-  if(isMaskedEdit(manifest))return "edit";
-  if(isEffectClips(manifest.id))return "effects";
-  if(capabilitySurface(manifest)==="video-effect")return "effects";
-  return isCreateVideoWorkflow(manifest)||capabilitySurface(manifest)==="video-enhance"?"create":"workflow";
-}
+export {videoWorkflowMode} from "./workflow-navigation";
+const VIDEO_TAB_LABELS:Record<string,string>={
+  workflow:"Workflow",storyboard:"Storyboard",keyframes:"Keyframes",create:"Create Video",
+  edit:"Edit Area",transform:"Transform Video",openjutsu:"OpenJutsu",makereal:"Make it real",effects:"Effects",trim:"Trim",
+};
 export type RunTarget="local"|"cloud"|"router"|"chatgpt";
 /** Comfy Cloud runs no job from an API key on its free tier: said once, with what to do. */
 export const CLOUD_PLAN_LINE="Comfy Cloud workflows need a paid Comfy plan. Comfy Router models (FLUX, Seedance, Kling) run on your credits on any plan.";
@@ -95,38 +94,19 @@ export function CloudRunConsent({onUse,onKeep}:{onUse:()=>void;onKeep:()=>void})
 
 /* The image workspace: Create and Edit, plus the picture tools that have a ready workflow of their own.
    Angles and Relight are tabs of this screen, so switching between them keeps the picture already chosen. */
-export type ImageTab="create"|"angles"|"relight"|"edit"|"upscale"|"cutout";
 /** Replace character on Comfy Cloud, in the order the Model row offers them. */
 const CLOUD_REPLACE_MODELS=["scail2-character-replace","cloud-h3-character-swap","cloud-kling-omni-edit","cloud-seedance2-reference"];
-const ANGLE_WORKFLOWS=taskPacks("image.angles"),RELIGHT_WORKFLOW="flux2-klein-relight";
+const IMAGE_TAB_LABELS:Record<ImageTab,string>={create:"Create",angles:"Angles",relight:"Relight",edit:"Edit",upscale:"Upscale",cutout:"Cut out"};
 /** The angle workflow this computer really has ready: the camera-angle tool first, then the 45° angle shots. */
 export function angleWorkflow<T extends {id:string}>(ready:T[]):T|undefined{
   return routeTask("image.angles",ready)?.pack;
 }
-/** One row of tabs. A tool gets a tab only while its workflow is ready here (rule 26); Photo editing has its own place, FotoField. */
-export function imageTabs(ready:Array<{id:string;inputs?:Array<{required:boolean}>}>):Array<{id:ImageTab;label:string}>{
-  return [
-    ...(imageTabTarget("create",ready)?[{id:"create" as const,label:"Create"}]:[]),
-    ...(angleWorkflow(ready)?[{id:"angles" as const,label:"Angles"}]:[]),
-    ...(ready.some(m=>m.id===RELIGHT_WORKFLOW)?[{id:"relight" as const,label:"Relight"}]:[]),
-  ];
-}
-/** Which tab the open workflow belongs to; anything that is not a picture tool is Create. */
-export function imageTabFor(manifestId:string|undefined,route:string):ImageTab{
-  if(route==="imageedit")return "edit";
-  if(manifestId===RELIGHT_WORKFLOW)return "relight";
-  return manifestId&&ANGLE_WORKFLOWS.includes(manifestId)?"angles":"create";
+export function imageTabs(models:Array<{id:string}>):Array<{id:ImageTab;label:string}>{
+  return (["create","angles","relight"] as const).filter(tab=>imageTabTarget(tab,models)).map(id=>({id,label:IMAGE_TAB_LABELS[id]}));
 }
 /** The model picker stays within the active Image workspace. */
 export function imageModelsForTab<T extends {id:string}>(models:T[],tab:ImageTab):T[]{
   return models.filter(model=>imageTabFor(model.id,"image")===tab);
-}
-/** The workflow a tab opens; Create uses only the configured image-generation models. */
-export function imageTabTarget<T extends {id:string;inputs?:Array<{required:boolean}>}>(tab:ImageTab,ready:T[]):T|undefined{
-  if(tab==="angles")return angleWorkflow(ready);
-  if(tab==="relight")return ready.find(m=>m.id===RELIGHT_WORKFLOW);
-  if(tab==="edit")return undefined;
-  return routeTask("image.create",ready)?.pack;
 }
 /** A tab starts from its own earlier draft, so its preset is still there when you come back.
     A first visit keeps the picture that is already chosen on the other tab. */
@@ -206,8 +186,6 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const [workers,setWorkers]=useState<Worker[]>([]),[catalogue,setCatalogue]=useState<Catalogue>([]),[capabilityId,setCapabilityId]=useState("");
   const [addressWorkflow,setAddressWorkflow]=useState<string|null>(()=>videoWorkflowFromHash(location.hash)??null);
   const [videoMode,setVideoMode]=useState<VideoWorkspaceMode>(()=>videoModeFromHash(location.hash)??"create");
-  /* Storyboard renders on this computer only; a guest's link to it opens Create Video. Keyframes animate on Comfy Router. */
-  useEffect(()=>{if(user.guest&&(videoMode==="storyboard"&&!routerModelsFor("video-create").length||videoMode==="keyframes"&&!routerModelsFor("keyframes").length))setVideoMode("create");},[user.guest,videoMode]);
   const [characterMode,setCharacterMode]=useState<CharacterMode>("characters");
   const [imageDraft,setImageDraft]=useState<ImageDraft>({controls:{}}),[imageAssets,setImageAssets]=useState<Asset[]>([]),[imageRuns,setImageRuns]=useState<Run[]>([]),[imageBusy,setImageBusy]=useState(false),[imageIntentKey,setImageIntentKey]=useState("");
   const [storyboardImage,setStoryboardImage]=useState<{projectId:string;workspaceId:string;assetId:string}|null>(null);
@@ -231,7 +209,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const closeModels=useCallback(()=>{setModelsOpen(false);if(sectionFromHash(location.hash)==="catalogue")location.hash=modelsReturnHash.current.replace(/^#/,"")||"make";},[]);
   useEffect(()=>{if(!authorized)setSettings(false);},[authorized]);
   useEffect(()=>{if(!authorized)setModelsOpen(false);},[authorized]);
-  useEffect(()=>{const update=()=>{const next=sectionFromHash(location.hash);setRouteHash(location.hash);setRoute(next);if(next==="catalogue")setModelsOpen(true);else modelsReturnHash.current=location.hash||"#make";const mode=videoModeFromHash(location.hash),workflow=videoWorkflowFromHash(location.hash);if(mode)setVideoMode(mode);else if(workflow)setVideoMode("create");if(mode==="effects")setCapabilityId(id=>id==="h3-effects"?EFFECT_CLIP_WORKFLOWS[0]:id);setAddressWorkflow(workflow??null);};addEventListener("hashchange",update);return()=>removeEventListener("hashchange",update);},[]);
+  useEffect(()=>{const update=()=>{const next=sectionFromHash(location.hash);setRouteHash(location.hash);setRoute(next);if(next==="catalogue")setModelsOpen(true);else modelsReturnHash.current=location.hash||"#make";const mode=videoModeFromHash(location.hash),workflow=videoWorkflowFromHash(location.hash);if(mode)setVideoMode(mode);else if(workflow)setVideoMode("create");setAddressWorkflow(workflow??null);};addEventListener("hashchange",update);return()=>removeEventListener("hashchange",update);},[]);
   useEffect(()=>{if(routeHash==="#video/transform/edit")location.hash="video/edit";},[routeHash]);
   useEffect(()=>{if(route==="influencer")setCharacterMode("scenes");},[route]);
   const refresh=useCallback(()=>setVersion(v=>v+1),[]);
@@ -243,7 +221,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     void Promise.all([call<Project[]>(workspacePath(workspace.id,"projects")),call<Worker[]>(workspacePath(workspace.id,"workers")),call<Catalogue>(workspacePath(workspace.id,"catalogue"))]).then(([p,w,c])=>{if(!current)return;setProjects(p);setWorkers(w);setCatalogue(c);setProjectId(id=>p.some(p=>p.id===id)?id:p[0]?.id??"");setError("");}).catch(e=>{if(current)setError((e as Error).message);});
     return()=>{current=false;};
   },[call,workspace.id,version,authorized]);
-  useEffect(()=>{if(route!=="video"&&route!=="motion"&&route!=="image")return;if(route==="video"&&(videoMode==="transform"||videoMode==="workflow"))return;setCapabilityId(id=>{const selected=catalogue.find(m=>m.id===id);if(selected&&(route==="image"?isImageCapability(selected):route==="motion"?selected.category==="motion":videoMode==="edit"?isMaskedEdit(selected):videoMode==="effects"?isEffectClips(selected.id):(isCreateVideoWorkflow(selected)&&isFlashVideoCreate(selected.id))||capabilitySurface(selected)==="video-enhance"))return id;if(route==="video"&&videoMode==="effects")return EFFECT_CLIP_WORKFLOWS.find(workflow=>catalogue.some(m=>m.id===workflow&&m.coverage.local==="implemented"))??"";return (route==="image"?imageTabTarget("create",catalogue.filter(m=>m.coverage.local==="implemented"&&isImageCapability(m)))?.id:route==="video"&&videoMode!=="edit"&&videoMode!=="effects"?routeTask("video.create",catalogue.filter(m=>m.coverage.local==="implemented"&&isFlashVideoCreate(m.id)))?.pack.id:undefined)??catalogue.find(m=>route==="image"?false:route==="motion"?m.coverage.local==="implemented"&&m.category==="motion":videoMode==="edit"?isMaskedEdit(m):m.coverage.local==="implemented"&&m.category==="t2v"&&isFlashVideoCreate(m.id))?.id??"";});},[route,catalogue,videoMode]);
+  useEffect(()=>{if(route!=="video"&&route!=="motion")return;if(route==="video"&&(["create","edit","transform","effects","workflow"].includes(videoMode)))return;setCapabilityId(id=>{const selected=catalogue.find(m=>m.id===id);if(selected&&(route==="motion"?selected.category==="motion":(isCreateVideoWorkflow(selected)&&isFlashVideoCreate(selected.id))||capabilitySurface(selected)==="video-enhance"))return id;return (route==="video"?routeTask("video.create",catalogue.filter(m=>m.coverage.local==="implemented"&&isFlashVideoCreate(m.id)))?.pack.id:undefined)??catalogue.find(m=>m.coverage.local==="implemented"&&(route==="motion"?m.category==="motion":route==="video"&&m.category==="t2v"&&isFlashVideoCreate(m.id)))?.id??"";});},[route,catalogue,videoMode]);
   /* A link may name the video workflow: `#video/camera`. It selects once the list is known, and an
      unknown id falls back to this screen's default. */
   useEffect(()=>{
@@ -253,8 +231,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     if(named&&route==="video"&&isVideoWorkflow(named)&&(isEffectClips(named.id)||!isCreateVideoWorkflow(named)||isFlashVideoCreate(named.id))){setCapabilityId(named.id);setVideoMode(videoWorkflowMode(named));}
     setAddressWorkflow(null);
   },[addressWorkflow,catalogue,route]);
-  useEffect(()=>{if(route!=="image")return;const named=catalogue.find(m=>m.id===routeHash.split("/")[1]&&isImageCapability(m));if(named)setCapabilityId(named.id);},[routeHash,route,catalogue]);
-  const manifest=catalogue.find(m=>m.id===capabilityId),project=projects.find(p=>p.id===projectId);
+  const project=projects.find(p=>p.id===projectId);
   intentScope.current=`${workspace.id}:${project?.id??""}`;
   /* The Comfy account behind the cloud key, shown in the user menu. */
   const [account,setAccount]=useState<CloudAccountFacts|null>(null),[cloudSignIn,setCloudSignIn]=useState(reopenCloudSignIn),[guide,setGuide]=useState(false);
@@ -264,6 +241,40 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   /* A signed-in guest always runs on their Comfy Cloud, also after a reload. */
   /* A guest never runs on this computer: before signing in Run on is Comfy Router, whose panel offers the sign-in. */
   useEffect(()=>{if(!user.guest)return;const cloudJobs=!!account?.connected&&account.canSubmit!==false&&!!cloudWorker;if(runOn==="local"||runOn==="cloud"&&!cloudJobs)setRunOn(cloudJobs?"cloud":"router");},[user.guest,account?.connected,account?.canSubmit,cloudWorker,runOn]);
+  const canCreate=workspace.role!=="viewer"&&authorized&&!offline;
+  const audioReady=canCreate&&audioRequirements?.state==="ready";
+  const trimReady=workspace.role!=="viewer"&&authorized&&videoEditRequirements?.trim.state==="ready";
+  const statuses:Record<string,Readiness>=Object.fromEntries(catalogue.map(m=>{
+    const readiness=bestWorkerReadiness(m,runWorkers);
+    return [m.id,offline?{state:"offline",reasons:["The team server cannot confirm worker readiness."],missing:readiness.missing}:readiness];
+  }));
+  const routeFor=(id:string,candidates=runWorkers)=>{const m=catalogue.find(x=>x.id===id&&x.coverage.local==="implemented");if(!m||!canCreate)return undefined;const w=candidates.filter(worker=>workerReadiness(m,worker).state==="ready").sort((a,b)=>a.id.localeCompare(b.id))[0],r=m.routes.find(r=>r.execution==="local_comfy"&&r.implementation==="implemented")?.id;return w&&r?{manifest:m,workerId:w.id,routeId:r}:undefined;};
+  const objectSwapLocal=routeTask("video.swap-thing",catalogue)?.pack;
+  const replaceRoute=routeFor("scail2-character-replace"),swapMaskRoute=routeFor("sam31-video-mask"),swapEditRoute=routeFor("wan21-vace-masked-edit"),vfxRoute=routeFor("nvidia-vfx-upscale");
+  const localWorkers=targetWorkers(workers,"local");
+  const readyIds=new Set(Object.keys(statuses).filter(id=>statuses[id].state==="ready"));
+  const navigation=["openjutsu","video","block","workflow","image","imageedit"].includes(route)?resolveScreen({
+    hash:routeHash,
+    audience:user.guest?(account?.connected?"signed-in-guest":"guest"):"local",
+    hasProject:!!project,
+    canCreate,
+    access:offline?"offline":authorized?"ready":"reconnect",
+    runTarget:runOn,
+    cloud:{worker:!!cloudWorker,canSubmit:account?.canSubmit},
+    catalogue:offline||!authorized||project||catalogue.length?catalogue:null,
+    ready:readyIds,
+    localReady:runOn==="local"||runOn==="router"?readyIds:new Set(offline?[]:
+      catalogue.filter(m=>localWorkers.some(w=>workerReadiness(m,w).state==="ready")).map(m=>m.id)),
+    requirements:{
+      audio:audioRequirements?(audioReady?"ready":"unavailable"):"checking",
+      trim:videoEditRequirements?(trimReady?"ready":"unavailable"):"checking",
+      editArea:!!(swapMaskRoute&&swapEditRoute),
+    },
+    openJutsuExperiment:replaceRoute?.manifest.id,
+    selection:{videoMode,workflowId:capabilityId,imageTab:routerImageTab},
+  }):undefined;
+  const manifest=route==="image"?navigation?.imageWorkflow:catalogue.find(m=>m.id===capabilityId);
+  useEffect(()=>{if(route==="image"&&manifest)setCapabilityId(manifest.id);},[route,manifest?.id]);
   /* The draft is set from the tab that is opening: its own earlier draft, or the picture already chosen on
      the tab being left. `imageDraft` is read once here on purpose, so it is not a dependency. */
   useEffect(()=>{if((route==="image"||route==="marketing"||route==="remix")&&manifest&&isImageCapability(manifest)){setImageDraft(imageDraftForTab(manifest,imageDraftMemory.current,imageDraft));setImageIntentKey("");}},[route,manifest?.id,manifest?.version]);
@@ -289,13 +300,12 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     const timer=setInterval(()=>{void call<Run[]>(workspacePath(workspace.id,`runs?projectId=${project.id}`)).then(runs=>{if(current)setImageRuns(runs);}).catch(()=>{});},3000);
     return()=>{current=false;clearInterval(timer);};
   },[imageWorking,authorized,project?.id,workspace.id,call]);
-  const canCreate=workspace.role!=="viewer"&&authorized&&!offline;
   /* A failed request is said in everyday words; the raw text waits behind Details (rule 36). */
   const failure=error?plainProblem(error):null;
   function pickRunOn(value:string){
     if(user.guest&&!account?.connected&&(value==="router"||value==="cloud")){setAskCloud(false);setCloudSignIn(true);return;}
-    if(value==="chatgpt"){const incoming=route==="imageedit"&&!layeredEditor&&location.hash.split("/")[1]?{inputs:{source_image:location.hash.split("/")[1]},prompt:""}:route==="image"?{inputs:imageDraft.inputs??{},prompt:String(imageDraft.controls.prompt??"")}:undefined;setRouterIncoming(incoming&&project?{...incoming,workspaceId:workspace.id,projectId:project.id}:undefined);setRouterImageTab("edit");setRunOn("chatgpt");setAskCloud(false);location.hash="imageedit";return;}
-    if(value==="router"){let incoming:{inputs:Record<string,string>;prompt:string}|undefined;const local=cloudDraftRef.current;if(project&&local?.workspaceId===workspace.id&&local.projectId===project.id&&(videoMode==="replace"||(videoMode==="transform"&&changeChoiceFromHash(location.hash)==="person")))incoming=local;else if(route==="image")incoming={inputs:imageDraft.inputs??{},prompt:String(imageDraft.controls.prompt??"")};else if(project&&manifest&&videoMode==="create"){try{const d=JSON.parse(localStorage.getItem(draftKey(user.id,workspace.id,project.id,manifest.id))??"null");if(d?.inputs)incoming={inputs:d.inputs,prompt:String(d.controls?.prompt??"")};}catch{}}setRouterIncoming(incoming&&project?{...incoming,workspaceId:workspace.id,projectId:project.id}:undefined);setRunOn("router");setAskCloud(false);return;}
+    if(value==="chatgpt"){const incoming=route==="image"?{inputs:imageDraft.inputs??{},prompt:String(imageDraft.controls.prompt??"")}:undefined;setRouterIncoming(incoming&&project?{...incoming,workspaceId:workspace.id,projectId:project.id}:undefined);setRouterImageTab("edit");setRunOn("chatgpt");setAskCloud(false);if(route!=="imageedit")location.hash="imageedit";return;}
+    if(value==="router"){let incoming:{inputs:Record<string,string>;prompt:string}|undefined;const local=cloudDraftRef.current;if(project&&local?.workspaceId===workspace.id&&local.projectId===project.id&&(videoMode==="replace"||(videoMode==="transform"&&changeChoiceFromHash(location.hash)==="person")))incoming=local;else if(route==="image")incoming={inputs:imageDraft.inputs??{},prompt:String(imageDraft.controls.prompt??"")};else if(project&&composerManifest&&videoMode==="create"){try{const d=JSON.parse(localStorage.getItem(draftKey(user.id,workspace.id,project.id,composerManifest.id))??"null");if(d?.inputs)incoming={inputs:d.inputs,prompt:String(d.controls?.prompt??"")};}catch{}}setRouterIncoming(incoming&&project?{...incoming,workspaceId:workspace.id,projectId:project.id}:undefined);setRunOn("router");setAskCloud(false);return;}
     if(value!=="cloud"){setRunOn("local");setAskCloud(false);return;}
     /* A hosted guest signs in with their own Comfy Cloud key instead of setting up a worker. */
     if(user.guest&&!account?.connected){setAskCloud(false);setCloudSignIn(true);return;}
@@ -311,13 +321,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   /* Signing in names the credits in its own words, so it is also the yes to running on Comfy Cloud. */
   async function signedInCloud(next:CloudAccountFacts){setAccount(next);setCloudSignIn(false);try{localStorage.setItem(cloudConsentKey,"yes");}catch{}const w=await call<Worker[]>(workspacePath(workspace.id,"workers")).catch(()=>null);if(w)setWorkers(w);setRunOn(next.canSubmit===false?"router":"cloud");}
   async function signOutCloud(){storeCloudKey("");await call(workspacePath(workspace.id,"cloud-key"),"DELETE").catch(()=>undefined);setAccount({connected:false});setRunOn("local");}
-  const audioReady=canCreate&&audioRequirements?.state==="ready";
-  const trimReady=workspace.role!=="viewer"&&authorized&&videoEditRequirements?.trim.state==="ready";
   async function createProject(name:string,description:string){setError("");try{const p=await call<Project>(workspacePath(workspace.id,"projects"),"POST",{name,description:description||undefined});setProjects(old=>[p,...old]);setProjectId(p.id);return true;}catch(e){setError((e as Error).message);return false;}}
-  const statuses:Record<string,Readiness>=Object.fromEntries(catalogue.map(m=>{
-    const readiness=bestWorkerReadiness(m,runWorkers);
-    return [m.id,offline?{state:"offline",reasons:["The team server cannot confirm worker readiness."],missing:readiness.missing}:readiness];
-  }));
   useEffect(()=>{
     if(route!=="marketing"&&route!=="remix")return;
     setCapabilityId(current=>selectAdModel(catalogue,statuses,current,routeHash.split("/")[1]??"",route==="remix"));
@@ -363,44 +367,48 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   }
   const inpaintManifest=catalogue.find(m=>m.id==="image-edit-sd21-inpaint"&&m.coverage.local==="implemented"),inpaintWorker=inpaintManifest?runWorkers.filter(worker=>workerReadiness(inpaintManifest,worker).state==="ready").sort((a,b)=>a.id.localeCompare(b.id))[0]:undefined,inpaintRouteId=inpaintManifest?.routes.find(r=>r.execution==="local_comfy"&&r.implementation==="implemented")?.id;
   const inpaintRoute=inpaintManifest&&inpaintWorker&&inpaintRouteId&&canCreate?{manifest:inpaintManifest,workerId:inpaintWorker.id,routeId:inpaintRouteId}:undefined;
-  const routeFor=(id:string)=>{const m=catalogue.find(x=>x.id===id&&x.coverage.local==="implemented");if(!m||!canCreate)return undefined;const w=runWorkers.filter(worker=>workerReadiness(m,worker).state==="ready").sort((a,b)=>a.id.localeCompare(b.id))[0],r=m.routes.find(r=>r.execution==="local_comfy"&&r.implementation==="implemented")?.id;return w&&r?{manifest:m,workerId:w.id,routeId:r}:undefined;};
-  /* The MiniMax H3 swap (OpenJutsu) is the Replace character engine when it is installed. */
-  const pinnedOpenJutsu=routeHash.split("/")[1]??"";
-  const flashAdvanced=routeFor(OPENJUTSU_ADVANCED_FLASH_ID)?.manifest;
-  const legacyAdvanced=catalogue.find(m=>m.id===OPENJUTSU_ADVANCED_ID&&m.coverage.local==="implemented");
-  const openjutsuAdvanced=isOpenJutsuAdvanced(pinnedOpenJutsu)
-    ?catalogue.find(m=>m.id===pinnedOpenJutsu)
-    :legacyAdvanced??flashAdvanced;
-  const advancedSwapLabel=(id:string)=>id===OPENJUTSU_ADVANCED_FLASH_ID?"Multiple characters · HyperFlow H3 Flash":"Multiple characters · MiniMax H3";
-  const openjutsuLocal=(isOpenJutsuSingleSwap(pinnedOpenJutsu)?catalogue.find(m=>m.id===pinnedOpenJutsu):undefined)
-    ??routeTask("video.swap-person",catalogue.filter(m=>statuses[m.id]?.state==="ready"))?.pack
-    ??catalogue.find(m=>m.id==="openjutsu-h3-swap");
-  const openjutsuSingleLabel=openjutsuLocal?.id==="openjutsu-h3-swap-hyperflow"?"One character · HyperFlow H3 Flash":"One character · MiniMax H3";
-  const openjutsuChoices=[{value:"openjutsu",label:openjutsuSingleLabel},
-    ...[legacyAdvanced,flashAdvanced].filter((m):m is NonNullable<typeof m>=>!!m).map(m=>({value:`openjutsu/${m.id}`,label:advancedSwapLabel(m.id)})),
-  ];
-  /* A hosted guest has no local worker: OpenJutsu runs on Comfy Router there. */const openjutsuUsesLocal=!!openjutsuLocal&&!user.guest&&!routeHash.startsWith("#openjutsu/cloud");const objectSwapLocal=routeTask("video.swap-thing",catalogue)?.pack;
-  const replaceRoute=routeFor("scail2-character-replace"),swapMaskRoute=routeFor("sam31-video-mask"),swapEditRoute=routeFor("wan21-vace-masked-edit"),vfxRoute=routeFor("nvidia-vfx-upscale");
+  const openJutsuNav=route==="openjutsu"?navigation:undefined;
+  const resolved=navigation?.screen;
+  const openJutsuScreen=resolved?.kind==="openjutsu"?resolved:undefined;
+  const screenRunChoices=navigation?runChoices?.filter(choice=>navigation.runTargets.choices.some(option=>option.target===choice.value)):runChoices;
+  const openjutsuCanRunLocal=!!openJutsuNav?.runTargets.choices.some(option=>option.target==="local");
+  const videoScreen=route==="video"&&(navigation?.pinnedMakeReal||videoMode!=="workflow")
+    &&(resolved?.kind!=="video"||resolved.mode==="create")?resolved:undefined;
+  const storyboard=resolved?.kind==="storyboard"?resolved:undefined;
+  const keyframes=resolved?.kind==="keyframes"?resolved:undefined;
+  const editArea=resolved?.kind==="edit-area"?resolved:undefined;
+  const transform=resolved?.kind==="transform"?resolved:undefined;
+  const makeReal=resolved?.kind==="make-real"?resolved.manifest:undefined;
+  const effects=resolved?.kind==="effects"?resolved.manifest:undefined;
+  const trim=resolved?.kind==="trim"?resolved:undefined;
+  const explicitWorkflow=resolved?.kind==="workflow"?resolved.manifest:undefined;
+  const trimExtension=trim?routeFor("video-edit"):undefined;
+  const composerManifest=makeReal??effects??(videoScreen
+    ? catalogue.find(m=>videoScreen.kind==="video"&&m.id===videoScreen.workflowId)
+    : manifest);
   // Prefer the local guided Qwen workflow for FotoField; it follows selected-object
   // replacement instructions on the verified cat-to-pumpkin case. Other models
   // remain available through the model selector and readiness determines fallback.
-  const editRoutes=["qwen-image-21-edit","fibo2-edit","flux2-klein-edit","pruna-p-h3-edit"].map(routeFor).filter((route): route is NonNullable<typeof route> => !!route);
-  /* #imageedit/layers is FotoField itself, also for a guest whose Run on is Comfy Router. */
-  /* FotoField opens for its own address, and online also for "edit this picture" from the Library or a result: a guest edits in FotoField, not in a cloud panel. */
-  const layeredEditor=routeHash.startsWith("#imageedit/layers")||(!!user.guest&&/^#imageedit\/[0-9a-f-]{36}/i.test(routeHash));
-  const openedImageId=route==="imageedit"&&!layeredEditor?routeHash.split("/")[1]:undefined;
+  const editRoutes=["qwen-image-21-edit","fibo2-edit","flux2-klein-edit","pruna-p-h3-edit"].map(id=>routeFor(id)).filter((route): route is NonNullable<typeof route> => !!route);
+  const editScreen=resolved?.kind==="imageedit"||resolved?.kind==="fotofield"?resolved:undefined;
+  const openedImageId=editScreen?.assetId;
   const openedImageRun=openedImageId?imageRuns.find(run=>run.output_ids.includes(openedImageId)):undefined;
   const preferPruna=(openedImageRun?.capability_id??capabilityId).startsWith("pruna-p-h3-");
   const editRoute=(preferPruna?editRoutes.find(option=>option.manifest.id==="pruna-p-h3-edit"):undefined)??editRoutes[0];
-  const readyManifests=catalogue.filter(m=>statuses[m.id]?.state==="ready"),readyImages=readyManifests.filter(isImageCapability),shownImages=catalogue.filter(m=>m.coverage.local==="implemented"&&isImageCapability(m)),readyEdit=readyManifests.some(isMaskedEdit),readyMotion=readyManifests.some(m=>m.category==="motion"),readyEnhance=readyManifests.some(m=>m.category==="enhance"),readyEffects=readyManifests.some(m=>m.id===EFFECT_CLIP_WORKFLOWS[0]);
+  const readyManifests=catalogue.filter(m=>statuses[m.id]?.state==="ready"),readyImages=readyManifests.filter(isImageCapability),shownImages=catalogue.filter(m=>m.coverage.local==="implemented"&&isImageCapability(m)),readyEdit=readyManifests.some(isMaskedEdit),readyMotion=readyManifests.some(m=>m.category==="motion"),readyEnhance=readyManifests.some(m=>m.category==="enhance"),readyEffects=readyManifests.some(m=>m.id===FLASH_EFFECT_CLIPS_ID);
   /* The image screen's own tabs: the open workflow decides which one is on, and a tab for a tool that is not
      ready here is never drawn (rule 26). */
-  const chatgptUnsupported=runOn==="chatgpt"&&["video","motion","3d","audio","characters","influencer"].includes(route);
-  const chatgptPage=!layeredEditor&&runOn==="chatgpt"&&(route==="image"||route==="imageedit");
-  const routerPage=!layeredEditor&&runOn==="router"&&!(route==="video"&&(videoMode==="keyframes"||videoMode==="storyboard"))&&["video","motion","image","imageedit","3d","audio","characters","influencer"].includes(route);
-  const imageTabItems=runOn==="chatgpt"?[{id:"angles" as const,label:"Angles"},{id:"relight" as const,label:"Relight"}]:runOn==="router"?[{id:"create" as const,label:"Create"},{id:"angles" as const,label:"Angles"},{id:"relight" as const,label:"Relight"},...(routerModelsFor("image-upscale").length?[{id:"upscale" as const,label:"Upscale"}]:[]),...(routerModelsFor("image-cutout").length?[{id:"cutout" as const,label:"Cut out"}]:[])]:imageTabs(shownImages),wantedImageTab=imageTabFor(manifest?.id,route),imageTab=imageTabItems.some(item=>item.id===wantedImageTab)?wantedImageTab:imageTabItems[0]?.id??"create";
-  /* Block a shot hands its grey layout to Grey-block to video when that is ready here. */
-  const previsTarget=routeTask("video.previs",readyManifests)?.pack;
+  const chatgptUnsupported=(navigation?.runTargets.selected??runOn)==="chatgpt"&&["video","motion","3d","audio","characters","influencer"].includes(route);
+  const chatgpt=resolved?.kind==="chatgpt"?resolved:undefined;
+  const renderScreen=route==="image"||route==="imageedit"?resolved:videoScreen;
+  const routerScreen=renderScreen?.kind==="router"?renderScreen:undefined;
+  const routerPage=renderScreen?!!routerScreen:runOn==="router"&&["video","motion","3d","audio","characters","influencer"].includes(route)&&(route!=="3d"||routeHash.startsWith("#3d/image"));
+  const linkedImage=chatgpt?.assetId??(route==="imageedit"?routerScreen?.assetId:undefined);
+  const incoming=linkedImage?{inputs:{source_image:linkedImage},prompt:""}:
+    routerIncoming?.workspaceId===workspace.id&&routerIncoming.projectId===project?.id?routerIncoming:undefined;
+  const imageTabItems=navigation?.tabs?.items.map(id=>({id:id as ImageTab,label:IMAGE_TAB_LABELS[id as ImageTab]}))??[];
+  const imageTab=resolved?.kind==="image"?resolved.tab:imageTabFor(manifest?.id,route);
+  const previsTarget=navigation?.makeRealEntry;
   const intentImage=imageTabTarget("create",readyImages),intentVideo=routeTask("video.create",readyManifests.filter(m=>isFlashVideoCreate(m.id)))?.pack,intentMotion=readyManifests.find(m=>m.category==="motion");
   const intentAvailable={image:intentReference?!!intentImageReferenceTarget(readyImages):!!intentImage,"image-edit":!!intentImageReferenceTarget(readyImages,manifest?.id),video:intentReference?!!routeImageToVideo(readyManifests.filter(isCreateVideoWorkflow)):!!intentVideo,motion:!!intentMotion,edit:readyEdit,trim:trimReady,storyboard:!!project&&canCreate,audio:audioReady};
   const choose=(id:string)=>{const selected=catalogue.find(m=>m.id===id);if(!selected||statuses[id]?.state!=="ready")return;setCapabilityId(id);if(isImageCapability(selected))setImageDraft(defaultImageDraft(selected));setVideoMode(videoWorkflowMode(selected));location.hash=nativeWorkflowHash(selected);};
@@ -518,12 +526,12 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const isWanRestyle=(id:string)=>/^vace-.*restyle/.test(id);
   const videoMenu:NonNullable<NavItem["menu"]>={
     features:[
-      {id:"openjutsu",icon:<Sparkles size={18}/>,title:"OpenJutsu · H3 API",text:"Experimental character/reference video generation through Comfy Router",onSelect:()=>{location.hash="openjutsu";}},
+      ...(user.guest&&!routerModelsFor("openjutsu").length?[]:[{id:"openjutsu",icon:<Sparkles size={18}/>,title:"OpenJutsu · H3 API",text:"Experimental character/reference video generation through Comfy Router",onSelect:()=>{location.hash="openjutsu";}}]),
       {id:"create",icon:<Video size={18}/>,title:"Create Video",text:"Generate video from text or images",onSelect:()=>{setVideoMode("create");setCapabilityId("");location.hash="video";}},
       ...(trimReady?[{id:"trim",icon:<Scissors size={18}/>,title:"Trim Video",text:"Cut an exact decoded frame range locally",onSelect:()=>{setVideoMode("trim");location.hash="video";}}]:[]),
       ...(swapMaskRoute&&swapEditRoute?[{id:"edit",icon:<Sparkles size={18}/>,title:"Edit Area",text:"Edit a selected area of your video",onSelect:()=>{setVideoMode("edit");location.hash="video/edit";}}]:[]),
       ...(user.guest&&routerModelsFor("talk").length?[{id:"talk",icon:<Sparkles size={18}/>,title:"Make it talk",text:"Lip sync a video to a voice",onSelect:()=>{location.hash="audio";}}]:[]),
-      ...(user.guest&&!routerModelsFor("video-create").length?[]:[{id:"storyboard",icon:<Clapperboard size={18}/>,title:"Storyboard",text:"Plan shots and assemble them into one video",onSelect:()=>{setVideoMode("storyboard");location.hash="video";}}]),
+      ...(user.guest&&!routerModelsFor("video-create").length?[]:[{id:"storyboard",icon:<Clapperboard size={18}/>,title:"Storyboard",text:"Plan shots and assemble them into one video",onSelect:()=>{location.hash="video/storyboard";}}]),
       {id:"transform",icon:<Sparkles size={18}/>,title:"Transform Video",text:"Transfer motion, swap objects or restyle a video",onSelect:()=>{setVideoMode("transform");location.hash="video";}},
       ...(readyMotion?[{id:"motion",icon:<Move size={18}/>,title:"Motion Control",text:"Transfer motion from a video to a character",onSelect:()=>{location.hash="motion";}}]:[]),
       ...(readyEnhance?[{id:"enhance",icon:<Maximize2 size={18}/>,title:"Video Upscale",text:"Enhance video quality",onSelect:()=>{setVideoMode("create");setCapabilityId(readyManifests.find(m=>m.category==="enhance")?.id??"");location.hash="video";}}]:[]),
@@ -566,13 +574,13 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const pageHeroKind:HeroKind|undefined=route==="library"?"library":route==="characters"?"cast":route==="influencer"?"scenes":undefined;
   useDensity();
   /* One answer for a hash that names no screen or a screen this computer cannot run yet. */
-  const fallback=routeState({
+  const fallback=(route==="video"?videoScreen:resolved)??routeState({
     section:route,mode:videoMode,hash:routeHash,workflowIds:catalogue.filter(m=>route==="video"?isVideoWorkflow(m):route==="image"?isImageCapability(m):true).map(m=>m.id),canCreate,
     catalogueKnown:offline||!authorized||catalogue.length>0,
-    video:catalogue.some(m=>m.coverage.local==="implemented"&&(isCreateVideoWorkflow(m)||capabilitySurface(m)==="video-enhance")),motion:catalogue.some(m=>m.coverage.local==="implemented"&&m.category==="motion"),image:catalogue.some(m=>m.coverage.local==="implemented"&&(route==="remix"?remixImageModel(m):route==="marketing"?adImageModel(m):isImageCapability(m))),
+    video:!!manifest,motion:catalogue.some(m=>m.coverage.local==="implemented"&&m.category==="motion"),image:catalogue.some(m=>m.coverage.local==="implemented"&&(route==="remix"?remixImageModel(m):route==="marketing"?adImageModel(m):isImageCapability(m))),
     audioKnown:!authorized||!!audioRequirements,audio:audioReady,
-    trimKnown:!authorized||!!videoEditRequirements,trim:trimReady,
   });
+  const showScreen=fallback.kind!=="missing"&&fallback.kind!=="checking";
   /* While the server is away the problem bar already states the cause, so the body waits quietly. */
   const waiting=offline||!authorized||(!!error&&!catalogue.length);
   const fallbackNext=fallback.kind==="missing"&&!waiting?fallback.next:undefined;
@@ -588,8 +596,10 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   }
   /* Change a video is one screen: the panel and the results pane beside it stay, only the tool body swaps
      inside them, and the pane keeps showing the runs of the tool that is open. */
-  const changeScreen=(target:Project,tool:"person"|"swap"|"edit",body:ReactNode)=>
-    <div className="cf-production"><Panel>{body}</Panel><ProductionContent><TeamRuns examples="video" workspace={workspace} project={target} call={call} canEdit={canCreate} authorized={authorized} version={version} user={user} hero={latest=><ToolHero latest={latest} kind={tool==="person"?"replace":tool} workflowId={tool==="person"?replaceRoute?.manifest.id:swapEditRoute?.manifest.id}/>} titles={catalogueTitles(catalogue)} capabilityId={tool==="person"?["scail2-character-replace","local-jutsu-replace","openjutsu-h3-swap",...CLOUD_REPLACE_MODELS]:[swapEditRoute?.manifest.id??"","wan21-vace-masked-edit-reference"]} feed={feedScope(catalogue,"video",tool==="person"?["scail2-character-replace","local-jutsu-replace","openjutsu-h3-swap",...CLOUD_REPLACE_MODELS]:[swapEditRoute?.manifest.id??"","wan21-vace-masked-edit-reference"])}/></ProductionContent></div>;
+  const changeScreen=(target:Project,tool:"person"|"swap"|"edit",body:ReactNode)=>{
+    const capabilities=tool==="person"?["scail2-character-replace","local-jutsu-replace","openjutsu-h3-swap",...CLOUD_REPLACE_MODELS]:[swapEditRoute?.manifest.id??"","wan21-vace-masked-edit-reference"];
+    return <div className="cf-production"><Panel>{body}</Panel><ProductionContent><TeamRuns examples="video" workspace={workspace} project={target} call={call} canEdit={canCreate} authorized={authorized} version={version} user={user} hero={latest=><ToolHero latest={latest} kind={tool==="person"?"replace":tool} workflowId={tool==="person"?replaceRoute?.manifest.id:swapEditRoute?.manifest.id}/>} titles={catalogueTitles(catalogue)} capabilityId={capabilities} feed={feedScope(catalogue,"video",capabilities)}/></ProductionContent></div>;
+  };
   /** The project asset behind a preview. A preview that is not in the project yet is imported first. */
   async function mediaAssetId(source:{src:string;name:string}):Promise<string>{
     if(!canCreate||!project)throw new Error("Choose a project with creator access to use media.");
@@ -728,21 +738,58 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       presetTool(target,inputs,controls);setCapabilityId(target.id);if(place!.mode)setVideoMode(place!.mode);location.hash=place!.hash;
     };
   };
+  const composerProps={catalogue,user,workspace,call,canQueue:canCreate,authorized,onQueued:refresh,
+    onWorkerSettings:openWorkerSettings,onModels:openModels,onRunLocal:()=>setRunOn("local")};
+  function renderOpenJutsu(project:Project,screen:Extract<ResolvedScreen,{kind:"openjutsu"}>["selection"]){
+    if(screen.kind==="composer"){
+      return <TeamComposer key={`${project.id}:${screen.manifest.id}`} manifest={screen.manifest} {...composerProps}
+        modelChoice={{title:"OpenJutsu",subtitle:screen.subtitle,options:screen.options}}
+        onCapability={id=>{location.hash=id===replaceRoute?.manifest.id?"openjutsu/multi":`openjutsu/${id}`;}}
+        project={project} workers={localWorkers}/>;
+    }
+    if(screen.kind==="experimental"){
+      const back=<LinkButton variant="ghost" href="#openjutsu">Back to OpenJutsu</LinkButton>;
+      if(!replaceRoute)return <Page narrow><EmptyState title="Multiple-character workflow is not ready"
+        text="Check SCAIL-2 and its required models on this computer." action={back}/></Page>;
+      return changeScreen(project,"person",<ReferenceReplacePanel key={`${project.id}:multi-character`} top={back}
+        workspace={workspace} project={project} workerId={replaceRoute.workerId}
+        call={call} canEdit={canCreate} onChanged={refresh}/>);
+    }
+    return <CloudRenderStudio key={`${workspace.id}:${project.id}:openjutsu`} feature="openjutsu"
+      workspace={workspace} project={project} user={user} call={call} version={version} canEdit={canCreate}
+      onQueued={refresh} onSettings={()=>user.guest?setCloudSignIn(true):setSettings(true)}
+      onLocal={()=>{setRunOn("local");location.hash=openjutsuCanRunLocal?"openjutsu":"video";}}/>;
+  }
+
   /* A screen whose content fills the work area declares it on its page, and the WorkspaceBar reads only that
      declaration (rule 35), so no DS rule keeps a list of screen names. Reading pages stay capped. */
-  const fillPage=route==="workflow"||route==="block"||route==="imageedit"||((route==="image"||route==="marketing"||route==="remix")&&!!manifest)
-    ||(route==="video"&&(videoMode==="storyboard"||videoMode==="keyframes"||videoMode==="transform"||videoMode==="replace"||videoMode==="edit"))
-    ||((route==="video"||route==="motion")&&!!manifest);
+  const activeTarget=navigation?.runTargets.selected??runOn;
+  const runOnLabel=activeTarget==="chatgpt"?"ChatGPT":activeTarget==="router"?"Comfy Router":
+    activeTarget==="cloud"||!openJutsuNav&&user.guest?"Comfy Cloud":"This computer";
+  const runOnControl=canCreate&&!!screenRunChoices?.length&&<TeamChoice label="Run on" variant="pill"
+    display={runOnLabel} value={activeTarget} options={screenRunChoices} onChange={value=>{
+      if(!openJutsuNav){pickRunOn(value);return;}
+      if(value==="local"&&openjutsuCanRunLocal){setRunOn("local");location.hash="openjutsu";}
+      else if(value==="router"){setRunOn("router");location.hash="openjutsu/cloud";}
+    }}/>;
+
+  const workspaceControl=workspaces.length>1&&<div className="cf-workspace-picker">
+    <TeamChoice label="Workspace" variant="pill" display={workspace.name} value={workspace.id} onChange={onWorkspace}
+      options={workspaces.map(w=>({value:w.id,label:w.name,note:w.role}))}/>
+  </div>;
+  const fillPage=explicitWorkflow||route==="block"||route==="imageedit"||((route==="image"||route==="marketing"||route==="remix")&&!!manifest)
+    ||storyboard||keyframes||editArea||transform||trim
+    ||((route==="video"||route==="motion")&&!!composerManifest);
   return <div className="cf-team">
     <Welcome tools={startTasks(listedTools)} onOpen={openStartTask} onCloud={user.guest&&!account?.connected?()=>setCloudSignIn(true):undefined}/>
     {guide&&<Guide hosted={!!user.guest} cloudConnected={!!account?.connected} onClose={()=>setGuide(false)} onCloudSignIn={user.guest?()=>{setGuide(false);setCloudSignIn(true);}:undefined} onOpenWorkers={user.guest||workspace.role!=="admin"?undefined:()=>{setGuide(false);openWorkerSettings();}}/>}
     {cloudSignIn&&<CloudSignIn workspaceId={workspace.id} call={call} onClose={()=>setCloudSignIn(false)} onSignedIn={signedInCloud}/>}
     <ScrollFades/><Reveal/>
-    <TopBar more={phone?<><LinkButton variant="secondary" href="https://github.com/rhymeas/Creativefield" target="_blank" rel="noreferrer noopener"><Github size={14}/> GitHub</LinkButton>{route!=="openjutsu"&&canRunAnything&&<ExpandToggle icon={<Sparkles size={16}/>} label="Free input" on={intentMode} onChange={setIntentMode}/>} {canCreate&&runChoices&&!(user.guest&&route==="openjutsu")&&<TeamChoice label="Run on" variant="pill" display={route==="openjutsu"?(openjutsuUsesLocal?"This computer":"Comfy Router"):runOn==="chatgpt"?"ChatGPT":runOn==="router"?"Comfy Router":runOn==="cloud"||user.guest?"Comfy Cloud":"This computer"} value={route==="openjutsu"?(openjutsuUsesLocal?"local":"router"):runOn} onChange={route==="openjutsu"?value=>{if(value==="local"&&openjutsuLocal){setRunOn("local");location.hash="openjutsu";}else if(value==="router"){setRunOn("router");location.hash="openjutsu/cloud";}}:pickRunOn} options={route==="openjutsu"?runChoices.filter(c=>c.value==="router"||c.value==="local"&&!!openjutsuLocal):runChoices}/>} {workspaces.length>1&&<div className="cf-workspace-picker"><TeamChoice label="Workspace" variant="pill" display={workspace.name} value={workspace.id} onChange={onWorkspace} options={workspaces.map(w=>({value:w.id,label:w.name,note:w.role}))}/></div>}</>:undefined} brand={<img className="ds-topbar__brand-image" src={logo} alt="CreativeField"/>} current={topCurrent} items={[{label:"Video",href:"#video",menu:videoMenu,icon:<Clapperboard size={20}/>},{label:"Image",href:"#image",menu:imageMenu,icon:<ImageIcon size={20}/>},{label:"3D",href:"#3d",menu:canCreate?(user.guest?(viewer=>({...threeDMenu,features:viewer,groups:groupMenu("3d",viewer)}))(threeDMenu.features.filter(f=>f.id==="viewer")):threeDMenu):undefined},...(user.guest?[]:[{label:"Audio",href:"#audio"}]),{label:"All tools",href:"#make",icon:<LayoutGrid size={20}/>},...(guestLocalOnly?[]:[{label:"Models",href:"#catalogue",onSelect:openModels},{label:"Nodes",href:"#nodes"}])]} secondary={[{label:"Library",href:"#library",icon:<LibraryIcon size={20}/>},{label:"Projects",href:"#projects",suffix:project?.name,dropdown:{items:projects.map(p=>({id:p.id,title:p.name,onSelect:()=>setProjectId(p.id)})),selectedId:projectId,footer:{id:"add",icon:<Plus size={14}/>,title:"Add project",onSelect:()=>setCreatingProject(true)}}}]} end={phone?<>{canRunAnything&&<JobQueueIndicator version={version} workspace={workspace} call={call} authorized={authorized} titles={catalogueTitles(catalogue)} onOpenRun={run=>{setProjectId(run.project_id);location.hash=`library/runs/${run.id}`;}}/>}{signInFirst?<Button variant="primary" onClick={()=>setCloudSignIn(true)}>Sign in</Button>:<UserMenu initials={(account?.name??user.email).slice(0,1).toUpperCase()} name={account?.name??user.email} meta={account?.connected?<><Meta>{account.email}</Meta><Meta>{account.workspace}</Meta></>:<Meta parts={workspaceFacts(audienceOf(user),workspace)}/>} extra={account?.connected?<>
+    <TopBar more={phone?<>{route!=="openjutsu"&&canRunAnything&&<ExpandToggle icon={<Sparkles size={16}/>} label="Free input" on={intentMode} onChange={setIntentMode}/>} {runOnControl}{workspaceControl}</>:undefined} brand={<img className="ds-topbar__brand-image" src={logo} alt="CreativeField"/>} current={topCurrent} items={[{label:"Video",href:"#video",menu:videoMenu,icon:<Clapperboard size={20}/>},{label:"Image",href:"#image",menu:imageMenu,icon:<ImageIcon size={20}/>},{label:"3D",href:"#3d",menu:canCreate?(user.guest?(viewer=>({...threeDMenu,features:viewer,groups:groupMenu("3d",viewer)}))(threeDMenu.features.filter(f=>f.id==="viewer"||(f.id==="image"&&routerModelsFor("image-to-3d").length>0))):threeDMenu):undefined},...(user.guest?[]:[{label:"Audio",href:"#audio"}]),{label:"All tools",href:"#make",icon:<LayoutGrid size={20}/>},...(guestLocalOnly?[]:[{label:"Models",href:"#catalogue",onSelect:openModels},{label:"Nodes",href:"#nodes"}])]} secondary={[{label:"Library",href:"#library",icon:<LibraryIcon size={20}/>},{label:"Projects",href:"#projects",suffix:project?.name,dropdown:{items:projects.map(p=>({id:p.id,title:p.name,onSelect:()=>setProjectId(p.id)})),selectedId:projectId,footer:{id:"add",icon:<Plus size={14}/>,title:"Add project",onSelect:()=>setCreatingProject(true)}}}]} end={phone?<><IconLink label="Source code on GitHub" href="https://github.com/rhymeas/Creativefield"><Github size={18}/></IconLink><IconButton label="How it works" onClick={()=>setGuide(true)}><CircleHelp size={18}/></IconButton>{canRunAnything&&<JobQueueIndicator version={version} workspace={workspace} call={call} authorized={authorized} titles={catalogueTitles(catalogue)} onOpenRun={run=>{setProjectId(run.project_id);location.hash=`library/runs/${run.id}`;}}/>}{signInFirst?<Button variant="primary" onClick={()=>setCloudSignIn(true)}>Sign in</Button>:<UserMenu initials={(account?.name??user.email).slice(0,1).toUpperCase()} name={account?.name??user.email} meta={account?.connected?<><Meta>{account.email}</Meta><Meta>{account.workspace}</Meta></>:<Meta parts={workspaceFacts(audienceOf(user),workspace)}/>} extra={account?.connected?<>
       {typeof account.credits==="number"&&<span className="ds-usermenu__row"><Meta>{`${account.credits.toLocaleString()} credits`}</Meta>{account.addCreditsUrl&&<LinkButton variant="ghost" href={account.addCreditsUrl} target="_blank" rel="noreferrer">{account.canSubmit===false?"Upgrade plan":"Add credits"}</LinkButton>}</span>}
       {account.canSubmit===false&&<Meta>{CLOUD_PLAN_LINE}</Meta>}
       {user.guest&&<Meta>Your Comfy key is saved in this browser only. CreativeField never stores it.</Meta>}
-    </>:undefined} items={[{id:"guide",label:"How it works",icon:<CircleHelp size={14}/>,onSelect:()=>setGuide(true)},{id:"settings",label:settingsLabel(audienceOf(user)),icon:<Settings size={14}/>,onSelect:()=>setSettings(true)},...(user.guest?[account?.connected?{id:"cloud-out",label:"Sign out of Comfy",icon:<LogOut size={14}/>,onSelect:()=>void signOutCloud()}:{id:"cloud-in",label:"Sign in with your Comfy key",icon:<Cloud size={14}/>,onSelect:()=>setCloudSignIn(true)}]:[]),...(user.localSingleUser||user.guest?[]:[{id:"out",label:"Sign out",icon:<LogOut size={14}/>,onSelect:()=>void onSignOut()}])]}/>}</>:<>{route!=="openjutsu"&&canRunAnything&&<ExpandToggle icon={<Sparkles size={16}/>} label="Free input" on={intentMode} onChange={setIntentMode}/>} {canCreate&&runChoices&&!(user.guest&&route==="openjutsu")&&<TeamChoice label="Run on" variant="pill" display={route==="openjutsu"?(openjutsuUsesLocal?"This computer":"Comfy Router"):runOn==="chatgpt"?"ChatGPT":runOn==="router"?"Comfy Router":runOn==="cloud"||user.guest?"Comfy Cloud":"This computer"} value={route==="openjutsu"?(openjutsuUsesLocal?"local":"router"):runOn} onChange={route==="openjutsu"?value=>{if(value==="local"&&openjutsuLocal){setRunOn("local");location.hash="openjutsu";}else if(value==="router"){setRunOn("router");location.hash="openjutsu/cloud";}}:pickRunOn} options={route==="openjutsu"?runChoices.filter(c=>c.value==="router"||c.value==="local"&&!!openjutsuLocal):runChoices}/>} {workspaces.length>1&&<div className="cf-workspace-picker"><TeamChoice label="Workspace" variant="pill" display={workspace.name} value={workspace.id} onChange={onWorkspace} options={workspaces.map(w=>({value:w.id,label:w.name,note:w.role}))}/></div>}<IconLink label="Source code on GitHub" href="https://github.com/rhymeas/Creativefield"><Github size={16}/></IconLink><IconButton label="How it works" onClick={()=>setGuide(true)}><CircleHelp size={16}/></IconButton>{canRunAnything&&<JobQueueIndicator version={version} workspace={workspace} call={call} authorized={authorized} titles={catalogueTitles(catalogue)} onOpenRun={run=>{setProjectId(run.project_id);location.hash=`library/runs/${run.id}`;}}/>}{signInFirst?<Button variant="primary" onClick={()=>setCloudSignIn(true)}>Sign in</Button>:<UserMenu initials={(account?.name??user.email).slice(0,1).toUpperCase()} name={account?.name??user.email} meta={account?.connected?<><Meta>{account.email}</Meta><Meta>{account.workspace}</Meta></>:<Meta parts={workspaceFacts(audienceOf(user),workspace)}/>} extra={account?.connected?<>
+    </>:undefined} items={[{id:"guide",label:"How it works",icon:<CircleHelp size={14}/>,onSelect:()=>setGuide(true)},{id:"settings",label:settingsLabel(audienceOf(user)),icon:<Settings size={14}/>,onSelect:()=>setSettings(true)},...(user.guest?[account?.connected?{id:"cloud-out",label:"Sign out of Comfy",icon:<LogOut size={14}/>,onSelect:()=>void signOutCloud()}:{id:"cloud-in",label:"Sign in with your Comfy key",icon:<Cloud size={14}/>,onSelect:()=>setCloudSignIn(true)}]:[]),...(user.localSingleUser||user.guest?[]:[{id:"out",label:"Sign out",icon:<LogOut size={14}/>,onSelect:()=>void onSignOut()}])]}/>}</>:<>{route!=="openjutsu"&&canRunAnything&&<ExpandToggle icon={<Sparkles size={16}/>} label="Free input" on={intentMode} onChange={setIntentMode}/>} {runOnControl}{workspaceControl}<IconLink label="Source code on GitHub" href="https://github.com/rhymeas/Creativefield"><Github size={16}/></IconLink><IconButton label="How it works" onClick={()=>setGuide(true)}><CircleHelp size={16}/></IconButton>{canRunAnything&&<JobQueueIndicator version={version} workspace={workspace} call={call} authorized={authorized} titles={catalogueTitles(catalogue)} onOpenRun={run=>{setProjectId(run.project_id);location.hash=`library/runs/${run.id}`;}}/>}{signInFirst?<Button variant="primary" onClick={()=>setCloudSignIn(true)}>Sign in</Button>:<UserMenu initials={(account?.name??user.email).slice(0,1).toUpperCase()} name={account?.name??user.email} meta={account?.connected?<><Meta>{account.email}</Meta><Meta>{account.workspace}</Meta></>:<Meta parts={workspaceFacts(audienceOf(user),workspace)}/>} extra={account?.connected?<>
       {typeof account.credits==="number"&&<span className="ds-usermenu__row"><Meta>{`${account.credits.toLocaleString()} credits`}</Meta>{account.addCreditsUrl&&<LinkButton variant="ghost" href={account.addCreditsUrl} target="_blank" rel="noreferrer">{account.canSubmit===false?"Upgrade plan":"Add credits"}</LinkButton>}</span>}
       {account.canSubmit===false&&<Meta>{CLOUD_PLAN_LINE}</Meta>}
       {user.guest&&<Meta>Your Comfy key is saved in this browser only. CreativeField never stores it.</Meta>}
@@ -751,11 +798,18 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     <div className="cf-team__body">
     <div className="cf-team__main ds-canvas">
     {section!=="catalogue"&&section!=="nodes"&&section!=="3d"&&<WorkspaceBar density={route!=="imageedit"}
-      tabs={section==="video"&&project?{label:"Video workspace",value:route==="openjutsu"?"openjutsu":videoMode==="workflow"&&previsTarget&&capabilityId===previsTarget.id?"makereal":(videoMode==="replace"?"transform":videoMode) as string,onChange:(id:string)=>{if(id==="openjutsu"){location.hash="openjutsu";return;}if(id==="makereal"&&previsTarget){setCapabilityId(previsTarget.id);setVideoMode("workflow");location.hash=videoWorkflowHash(previsTarget.id);return;}setVideoMode(id as typeof videoMode);if(id!=="workflow")location.hash=id==="create"?"video":`video/${id}`;},items:[...(videoMode==="workflow"&&!(previsTarget&&capabilityId===previsTarget.id)?[{id:"workflow" as const,label:"Workflow"}]:[]),...(user.guest&&!routerModelsFor("video-create").length?[]:[{id:"storyboard" as const,label:"Storyboard"}]),...(!user.guest||routerModelsFor("keyframes").length?[{id:"keyframes" as const,label:"Keyframes"}]:[]),{id:"create" as const,label:"Create Video"},...(swapMaskRoute&&swapEditRoute?[{id:"edit" as const,label:"Edit Area"}]:[]),{id:"transform" as const,label:"Transform Video"},{id:"openjutsu" as const,label:"OpenJutsu"},...(previsTarget?[{id:"makereal" as const,label:"Make it real"}]:[]),...(readyEffects||user.guest&&routerModelsFor("effects").length?[{id:"effects" as const,label:"Effects"}]:[]),...(trimReady?[{id:"trim" as const,label:"Trim"}]:[])]}
+      tabs={section==="video"&&navigation?.tabs?{
+        label:"Video workspace",value:navigation.tabs.active??"create",onChange:id=>{
+          if(id==="openjutsu"){location.hash="openjutsu";return;}
+          if(id==="makereal"){if(previsTarget)location.hash=previsTarget.hash;return;}
+          setVideoMode(id as VideoWorkspaceMode);
+          if(id!=="workflow")location.hash=id==="create"?"video":`video/${id}`;
+        },items:navigation.tabs.items.map(id=>({id,label:VIDEO_TAB_LABELS[id]})),
+      }
         :section==="characters"&&project?{label:"Character workspace",value:route==="influencer"?"scenes":characterMode,onChange:(id:string)=>setCharacterMode(id as CharacterMode),items:[{id:"characters",label:"Cast"},{id:"scenes",label:"Scenes"}]}
-        :section==="image"&&project?{label:"Image workspace",value:runOn==="router"||runOn==="chatgpt"?(route==="imageedit"?"edit":routerImageTab):imageTab,onChange:(id:string)=>{
+        :section==="image"&&project?{label:"Image workspace",value:navigation?.tabs?.active??imageTab,onChange:(id:string)=>{
           if(runOn==="router"||runOn==="chatgpt"){setRouterImageTab(id as ImageTab);location.hash=id==="edit"?"imageedit":"image";return;}
-          if(id===wantedImageTab)return;
+          if(id===imageTab)return;
           if(id==="edit"){location.hash="imageedit";return;}
           const target=imageTabTarget(id as ImageTab,shownImages);
           if(target){setImageDraft(imageDraftForTab(target,imageDraftMemory.current,imageDraft));setCapabilityId(target.id);}
@@ -770,13 +824,65 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     {offline&&<Notice priority={100} title="Team server unavailable" actions={<Button variant="secondary" onClick={refresh}>Retry connection</Button>}>Drafts remain available. No execution route will be switched.</Notice>}
     {!authorized&&!offline&&<Notice priority={90} title="Reconnect to continue" actions={<Button variant="secondary" onClick={onReconnect}>Reconnect</Button>}>Your draft is preserved.</Notice>}
     {error&&!offline&&authorized&&failure&&<Notice priority={50} title={failure.title||undefined} actions={<Button variant="secondary" onClick={refresh}>Try again</Button>} details={error}>{failure.text}</Notice>}
-    {route==="openjutsu"&&project?<section className="cf-team__content ds-page ds-page--fill">{/* The real swap runs on this computer when the local H3 pack is installed; #openjutsu/cloud keeps the H3 API panel. */}{(pinnedOpenJutsu==="advanced"||isOpenJutsuAdvanced(pinnedOpenJutsu))&&openjutsuAdvanced&&!user.guest?<TeamComposer top={<TeamChoice label="Workflow" display={advancedSwapLabel(openjutsuAdvanced.id)} value={`openjutsu/${openjutsuAdvanced.id}`} options={[...openjutsuChoices,...(replaceRoute?[{value:"openjutsu/multi",label:"Multiple characters · SCAIL-2",note:"Experimental; results need review"}]:[])]} onChange={value=>{location.hash=value;}}/>} key={`${project.id}:${openjutsuAdvanced.id}`} manifest={openjutsuAdvanced} catalogue={catalogue} onCapability={choose} user={user} workspace={workspace} project={project} workers={targetWorkers(workers,"local")} call={call} canQueue={canCreate} authorized={authorized} onQueued={refresh} onWorkerSettings={openWorkerSettings} onModels={openModels} onRunLocal={()=>setRunOn("local")}/>:routeHash.startsWith("#openjutsu/multi")&&!user.guest?(replaceRoute?changeScreen(project,"person",<ReferenceReplacePanel key={`${project.id}:multi-character`} top={<TeamChoice label="Workflow" display="Multiple characters · SCAIL-2" value="multi" options={[{value:"h3",label:openjutsuSingleLabel},{value:"multi",label:"Multiple characters · SCAIL-2",note:"Experimental; results need review"}]} onChange={value=>{location.hash=value==="multi"?"openjutsu/multi":"openjutsu";}}/>} workspace={workspace} project={project} workerId={replaceRoute.workerId} call={call} canEdit={canCreate} onChanged={refresh}/>):<Page narrow><EmptyState title="Multiple-character workflow is not ready" text="Check SCAIL-2 and its required models on this computer." action={<Button variant="secondary" onClick={()=>{location.hash="openjutsu";}}>Back to OpenJutsu</Button>}/></Page>):openjutsuUsesLocal&&openjutsuLocal?<TeamComposer top={openjutsuChoices.length>1||replaceRoute?<TeamChoice label="Workflow" display={openjutsuSingleLabel} value="openjutsu" options={[...openjutsuChoices,...(replaceRoute?[{value:"openjutsu/multi",label:"Multiple characters · SCAIL-2",note:"Experimental; results need review"}]:[])]} onChange={value=>{location.hash=value;}}/>:undefined} key={`${project.id}:${openjutsuLocal.id}`} manifest={openjutsuLocal} catalogue={catalogue} onCapability={choose} user={user} workspace={workspace} project={project} workers={targetWorkers(workers,"local")} call={call} canQueue={canCreate} authorized={authorized} onQueued={refresh} onWorkerSettings={openWorkerSettings} onModels={openModels} onRunLocal={()=>setRunOn("local")}/>:<CloudRenderStudio key={`${workspace.id}:${project.id}:openjutsu`} feature="openjutsu" workspace={workspace} project={project} user={user} call={call} version={version} canEdit={canCreate} onQueued={refresh} onSettings={()=>user.guest?setCloudSignIn(true):setSettings(true)} onLocal={()=>{setRunOn("local");location.hash="video";}}/>}</section>:chatgptUnsupported&&project?<section className="cf-team__content"><Page narrow><EmptyState title="ChatGPT edits images here" text="This feature uses a different renderer. Choose this computer to continue here, or open the image editor for ChatGPT." action={<Button variant="secondary" onClick={()=>setRunOn("local")}>Use this computer</Button>}/></Page></section>:chatgptPage&&project?<section className="cf-team__content"><ChatgptImageStudio key={`${user.id}:${workspace.id}:${project.id}:${location.hash}:${routerImageTab}`} feature={route==="imageedit"?"image-edit":routerImageTab==="angles"?"image-angles":routerImageTab==="relight"?"image-relight":"image-edit"} incoming={route==="imageedit"&&/^[a-f0-9-]{36}$/i.test(location.hash.split("/")[1]??"")?{inputs:{source_image:location.hash.split("/")[1]},prompt:""}:routerIncoming?.workspaceId===workspace.id&&routerIncoming.projectId===project.id?routerIncoming:undefined} workspace={workspace} project={project} user={user} call={call} version={version} canEdit={canCreate} onQueued={refresh}/></section>:routerPage&&project?<section className="cf-team__content"><CloudRenderStudio key={`${workspace.id}:${project.id}:${route}:${videoMode}:${routerImageTab}:${changeChoiceFromHash(location.hash)}`} incoming={routerIncoming?.workspaceId===workspace.id&&routerIncoming.projectId===project.id?routerIncoming:undefined} feature={cloudFeature(route,videoMode,routerImageTab,changeChoiceFromHash(location.hash))} workspace={workspace} project={project} user={user} call={call} version={version} canEdit={canCreate} onQueued={refresh} onSettings={()=>user.guest?setCloudSignIn(true):setSettings(true)} onLocal={()=>setRunOn("local")} onFeature={f=>{location.hash=`video/transform/${f==="replace-character"?"person":f==="motion-transfer"?"motion":f==="object-swap"?"swap":f==="video-upscale"?"upscale":f==="video-cutout"?"cutout":"restyle"}`;}}/></section>:route==="3d"?<section className="cf-team__content cf-nodes-page"><ThreeDStudio textPanel={project?<TextTo3DPanel key={`${project.id}:text`} catalogue={catalogue} user={user} workspace={workspace} project={project} workers={runWorkers} call={call} canEdit={canCreate} authorized={authorized} onQueued={refresh}/>:undefined} meshPanel={project?<ModelToolsPanel key={`${project.id}:mesh:${routeHash.split("/")[2]??""}`} mode="mesh" workspace={workspace} project={project} call={call} canEdit={canCreate} onChanged={refresh}/>:undefined} texturePanel={project?<ModelToolsPanel key={`${project.id}:texture:${routeHash.split("/")[2]??""}`} mode="texture" workspace={workspace} project={project} call={call} canEdit={canCreate} onChanged={refresh}/>:undefined} viewerPanel={project?<ModelToolsPanel key={`${project.id}:viewer:${routeHash.split("/")[2]??""}`} mode="viewer" workspace={workspace} project={project} call={call} canEdit={canCreate} onChanged={refresh}/>:undefined} imagePanel={project?<ImageTo3DPanel key={routeHash} initialWorkflow={routeHash.split("/")[2]==="auto"?undefined:routeHash.split("/")[2]} initialAssetId={routeHash.split("/")[3]} user={user} workspace={workspace} project={project} catalogue={catalogue} workers={runWorkers} call={call} canEdit={canCreate} authorized={authorized} onQueued={refresh} onOpenModels={openModels}/>:undefined} workspace={workspace} workers={runWorkers} canEdit={canCreate} status={<ProblemBar/>}/></section>:route==="nodes"?<section className="cf-team__content cf-nodes-page"><ComfyNodes importOnly={!!user.guest} workspace={workspace} workers={targetWorkers(workers,user.guest?"cloud":"local")} catalogue={readyManifests} canEdit={canCreate} serverOffline={offline} onChanged={refresh} onWorkerSettings={openWorkerSettings}/></section>:route==="catalogue"?<CapabilityCatalogue manifests={catalogue.filter(m=>!m.mediaContract?.additionalMaskInputs?.length)} statuses={statuses} checking={checking} recheckLabel={workspace.role==="admin"?"Probe workers and recheck":"Refresh status"} onRecheck={()=>void recheck()} onChoose={choose} library={controls=><ComfyLibraryPanel workspace={workspace} workers={workers} call={call} controls={controls} onWorkerSettings={()=>setSettings(true)}/>} onLibrary={()=>{const enhancer=readyManifests.find(m=>m.category==="enhance");if(!enhancer)return;setVideoMode("create");setCapabilityId(enhancer.id);location.hash="video";}}/>:<div className="cf-team__body">
+    {openJutsuScreen&&project
+      ?<section className="cf-team__content ds-page ds-page--fill">{renderOpenJutsu(project,openJutsuScreen.selection)}</section>
+      :chatgptUnsupported&&project?<section className="cf-team__content"><Page narrow><EmptyState title="ChatGPT edits images here" text="This feature uses a different renderer. Choose this computer to continue here, or open the image editor for ChatGPT." action={<Button variant="secondary" onClick={()=>setRunOn("local")}>Use this computer</Button>}/></Page></section>
+      :chatgpt&&project?<section className="cf-team__content">
+        <ChatgptImageStudio key={`${workspace.id}:${project.id}:${routeHash}:${chatgpt.feature}`} feature={chatgpt.feature}
+          incoming={incoming} workspace={workspace} project={project} user={user} call={call} version={version} canEdit={canCreate} onQueued={refresh}/>
+      </section>
+      :routerPage&&project?<section className="cf-team__content"><CloudRenderStudio key={`${workspace.id}:${project.id}:${route}:${videoMode}:${routerImageTab}:${linkedImage??""}:${changeChoiceFromHash(location.hash)}`} incoming={incoming} feature={routerScreen?.feature??cloudFeature(route,videoMode,routerImageTab,changeChoiceFromHash(location.hash))} workspace={workspace} project={project} user={user} call={call} version={version} canEdit={canCreate} onQueued={refresh} onSettings={()=>user.guest?setCloudSignIn(true):setSettings(true)} onLocal={()=>setRunOn("local")} onFeature={f=>{location.hash=`video/transform/${f==="replace-character"?"person":f==="motion-transfer"?"motion":f==="object-swap"?"swap":f==="video-upscale"?"upscale":f==="video-cutout"?"cutout":"restyle"}`;}}/></section>
+      :route==="3d"?<section className="cf-team__content cf-nodes-page"><ThreeDStudio textPanel={project?<TextTo3DPanel key={`${project.id}:text`} catalogue={catalogue} user={user} workspace={workspace} project={project} workers={runWorkers} call={call} canEdit={canCreate} authorized={authorized} onQueued={refresh}/>:undefined} meshPanel={project?<ModelToolsPanel key={`${project.id}:mesh:${routeHash.split("/")[2]??""}`} mode="mesh" workspace={workspace} project={project} call={call} canEdit={canCreate} onChanged={refresh}/>:undefined} texturePanel={project?<ModelToolsPanel key={`${project.id}:texture:${routeHash.split("/")[2]??""}`} mode="texture" workspace={workspace} project={project} call={call} canEdit={canCreate} onChanged={refresh}/>:undefined} viewerPanel={project?<ModelToolsPanel key={`${project.id}:viewer:${routeHash.split("/")[2]??""}`} mode="viewer" workspace={workspace} project={project} call={call} canEdit={canCreate} onChanged={refresh}/>:undefined} imagePanel={project?<ImageTo3DPanel key={routeHash} initialWorkflow={routeHash.split("/")[2]==="auto"?undefined:routeHash.split("/")[2]} initialAssetId={routeHash.split("/")[3]} user={user} workspace={workspace} project={project} catalogue={catalogue} workers={runWorkers} call={call} canEdit={canCreate} authorized={authorized} onQueued={refresh} onOpenModels={openModels}/>:undefined} workspace={workspace} workers={runWorkers} canEdit={canCreate} status={<ProblemBar/>}/></section>
+      :route==="nodes"?<section className="cf-team__content cf-nodes-page"><ComfyNodes importOnly={!!user.guest} workspace={workspace} workers={targetWorkers(workers,user.guest?"cloud":"local")} catalogue={readyManifests} canEdit={canCreate} serverOffline={offline} onChanged={refresh} onWorkerSettings={openWorkerSettings}/></section>
+      :route==="catalogue"?<CapabilityCatalogue manifests={catalogue.filter(m=>!m.mediaContract?.additionalMaskInputs?.length)} statuses={statuses} checking={checking} recheckLabel={workspace.role==="admin"?"Probe workers and recheck":"Refresh status"} onRecheck={()=>void recheck()} onChoose={choose} library={controls=><ComfyLibraryPanel workspace={workspace} workers={workers} call={call} controls={controls} onWorkerSettings={()=>setSettings(true)}/>} onLibrary={()=>{const enhancer=readyManifests.find(m=>m.category==="enhance");if(!enhancer)return;setVideoMode("create");setCapabilityId(enhancer.id);location.hash="video";}}/>
+      :<div className="cf-team__body">
       {(route==="projects"||!project)&&<section className="cf-team__content"><Page narrow><TeamProjects projects={projects} projectId={projectId} canCreate={canCreate} onCreate={createProject} onOpen={id=>{setProjectId(id);location.hash="library";}}/></Page></section>}
-      {!routerPage&&project&&route!=="projects"&&route!=="openjutsu"&&fallback.kind!=="screen"&&<section className="cf-team__content"><Page narrow><EmptyState stage title={fallbackTitle} text={fallbackText} action={fallbackNext?<Button variant="secondary" onClick={()=>{location.hash=fallbackNext.href;}}>{fallbackNext.label}</Button>:undefined}/></Page></section>}
-      {!routerPage&&project&&route!=="projects"&&route!=="openjutsu"&&fallback.kind==="screen"&&<section className={`cf-team__content ds-page${route==="imageedit"?" ds-page--workspace":fillPage?" ds-page--fill":""}`}>
+      {!routerPage&&project&&route!=="projects"&&route!=="openjutsu"&&!showScreen&&<section className="cf-team__content"><Page narrow><EmptyState stage title={fallbackTitle} text={fallbackText} action={fallbackNext?<Button variant="secondary" onClick={()=>{location.hash=fallbackNext.href;}}>{fallbackNext.label}</Button>:undefined}/></Page></section>}
+      {!routerPage&&project&&route!=="projects"&&route!=="openjutsu"&&showScreen&&<section className={`cf-team__content ds-page${route==="imageedit"?" ds-page--workspace":fillPage?" ds-page--fill":""}`}>
         {pageHeroKind&&<div className="cf-team__pagehero"><ToolHero kind={pageHeroKind}/></div>}
-        {route==="block"&&<BlockShot key={`${workspace.id}:${project.id}`} workspace={workspace} project={project} call={call} workers={runWorkers} catalogue={catalogue} canCreate={canCreate} onQueued={refresh} router={runOn==="router"&&routerModelsFor("restyle").length?(layoutId,look)=>{setRouterIncoming({workspaceId:workspace.id,projectId:project.id,inputs:{source_video:layoutId},prompt:look});setVideoMode("transform");location.hash="video/transform/restyle";}:undefined} makeReal={previsTarget&&canCreate?layoutId=>{try{presetTool(previsTarget,{source_video:layoutId});setCapabilityId(previsTarget.id);setVideoMode("create");location.hash=videoWorkflowHash(previsTarget.id);}catch(e){setError((e as Error).message);}}:undefined}/>}
-        {route==="workflow"&&catalogue.find(m=>m.id===routeHash.split("/")[1])?<TeamComposer key={`${project.id}:${routeHash}`} manifest={catalogue.find(m=>m.id===routeHash.split("/")[1])!} catalogue={catalogue} onCapability={choose} user={user} workspace={workspace} project={project} workers={runWorkers} call={call} canQueue={canCreate} authorized={authorized} onQueued={refresh} onWorkerSettings={openWorkerSettings} onModels={openModels} onRunLocal={()=>setRunOn("local")}/>:route==="make"?<StartScreen ready={listedTools} onOpen={openStartTask} hosted={!!user.guest}/>:route==="imageedit"?<ImageEditor userId={user.id} freeInput={intentMode} key={`${user.id}:${workspace.id}:${project.id}:${location.hash.split("/")[1]??""}`} openAssetId={location.hash.split("/")[1]} workspace={workspace} project={project} call={call} canEdit={canCreate} authorized={authorized} inpaint={inpaintRoute} edit={editRoute} editOptions={editRoutes} segment={routeFor("sam3-image-segment")} precision={routeFor("flux2-klein-preserve-edit")} maskedEdit={routeFor("qwen-image-21-masked-edit")} upscale={routeFor("upscale-image-esrgan")} onOpenModels={openModels}/>:(route==="characters"||route==="influencer")?<CharacterWorkspace mode={route==="influencer"?"scenes":characterMode} user={user} workspace={workspace} project={project} catalogue={catalogue} workers={runWorkers} call={call} authorized={authorized} canEdit={canCreate} onCount={setCharacterCount} onOpenStoryboard={boardId=>{setVideoMode("storyboard");location.hash=`video/storyboard/${encodeURIComponent(boardId)}`;}} onOpenCharacters={()=>setCharacterMode("characters")} onOpenImages={record=>{const target=readyImages.find(m=>m.id==="fibo2-edit")??readyImages.find(m=>m.id==="qwen-image-21-edit");if(!target)return "No compatible image edit model is ready.";try{const current=imageDraftMemory.current[target.id]??defaultImageDraft(target),next=addCharacterReferences(target,current,record,project.id);imageDraftMemory.current[target.id]=next;setImageDraft(next);setImageIntentKey("");setRunOn("local");setCapabilityId(target.id);location.hash=nativeWorkflowHash(target);return undefined;}catch(error){return (error as Error).message;}}}/>:route==="audio"&&audioReady&&audioRequirements?<AudioStudio userId={user.id} key={`${workspace.id}:${project.id}`} workspace={workspace} project={project} call={call} requirements={audioRequirements} onChanged={refresh} onLipSync={canCreate&&readyManifests.some(m=>!!m.voiceContract)?(assetId,imageAssetId)=>void useAudioInLipSync(assetId,imageAssetId):undefined}/>:route==="video"&&videoMode==="edit"?changeScreen(project,"edit",swapMaskRoute&&swapEditRoute?<SwapThingPanel promptOnly modelTitle={swapEditRoute.manifest.title} key={`edit:${project.id}:${location.hash.split("/")[2]??""}`} initialVideo={location.hash.split("/")[2]} workspace={workspace} project={project} workerId={swapEditRoute.workerId} call={call} canEdit={canCreate} onChanged={refresh}/>:<EmptyState title="Video editing is not ready" text="Check the required local workflows in Models." action={<Button variant="secondary" onClick={openModels}>Open Models</Button>}/>):route==="video"&&videoMode==="trim"&&trimReady&&videoEditRequirements?<VideoEditStudio canEdit={canCreate} maxGenerationFrames={routeFor("video-edit")?.manifest.controls.find(c=>c.id==="generation_frames")?.max??13} userId={user.id} extensionWorkerId={canCreate?routeFor("video-edit")?.workerId:undefined} initialAssetId={location.hash.split("/")[2]} key={`${workspace.id}:${project.id}`} workspace={workspace} project={project} call={call} requirements={videoEditRequirements} onChanged={refresh}/>:route==="video"&&(videoMode==="transform"||videoMode==="replace")?<TransformVideo manifests={catalogue} statuses={statuses} user={user} workspace={workspace} project={project} workers={runWorkers} call={call} canQueue={canCreate} authorized={authorized} onCapability={setCapabilityId} onQueued={refresh} onModels={openModels} initial={videoMode==="replace"?"person":(choice=>choice==="upscale"||choice==="cutout"?undefined:choice)(changeChoiceFromHash(routeHash))} swapThing={objectSwapLocal?top=>(<TeamComposer key={`${project.id}:${objectSwapLocal.id}`} top={top} manifest={objectSwapLocal} catalogue={catalogue} workflowIds={[objectSwapLocal.id]} onCapability={choose} user={user} workspace={workspace} project={project} workers={runWorkers} call={call} canQueue={canCreate} authorized={authorized} onQueued={refresh} onWorkerSettings={openWorkerSettings} onModels={openModels} onRunLocal={()=>setRunOn("local")}/>):swapMaskRoute&&swapEditRoute?top=>changeScreen(project,"swap",<SwapThingPanel key={project.id} top={top} workspace={workspace} project={project} workerId={swapEditRoute.workerId} call={call} canEdit={canCreate} onChanged={refresh}/>):undefined}/>:(route==="image"||route==="marketing"||route==="remix")&&manifest&&isImageCapability(manifest)?<ImageStudio sharedFeed={<TeamRuns workspace={workspace} project={project} user={user} call={call} canEdit={canCreate} authorized={authorized} version={version} titles={catalogueTitles(catalogue)} feed={feedScope(catalogue,"image",[manifest.id])} examples="image" outputAction={run=>run.output_ids[0]?<><LinkButton variant="secondary" href={`#imageedit/${encodeURIComponent(run.output_ids[0])}`}>Edit image</LinkButton>{canCreate&&<Button variant="secondary" onClick={()=>void useImageInVideo(run.output_ids[0])}>Use in video</Button>}{canCreate&&route==="marketing"&&<Button variant="secondary" onClick={()=>{setStoryboardImage({workspaceId:workspace.id,projectId:project.id,assetId:run.output_ids[0]});setVideoMode("storyboard");location.hash="video/storyboard";}}>Add to storyboard</Button>}</>:null} hero={()=> <ToolHero kind="picture"/>}/>} adStudio={route==="marketing"} remixStudio={route==="remix"} modelOptions={(route==="remix"?shownImages.filter(remixImageModel):route==="marketing"?shownImages.filter(adImageModel):imageModelsForTab(shownImages,imageTab)).map(m=>({value:m.id,label:m.title.split(" (")[0],note:capabilityPurpose(m)}))} onModel={(id,inputs)=>{const selected=catalogue.find(m=>m.id===id);if(!selected)return;setCapabilityId(id);const next=defaultImageDraft(selected),nextDraft=inputs?imageDraftWithReferences(selected,imageDraft,inputs):route==="image"&&imageTabFor(manifest.id,route)==="create"&&imageTabFor(selected.id,route)==="create"?carryCreateDraft(selected,imageDraft):next;imageDraftMemory.current[selected.id]=nextDraft;setImageDraft(nextDraft);location.hash=route==="remix"?`remix/${selected.id}`:route==="marketing"?`marketing/${selected.id}`:nativeWorkflowHash(selected);}} key={`${project.id}:${manifest.id}`} workspace={workspace} project={project} manifest={manifest} readiness={canCreate?(statuses[manifest.id]??{state:"offline",reasons:["Image readiness has not been checked."],missing:[]}):{state:"unsupported",reasons:[workspace.role==="viewer"?"Viewer access is read-only.":"Sign in to generate images."],missing:[]}} workerName={imageWorker?.name} onUseInVideo={canCreate?assetId=>void useImageInVideo(assetId):undefined} onUseInStoryboard={canCreate&&route==="marketing"?assetId=>{setStoryboardImage({workspaceId:workspace.id,projectId:project.id,assetId});setVideoMode("storyboard");location.hash="video/storyboard";}:undefined} batchContext={{userId:user.id,workerId:imageWorker?.id??"",call,onChanged:refresh,photosetAllowed:identityPhotosetWorkerAllowed(user.localSingleUser,imageWorker?.origin)}} assets={imageAssets} runs={imageRuns} sharedCreate={route==="image"&&imageTab==="create"} createModelIds={shownImages.filter(m=>imageTabFor(m.id,"image")==="create").map(m=>m.id)} draft={imageDraft} busy={imageBusy} onDraftChange={draft=>{setImageDraft(draft);imageDraftMemory.current[manifest.id]=draft;setImageIntentKey("");}} onGenerate={draft=>void generateImage(draft)} onCancel={canCreate?cancelImageRun:undefined} canCancelRun={run=>workspace.role==="admin"||run.created_by===user.id} onRetake={canCreate&&!imageIntentKey&&!imageBusy?retakeImage:undefined}/>:route==="video"&&videoMode==="keyframes"?<KeyframeStudio key={`${workspace.id}:${project.id}`} workspace={workspace} project={project} user={user} catalogue={catalogue} workers={runWorkers} call={call} authorized={authorized} canEdit={canCreate} localEnabled={runOn==="local"&&!user.guest} onChanged={refresh}/>:route==="video"&&videoMode==="storyboard"?<TeamStoryboard key={project.id} initialBoardId={routeHash.split("/")[2]} incomingPremise={storyboardIdea?.projectId===project.id&&storyboardIdea.workspaceId===workspace.id?storyboardIdea.text:undefined} onPremiseConsumed={()=>setStoryboardIdea(null)} incomingAssetId={storyboardImage?.projectId===project.id&&storyboardImage.workspaceId===workspace.id?storyboardImage.assetId:undefined} onIncomingConsumed={()=>setStoryboardImage(null)} user={user} workspace={workspace} project={project} catalogue={catalogue} workers={runWorkers} call={call} authorized={authorized} canEdit={canCreate}/>: (route==="video"||route==="motion")&&manifest?<TeamComposer key={`${project.id}:${manifest.id}`} manifest={manifest} catalogue={catalogue} workflowIds={videoMode==="effects"?[manifest.id]:undefined} onCapability={chooseWorkflow} user={user} workspace={workspace} project={project} workers={runWorkers} call={call} canQueue={canCreate} authorized={authorized} onQueued={refresh} onWorkerSettings={openWorkerSettings} onModels={openModels} onRunLocal={()=>setRunOn("local")}/>:route==="library"?<TeamLibrary titles={catalogueTitles(catalogue)} key={project.id} workspace={workspace} project={project} call={call} canEdit={canCreate} authorized={authorized} version={version} user={user} videoEditReady={trimReady} onEditVideo={asset=>{setVideoMode("trim");location.hash=`video/trim/${asset.id}`;}}/>:null}
+        {route==="block"&&<BlockShot key={`${workspace.id}:${project.id}`} workspace={workspace} project={project} call={call} workers={runWorkers} catalogue={catalogue} canCreate={canCreate} onQueued={refresh} router={runOn==="router"&&routerModelsFor("restyle").length?(layoutId,look)=>{setRouterIncoming({workspaceId:workspace.id,projectId:project.id,inputs:{source_video:layoutId},prompt:look});setVideoMode("transform");location.hash="video/transform/restyle";}:undefined} makeReal={previsTarget&&canCreate?layoutId=>{try{presetTool(previsTarget.manifest,{source_video:layoutId});location.hash=previsTarget.hash;}catch(e){setError((e as Error).message);}}:undefined}/>}
+        {explicitWorkflow?<TeamComposer key={`${project.id}:${routeHash}`} manifest={explicitWorkflow}
+          onCapability={choose} {...composerProps} project={project} workers={runWorkers}/>:
+        route==="make"?<StartScreen ready={listedTools} onOpen={openStartTask} hosted={!!user.guest}/>:
+        editScreen?<ImageEditor key={`${user.id}:${workspace.id}:${project.id}:${editScreen.assetId??""}`}
+          openAssetId={editScreen.assetId} openEntry={editScreen.entry} userId={user.id} freeInput={intentMode}
+          workspace={workspace} project={project} call={call} canEdit={canCreate} authorized={authorized}
+          inpaint={inpaintRoute} edit={editRoute} editOptions={editRoutes} segment={routeFor("sam3-image-segment")}
+          precision={routeFor("flux2-klein-preserve-edit")} maskedEdit={routeFor("qwen-image-21-masked-edit")}
+          upscale={routeFor("upscale-image-esrgan")} onOpenModels={openModels}
+          onExitSubjectRelight={()=>{location.hash=`imageedit/${editScreen.kind==="fotofield"?"layers/":""}${editScreen.assetId??""}/modify`;}}/>
+        :(route==="characters"||route==="influencer")?<CharacterWorkspace mode={route==="influencer"?"scenes":characterMode} user={user} workspace={workspace} project={project} catalogue={catalogue} workers={runWorkers} call={call} authorized={authorized} canEdit={canCreate} onCount={setCharacterCount} onOpenStoryboard={boardId=>{setVideoMode("storyboard");location.hash=`video/storyboard/${encodeURIComponent(boardId)}`;}} onOpenCharacters={()=>setCharacterMode("characters")} onOpenImages={record=>{const target=readyImages.find(m=>m.id==="fibo2-edit")??readyImages.find(m=>m.id==="qwen-image-21-edit");if(!target)return "No compatible image edit model is ready.";try{const current=imageDraftMemory.current[target.id]??defaultImageDraft(target),next=addCharacterReferences(target,current,record,project.id);imageDraftMemory.current[target.id]=next;setImageDraft(next);setImageIntentKey("");setRunOn("local");setCapabilityId(target.id);location.hash=nativeWorkflowHash(target);return undefined;}catch(error){return (error as Error).message;}}}/>:route==="audio"&&audioReady&&audioRequirements?<AudioStudio userId={user.id} key={`${workspace.id}:${project.id}`} workspace={workspace} project={project} call={call} requirements={audioRequirements} onChanged={refresh} onLipSync={canCreate&&readyManifests.some(m=>!!m.voiceContract)?(assetId,imageAssetId)=>void useAudioInLipSync(assetId,imageAssetId):undefined}/>:
+        editArea?changeScreen(project,"edit",editArea.ready&&swapEditRoute?
+          <SwapThingPanel promptOnly modelTitle={swapEditRoute.manifest.title} key={`edit:${project.id}:${editArea.assetId??""}`}
+            initialVideo={editArea.assetId} workspace={workspace} project={project} workerId={swapEditRoute.workerId}
+            call={call} canEdit={canCreate} onChanged={refresh}/>:
+          <EmptyState title="Video editing is not ready" text="Check the required local workflows in Models."
+            action={<Button variant="secondary" onClick={openModels}>Open Models</Button>}/>):
+        trim&&videoEditRequirements?<VideoEditStudio key={`${workspace.id}:${project.id}`} initialAssetId={trim.assetId}
+          workspace={workspace} project={project} call={call} requirements={videoEditRequirements} onChanged={refresh}
+          userId={user.id} canEdit={canCreate} extensionWorkerId={trimExtension?.workerId}
+          maxGenerationFrames={trimExtension?.manifest.controls.find(control=>control.id==="generation_frames")?.max??13}/>:
+        transform?<TransformVideo manifests={catalogue} statuses={statuses} user={user} workspace={workspace} project={project}
+          workers={transform.choice==="reframe"?localWorkers:runWorkers} call={call} canQueue={canCreate} authorized={authorized}
+          onCapability={setCapabilityId} onQueued={refresh} onModels={openModels} choice={transform.choice} reframe={transform.reframe}
+          swapThing={objectSwapLocal?top=><TeamComposer key={`${project.id}:${objectSwapLocal.id}`} top={top} manifest={objectSwapLocal}
+            workflowIds={[objectSwapLocal.id]} onCapability={choose} {...composerProps} project={project} workers={runWorkers}/>
+            :swapMaskRoute&&swapEditRoute?top=>changeScreen(project,"swap",<SwapThingPanel key={project.id} top={top} workspace={workspace}
+              project={project} workerId={swapEditRoute.workerId} call={call} canEdit={canCreate} onChanged={refresh}/>):undefined}
+        />:(resolved?.kind==="image"||route==="marketing"||route==="remix")&&manifest&&isImageCapability(manifest)?<ImageStudio sharedFeed={<TeamRuns workspace={workspace} project={project} user={user} call={call} canEdit={canCreate} authorized={authorized} version={version} titles={catalogueTitles(catalogue)} feed={feedScope(catalogue,"image",[manifest.id])} examples="image" outputAction={run=>run.output_ids[0]?<><LinkButton variant="secondary" href={`#imageedit/${encodeURIComponent(run.output_ids[0])}`}>Edit image</LinkButton>{canCreate&&<Button variant="secondary" onClick={()=>void useImageInVideo(run.output_ids[0])}>Use in video</Button>}{canCreate&&route==="marketing"&&<Button variant="secondary" onClick={()=>{setStoryboardImage({workspaceId:workspace.id,projectId:project.id,assetId:run.output_ids[0]});setVideoMode("storyboard");location.hash="video/storyboard";}}>Add to storyboard</Button>}</>:null} hero={()=> <ToolHero kind="picture"/>}/>} adStudio={route==="marketing"} remixStudio={route==="remix"} modelOptions={(route==="remix"?shownImages.filter(remixImageModel):route==="marketing"?shownImages.filter(adImageModel):imageModelsForTab(shownImages,imageTab)).map(m=>({value:m.id,label:m.title.split(" (")[0],note:capabilityPurpose(m)}))} onModel={(id,inputs)=>{const selected=catalogue.find(m=>m.id===id);if(!selected)return;setCapabilityId(id);const next=defaultImageDraft(selected),nextDraft=inputs?imageDraftWithReferences(selected,imageDraft,inputs):route==="image"&&imageTabFor(manifest.id,route)==="create"&&imageTabFor(selected.id,route)==="create"?carryCreateDraft(selected,imageDraft):next;imageDraftMemory.current[selected.id]=nextDraft;setImageDraft(nextDraft);location.hash=route==="remix"?`remix/${selected.id}`:route==="marketing"?`marketing/${selected.id}`:nativeWorkflowHash(selected);}} key={`${project.id}:${manifest.id}`} workspace={workspace} project={project} manifest={manifest} readiness={canCreate?(statuses[manifest.id]??{state:"offline",reasons:["Image readiness has not been checked."],missing:[]}):{state:"unsupported",reasons:[workspace.role==="viewer"?"Viewer access is read-only.":"Sign in to generate images."],missing:[]}} workerName={imageWorker?.name} onUseInVideo={canCreate?assetId=>void useImageInVideo(assetId):undefined} onUseInStoryboard={canCreate&&route==="marketing"?assetId=>{setStoryboardImage({workspaceId:workspace.id,projectId:project.id,assetId});setVideoMode("storyboard");location.hash="video/storyboard";}:undefined} batchContext={{userId:user.id,workerId:imageWorker?.id??"",call,onChanged:refresh,photosetAllowed:identityPhotosetWorkerAllowed(user.localSingleUser,imageWorker?.origin)}} assets={imageAssets} runs={imageRuns} sharedCreate={route==="image"&&imageTab==="create"} createModelIds={shownImages.filter(m=>imageTabFor(m.id,"image")==="create").map(m=>m.id)} draft={imageDraft} busy={imageBusy} onDraftChange={draft=>{setImageDraft(draft);imageDraftMemory.current[manifest.id]=draft;setImageIntentKey("");}} onGenerate={draft=>void generateImage(draft)} onCancel={canCreate?cancelImageRun:undefined} canCancelRun={run=>workspace.role==="admin"||run.created_by===user.id} onRetake={canCreate&&!imageIntentKey&&!imageBusy?retakeImage:undefined}/>:
+        keyframes?<KeyframeStudio key={`${workspace.id}:${project.id}`} workspace={workspace} project={project} user={user}
+          catalogue={catalogue} workers={runWorkers} call={call} authorized={authorized} canEdit={canCreate}
+          localEnabled={keyframes.target==="local"} onChanged={refresh}/>:
+        storyboard?<TeamStoryboard key={`${project.id}:${storyboard.boardId??""}`}
+          initialBoardId={storyboard.boardId} runTarget={storyboard.target}
+          incomingPremise={storyboardIdea?.projectId===project.id&&storyboardIdea.workspaceId===workspace.id?storyboardIdea.text:undefined}
+          incomingAssetId={storyboardImage?.projectId===project.id&&storyboardImage.workspaceId===workspace.id?storyboardImage.assetId:undefined}
+          onPremiseConsumed={()=>setStoryboardIdea(null)} onIncomingConsumed={()=>setStoryboardImage(null)}
+          user={user} workspace={workspace} project={project} catalogue={catalogue} workers={targetWorkers(workers,storyboard.target)}
+          call={call} authorized={authorized} canEdit={canCreate}/>:
+        (route==="video"||route==="motion")&&composerManifest?
+          <TeamComposer key={`${project.id}:${composerManifest.id}`} manifest={composerManifest}
+            workflowIds={effects?[effects.id]:undefined} onCapability={chooseWorkflow} {...composerProps} project={project} workers={makeReal?localWorkers:runWorkers}/>:route==="library"?<TeamLibrary titles={catalogueTitles(catalogue)} key={project.id} workspace={workspace} project={project} call={call} canEdit={canCreate} authorized={authorized} version={version} user={user} videoEditReady={trimReady} onEditVideo={asset=>{setVideoMode("trim");location.hash=`video/trim/${asset.id}`;}}/>:null}
       </section>}
     </div>}
     {intentMode&&route!=="openjutsu"&&route!=="imageedit"&&section!=="catalogue"&&section!=="nodes"&&section!=="3d"&&project&&<IntentDock imageWorkspace={["image","remix","marketing"].includes(route)} videoWorkspace={route==="video"||route==="motion"} value={intentText} onChange={setIntentText} onSubmit={runIntent} available={intentAvailable} busy={imageBusy||intentUploading} reference={intentReference?{name:intentReference.name,src:assetUrl(workspace.id,intentReference.id)}:undefined} referenceError={intentReferenceError} onReferenceAsset={id=>void intentAsset(id)} onReferenceFile={file=>void intentFile(file)} onRemoveReference={clearIntentReference}/>}
@@ -784,7 +890,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     </div>
     </AmbientReelProvider></RecreateMediaProvider></RecreateProvider></MediaEditProvider></WorkflowInfoProvider>
     <Dialog wide className="cf-models-dialog" open={modelsOpen&&authorized} title="Models" onClose={closeModels}>
-      <CapabilityCatalogue embedded manifests={catalogue.filter(m=>!m.mediaContract?.additionalMaskInputs?.length)} statuses={statuses} checking={checking} recheckLabel={workspace.role==="admin"?"Probe workers and recheck":"Refresh status"} onRecheck={()=>void recheck()} onChoose={id=>{setModelsOpen(false);choose(id);}} library={controls=><ComfyLibraryPanel workspace={workspace} workers={workers} call={call} controls={controls} onWorkerSettings={()=>setSettings(true)}/>} onLibrary={()=>{const enhancer=readyManifests.find(m=>m.category==="enhance");if(!enhancer)return;setModelsOpen(false);setVideoMode("create");setCapabilityId(enhancer.id);location.hash="video";}}/>
+      <CapabilityCatalogue embedded manifests={catalogue.filter(m=>!m.mediaContract?.additionalMaskInputs?.length&&(user.guest||!isSupersededLocalVideoWorkflow(m.id)))} statuses={statuses} checking={checking} recheckLabel={workspace.role==="admin"?"Probe workers and recheck":"Refresh status"} onRecheck={()=>void recheck()} onChoose={id=>{setModelsOpen(false);choose(id);}} library={controls=><ComfyLibraryPanel workspace={workspace} workers={workers} call={call} controls={controls} onWorkerSettings={()=>setSettings(true)}/>} onLibrary={()=>{const enhancer=readyManifests.find(m=>m.category==="enhance");if(!enhancer)return;setModelsOpen(false);setVideoMode("create");setCapabilityId(enhancer.id);location.hash="video";}}/>
     </Dialog>
     <ProjectCreateDialog open={creatingProject} onClose={()=>setCreatingProject(false)} onCreate={createProject}/>
     <TeamSettings initialSection={settingsSection} open={settings&&authorized} onClose={closeSettings} workspace={workspace} user={user} workers={workers} call={call} onChanged={refresh} onSignOut={onSignOut}/>

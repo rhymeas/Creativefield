@@ -4,6 +4,7 @@ import {isMaskedEdit} from "./masked-state";
 import {MASK_EDIT_IDEAS} from "./video-mask/edit-ideas";
 
 export type TransformMode="motion"|"swap"|"restyle";
+export type ChangeChoice=TransformMode|"person"|"reframe";
 
 /** The Restyle tab does two things: a whole-clip look, or a new place behind the subject. */
 export type RestyleKind="look"|"background";

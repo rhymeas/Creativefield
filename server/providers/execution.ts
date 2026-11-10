@@ -1,3 +1,5 @@
+import {parseGlbHeader} from "../glb";
+import {readFile as readGlbFile,stat as statGlb} from "node:fs/promises";
 import type {Pool} from "pg";
 import type {DiskStore} from "../storage";
 import {transaction} from "../db";
@@ -94,7 +96,7 @@ export class DirectExecutionService {
     let observation;try{observation=await entry.adapter.poll(run.remote_id,context);}catch{await this.defer(run,messages.outage);return;}
     if(observation?.state==="succeeded"){await this.ingest(run,entry,context);return;}
     if(observation?.state==="canceled"){await this.transition(run,"canceled");return;}
-    if(observation?.state==="failed"){await this.transition(run,"failed","Provider generation failed.");return;}
+    if(observation?.state==="failed"){await this.transition(run,"failed",observation.reason?`The model refused this request: ${observation.reason}`:"Provider generation failed.");return;}
     if(!["pending","running"].includes(observation?.state)){await this.defer(run,messages.outage);return;}
     await this.dueLater(run);
     if(await this.state(run)==="cancel_requested"){
@@ -131,7 +133,7 @@ export class DirectExecutionService {
       if(!canSubmit){if(await this.state(run)==="cancel_requested")await this.transition(run,"canceled");return;}
       attempted=true;
       const result=await entry.adapter.submit(structuredClone(run.invocation),prepared,context);
-      if(result?.kind==="rejected"){await this.transition(run,"failed","Provider rejected generation.");return;}
+      if(result?.kind==="rejected"){await this.transition(run,"failed",(result as {code?:string}).code==="payment_required"?"Your Comfy credits are used up. Add credits in your Comfy account, then try again.":(result as {code?:string}).code==="unauthorized"?"Comfy did not accept the key. Sign in again with your Comfy key.":"Provider rejected generation.");return;}
       if(result?.kind!=="accepted"||!remoteId(result.remoteId)){await this.transition(run,"submission_unknown",messages.unknown);await this.dueLater(run);return;}
       await this.transition(run,"queued",null,result.remoteId);
       await this.pool.query("UPDATE provider_run_bindings SET phase='accepted' WHERE workspace_id=$1 AND run_id=$2",[run.workspace_id,run.id]);
@@ -153,11 +155,15 @@ export class DirectExecutionService {
       const outputs=await entry.adapter.outputs(run.remote_id,context);
       if(!Array.isArray(outputs)||!outputs.length||outputs.length>8)throw new Error("Invalid outputs");
       for(const output of outputs){
-        if(!['video','image'].includes(output.mediaType)||!run.manifest.outputs.some((p:any)=>p.type===output.mediaType)||typeof output.url!=="string")throw new Error("Invalid output");
+        if(!['video','image','model3d'].includes(output.mediaType)||!run.manifest.outputs.some((p:any)=>p.type===output.mediaType)||typeof output.url!=="string")throw new Error("Invalid output");
         const download=await context.transport.artifact(output.url,this.store.maxBytes);
         const asset={id:newId(),...await this.store.put(run.workspace_id,download.body)};saved.push(asset);
         const path=await this.store.file(run.workspace_id,asset.key);
-        if(output.mediaType==='image'){
+        if(output.mediaType==='model3d'){
+          /* A 3D result must be a real binary glTF before it becomes an asset. */
+          const glb=parseGlbHeader(new Uint8Array((await readGlbFile(path)).subarray(0,12)),(await statGlb(path)).size);
+          Object.assign(saved[saved.length-1],{mediaType:'model3d',contentType:glb.contentType,metadata:{format:'glb',version:glb.version}});
+        }else if(output.mediaType==='image'){
           const image=sharp(path,{limitInputPixels:4096*4096}),metadata=await image.metadata();
           if(!['png','jpeg','webp'].includes(metadata.format??'')||!metadata.width||!metadata.height)throw new Error('Invalid image');
           await image.stats();Object.assign(saved[saved.length-1],{mediaType:'image',contentType:`image/${metadata.format}`,metadata:{width:metadata.width,height:metadata.height}});

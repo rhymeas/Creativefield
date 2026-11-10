@@ -296,11 +296,14 @@
 }
 .ds-prompt textarea::placeholder { color: var(--text-placeholder); }
 .ds-prompt__editor { position: relative; flex: none; min-width: 0; }
-.ds-prompt__editor textarea { position: relative; z-index: 1; width: 100%; }
-.ds-prompt__highlight { position: absolute; inset: 0; z-index: 0; overflow: hidden; padding: 0 var(--pad-field) var(--pad-field); white-space: pre-wrap; overflow-wrap: break-word; pointer-events: none; font-size: var(--text-sm); line-height: var(--lh-sm); font-weight: var(--weight-regular); color: var(--text-primary); }
-.ds-prompt__highlight mark { padding-inline: 2px; border-radius: var(--radius-xs); background: var(--accent-soft); color: var(--accent); }
-.ds-prompt__editor--tokens textarea { color: transparent; caret-color: var(--text-primary); }
-.ds-prompt__editor--tokens textarea::selection { background: var(--accent-ring); color: transparent; }
+.ds-prompt__editor textarea { display: block; position: relative; z-index: 1; width: 100%; }
+.ds-prompt__editor--tokens textarea,
+.ds-prompt__highlight { font-family: inherit; white-space: pre-wrap; overflow-wrap: break-word; scrollbar-gutter: stable; }
+.ds-prompt__highlight { position: absolute; inset: 0; z-index: 0; overflow: hidden; padding: 0 var(--pad-field) var(--pad-field); pointer-events: none; font-size: var(--text-sm); line-height: var(--lh-sm); font-weight: var(--weight-regular); color: var(--text-primary); }
+.ds-prompt__highlight mark { border-radius: var(--radius-xs); background: var(--accent-soft); color: var(--accent); }
+/* Keep the native glyphs, caret, selection and spellcheck on the same layer while editing. */
+.ds-prompt__editor--tokens textarea:not(:focus) { color: transparent; }
+.ds-prompt__editor--tokens:focus-within .ds-prompt__highlight { visibility: hidden; }
 .ds-prompt .ds-iconbtn { width: calc(24px * var(--ui-scale)); height: calc(24px * var(--ui-scale)); margin-top: calc(-4px * var(--ui-scale)); }
 .ds-prompt--label-outside,
 .ds-prompt--label-outside:hover,
@@ -881,8 +884,9 @@ button.ds-thumb__art:disabled { opacity: 0.45; cursor: not-allowed; }
 .ds-reftray__head .ds-meta { padding-inline: 0; }
 .ds-reftray__row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--space-2); padding-block: 0 var(--space-1); }
 .ds-reftray__row > * { min-width: 0; width: auto; }
-.ds-reftray__add { display: flex; }
-.ds-reftray__add .ds-addshot { width: 100%; aspect-ratio: 1; flex-direction: column; gap: var(--space-1); padding: var(--space-2); white-space: nowrap; }
+.ds-reftray__add { display: grid; gap: var(--gap-inline); }
+.ds-reftray__add .ds-upload--tile { min-height: 0; aspect-ratio: 1; }
+.ds-reftray__add .ds-pill { justify-self: center; max-width: 100%; }
 .ds-reftray__row .ds-thumb__actions .ds-iconbtn { width: calc(22px * var(--ui-scale)); height: calc(22px * var(--ui-scale)); }
 .ds-infodot { position: absolute; top: var(--space-2); left: var(--space-2); z-index: 3; width: calc(22px * var(--ui-scale)); height: calc(22px * var(--ui-scale)); display: grid; place-items: center; border-radius: 50%; background: var(--surface-glass); backdrop-filter: blur(8px); border: 1px solid var(--line-hairline); color: var(--text-secondary); opacity: 0; transition: opacity var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
 .ds-thumb:hover .ds-infodot, .ds-mediacard:hover .ds-infodot, .ds-infodot:focus-visible, .ds-infodot[aria-expanded="true"] { opacity: 1; }
@@ -2265,7 +2269,10 @@ button.ds-castcard__main { cursor: pointer; }
 .cf-editor-ai-actions .ds-btn { min-width: 0; padding-inline: 10px; font-size: var(--text-xs); white-space: nowrap; }
 .cf-editor-ai-actions .cf-modify-reference { min-width: 0; }
 .ds-prompt--label-outside .ds-prompt__editor--tokens { border-radius: var(--radius-xl); background: var(--surface-input); }
-.ds-prompt--label-outside .ds-prompt__editor--tokens .ds-prompt__highlight { padding: var(--pad-field); }
+.ds-prompt--label-outside .ds-prompt__editor--tokens .ds-prompt__highlight { padding: var(--pad-field); border: 1px solid transparent; }
 .ds-prompt--label-outside .ds-prompt__editor--tokens textarea,
 .ds-prompt--label-outside .ds-prompt__editor--tokens textarea:hover,
 .ds-prompt--label-outside .ds-prompt__editor--tokens textarea:focus { background: transparent; }
+
+/* The details toggle exists for the phone sheet only (mobile.css); on a desktop the details stand beside the media. */
+.ds-viewer__detailstoggle { display: none; }

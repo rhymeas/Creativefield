@@ -52,7 +52,7 @@ export const OPENJUTSU_SHOWCASE = Array.from({length:4},(_,index)=>{
     They stay available, but every feed shows them last and never rotates them to the top. */
 export const LOW_PRIORITY_EXAMPLES:readonly string[] = [
   ...["persona-studio"].map(name=>`/examples/promo/${name}.mp4`),
-  ...["feature-effects","feature-motion","feature-replace","feature-restyle","feature-swap","wan22-flf-14b","wan22-i2v-14b","wan22-i2v-5b","wan22-t2v-5b"].map(name=>`/reels/${name}.mp4`),
+  ...["feature-effects","feature-swap","wan22-flf-14b","wan22-i2v-14b","wan22-i2v-5b","wan22-t2v-5b"].map(name=>`/reels/${name}.mp4`),
 ];
 
 /** All bundled video examples, in the order feeds show them: the OpenJutsu renders, the best promo clips, the

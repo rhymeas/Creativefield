@@ -16,9 +16,11 @@ export function experimentalOpenJutsuRoles(text:string, pictureCount:number):str
       const commands = [...before.matchAll(/\b(?:replace|swap)\s+/gi)];
       const lastCommand = commands.at(-1);
       const commandTail = lastCommand ? before.slice(lastCommand.index! + lastCommand[0].length) : "";
-      // Both "replace X with @Image 1" and "replace X with the robot from
-      // @Image 1" name X as the original person, not the reference subject.
-      const command = commandTail.match(/^([^.!?;]+?)\s+with\s*(?:(?:[^.!?;]*?\s+from)\s*)?$/i);
+      // Preserve the source cue in "replace X with @Image 1", "with the
+      // robot from @Image 1", and "with the robot @Image 1".
+      const command = commandTail.match(/^([^.!?;]+?)\s+with\s+(?:the|a|an)\s+[^.!?;]+?\s+from\s*$/i)
+        ?? commandTail.match(/^([^.!?;]+?)\s+with\s*(?:(?:[^.!?;]*?\s+from)\s*)?$/i)
+        ?? commandTail.match(/^([^.!?;\r\n]+)\s+with\s+(?:the|a|an)\s+[^.!?;\r\n]+$/i);
       if (command) fallback[n] = command[1].trim();
       else if (i > 0) {
         // In "@Image 1, wearing shorts and gloves and the woman with
@@ -66,6 +68,21 @@ export function addOpenJutsuUserInstruction(graph:ApiGraph, text:string, picture
   // This mask lives in SAM's independently resized tracking coordinates, not
   // the output resolution. Keep the value used by the successful short test.
   grownMask.inputs.expand = 60;
+  if (pictureCount >= 3) {
+    // In a crowded swap, the optional mouth-motion guide can carry the source
+    // faces into conditioning even when all tracks and edit masks are correct.
+    const motionGuide = graph["61"];
+    if (motionGuide?.class_type !== "H3GreyMannequins") throw new Error("The OpenJutsu motion guide has changed.");
+    delete motionGuide.inputs.faces;
+    delete motionGuide.inputs.face_size;
+    const plan = graph["20"];
+    if (plan?.class_type !== "H3AdvancedSwapPlan" || typeof plan.inputs.roles !== "string") throw new Error("The OpenJutsu role plan has changed.");
+    // OpenJutsu uses the part after " - " for track matching, and only the
+    // name before it in generation. Source hair and clothing are track cues.
+    if (plan.inputs.roles) {
+      plan.inputs.roles = plan.inputs.roles.split("\n").map((role,i)=>`the source person ${i+1} - ${role}`).join("\n");
+    }
+  }
   const conditioning = Object.entries(graph).filter(([,node]) => node.class_type === "MiniMaxH3ReferenceToVideo");
   if (conditioning.length !== 1) throw new Error("Expected one OpenJutsu reference-conditioning node.");
   const input = conditioning[0][1].inputs.prompt;
@@ -91,7 +108,8 @@ export function addOpenJutsuUserInstruction(graph:ApiGraph, text:string, picture
     conditioning[0][1].inputs.prompt = current;
     return graph;
   }
-  graph[userNode] = {class_type:"PrimitiveStringMultiline", inputs:{value:`User instructions: ${instruction}\nFully replace each selected person's original body and clothing. Match the complete shape and number of limbs to the corresponding reference; do not retain duplicate source body parts.`}};
+  const sourceCue = pictureCount >= 3 ? "\nUse descriptions of the original people only to identify their motion tracks. The replacement's face, hair and clothing come from its reference picture." : "";
+  graph[userNode] = {class_type:"PrimitiveStringMultiline", inputs:{value:`User instructions: ${instruction}${sourceCue}\nFully replace each selected person's original body and clothing. Match the complete shape and number of limbs to the corresponding reference; do not retain duplicate source body parts.`}};
   graph[concatNode] = {class_type:"StringConcatenate", inputs:{string_a:current, string_b:[userNode,0], delimiter:"\n\n"}};
   conditioning[0][1].inputs.prompt = [concatNode,0];
   return graph;

@@ -1,4 +1,5 @@
 import { useState,useRef, type ReactNode } from "react";
+import {LibraryButton} from "../team/LibraryChoice";
 import {AnnotationEditor} from "./AnnotationEditor";
 import {WordWave} from "./WordWave";
 import {VisemeStrip} from "./VisemeStrip";
@@ -317,7 +318,15 @@ export default function Showcase() {
   const [long, setLong] = useState("A ceramic cup on a wooden desk, soft morning light, gentle steam rising, a locked camera, shallow depth of field, a quiet kitchen in the background with a window on the left, dust in the air, warm tones, slow and calm, filmic grain, no people, no text, no logos, high detail on the cup rim and the grain of the wood.");
   const [short, setShort] = useState("");
   const [search, setSearch] = useState("");
-  const [refs, setRefs] = useState(["portrait-front.png", "profile-reference.png", "jacket-front.png"]);
+  const [refs, setRefs] = useState<{name:string;src?:string}[]>([{name:"portrait-front.png"},{name:"profile-reference.png"},{name:"jacket-front.png"}]);
+  const [referenceLibrary,setReferenceLibrary]=useState(false);
+  const addReference=(name:string,src?:string)=>setRefs(old=>old.length<4?[...old,{name,src}]:old);
+  function addReferenceFile(file:File|null){
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=()=>{if(typeof reader.result==="string")addReference(file.name,reader.result);};
+    reader.readAsDataURL(file);
+  }
 
   return (
     <div data-showcase style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 16px 80px" }}>
@@ -644,13 +653,19 @@ export default function Showcase() {
         </div>
       </Section>
 
-      <Section title="Reference tray (up to 30), and a rule">
+      <Section title="Reference tray">
         <div style={{ maxWidth: 520, display: "flex", flexDirection: "column", gap: 12 }}>
-          <ReferenceTray label="References" max={30} onAdd={() => setRefs((r) => [...r, `reference-${r.length + 1}.png`])}>
-            {refs.map((name,index) => (
-              <Thumb key={name} label={`${name} · add @Image ${index+1} to prompt`} badge={`@Image ${index+1}`} onActivate={() => setReferencePrompt(old=>`${old.trim()} @Image ${index+1}`.trim())} onRemove={() => setRefs((r) => r.filter((n) => n !== name))} />
+          <ReferenceTray label="References" max={4} addSlot={<>
+            <UploadSlot tile label="Add" hint="Choose or paste a reference image" accept="image/png,image/jpeg,image/webp" kinds={["image"]} onFile={addReferenceFile}/>
+            <LibraryButton onClick={()=>setReferenceLibrary(true)}/>
+          </>}>
+            {refs.map((ref,index) => (
+              <Thumb key={`${index}:${ref.name}`} src={ref.src} label={`${ref.name} · add @Image ${index+1} to prompt`} badge={`@Image ${index+1}`} onActivate={() => setReferencePrompt(old=>`${old.trim()} @Image ${index+1}`.trim())} onRemove={() => setRefs(old=>old.filter(item=>item!==ref))} />
             ))}
           </ReferenceTray>
+          <Dialog open={referenceLibrary} title="Library" onClose={()=>setReferenceLibrary(false)}>
+            <ThumbGrid label="Example references"><Thumb label="Portrait example" src="/reels/wan22-i2v-5b.png" onSelect={()=>{addReference("Portrait example","/reels/wan22-i2v-5b.png");setReferenceLibrary(false);}}/></ThumbGrid>
+          </Dialog>
           <Rule />
           <PromptField compact label="Prompt" placeholder="Describe the change" value={referencePrompt} onChange={setReferencePrompt} tokens={refs.map((_,index)=>`@Image ${index+1}`)}/>
         </div>

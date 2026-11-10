@@ -2,7 +2,22 @@ import type { ApiGraph } from "../workflow/build";
 
 export const OPENJUTSU_ADVANCED_ID = "openjutsu-h3-advanced";
 export const OPENJUTSU_ADVANCED_FLASH_ID = "openjutsu-h3-advanced-hyperflow";
+export const OPENJUTSU_SCENE_GUIDE = "scene_guide";
 export const isOpenJutsuAdvanced = (id: string) => id === OPENJUTSU_ADVANCED_ID || id === OPENJUTSU_ADVANCED_FLASH_ID;
+
+export const openJutsuSceneGuideIssue = (characterCount: number) =>
+  characterCount < 2 ? "Add at least two character references to use a scene guide, or remove the guide." : undefined;
+
+/** Picture numbers are stable slot numbers. Tell the user what to attach before queueing. */
+export function openJutsuReferenceIssue(occupied:readonly boolean[],prompt:string){
+  const gap=occupied.indexOf(false),last=occupied.lastIndexOf(true);
+  if(gap>=0&&gap<last)return `Add Character ${gap+1} in References before using Character ${last+1}.`;
+  for(const match of prompt.matchAll(/@Image\s*(\d+)\b/gi)){
+    const slot=Number(match[1]);
+    if(slot<1||slot>occupied.length)return `${match[0]} is outside the available character slots. Edit the prompt to use @Image 1 through @Image ${occupied.length}.`;
+    if(!occupied[slot-1])return `Add Character ${slot} in References to use ${match[0]}, or remove that mention.`;
+  }
+}
 
 /** The upstream graph is pinned to D3voz/openjutsu 7fe118bb. The route remains
  * experimental; the caller must validate worker and model readiness. */

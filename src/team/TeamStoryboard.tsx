@@ -1,4 +1,4 @@
-import {ROUTER_MODELS,routerManifest} from "../capabilities/router-models";
+import {routerManifest,routerModelsFor} from "../capabilities/router-models";
 import {useCallback,useEffect,useRef,useState,type ReactNode} from "react";
 import {Clapperboard,Trash2} from "lucide-react";
 import {Button,Dialog,EmptyState,GenerateButton,IconButton,Meta,TextField,Notice,Panel,Row,SectionHeader,ShotStrip,ShotTile,StatusText,Toolbar,type ShotMediaDrop} from "../ds";
@@ -21,7 +21,7 @@ import {downloadJson} from "./TeamLibrary";
 import {boardDraftKey,boardRequirements,eligible,enableShotAudio,equalShots,fromBoard,inheritShotStartImage,moveShot,newShot,outputSizes,saveOutcome,shotErrors,shotPayload,storedDraft,storyboardCreationModels,storyboardModelProblem,transitionProblem,type AssemblyReadiness,type Board,type BoardDraft,type RenderIntent,type SaveIntent,type Shot} from "./storyboard-state";
 
 /** `incomingPremise` is an idea from the quick prompt; it becomes the prompt of an empty shot. */
-type Props={user:User;workspace:Workspace;project:Project;catalogue:CapabilityManifestV2[];workers:Worker[];call:Call;authorized:boolean;canEdit:boolean;incomingAssetId?:string;onIncomingConsumed?:()=>void;incomingPremise?:string;onPremiseConsumed?:()=>void;initialBoardId?:string};
+type Props={user:User;workspace:Workspace;project:Project;catalogue:CapabilityManifestV2[];workers:Worker[];call:Call;authorized:boolean;canEdit:boolean;runTarget?:"local"|"cloud"|"router";incomingAssetId?:string;onIncomingConsumed?:()=>void;incomingPremise?:string;onPremiseConsumed?:()=>void;initialBoardId?:string};
 const imageTypes="image/png,image/jpeg,image/webp";
 /** Film length as a timecode: 23 → 0:23, 95.5 → 1:36. */
 export function filmRuntime(seconds:number){const total=Math.round(Math.max(0,seconds));return `${Math.floor(total/60)}:${String(total%60).padStart(2,"0")}`;}
@@ -59,7 +59,7 @@ export function TeamStoryboard(props:Props){
   </>;
 }
 
-export function BoardEditor({board,picker,user,workspace,project,catalogue,workers,call,authorized,canEdit,incomingAssetId,onIncomingConsumed,incomingPremise,onPremiseConsumed}:Props&{board:Board;picker?:ReactNode}){
+export function BoardEditor({board,picker,user,workspace,project,catalogue,workers,call,authorized,canEdit,runTarget,incomingAssetId,onIncomingConsumed,incomingPremise,onPremiseConsumed}:Props&{board:Board;picker?:ReactNode}){
   const storageKey=boardDraftKey(user.id,workspace.id,project.id,board.id),cached=readStored(storageKey),initial=fromBoard(board);
   if(storedDraft(cached)){initial.workerId=cached.workerId;initial.assembly=cached.assembly;initial.audioExplicit=cached.audioExplicit??true;}
   const [draft,setDraft]=useState<BoardDraft>(initial),[baseline,setBaseline]=useState(initial.shots),[selected,setSelected]=useState(initial.shots[0]?.key??"");
@@ -89,8 +89,8 @@ export function BoardEditor({board,picker,user,workspace,project,catalogue,worke
   // A board without a known worker takes the first one ready for its shots, so rendering never stalls on an unset choice.
   useEffect(()=>{if(workers.some(w=>w.id===draft.workerId))return;const pick=workers.find(w=>w.enabled&&!boardRequirements(draft.shots,catalogue,w).length)??workers.find(w=>w.enabled);if(pick)setDraft(d=>({...d,workerId:pick.id}));},[workers,draft.workerId]);
   const manifests=catalogue.filter(eligible),creationModels=storyboardCreationModels(manifests),shot=draft.shots.find(s=>s.key===selected),index=draft.shots.findIndex(s=>s.key===selected),dirty=!equalShots(draft.shots,baseline);
-  /* Online (a guest), every shot runs on one Comfy Router video model; the local worker and still steps are not used. */
-  const cloud=!!user.guest,cloudModels=ROUTER_MODELS.filter(m=>m.features.includes("video-create"));
+  /* The Router board renders every shot on one video model without the worker and still steps. */
+  const cloud=runTarget==="router",cloudModels=routerModelsFor("video-create");
   const firstRouter=draft.shots.map(s=>s.settings.generation).find(g=>g?.routeId==="router")?.capabilityId;
   const [cloudModelId,setCloudModelId]=useState(()=>cloudModels.find(m=>m.id===firstRouter)?.id??cloudModels[0]?.id??"");
   const cloudModel=cloudModels.find(m=>m.id===cloudModelId);

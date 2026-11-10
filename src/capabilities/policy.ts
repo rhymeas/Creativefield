@@ -139,7 +139,8 @@ const OPENJUTSU_ADVANCED_CLASSES = new Set(["H3AdvancedSwapPlan", "H3TrackCrops"
 // Only the individually reviewed sampler and HyperFlow loader used by the pinned local template.
 const HYPERFLOW_CORE_CLASSES = new Set(["HyperFlowGGUFLoader", "HyperFlowSigmas"]);
 const HYPERFLOW_REFRAME_CLASSES = new Set([...HYPERFLOW_CORE_CLASSES, "CreativeFieldHyperFlowReframe"]);
-const OPENJUTSU_ADVANCED_FLASH_CLASSES = new Set([...OPENJUTSU_ADVANCED_CLASSES, ...HYPERFLOW_CORE_CLASSES]);
+// The local positional resolver reads packed SAM masks and role JSON. It uses no filesystem, subprocess or network access.
+const OPENJUTSU_ADVANCED_FLASH_CLASSES = new Set([...OPENJUTSU_ADVANCED_CLASSES, ...HYPERFLOW_CORE_CLASSES, "CreativeFieldOpenJutsuResolveRoles"]);
 const OPENJUTSU_FLASH_CLASSES = new Set([...HYPERFLOW_CORE_CLASSES, "HyperFlowH3CharacterSwapSettings"]);
 const HYPERFLOW_QUALITY_CLASSES = new Set([...HYPERFLOW_CORE_CLASSES, "DenoMiniMaxH3TiledSampler", "MiniMaxH3AddGuide"]);
 const HYPERFLOW_WORKFLOWS = new Set([

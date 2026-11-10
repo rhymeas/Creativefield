@@ -7,14 +7,14 @@ export type DirectBinding = Readonly<{
   adapterId:string; adapterVersion:string; provider:string; model:string;
   upstreamProviders:readonly string[]; apiOrigins:readonly string[]; artifactOrigins:readonly string[];
 }>;
-export type AdapterErrorCode = "invalid_input"|"rejected"|"unavailable"|"unauthorized"|"unknown";
+export type AdapterErrorCode = "invalid_input"|"rejected"|"unavailable"|"unauthorized"|"payment_required"|"unknown";
 export type Estimate = {kind:"unknown"}|{kind:"estimate";currency:string;amount:number;basis:string};
 export type Submission = {kind:"accepted";remoteId:string}|{kind:"rejected";code:AdapterErrorCode}|{kind:"unknown"};
-export type Observation = {state:"pending"|"running"|"succeeded"|"canceled"}|{state:"failed";code:AdapterErrorCode};
+export type Observation = {state:"pending"|"running"|"succeeded"|"canceled"}|{state:"failed";code:AdapterErrorCode;/** What the provider said, in plain words, when it says why. */reason?:string};
 export type Cancellation = {kind:"accepted"|"confirmed"|"unsupported"|"unknown"};
 export type Recovery = {kind:"found";remoteId:string}|{kind:"unresolved"|"unsupported"};
 /** Download locations are transient; callers must never persist/log their values. */
-export type TransientOutput = {url:string;mediaType:"video"|"image";contentType:string};
+export type TransientOutput = {url:string;mediaType:"video"|"image"|"model3d";contentType:string};
 export type OwnedInput = {role:string;contentType:string;bytes:number;open:()=>Promise<Readable>};
 export type PreparedInputs = Readonly<Record<string,unknown>>;
 export type AdapterTransport = {

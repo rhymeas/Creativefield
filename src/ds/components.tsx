@@ -62,7 +62,10 @@ export function TopBar({
   useEffect(() => {
     if (!openMenu) return;
     const key = (e: KeyboardEvent) => e.key === "Escape" && setOpenMenu(null);
-    const away = (e: MouseEvent) => !(e.target as HTMLElement).closest?.("[data-megamenu]") && setOpenMenu(null);
+    const away = (e: MouseEvent) => {
+      // A dialog opened from More is portaled outside the menu. Let it handle its own clicks.
+      if (!(e.target as Element).closest?.('[data-megamenu], [role="dialog"][aria-modal="true"]')) setOpenMenu(null);
+    };
     addEventListener("keydown", key);
     addEventListener("mousedown", away);
     return () => {
@@ -789,6 +792,7 @@ export function PromptField({
 }) {
   const id = useId();
   const ownArea = useRef<HTMLTextAreaElement>(null),area=textareaRef??ownArea,highlight=useRef<HTMLDivElement>(null);
+  const hasTokens=!!tokens?.length;
   const [overflow, setOverflow] = useState(false);
   const [expanded, setExpanded] = useState(false);
   useEffect(() => { if (disabled) setExpanded(false); }, [disabled]);
@@ -798,8 +802,11 @@ export function PromptField({
     if (!el) return;
     // Measure again whenever the text or the column width changes, and once the fonts have loaded.
     const fit = () => {
+      const scrollTop = el.scrollTop;
       el.style.height = "auto";
       el.style.height = `${el.scrollHeight}px`;
+      el.scrollTop = scrollTop;
+      if (highlight.current) highlight.current.scrollTop = el.scrollTop;
       setOverflow(el.scrollHeight > el.clientHeight + 1 || el.scrollHeight >= parseFloat(getComputedStyle(el).maxHeight || "0") - 1);
     };
     fit();
@@ -807,7 +814,7 @@ export function PromptField({
     watcher?.observe(el);
     void document.fonts?.ready.then(fit);
     return () => watcher?.disconnect();
-  }, [value]);
+  }, [value, area, hasTokens]);
   return (
     <div className={cx("ds-prompt", compact && "ds-prompt--compact", labelOutside && "ds-prompt--label-outside")}>
       <div className="ds-prompt__head">
@@ -820,8 +827,8 @@ export function PromptField({
           </IconButton>
         )}
       </div>
-      <div className={cx("ds-prompt__editor",!!tokens?.length&&"ds-prompt__editor--tokens")}>
-        {tokens?.length?<div ref={highlight} className="ds-prompt__highlight" aria-hidden="true">{promptTokenParts(value,tokens)}</div>:null}
+      <div className={cx("ds-prompt__editor",hasTokens&&"ds-prompt__editor--tokens")}>
+        {tokens?.length?<div ref={highlight} className="ds-prompt__highlight" aria-hidden="true">{promptTokenParts(value,tokens)}{value.endsWith("\n")?"\u200b":null}</div>:null}
         <textarea disabled={disabled} ref={area} id={id} rows={1} value={value} placeholder={placeholder} onScroll={event=>{if(highlight.current)highlight.current.scrollTop=event.currentTarget.scrollTop;}} onChange={(e) => { if (!disabled) onChange(e.target.value); }} />
       </div>
       {tools && <div className="ds-prompt__tools">{tools}</div>}
@@ -1588,12 +1595,13 @@ export function Thumb({ src, label, badge, info, selected, disabled, onSelect, o
 
 /* ReferenceTray: the shared compact 2x2 reference pattern. Product workflows expose
    at most four visible references, even if an upstream graph has more sockets. */
-export function ReferenceTray({ label, max, children, onAdd, onAssetDrop, onExampleDrop, onFilesDrop, disabled=false }: {
+export function ReferenceTray({ label, max, children, addSlot, onAssetDrop, onExampleDrop, onFilesDrop, disabled=false }: {
   label: string;
   /** The most references one run accepts. */
   max: number;
   children: ReactNode;
-  onAdd: () => void;
+  /** The shared upload control and its Library action for the next empty slot. */
+  addSlot?: ReactNode;
   /** Fill the next free reference directly from a project result or Library card. */
   onAssetDrop?: (assetId: string) => void;
   /** Fill the next free reference from a bundled content example. */
@@ -1612,11 +1620,7 @@ export function ReferenceTray({ label, max, children, onAdd, onAssetDrop, onExam
       </div>
       <div className="ds-reftray__row">
         {items}
-        {count < limit && (
-          <span className="ds-reftray__add">
-            <AddButton onClick={onAdd}>Add</AddButton>
-          </span>
-        )}
+        {count < limit && addSlot && <div className="ds-reftray__add">{addSlot}</div>}
       </div>
     </div>
   );
@@ -3192,6 +3196,9 @@ export function MediaViewer({ open, src, name, onClose, actions, onActivate, med
   const panel = useRef<HTMLDivElement>(null);
   const image=useRef<HTMLImageElement>(null),editor=useContext(mediaEditContext),urls=useRef<string[]>([]),start=useRef<{x:number;y:number}|null>(null);
   const [annotationOpen,setAnnotationOpen]=useState(false),[chooser,setChooser]=useState<"openIn"|"reference"|null>(null);
+  /* On a phone the details are a sheet that rises from the bottom only when asked for; the media keeps the screen. */
+  const [detailsOpen,setDetailsOpen]=useState(false);
+  useEffect(()=>{setDetailsOpen(false);},[open,src]);
   const generation=useRef(0);
   const [result,setResult]=useState<CropResult|null>(null),[crop,setCrop]=useState<{x:number;y:number;w:number;h:number}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState("");
   const primary=useRef<HTMLVideoElement>(null),reference=useRef<HTMLVideoElement>(null),[linked,setLinked]=useState(true),[playbackHint,setPlaybackHint]=useState("");
@@ -3254,13 +3261,14 @@ export function MediaViewer({ open, src, name, onClose, actions, onActivate, med
           {result&&<LinkButton href={result.src} download={result.name}>Download crop</LinkButton>}
           {actions}
           </>}
+          <IconButton className="ds-viewer__detailstoggle" label={detailsOpen?"Hide details":"Details"} aria-expanded={detailsOpen} onClick={()=>setDetailsOpen(value=>!value)}><Info size={16} /></IconButton>
           <IconButton label="Close" onClick={onClose}><X size={16} /></IconButton>
         </div>
         {crop&&<span className="ds-viewer__hint">Drag over the image to choose a crop. The original is kept.</span>}
         {error&&<div className="ds-viewer__hint" role="alert">{error}</div>}
         <AnnotationEditor open={annotationOpen} src={current.src} onClose={()=>setAnnotationOpen(false)} onApply={async annotations=>{if(!editor.onEdit)throw new Error("Image editing is unavailable.");await editor.onEdit({...current,mediaType:"image",intent:"annotate",annotations});setAnnotationOpen(false);onClose();}}/>
       </div>
-      <aside className="ds-viewer__panel" aria-label="Actions for this media" onMouseDown={event=>{if(event.target===event.currentTarget)onClose();}}>
+      <aside className="ds-viewer__panel" data-details-open={detailsOpen||undefined} aria-label="Actions for this media" onMouseDown={event=>{if(event.target===event.currentTarget)onClose();}}>
         <div className="ds-viewer__info" onMouseDown={event=>{if(event.target===event.currentTarget)onClose();}}>{info??(generationInfo?<MediaViewerInfo {...generationInfo}/>:<MediaViewerInfo facts={[{label:"Name",value:current.name}]}/>)}</div>
         <div className="ds-viewer__tools">
           {/* One row (rule 67): Recreate is the yellow call to action; the rest are quiet icons with their names as tooltips. */}

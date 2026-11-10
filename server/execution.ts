@@ -19,8 +19,10 @@ import {stageForNode} from "./develop";
 import {chainKeyPrefix,chainPart,type JobPart} from "./progress";
 import {compileJutsuRelay,planJutsuRelay} from "../src/capabilities/jutsu";
 import {inspectReplaceClip} from "./replace-clip-check";
-import {isOpenJutsuAdvanced} from "../src/capabilities/openjutsu-advanced";
+import {isOpenJutsuAdvanced,OPENJUTSU_ADVANCED_FLASH_ID} from "../src/capabilities/openjutsu-advanced";
+import {openJutsuFlashSourceFrames,withExactOpenJutsuFlashOutput,withPaddedOpenJutsuFlashSource} from "./openjutsu-flash-timeline";
 import {readOpenJutsuTracking} from "./openjutsu-tracking";
+import {addOpenJutsuRoleRepair,OPENJUTSU_ROLE_RESOLVER,openJutsuRoleOrder} from "./openjutsu-role-repair";
 import {inspectCharacterReference,needsOpenJutsuReferencePreparation,prepareOpenJutsuUpload} from "./openjutsu-reference";
 import {requestSchema,publicColumns,canonical,extension,prepareInvocation,enqueuePreparedRun,cancelRun} from "./run-submission";
 import {applyStoredRunGraphEdits} from "./run-graph-edits";
@@ -34,7 +36,7 @@ import {ComfyError} from "@comfyorg/sdk";
 import type {Job,Output} from "@comfyorg/sdk";
 import { firstOutputFile, type HistoryEntry, type RawQueueItem } from "../src/comfy/client";
 import { probeGlb } from "./glb";
-import { AudioToolUnavailableError, probeMedia } from "./audio-processing-validation";
+import { AudioProcessingError, AudioToolUnavailableError, probeMedia } from "./audio-processing-validation";
 import { member, HttpError } from "./auth";
 import { transaction } from "./db";
 import { hashToken, newId } from "./crypto";
@@ -66,7 +68,7 @@ import {PngValidationError} from "./image-artifacts-validation";
 import {alignedImageInputSnapshotSchema} from "./image-input-admission";
 import {isObjectSwapWorkflow,isOpenJutsuSingleSwap} from "../src/capabilities/tasks";
 import {hyperflowStillReference} from "./hyperflow-reference";
-import {usesH3AudioPolish,withPolishedH3Audio} from "./h3-audio-polish";
+import {usesH3AudioPolish,withPolishedH3Audio,withUpscaledH3Audio} from "./h3-audio-polish";
 import {VIDEO_REFRAME_ID} from "../src/capabilities/video-reframe";
 import {withReframedAudio} from "./video-reframe";
 import {VideoExtensionMediaError} from "./video-extension-media";
@@ -511,6 +513,16 @@ export class ExecutionService {
     const headers=workerRequestHeaders(worker,init.headers);
     return fetch(`${worker.origin}${worker.api_prefix}${path}`,{...init,...(headers?{headers}:{}),redirect:"error",signal:AbortSignal.timeout(20000)});
   }
+  private async compileWorkerGraph(worker:any,bundle:CapabilityBundle,invocation:Invocation,inputs:Record<string,string>,sourceFrames?:number) {
+    const graph=compileRunGraph(bundle,invocation,inputs,sourceFrames);
+    if(worker.kind==="cloud"||bundle.manifest.id!==OPENJUTSU_ADVANCED_FLASH_ID)return graph;
+    const order=openJutsuRoleOrder(graph);
+    if(!order)return graph;
+    // Check the live node list so a stale worker inventory cannot break normal submissions.
+    const info=await this.fetch(worker,`/object_info/${OPENJUTSU_ROLE_RESOLVER}`)
+      .then(response=>response.ok?response.json():null).catch(()=>null);
+    return info?.[OPENJUTSU_ROLE_RESOLVER]?addOpenJutsuRoleRepair(graph,order):graph;
+  }
   /** Upload one input file and keep the name the graph already refers to. */
   private async uploadInput(worker:any,filename:string,data:Blob,role:string):Promise<string>{
     const form=new FormData();form.append("image",data,filename);form.append("overwrite","false");
@@ -549,6 +561,9 @@ export class ExecutionService {
         if(prepared.kind==="ambiguous")throw new Error(prepared.reason);
         const uploadName=prepared.kind==="isolated"?filename.replace(/\.[^.]+$/, ".png"):filename;
         inputs[asset.role]=await this.uploadInput(worker,uploadName,new Blob([new Uint8Array(prepared.bytes)],{type:prepared.mediaType}),asset.role);
+      }else if(workflowId===OPENJUTSU_ADVANCED_FLASH_ID&&asset.role==="source_video"&&onThisComputer(worker)){
+        inputs[asset.role]=await withPaddedOpenJutsuFlashSource(source,async(file,suffix)=>
+          this.uploadInput(worker,filename.replace(/\.[^.]+$/,suffix),await openAsBlob(file,{type:"video/mp4"}),asset.role));
       }else if(addSilentAudio&&asset.role==="source_video"){
         inputs[asset.role]=await withVideoAudio(source,async file=>{
           const prepared=file!==source;
@@ -667,7 +682,7 @@ export class ExecutionService {
       }
       const sourceFrames=await this.replaceSourceFrames(run,assets,bundle.manifest);
       const inputs=await this.uploadInputs(run,worker,assets,undefined,(isObjectSwapWorkflow(bundle.manifest.id)||isOpenJutsuAdvanced(bundle.manifest.id)),isOpenJutsuAdvanced(bundle.manifest.id),worker.kind!=="cloud"?bundle.manifest.id:"");
-      const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,compileRunGraph(bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
+      const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,await this.compileWorkerGraph(worker,bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
       // A cancellation before prompt submission can complete without touching the worker queue.
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
       if(current.state==="cancel_requested") { await this.finish(run,"canceled");return; }
@@ -724,7 +739,7 @@ export class ExecutionService {
       const cloud=worker.kind==="cloud";
       const named=Object.fromEntries(assets.map(asset=>[asset.role,`comfyfield-${run.id}-${asset.id}.${extension(asset.content_type)}`]));
       const inputs=cloud?named:await this.uploadInputs(run,worker,assets,undefined,(isObjectSwapWorkflow(bundle.manifest.id)||isOpenJutsuAdvanced(bundle.manifest.id)),isOpenJutsuAdvanced(bundle.manifest.id),bundle.manifest.id);
-      const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,compileRunGraph(bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
+      const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,await this.compileWorkerGraph(worker,bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
       if(current.state==="cancel_requested"){await this.finish(run,"canceled");return;}
       await this.pool.query("UPDATE runs SET graph=$1,updated_at=now() WHERE workspace_id=$2 AND id=$3",[JSON.stringify(graph),run.workspace_id,run.id]);
@@ -1006,11 +1021,13 @@ export class ExecutionService {
   }
   private async ingest(run:any,worker:any,entry:HistoryEntry) {
     if(await this.cancelImportIfRequested(run))return;
-    const graph=run.graph as Record<string,{class_type:string}>|null;
+    const graph=run.graph as ApiGraph|null;
     if(!graph)return;
     const revision=(await this.pool.query("SELECT id,sha256,manifest FROM workflow_revisions WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.workflow_revision_id])).rows[0];
     if(!revision){await this.finish(run,"failed","Pinned workflow revision is unavailable");return;}
     const manifest=revision.manifest as CapabilityBundle["manifest"];
+    const flashSource=manifest.id===OPENJUTSU_ADVANCED_FLASH_ID?manifest.inputs.find(input=>input.id==="source_video")?.binding:undefined;
+    const flashFrames=flashSource&&openJutsuFlashSourceFrames(graph[flashSource.node]?.inputs[flashSource.field],run.id);
     const openJutsuTracking=isOpenJutsuSingleSwap(manifest.id)?readOpenJutsuTracking(graph,entry.outputs):undefined;
     const contract=manifest.outputContract,imageContract=manifest.imageArtifacts,motion=motionContractFor(manifest);
     if(imageContract){
@@ -1047,6 +1064,18 @@ export class ExecutionService {
     }
     const saved:Array<{id:string;key:string;sha256:string;bytes:number;name:string;contentType?:string;metadata?:Awaited<ReturnType<typeof probeVideo>>|ImageMetadata|Record<string,unknown>}> = [];
     try {
+      const chained=run.invocation?.upscaleChain as {parentRunId?:unknown;sourceAssetId?:unknown}|undefined;
+      let upscaleAudio: {file:string;metadata:{defaultTrack:0;originalTrack:1}}|undefined;
+      if(declaredMedia==="video"&&typeof chained?.sourceAssetId==="string"){
+        const source=(await this.pool.query(
+          "SELECT a.storage_key,a.metadata->'audioPolish' AS audio_polish FROM run_inputs i JOIN assets a ON a.id=i.asset_id AND a.workspace_id=i.workspace_id WHERE i.workspace_id=$1 AND i.run_id=$2 AND i.role='source_video' AND a.id=$3",
+          [run.workspace_id,run.id,chained.sourceAssetId],
+        )).rows[0];
+        if(!source?.storage_key)throw new PermanentArtifactError("The clip to upscale is unavailable.");
+        if(source.audio_polish?.defaultTrack===0&&source.audio_polish.originalTrack===1){
+          upscaleAudio={file:await this.store.file(run.workspace_id,source.storage_key),metadata:source.audio_polish};
+        }
+      }
       for(const file of files) {
         try{declaredMedia==="image"?assertSafeImageFile(file):safeOutputFile(file);}catch{throw new PermanentArtifactError("Worker returned an unsafe artifact path");}
         const response=await this.fetch(worker,`/view?${new URLSearchParams(file)}`);
@@ -1072,12 +1101,24 @@ export class ExecutionService {
           try{const glb=await probeGlb(filename);last.contentType=glb.contentType;last.metadata={...glb,generation:{runId:run.id,capabilityId:run.capability_id,capabilityVersion:run.capability_version,routeId:run.route_id,workerId:run.worker_id,seed:run.invocation?.controls?.seed}};}
           catch{throw new PermanentArtifactError("Worker output is not a valid GLB model");}
         }else{
-          if(manifest.id===VIDEO_REFRAME_ID){
+          if(upscaleAudio){
+            const artifact=await withUpscaledH3Audio(upscaleAudio.file,filename,output=>this.store.put(run.workspace_id,createReadStream(output))).catch(error=>{
+              if(error instanceof AudioProcessingError)throw new PermanentArtifactError(error.message);
+              throw error;
+            });
+            const workerKey=last.key;
+            Object.assign(last,artifact,{name:last.name.replace(/\.[^.]+$/,".mp4")});
+            await this.store.remove(run.workspace_id,workerKey).catch(()=>{});
+            filename=await this.store.file(run.workspace_id,last.key);
+          }
+          if(manifest.id===VIDEO_REFRAME_ID||flashFrames){
             const source=(await this.pool.query("SELECT a.storage_key FROM run_inputs i JOIN assets a ON a.id=i.asset_id AND a.workspace_id=i.workspace_id WHERE i.workspace_id=$1 AND i.run_id=$2 AND i.role='source_video'",[run.workspace_id,run.id])).rows[0];
             if(!source?.storage_key)throw new PermanentArtifactError("The original clip is unavailable.");
             const sourceFile=await this.store.file(run.workspace_id,source.storage_key);
-            const artifact=await withReframedAudio(sourceFile,filename,run.invocation.controls.aspect_ratio,async file=>file===filename?undefined:this.store.put(run.workspace_id,createReadStream(file))).catch(error=>{
-              if(error instanceof VideoExtensionMediaError)throw new PermanentArtifactError(error.message);
+            const publish=(file:string)=>file===filename?Promise.resolve(undefined):this.store.put(run.workspace_id,createReadStream(file));
+            const artifact=await (flashFrames?withExactOpenJutsuFlashOutput(sourceFile,filename,flashFrames,publish)
+              :withReframedAudio(sourceFile,filename,run.invocation.controls.aspect_ratio,publish)).catch(error=>{
+              if(error instanceof VideoExtensionMediaError||error instanceof AudioProcessingError)throw new PermanentArtifactError(error.message);
               throw error;
             });
             if(artifact){
@@ -1090,6 +1131,7 @@ export class ExecutionService {
           let video:Awaited<ReturnType<typeof probeVideo>>;
           try{video=await probeVideo(filename);}catch(error){if(error instanceof MediaProbeUnavailableError)throw error;throw new PermanentArtifactError("Worker output is not a valid encoded video");}
           last.metadata=video;
+          if(upscaleAudio)last.metadata={...last.metadata,audioPolish:upscaleAudio.metadata};
           if(openJutsuTracking)last.metadata={...last.metadata,openJutsuTracking};
           last.contentType=video.container?.includes("webm")?"video/webm":"video/mp4";
           if(run.invocation.mediaSnapshot)last.metadata={...last.metadata,...await verifyMaskedOutput(filename,run.invocation.mediaSnapshot)};
@@ -1098,7 +1140,7 @@ export class ExecutionService {
             last.metadata={...last.metadata,motionOutput:verified,motionSourceSha256:motionRow.receipt.sourceSha256,motionNormalizedSha256:motionRow.receipt.normalizedSha256,motionGraphDigest:motionRow.graphDigest};
             last.contentType="video/mp4";
           }
-          if(onThisComputer(worker)&&video.hasAudio&&last.contentType==="video/mp4"&&usesH3AudioPolish(manifest.id)){
+          if(!upscaleAudio&&onThisComputer(worker)&&video.hasAudio&&last.contentType==="video/mp4"&&usesH3AudioPolish(manifest.id)){
             const polished=await withPolishedH3Audio(filename,output=>this.store.put(run.workspace_id,createReadStream(output))).catch(()=>undefined);
             if(polished){
               const originalKey=last.key;
@@ -1116,7 +1158,6 @@ export class ExecutionService {
         await client.query("UPDATE runs SET state='succeeded',output_ids=$1,error=NULL,updated_at=now() WHERE workspace_id=$2 AND id=$3",[JSON.stringify(saved.map(a=>a.id)),run.workspace_id,run.id]);
         await client.query("INSERT INTO run_events(workspace_id,run_id,state,detail) VALUES($1,$2,'succeeded',$3)",[run.workspace_id,run.id,JSON.stringify(openJutsuTracking?{openJutsuTracking}:{})]);
         // A chained upscale publishes the final file: it goes in front of the run's own output.
-        const chained=run.invocation?.upscaleChain as {parentRunId?:unknown}|undefined;
         if(declaredMedia==="video"&&typeof chained?.parentRunId==="string")
           await client.query("UPDATE runs SET output_ids=$1::jsonb||output_ids,updated_at=now() WHERE workspace_id=$2 AND id=$3 AND state='succeeded'",[JSON.stringify([saved[0].id]),run.workspace_id,chained.parentRunId]);
         return "publish" as const;

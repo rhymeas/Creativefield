@@ -5,8 +5,9 @@ import {buildHyperflowFirstLastFinish, buildHyperflowQuality, selectHyperflowTex
 import {h3Frames} from "./timing";
 import {omitMissingReferences} from "./optional-image-references";
 import {keepSourceSubjectPrompt} from "./keep-subject";
-import {isOpenJutsuAdvanced,openJutsuRoles,prepareOpenJutsuAdvancedCharacters} from "./openjutsu-advanced";
+import {isOpenJutsuAdvanced,OPENJUTSU_SCENE_GUIDE,openJutsuRoles,prepareOpenJutsuAdvancedCharacters} from "./openjutsu-advanced";
 import {addOpenJutsuUserInstruction,experimentalOpenJutsuRoles} from "./openjutsu-user-instruction";
+import {addOpenJutsuSceneGuide} from "./openjutsu-scene-guide";
 
 /** Compiles only server-owned templates. Asset filenames must have been resolved by
  * the server after workspace ownership checks, never supplied as browser paths. */
@@ -151,6 +152,7 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
     graph = prepareOpenJutsuAdvancedCharacters(graph, filenames, roles);
     if (manifest.id === "openjutsu-h3-advanced-hyperflow") {
       graph = addOpenJutsuUserInstruction(graph, userText, filenames.length);
+      if (invocation.inputs[OPENJUTSU_SCENE_GUIDE]) addOpenJutsuSceneGuide(graph, filenames.length);
     }
   }
   /* The words are read after presets and defaults, because the look, the note and the clause meet there. */

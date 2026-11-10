@@ -104,6 +104,9 @@
   .ds-modetabs { justify-content: flex-start; gap: var(--space-5); overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
   .ds-modetabs::-webkit-scrollbar { display: none; }
   .ds-modetabs > * { flex: none; scroll-snap-align: start; }
+  .ds-wsbar__tabs { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .ds-wsbar__tabs::-webkit-scrollbar { display: none; }
+  .ds-wsbar__tab { flex: none; }
 
   /* Grids: two columns at most; the size slider has nothing to choose on a phone, so it is not shown. */
   .ds-grid[class*="ds-density-cols-"]:not(.ds-density-cols-1) { --cols: 2; }
@@ -122,15 +125,27 @@
     box-shadow: 0 -12px 16px -4px var(--surface-panel);
   }
 
-  /* ── Full view: media on top, details below, swipe the media down to close ── */
+  /* ── Full view: the media takes the whole screen; Recreate and the tools stay pinned at the bottom; the details
+        rise as a sheet from the bottom when the small info button asks for them; swipe the media down to close ── */
   .ds-viewer, .ds-viewer:has(.ds-viewer__info) {
     flex-direction: column !important; align-items: stretch !important; justify-content: flex-start !important;
-    padding: calc(var(--space-3) + env(safe-area-inset-top, 0px)) var(--pad-page-x) calc(var(--space-4) + env(safe-area-inset-bottom, 0px)) !important;
-    overflow-y: auto; overscroll-behavior: contain;
+    display: flex !important; height: 100dvh; inset: 0; padding: 0 !important; overflow: hidden; overscroll-behavior: contain; background: var(--surface-page);
   }
-  .ds-viewer__frame { touch-action: pan-x pinch-zoom; will-change: transform; }
-  .ds-viewer__frame :is(img, video), .ds-viewer:has(.ds-viewer__info) .ds-viewer__frame :is(img, video) { max-width: 100% !important; max-height: 62dvh; }
-  .ds-viewer:has(.ds-viewer__info) .ds-viewer__panel { width: 100% !important; overflow: visible; flex: none; }
+  .ds-viewer__frame, .ds-viewer:has(.ds-viewer__info) .ds-viewer__frame { flex: 1 1 auto !important; min-height: 0; height: auto !important; max-height: none !important; display: grid; place-items: center; padding-top: env(safe-area-inset-top, 0px); touch-action: pan-x pinch-zoom; will-change: transform; }
+  .ds-viewer__frame :is(img, video), .ds-viewer:has(.ds-viewer__info) .ds-viewer__frame :is(img, video) { max-width: 100% !important; max-height: 100% !important; width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
+  .ds-viewer__actions { position: absolute; z-index: 3; top: calc(var(--space-3) + env(safe-area-inset-top, 0px)); right: var(--space-3); left: auto; }
+  .ds-viewer__detailstoggle { display: inline-grid; }
+  .ds-viewer:has(.ds-viewer__info) .ds-viewer__panel, .ds-viewer__panel {
+    position: relative; z-index: 2; width: 100% !important; flex: none !important; height: auto !important; min-height: 0 !important; max-height: none !important; overflow: visible; margin-top: auto;
+    padding: var(--space-3) var(--pad-page-x) calc(var(--space-3) + env(safe-area-inset-bottom, 0px)) !important;
+    background: var(--surface-panel); border-top: 1px solid var(--line-hairline);
+  }
+  .ds-viewer__panel .ds-viewer__tools { display: flex; align-items: center; gap: var(--space-2); }
+  .ds-viewer__panel .ds-viewer__info { display: none; }
+  .ds-viewer__panel[data-details-open] .ds-viewer__info {
+    display: block; max-height: 60dvh; overflow-y: auto; overscroll-behavior: contain; margin-bottom: var(--space-3);
+    animation: ds-sheet-in var(--dur-med) var(--ease);
+  }
   .ds-viewer:has(.ds-viewer__frame[style*="--pull"]) { background: color-mix(in srgb, var(--surface-overlay) 60%, transparent); }
 
   /* ── Hero: on a phone its picture is the stage. The clip fills the block edge to edge, drifts slowly, and the

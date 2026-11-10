@@ -1,3 +1,5 @@
+import {changeChoiceFromHash} from "./start-tasks";
+
 /* What the hash asks for, and what to say when that screen cannot open yet.
    One place decides this (rule 26): a screen that is not ready, or a hash that names no
    screen, says in plain words what is missing and offers the one action that works now.
@@ -27,14 +29,15 @@ export type RouteInput = {
   /** A video or motion workflow exists for this computer. Whether it can run right now is the
       screen's own problem to show, so a stopped ComfyUI never hides the screen. */
   video: boolean;
+  effects?: boolean;
   motion: boolean;
   image: boolean;
   /** Audio requirements are known (the server answered). */
   audioKnown: boolean;
   audio: boolean;
-  /** Video extension requirements are known. */
-  trimKnown: boolean;
-  trim: boolean;
+  /** Supplied by the Trim route after checking the video tools. */
+  trimKnown?: boolean;
+  trim?: boolean;
 };
 
 /** Every hash this app opens a screen for. Anything else is a stale or mistyped link. */
@@ -66,7 +69,7 @@ export function routeState(input: RouteInput): RouteState {
     if(!input.catalogueKnown)return CHECKING;
     if(!parts[1]||!input.workflowIds?.includes(parts[1]))return unknown();
   }
-  if(section==="video"&&parts[1]==="transform"&&parts[2]&&!['person','motion','restyle','swap','edit','reframe'].includes(parts[2]))return unknown();
+  if(section==="video"&&parts[1]==="transform"&&parts[2]&&parts[2]!=="edit"&&!changeChoiceFromHash(input.hash??""))return unknown();
   if(section==="image"&&parts[1]&&input.catalogueKnown&&!input.workflowIds?.includes(parts[1]))return unknown();
   if(section==="3d"&&parts[1]==="image"&&parts[2]&&parts[2]!=="auto"&&input.catalogueKnown&&!input.workflowIds?.includes(parts[2]))return unknown();
   switch (section) {
@@ -81,6 +84,10 @@ export function routeState(input: RouteInput): RouteState {
       if (!input.canCreate) return READ_ONLY;
       return input.audio ? { kind: "screen" } : notReady("Audio is not ready here", "This computer cannot make audio yet. Models shows what is ready.");
     case "video":
+      if (mode === "effects" && input.effects === false) {
+        if (!input.catalogueKnown) return CHECKING;
+        return input.canCreate ? notReady("Effects is not ready here", "Set up HyperFlow H3 Flash for Effects in Models.") : READ_ONLY;
+      }
       if (mode === "trim") {
         if (!input.trimKnown) return CHECKING;
         if (!input.canCreate) return READ_ONLY;

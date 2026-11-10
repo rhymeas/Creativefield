@@ -46,7 +46,7 @@ const THREE_D:Group[]=[
 const F="/examples/features/",feature=(name:string):[string,string]=>[`${F}${name}.mp4`,`${F}${name}.jpg`];
 const CLIPS:[RegExp,string,string][]=([
   [/storyboard/i,"storyboard"],
-  [/openjutsu/i,null],
+  [/openjutsu/i,"openjutsu"],
   [/swap|edit area|region|masked/i,"swap-thing"],
   [/relight/i,"relight"],
   [/angle/i,"angles"],

@@ -10,7 +10,7 @@ import {TeamChoice} from './TeamChoice';
 import {ToolHero,type HeroKind} from './heroes';
 
 /** The same encouraging hero as the local tool, above the cloud tool's results. */
-const HERO:Partial<Record<CloudFeature,HeroKind>>={'video-create':'create',effects:'effects',restyle:'restyle','replace-character':'replace',openjutsu:'replace','object-swap':'swap','motion-transfer':'motion','video-edit':'edit',keyframes:'keyframes','image-create':'picture','image-edit':'imageedit','image-angles':'angles','image-relight':'relight'};
+const HERO:Partial<Record<CloudFeature,HeroKind>>={'image-to-3d':'model3d','video-create':'create',effects:'effects',restyle:'restyle','replace-character':'replace',openjutsu:'replace','object-swap':'swap','motion-transfer':'motion','video-edit':'edit',keyframes:'keyframes','image-create':'picture','image-edit':'imageedit','image-angles':'angles','image-relight':'relight'};
 import {ApiError,composerAssets,mergeAssets,workspacePath,type Asset,type AssetPage,type Call,type Project,type Run,type User,type Workspace} from './api';
 import {insertReferenceMention,modelPromptReferences} from './prompt-reference';
 import {cloudUploadType} from './cloud-upload-type';
@@ -28,7 +28,7 @@ export function pixelSize(controls:Array<{id:string;default?:unknown;min?:number
 type Intent={projectId:string;idempotencyKey:string;capabilityId:string;version:string;routeId:string;inputs:Record<string,string>;controls:Record<string,string|number|boolean>;audioPolicy:'mute'|'replace';consent:{cloudCredits:true}};
 type Draft={model:string;inputs:Record<string,string>;controls:Record<string,string|number|boolean>;pending?:Intent};
 const defaults=(m:RouterModel)=>Object.fromEntries(m.controls.map(c=>[c.id,c.default as string|number|boolean]));
-const labels:Record<CloudFeature,string>={'image-cutout':'Cut out','video-cutout':'Remove background',talk:'Make it talk',effects:'Effect clips',keyframes:'Animate keyframes','video-upscale':'Sharpen and upscale','image-upscale':'Upscale image','image-create':'Create image','image-edit':'Edit image','image-angles':'Angles','image-relight':'Relight','video-create':'Create video','video-edit':'Edit video','replace-character':'Replace character','motion-transfer':'Motion transfer',restyle:'Restyle','object-swap':'Object swap',openjutsu:'OpenJutsu · H3 API',unsupported:'Cloud rendering'};
+const labels:Record<CloudFeature,string>={'image-to-3d':'Image to 3D','image-cutout':'Cut out','video-cutout':'Remove background',talk:'Make it talk',effects:'Effect clips',keyframes:'Animate keyframes','video-upscale':'Sharpen and upscale','image-upscale':'Upscale image','image-create':'Create image','image-edit':'Edit image','image-angles':'Angles','image-relight':'Relight','video-create':'Create video','video-edit':'Edit video','replace-character':'Replace character','motion-transfer':'Motion transfer',restyle:'Restyle','object-swap':'Object swap',openjutsu:'OpenJutsu · H3 API',unsupported:'Cloud rendering'};
 /* The choice that defines a run (which effect, how much larger) sits above the prompt, not under Advanced. */
 const LEAD_IDS=['effect','voice','upscale_factor','desired_increase','background_color'];
 const changeFeatures:CloudFeature[]=['replace-character','motion-transfer','object-swap','restyle','video-upscale','video-cutout'];
@@ -86,7 +86,7 @@ export function CloudRenderStudio({feature,workspace,project,user,call,version,c
   setBusy(role);setError('');try{const form=new FormData();form.append('file',file);const a=await call<Asset>(workspacePath(workspace.id,`assets?projectId=${project.id}`),'POST',form);if(selectionEpoch.current[role]===epoch){setAssets(old=>[a,...old]);setDraft(d=>({...d,inputs:{...d.inputs,[role]:a.id}}));}}catch(e){if(selectionEpoch.current[role]===epoch)setError((e as Error).message);}finally{setBusy('');}}
  async function queue(){
   if(!model||queueGate.current)return;queueGate.current=true;setConfirm(false);setBusy('render');setError('');
-  const controls=model.kind.startsWith('kling')?draft.controls:{...draft.controls,prompt:modelPromptReferences(String(draft.controls.prompt??''),'plain',imagePorts.length)};
+  const controls=model.kind.startsWith('kling')||!model.controls.some(c=>c.id==='prompt')?draft.controls:{...draft.controls,prompt:modelPromptReferences(String(draft.controls.prompt??''),'plain',imagePorts.length)};
   const intent=draft.pending??{projectId:project.id,idempotencyKey:crypto.randomUUID(),capabilityId:model.id,version:'1.0.0',routeId:'router',inputs:Object.fromEntries(model.inputs.filter(p=>draft.inputs[p.id]).map(p=>[p.id,draft.inputs[p.id]])),controls,audioPolicy:model.kind==='h3-reference'?'replace' as const:'mute' as const,consent:{cloudCredits:true as const}};
   // Save before HTTP so an ambiguous acknowledgement cannot mint a second paid request.
   setDraft(d=>({...d,pending:intent}));try{localStorage.setItem(key,JSON.stringify({...draft,pending:intent}));}catch{}
@@ -122,7 +122,7 @@ export function CloudRenderStudio({feature,workspace,project,user,call,version,c
    </>}
    {!model&&<EmptyState title="No compatible cloud model connected for this tool" text="This tool has no verified Comfy Router integration yet. Your local workflow remains available." action={<Button variant="secondary" onClick={onLocal}>Use this computer</Button>}/>}
   </div>
- </Panel><Block>{HERO[feature]&&<ToolHero kind={HERO[feature]!}/>}<TeamRuns examples="video" workspace={workspace} project={project} user={user} call={call} canEdit={canEdit} authorized version={version} titles={titles} capabilityId={models.map(m=>m.id)} feed={{kind:"video",capabilities:[...models.map(m=>m.id)],current:models.map(m=>m.id)}}/></Block></Split>
+ </Panel><Block>{HERO[feature]&&<ToolHero kind={HERO[feature]!}/>}<TeamRuns examples={model?.output==="model3d"?undefined:"video"} workspace={workspace} project={project} user={user} call={call} canEdit={canEdit} authorized version={version} titles={titles} capabilityId={models.map(m=>m.id)} feed={model?.output==="model3d"?undefined:{kind:"video",capabilities:[...models.map(m=>m.id)],current:models.map(m=>m.id)}}/></Block></Split>
  <ConfirmDialog open={confirm} title={`Render with ${model?.title??'Comfy Router'}?`} text="This sends the selected media to Comfy Router and its model provider, and spends your Comfy workspace credits. The cost estimate is unavailable. Only continue if you accept the current provider price." confirmLabel="Use credits and render" onCancel={()=>setConfirm(false)} onConfirm={()=>void queue()}/>
  </Page>;
 }

@@ -20,6 +20,7 @@ export function TeamChoice({label,display,value,options,onChange,disabled=false,
     {!hideTrigger&&(variant==="model"?<ModelCard title={display} subtitle={subtitle??"Local ComfyUI"} image={image} video={video} onChange={disabled?undefined:()=>setOpen(true)}/>:variant==="pill"?<Pill quiet size={size} type="button" disabled={disabled} aria-label={prefix?label:undefined} onClick={()=>setOpen(true)}>{prefix&&<span className="ds-pill__prefix">{label}</span>}{display}{size!=="lg"&&<ChevronRight size={14}/>}</Pill>:<Row label={label} display={display} disabled={disabled} onClick={()=>setOpen(true)}/>)}
     {visual||!options.length
       ?<Dialog wide={visual} open={open&&!disabled} title={label} onClose={close}>
+        {uploadControl}
         {visual?<div className="cf-form">
           {options.length>12&&<SearchField label={`Search ${label.toLowerCase()}`} value={query} onChange={setQuery} placeholder="Search by name"/>}
           {shown.length?<ThumbGrid label={label}>{shown.map(o=><div key={o.value} className="cf-pick" onMouseEnter={e=>void e.currentTarget.querySelector("video")?.play().catch(()=>{})} onMouseLeave={e=>{const v=e.currentTarget.querySelector("video");if(v){v.pause();v.currentTime=0;}}}>
@@ -27,7 +28,6 @@ export function TeamChoice({label,display,value,options,onChange,disabled=false,
             <Meta>{friendlyMediaName(o.label)}</Meta>
           </div>)}</ThumbGrid>:<EmptyState title="Nothing matches" text={onLoadMore?"Try another word or load more files.":"Try another word."}/>}
         </div>:<EmptyState title="No choices available" text={onLoadMore?"Load more files to find compatible resources.":"Add a compatible resource to this workspace first."}/>}
-        {uploadControl}
         {loadMoreError&&<div role="status"><Meta>{loadMoreError}</Meta></div>}
         {onLoadMore&&<Button variant="secondary" disabled={loadingMore} onClick={onLoadMore}>{loadingMore?"Loading…":loadMoreError?"Try again":"Load more"}</Button>}
       </Dialog>
