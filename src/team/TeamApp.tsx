@@ -38,7 +38,7 @@ import {capabilityPurpose,capabilitySurface,isCreateVideoWorkflow,isImageWorkflo
 import {isSelectedImageModel} from "../capabilities/image-model-selection";
 import {identityPhotosetWorkerAllowed} from "../image/identity-photoset";
 import {addCharacterReferences,defaultImageDraft,imageDraftWithReferences,imageRunBody,restoreImageRetakeDraft,type ImageDraft} from "../image/image-state";
-import {FLASH_EFFECT_CLIPS_ID,isEffectClips,isFlashVideoCreate,isOpenJutsuSingleSwap,isSupersededLocalVideoWorkflow,routeImageToVideo,routeImageToVideoDraft,routeTask} from "../capabilities/tasks";
+import {FLASH_EFFECT_CLIPS_ID,isEffectClips,isFlashVideoCreate,isOpenJutsuSingleSwap,routeImageToVideo,routeImageToVideoDraft,routeTask} from "../capabilities/tasks";
 import type {AudioRequirements} from "./audio/state";
 import {videoModeFromHash,type VideoEditRequirements} from "./video-edit/state";
 import {AudioStudio,CharacterWorkspace,ChatgptImageStudio,CloudRenderStudio,ComfyNodes,ImageEditor,ImageStudio,ImageTo3DPanel,KeyframeStudio,ModelToolsPanel,TeamSettings,TeamStoryboard,TextTo3DPanel,ThreeDStudio,TransformVideo,VideoEditStudio} from "./lazy-screens";
@@ -174,7 +174,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   /* On a phone the top bar keeps only the job queue and the account; Run on and the rest move into its More sheet. */
   const phone=usePhone();
   const [routeHash,setRouteHash]=useState(location.hash);
-  const [route,setRoute]=useState(sectionFromHash(location.hash)),[settings,setSettings]=useState(false),[modelsOpen,setModelsOpen]=useState(()=>sectionFromHash(location.hash)==="catalogue"),[creatingProject,setCreatingProject]=useState(false),[projects,setProjects]=useState<Project[]>([]),[projectId,setProjectId]=useState("");
+  const [route,setRoute]=useState(sectionFromHash(location.hash)),[settings,setSettings]=useState(false),[modelsRequested,setModelsRequested]=useState(false),[creatingProject,setCreatingProject]=useState(false),[projects,setProjects]=useState<Project[]>([]),[projectId,setProjectId]=useState("");
   const [workers,setWorkers]=useState<Worker[]>([]),[catalogue,setCatalogue]=useState<Catalogue>([]),[capabilityId,setCapabilityId]=useState("");
   const [addressWorkflow,setAddressWorkflow]=useState<string|null>(()=>videoWorkflowFromHash(location.hash)??null);
   const [videoMode,setVideoMode]=useState<VideoWorkspaceMode>(()=>videoModeFromHash(location.hash)??"create");
@@ -194,13 +194,12 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const [runOn,setRunOn]=useState<RunTarget>("local"),[askCloud,setAskCloud]=useState(false);
   useEffect(()=>{try{localStorage.setItem("comfyfield.intent-mode",intentMode?"1":"0");}catch{}},[intentMode]);
   const [settingsSection,setSettingsSection]=useState("account");
-  const modelsReturnHash=useRef(sectionFromHash(location.hash)==="catalogue"?"#make":location.hash||"#make");
+  const modelsReturnHash=useRef(route==="catalogue"?"#make":routeHash);
   const closeSettings=useCallback(()=>{setSettings(false);setSettingsSection("account");},[]);
-  const openModels=useCallback(()=>{if(sectionFromHash(location.hash)!=="catalogue")modelsReturnHash.current=location.hash||"#make";setModelsOpen(true);},[]);
-  const closeModels=useCallback(()=>{setModelsOpen(false);if(sectionFromHash(location.hash)==="catalogue")location.hash=modelsReturnHash.current.replace(/^#/,"")||"make";},[]);
+  const openModels=useCallback(()=>setModelsRequested(true),[]);
   useEffect(()=>{if(!authorized)setSettings(false);},[authorized]);
-  useEffect(()=>{if(!authorized)setModelsOpen(false);},[authorized]);
-  useEffect(()=>{const update=()=>{const next=sectionFromHash(location.hash);setRouteHash(location.hash);setRoute(next);if(next==="catalogue")setModelsOpen(true);else modelsReturnHash.current=location.hash||"#make";const mode=videoModeFromHash(location.hash),workflow=videoWorkflowFromHash(location.hash);if(mode)setVideoMode(mode);else if(workflow)setVideoMode("create");setAddressWorkflow(workflow??null);};addEventListener("hashchange",update);return()=>removeEventListener("hashchange",update);},[]);
+  useEffect(()=>{if(!authorized)setModelsRequested(false);},[authorized]);
+  useEffect(()=>{const update=()=>{const next=sectionFromHash(location.hash);setRouteHash(location.hash);setRoute(next);setModelsRequested(false);if(next!=="catalogue")modelsReturnHash.current=location.hash;const mode=videoModeFromHash(location.hash),workflow=videoWorkflowFromHash(location.hash);if(mode)setVideoMode(mode);else if(workflow)setVideoMode("create");setAddressWorkflow(workflow??null);};addEventListener("hashchange",update);return()=>removeEventListener("hashchange",update);},[]);
   useEffect(()=>{if(routeHash==="#video/transform/edit")location.hash="video/edit";},[routeHash]);
   const refresh=useCallback(()=>setVersion(v=>v+1),[]);
   useEffect(()=>{if(!authorized)return;const timer=setInterval(refresh,60000);return()=>clearInterval(timer);},[authorized,refresh]);
@@ -270,14 +269,21 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       editArea:!!(swapMaskRoute&&swapEditRoute),
     },
     openJutsuExperiment:replaceRoute?.manifest.id,filmStudioInstalled,
+    models:{open:modelsRequested,returnHash:modelsReturnHash.current},
     selection:{videoMode,workflowId:capabilityId,imageTab:routerImageTab},
   });
   const workspaceMenu=workspaceNavigation.menu;
-  const navigation=["openjutsu","video","motion","block","workflow","image","imageedit","remix","marketing","3d","audio","characters","influencer","library","nodes"].includes(route)?workspaceNavigation:undefined;
+  const modelsOverlay=workspaceNavigation.overlay;
+  const closeModels=()=>{
+    setModelsRequested(false);
+    if(modelsOverlay.closeHash)location.hash=modelsOverlay.closeHash;
+  };
+  const navigation=["openjutsu","video","motion","block","workflow","image","imageedit","remix","marketing","3d","audio","characters","influencer","library","nodes","catalogue"].includes(route)?workspaceNavigation:undefined;
   const resolved=navigation?.screen;
   const characters=resolved?.kind==="characters"?resolved:undefined;
   const library=resolved?.kind==="library"?resolved:undefined;
   const nodes=resolved?.kind==="nodes"&&resolved;
+  const catalogueScreen=resolved?.kind==="catalogue";
   const characterEditor=characters?.imageEditor;
   const block=resolved?.kind==="block"||resolved?.kind==="film-studio"?resolved:undefined;
   const studio=resolved?.kind==="remix"||resolved?.kind==="marketing"?resolved:undefined;
@@ -598,7 +604,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
      and a guest's account circle is just Sign in, far right. */
   const canRunAnything=user.guest?!!account?.connected:workers.length>0||!!account?.connected,signInFirst=!!user.guest&&!account?.connected;
   const section=sectionOf(route);
-  const workspaceBar=section!=="catalogue"&&!nodes&&section!=="3d";
+  const workspaceBar=!catalogueScreen&&!nodes&&section!=="3d";
   /* List-only areas keep a page hero. Production tools own their hero inside the shared right column. */
   const pageHeroKind:HeroKind|undefined=library?"library":characters?.tab==="characters"?"cast":characters?.tab;
   useDensity();
@@ -615,7 +621,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const fallbackNext=fallback.kind==="missing"&&!waiting?fallback.next:undefined;
   const fallbackTitle=waiting?"Waiting for the team server":fallback.kind==="missing"?fallback.title:"Checking what this computer can run";
   const fallbackText=fallback.kind==="missing"&&!waiting?fallback.text:undefined;
-  const topCurrent=modelsOpen?"#catalogue":section==="characters"?"#studios":`#${route==="openjutsu"?"video":route==="imageedit"?"image":route}`;
+  const topCurrent=modelsOverlay.open?"#catalogue":section==="characters"?"#studios":`#${route==="openjutsu"?"video":route==="imageedit"?"image":route}`;
   async function savePreviewCrop(file:File){
     if(!canCreate||!project)throw new Error("Choose a project with creator access to save a crop.");
     const form=new FormData();form.append("file",file);
@@ -854,7 +860,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       info={<WorkflowInfoButton/>}
       />}
     {askCloud&&<CloudRunConsent onUse={useCloud} onKeep={keepLocal}/>}
-    {(section==="catalogue"||nodes)&&<ProblemBar/>}
+    {(catalogueScreen||nodes)&&<ProblemBar/>}
     {offline&&<Notice priority={100} title="Team server unavailable" actions={<Button variant="secondary" onClick={refresh}>Retry connection</Button>}>Drafts remain available. No execution route will be switched.</Notice>}
     {!authorized&&!offline&&<Notice priority={90} title="Reconnect to continue" actions={<Button variant="secondary" onClick={onReconnect}>Reconnect</Button>}>Your draft is preserved.</Notice>}
     {error&&!offline&&authorized&&failure&&<Notice priority={50} title={failure.title||undefined} actions={<Button variant="secondary" onClick={refresh}>Try again</Button>} details={error}>{failure.text}</Notice>}
@@ -884,7 +890,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       :nodes?<section className="cf-team__content cf-nodes-page"><ComfyNodes screen={nodes}
         workspace={workspace} workers={targetWorkers(workers,nodes.target)} catalogue={catalogue.filter(m=>localReady.has(m.id))}
         canEdit={canCreate} serverOffline={offline} onChanged={refresh} onWorkerSettings={openWorkerSettings}/></section>
-      :route==="catalogue"?<CapabilityCatalogue manifests={catalogue.filter(m=>!m.mediaContract?.additionalMaskInputs?.length)} statuses={statuses} checking={checking} recheckLabel={workspace.role==="admin"?"Probe workers and recheck":"Refresh status"} onRecheck={()=>void recheck()} onChoose={choose} library={controls=><ComfyLibraryPanel workspace={workspace} workers={workers} call={call} controls={controls} onWorkerSettings={()=>setSettings(true)}/>} onLibrary={()=>{const enhancer=readyManifests.find(m=>m.category==="enhance");if(!enhancer)return;setVideoMode("create");setCapabilityId(enhancer.id);location.hash="video";}}/>
+      :catalogueScreen?null
       :<div className="cf-team__body">
       {(route==="projects"||!project)&&<section className="cf-team__content"><Page narrow><TeamProjects projects={projects} projectId={projectId} canCreate={canCreate} onCreate={createProject} onOpen={id=>{setProjectId(id);location.hash="library";}}/></Page></section>}
       {!routerPage&&project&&route!=="projects"&&route!=="openjutsu"&&!showScreen&&<section className="cf-team__content"><Page narrow><EmptyState stage title={fallbackTitle} text={fallbackText} action={fallbackNext?<Button variant="secondary" onClick={()=>{location.hash=fallbackNext.href;}}>{fallbackNext.label}</Button>:undefined}/></Page></section>}
@@ -981,8 +987,12 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     </div>
     </div>
     </AmbientReelProvider></RecreateMediaProvider></RecreateProvider></MediaEditProvider></WorkflowInfoProvider>
-    <Dialog wide className="cf-models-dialog" open={modelsOpen&&authorized} title="Models" onClose={closeModels}>
-      <CapabilityCatalogue embedded manifests={catalogue.filter(m=>!m.mediaContract?.additionalMaskInputs?.length&&(user.guest||!isSupersededLocalVideoWorkflow(m.id)))} statuses={statuses} checking={checking} recheckLabel={workspace.role==="admin"?"Probe workers and recheck":"Refresh status"} onRecheck={()=>void recheck()} onChoose={id=>{setModelsOpen(false);choose(id);}} library={controls=><ComfyLibraryPanel workspace={workspace} workers={workers} call={call} controls={controls} onWorkerSettings={()=>setSettings(true)}/>} onLibrary={()=>{const enhancer=readyManifests.find(m=>m.category==="enhance");if(!enhancer)return;setModelsOpen(false);setVideoMode("create");setCapabilityId(enhancer.id);location.hash="video";}}/>
+    <Dialog wide className="cf-models-dialog" open={modelsOverlay.open&&authorized} title="Models" onClose={closeModels}>
+      <CapabilityCatalogue embedded manifests={workspaceNavigation.catalogueManifests} statuses={statuses} checking={checking}
+        recheckLabel={workspace.role==="admin"?"Probe workers and recheck":"Refresh status"}
+        onRecheck={()=>void recheck()} onChoose={id=>{setModelsRequested(false);choose(id);}}
+        library={controls=><ComfyLibraryPanel workspace={workspace} workers={workers} call={call} controls={controls} onWorkerSettings={()=>setSettings(true)}/>}
+        onLibrary={()=>{const enhancer=readyManifests.find(m=>m.category==="enhance");if(!enhancer)return;setModelsRequested(false);setVideoMode("create");setCapabilityId(enhancer.id);location.hash="video";}}/>
     </Dialog>
     <ProjectCreateDialog open={creatingProject} onClose={()=>setCreatingProject(false)} onCreate={createProject}/>
     <TeamSettings initialSection={settingsSection} open={settings&&authorized} onClose={closeSettings} workspace={workspace} user={user} workers={workers} call={call} onChanged={refresh} onSignOut={onSignOut}/>

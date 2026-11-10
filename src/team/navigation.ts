@@ -210,7 +210,15 @@ export function resolveScreen(input:NavigationInput){
   const hosted=input.audience!=="local";
   const router:RouterAvailability=feature=>input.routerFeatures?.has(feature)??routerModelsFor(feature).length>0;
   const models=modelAvailability(input),menu=resolveMenu(input,models,router);
-  const overlay={open:root==="app"&&(section==="catalogue"||!!input.models?.open),returnHash:input.models?.returnHash||"#make"};
+  const catalogueAddress=section==="catalogue";
+  const previousHash=input.models?.returnHash;
+  const returnHash=previousHash&&sectionFromHash(previousHash)!=="catalogue"?previousHash:"#make";
+  const overlay={
+    open:root==="app"&&input.access!=="reconnect"&&(catalogueAddress||!!input.models?.open),
+    returnHash,...(catalogueAddress?{closeHash:returnHash}:{}),
+  };
+  const catalogueManifests=overlay.open?models.catalogue.filter(manifest=>
+    !manifest.mediaContract?.additionalMaskInputs?.length&&(hosted||!isSupersededLocalVideoWorkflow(manifest.id))):[];
   const openJutsu=section==="openjutsu"?resolveOpenJutsu({hash,catalogue:models.catalogue,
     localReady:input.localReady??input.ready,
     ready:models.ready,hosted,experiment:input.openJutsuExperiment}):undefined;
@@ -256,7 +264,7 @@ export function resolveScreen(input:NavigationInput){
   const blockTarget:RunTarget=blockRouter&&(hosted||targets.selected==="router")?"router":"local";
   const audio=section==="audio",routerAudio=audio&&router("talk");
   const audioTarget:RunTarget=hosted||(targets.selected==="router"&&routerAudio)?"router":"local";
-  const runTargets=nodes||library||characters||filmStudio?{selected:targets.selected,choices:[]}
+  const runTargets=catalogueAddress||nodes||library||characters||filmStudio?{selected:targets.selected,choices:[]}
     :block?{selected:blockTarget,choices:targets.choices.filter(choice=>choice.target==="router"?blockRouter:choice.target==="local")}
     :audio?{selected:audioTarget,choices:targets.choices.filter(choice=>
     choice.target==="local"||choice.target==="router"&&routerAudio)}
@@ -302,6 +310,7 @@ export function resolveScreen(input:NavigationInput){
 
   function screen():ResolvedScreen{
     if(root!=="app")return {kind:root};
+    if(catalogueAddress)return {kind:"catalogue"};
     if(nodes)return hosted?{kind:"nodes",target:"cloud"}:{kind:"nodes",target:"local",entry:nodeEntry(hash)};
     if(!input.hasProject||section==="projects")return {kind:"projects"};
     if(library)return libraryTab==="runs"?{kind:"library",tab:"runs",linkedRunId:detail}:{kind:"library",tab:"assets"};
@@ -399,6 +408,6 @@ export function resolveScreen(input:NavigationInput){
   }
 
   const makeRealEntry=models.previs?{manifest:models.previs,hash:nativeWorkflowHash(models.previs)}:undefined;
-  return {requestedHash,redirect,section,screen:screen(),tabs:tabs(),menu,runTargets,overlay,makeRealEntry,pinnedMakeReal:!!makeReal,imageWorkflow,
+  return {requestedHash,redirect,section,screen:screen(),tabs:tabs(),menu,runTargets,overlay,catalogueManifests,makeRealEntry,pinnedMakeReal:!!makeReal,imageWorkflow,
     access:input.access??"ready"};
 }
