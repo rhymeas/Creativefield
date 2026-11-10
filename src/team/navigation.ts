@@ -50,6 +50,11 @@ export type AccountAction="guide"|"settings"|"sign-out-comfy"|"sign-out";
 type AccountNavigation=
   | {kind:"sign-in"}
   | {kind:"menu";items:AccountAction[];showKeyPrivacy:boolean};
+export type SettingsTabId="account"|"chatgpt"|"members"|"workers"|"aitext"|"providers";
+type SettingsTab={id:SettingsTabId;label:string};
+export type SettingsNavigation={tabs:SettingsTab[];canSignOut:boolean;workerSetup:boolean};
+const accountTab={id:"account",label:"Account"} as const;
+const workersTab={id:"workers",label:"Workers"} as const;
 const routerImageTools=[
   ["angles","camera angles","Turn the subject to a new angle"],
   ["relight","relight","Change the light and the mood"],
@@ -62,11 +67,12 @@ export type NavigationInput={
   audience:"local"|"guest"|"signed-in-guest";
   hasProject:boolean;
   canCreate:boolean;
+  hasWorkers?:boolean;
   workspaceAdmin?:boolean;
   localSingleUser?:boolean;
   access?:"ready"|"offline"|"reconnect";
   runTarget:RunTarget;
-  cloud:{worker:boolean;canSubmit?:boolean;consent?:boolean};
+  cloud:{worker:boolean;connected?:boolean;canSubmit?:boolean;consent?:boolean};
   catalogue:CapabilityManifestV2[]|null;
   ready:ReadonlySet<string>;
   localReady?:ReadonlySet<string>;
@@ -237,7 +243,7 @@ function resolveImageMenu(hosted:boolean,models:Models,router:RouterAvailability
   return entries;
 }
 
-function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailability){
+function resolveMenu(input:NavigationInput,section:string,models:Models,router:RouterAvailability){
   const hosted=input.audience!=="local",signedIn=input.audience==="signed-in-guest";
   const cloudJobs=signedIn&&input.cloud.canSubmit===true;
   const sections=["video","image","3d",...(!hosted?["audio"]:[]),"make",...(!hosted||cloudJobs?["catalogue","nodes"]:[]),"library","projects"];
@@ -292,8 +298,22 @@ function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailabili
     items:["guide","settings",...(signedIn?["sign-out-comfy"] as const:input.localSingleUser?[]:["sign-out"] as const)],
     showKeyPrivacy:signedIn,
   };
-  const settingsTabs=hosted?["account","workers"]:["account","chatgpt",...(input.workspaceAdmin?["members","workers","ai-text","providers"]:[])];
-  return {sections,video,image,threeD,tools,account,settingsTabs,
+  const workerSetup=!hosted&&!!input.workspaceAdmin;
+  const settingsTabs:SettingsTab[]=[accountTab];
+  if(hosted)settingsTabs.push(workersTab);
+  else {
+    settingsTabs.push({id:"chatgpt",label:"ChatGPT"});
+    if(workerSetup)settingsTabs.push(
+      {id:"members",label:"Members"},workersTab,
+      {id:"aitext",label:"AI text"},{id:"providers",label:"Providers / keys"},
+    );
+  }
+  const settings:SettingsNavigation={
+    tabs:settingsTabs,workerSetup,canSignOut:account.kind==="menu"&&account.items.includes("sign-out"),
+  };
+  const jobs=signedIn||!hosted&&!!(input.hasWorkers||input.cloud.connected);
+  const topBar={jobs,freeInput:jobs&&section!=="openjutsu"};
+  return {sections,video,image,threeD,tools,account,settings,topBar,
     videoWorkflows:videoWorkflows.map(manifest=>manifest.id),imageWorkflows:hosted?[]:models.image.map(manifest=>manifest.id),
     videoFooter:footer,imageFooter:footer};
 }
@@ -319,7 +339,7 @@ export function resolveScreen(input:NavigationInput){
   const [,part,detail,assetId]=hash.replace(/^#/,"").split("/");
   const hosted=input.audience!=="local";
   const router:RouterAvailability=feature=>input.routerFeatures?.has(feature)??routerModelsFor(feature).length>0;
-  const models=modelAvailability(input),menu=resolveMenu(input,models,router);
+  const models=modelAvailability(input),menu=resolveMenu(input,section,models,router);
   const catalogueAddress=section==="catalogue";
   const previousHash=input.models?.returnHash;
   const returnHash=previousHash&&sectionFromHash(previousHash)!=="catalogue"?previousHash:"#make";

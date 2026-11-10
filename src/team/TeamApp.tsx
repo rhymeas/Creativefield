@@ -165,7 +165,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   /* On a phone the top bar keeps only the job queue and the account; Run on and the rest move into its More sheet. */
   const phone=usePhone();
   const [routeHash,setRouteHash]=useState(location.hash);
-  const [route,setRoute]=useState(sectionFromHash(location.hash)),[settings,setSettings]=useState(false),[modelsRequested,setModelsRequested]=useState(false),[creatingProject,setCreatingProject]=useState(false);
+  const [route,setRoute]=useState(sectionFromHash(location.hash)),[modelsRequested,setModelsRequested]=useState(false),[creatingProject,setCreatingProject]=useState(false);
   const {projects,projectsLoading,project,projectId,setProjectId,replaceProjects,addProject}=useProjectSelection(user.id,workspace.id);
   const [workers,setWorkers]=useState<Worker[]>([]),[catalogue,setCatalogue]=useState<Catalogue>([]),[capabilityId,setCapabilityId]=useState("");
   const [addressWorkflow,setAddressWorkflow]=useState<string|null>(()=>videoWorkflowFromHash(location.hash)??null);
@@ -185,12 +185,11 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const [routerImageTab,setRouterImageTab]=useState<ImageTab>("create");
   const [runOn,setRunOn]=useState<RunTarget>("local"),[askCloud,setAskCloud]=useState(false);
   useEffect(()=>{try{localStorage.setItem("comfyfield.intent-mode",intentMode?"1":"0");}catch{}},[intentMode]);
-  const [settingsSection,setSettingsSection]=useState("account");
+  const [settings,setSettings]=useState<"account"|"workers"|null>(null);
   const modelsReturnHash=useRef(route==="catalogue"?"#make":routeHash);
-  const closeSettings=useCallback(()=>{setSettings(false);setSettingsSection("account");},[]);
+  const closeSettings=useCallback(()=>setSettings(null),[]);
   const openModels=useCallback(()=>setModelsRequested(true),[]);
-  useEffect(()=>{if(!authorized)setSettings(false);},[authorized]);
-  useEffect(()=>{if(!authorized)setModelsRequested(false);},[authorized]);
+  useEffect(()=>{if(!authorized){setSettings(null);setModelsRequested(false);}},[authorized]);
   useEffect(()=>{const update=()=>{const next=sectionFromHash(location.hash);setRouteHash(location.hash);setRoute(next);setModelsRequested(false);if(next!=="catalogue")modelsReturnHash.current=location.hash;const mode=videoModeFromHash(location.hash),workflow=videoWorkflowFromHash(location.hash);if(mode)setVideoMode(mode);else if(workflow)setVideoMode("create");setAddressWorkflow(workflow??null);};addEventListener("hashchange",update);return()=>removeEventListener("hashchange",update);},[]);
   useEffect(()=>{if(routeHash==="#video/transform/edit")location.hash="video/edit";},[routeHash]);
   const refresh=useCallback(()=>setVersion(v=>v+1),[]);
@@ -243,15 +242,18 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const localReady=runOn==="local"||runOn==="router"?readyIds:new Set(offline?[]:
     catalogue.filter(m=>localWorkers.some(w=>workerReadiness(m,w).state==="ready")).map(m=>m.id));
   const workspaceAudience=user.guest?(account?.connected?"signed-in-guest":"guest"):"local";
+  const hosted=workspaceAudience!=="local";
   const navigation=resolveScreen({
     hash:routeHash,
     audience:workspaceAudience,
     localSingleUser:user.localSingleUser,
+    workspaceAdmin:workspace.role==="admin",
     hasProject:!!project,
     canCreate,
+    hasWorkers:workers.length>0,
     access:offline?"offline":authorized?"ready":"reconnect",
     runTarget:runOn,
-    cloud:{worker:!!cloudWorker,canSubmit:account?.canSubmit},
+    cloud:{worker:!!cloudWorker,connected:account?.connected,canSubmit:account?.canSubmit},
     catalogue:offline||!authorized||project||catalogue.length?catalogue:null,
     ready:readyIds,
     localReady,
@@ -317,13 +319,13 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     if(value!=="cloud"){setRunOn("local");setAskCloud(false);return;}
     /* A hosted guest signs in with their own Comfy Cloud key instead of setting up a worker. */
     if(user.guest&&!account?.connected){setAskCloud(false);setCloudSignIn(true);return;}
-    if(!cloudWorker){setAskCloud(false);setSettingsSection("workers");setSettings(true);return;}
+    if(!cloudWorker){setAskCloud(false);setSettings("workers");return;}
     let accepted=false;try{accepted=localStorage.getItem(cloudConsentKey)==="yes";}catch{}
     if(accepted){setRunOn("cloud");setAskCloud(false);return;}
     setAskCloud(true);
   }
   /* A hosted guest has no worker to add: their worker is Comfy Cloud, reached by signing in. */
-  function openWorkerSettings(){if(user.guest){setCloudSignIn(true);return;}setSettingsSection("workers");setSettings(true);}
+  function openWorkerSettings(){if(hosted){setCloudSignIn(true);return;}setSettings("workers");}
   function useCloud(){try{localStorage.setItem(cloudConsentKey,"yes");}catch{}setAskCloud(false);setRunOn("cloud");}
   function keepLocal(){setAskCloud(false);setRunOn("local");}
   /* Signing in names the credits in its own words, so it is also the yes to running on Comfy Cloud. */
@@ -588,9 +590,6 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   videoMenu.groups=groupMenu("video",[...videoMenu.features,...videoMenu.models]);
   if(threeDMenu)threeDMenu.groups=groupMenu("3d",[...threeDMenu.features,...threeDMenu.models]);
   imageMenu.groups=groupMenu("image",[...imageMenu.features,...imageMenu.models]);
-  /* Until something can render (a guest signed in, or a worker or Comfy Cloud set up) Free input and Jobs only add noise,
-     and a guest's account circle is just Sign in, far right. */
-  const canRunAnything=user.guest?!!account?.connected:workers.length>0||!!account?.connected;
   const section=sectionOf(route);
   const workspaceBar=!catalogueScreen&&!nodes&&section!=="3d";
   useDensity();
@@ -769,7 +768,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     }
     return <CloudRenderStudio key={`${workspace.id}:${project.id}:openjutsu`} feature="openjutsu"
       workspace={workspace} project={project} user={user} call={call} version={version} canEdit={canCreate}
-      onQueued={refresh} onSettings={()=>user.guest?setCloudSignIn(true):setSettings(true)}
+      onQueued={refresh} onSettings={()=>hosted?setCloudSignIn(true):setSettings("account")}
       onLocal={()=>{setRunOn("local");location.hash=openjutsuCanRunLocal?"openjutsu":"video";}}/>;
   }
 
@@ -789,7 +788,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     <TeamChoice label="Workspace" variant="pill" display={workspace.name} value={workspace.id} onChange={onWorkspace}
       options={workspaces.map(w=>({value:w.id,label:w.name,note:w.role}))}/>
   </div>;
-  const jobs=canRunAnything&&<JobQueueIndicator version={version} workspace={workspace} call={call} authorized={authorized} titles={catalogueTitles(catalogue)} onOpenRun={run=>{setProjectId(run.project_id);location.hash=`library/runs/${run.id}`;}}/>;
+  const jobs=workspaceMenu.topBar.jobs&&<JobQueueIndicator version={version} workspace={workspace} call={call} authorized={authorized} titles={catalogueTitles(catalogue)} onOpenRun={run=>{setProjectId(run.project_id);location.hash=`library/runs/${run.id}`;}}/>;
   const screenAccess={workspace,call,canEdit:canCreate};
   const studioAccess={...screenAccess,user,authorized};
   const inProject=(render:(project:Project)=>ReactNode)=>()=>project&&render(project);
@@ -859,7 +858,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       </section>),
     router:inProject(project=>routerScreen&&<section className="cf-team__content"><CloudRenderStudio key={`${workspace.id}:${project.id}:${route}:${videoMode}:${routerImageTab}:${linkedImage??""}:${changeChoiceFromHash(routeHash)}`}
       {...screenAccess} incoming={incoming} feature={routerScreen.feature} project={project} user={user} version={version} onQueued={refresh}
-      onSettings={()=>user.guest?setCloudSignIn(true):setSettings(true)} onLocal={()=>setRunOn("local")}
+      onSettings={()=>hosted?setCloudSignIn(true):setSettings("account")} onLocal={()=>setRunOn("local")}
       onFeature={f=>{location.hash=`video/transform/${f==="replace-character"?"person":f==="motion-transfer"?"motion":f==="object-swap"?"swap":f==="video-upscale"?"upscale":f==="video-cutout"?"cutout":"restyle"}`;}}/></section>),
     "3d":inProject(project=>threeD&&<section className="cf-team__content cf-nodes-page">
         <ThreeDStudio tool={threeD.tool} navigation={workspaceMenu.threeD} status={<ProblemBar/>}>
@@ -941,7 +940,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const accountAudience=audienceOf(user);
   const accountActions:Record<AccountAction,UserMenuItem>={
     guide:{id:"guide",label:"How it works",icon:<CircleHelp size={14}/>,onSelect:()=>setGuide(true)},
-    settings:{id:"settings",label:settingsLabel(accountAudience),icon:<Settings size={14}/>,onSelect:()=>setSettings(true)},
+    settings:{id:"settings",label:settingsLabel(accountAudience),icon:<Settings size={14}/>,onSelect:()=>setSettings("account")},
     "sign-out-comfy":{id:"cloud-out",label:"Sign out of Comfy",icon:<LogOut size={14}/>,onSelect:()=>void signOutCloud()},
     "sign-out":{id:"out",label:"Sign out",icon:<LogOut size={14}/>,onSelect:()=>void onSignOut()},
   };
@@ -966,13 +965,18 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       items={accountMenu.items.map(action=>accountActions[action])}
     />;
   const runControls=<>
-    {route!=="openjutsu"&&canRunAnything&&<ExpandToggle icon={<Sparkles size={16}/>} label="Free input" on={intentMode} onChange={setIntentMode}/>}
+    {workspaceMenu.topBar.freeInput&&<ExpandToggle icon={<Sparkles size={16}/>} label="Free input" on={intentMode} onChange={setIntentMode}/>}
     {runOnControl}
     {workspaceControl}
   </>;
   return <div className="cf-team">
     <Welcome tools={workspaceMenu.tools} onOpen={openStartTask} onCloud={accountMenu.kind==="sign-in"?()=>setCloudSignIn(true):undefined}/>
-    {guide&&<Guide hosted={!!user.guest} cloudConnected={!!account?.connected} onClose={()=>setGuide(false)} onCloudSignIn={user.guest?()=>{setGuide(false);setCloudSignIn(true);}:undefined} onOpenWorkers={user.guest||workspace.role!=="admin"?undefined:()=>{setGuide(false);openWorkerSettings();}}/>}
+    {guide&&<Guide
+      hosted={hosted} cloudConnected={!!account?.connected} onClose={()=>setGuide(false)}
+      onCloudSignIn={hosted?()=>{setGuide(false);setCloudSignIn(true);}:undefined}
+      onOpenWorkers={workspaceMenu.settings.workerSetup
+        ?()=>{setGuide(false);openWorkerSettings();}:undefined}
+    />}
     {cloudSignIn&&<CloudSignIn workspaceId={workspace.id} call={call} onClose={()=>setCloudSignIn(false)} onSignedIn={signedInCloud}/>}
     <ScrollFades/><Reveal/>
     <TopBar
@@ -1031,7 +1035,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
           location.hash=action.href;
         }}
         :undefined}
-      end={<><ProblemBar/>{navigation.section==="make"&&<GettingStarted userId={user.id} workspaceId={workspace.id} admin={workspace.role==="admin"} audience={audienceOf(user)} workers={workers} onModels={openModels} onSettings={()=>{setSettingsSection("workers");setSettings(true);}}/>}</>}
+      end={<><ProblemBar/>{navigation.section==="make"&&<GettingStarted userId={user.id} workspaceId={workspace.id} admin={workspace.role==="admin"} audience={audienceOf(user)} workers={workers} onModels={openModels} onSettings={()=>setSettings("workers")}/>}</>}
       info={<WorkflowInfoButton/>}
       />}
     {askCloud&&<CloudRunConsent onUse={useCloud} onKeep={keepLocal}/>}
@@ -1048,11 +1052,14 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       <CapabilityCatalogue embedded manifests={navigation.catalogueManifests} statuses={statuses} checking={checking}
         recheckLabel={workspace.role==="admin"?"Probe workers and recheck":"Refresh status"}
         onRecheck={()=>void recheck()} onChoose={id=>{setModelsRequested(false);choose(id);}}
-        library={controls=><ComfyLibraryPanel workspace={workspace} workers={workers} call={call} controls={controls} onWorkerSettings={()=>setSettings(true)}/>}
+        library={controls=><ComfyLibraryPanel workspace={workspace} workers={workers} call={call} controls={controls} onWorkerSettings={()=>setSettings("account")}/>}
         onLibrary={()=>{const enhancer=readyManifests.find(m=>m.category==="enhance");if(!enhancer)return;setModelsRequested(false);setVideoMode("create");setCapabilityId(enhancer.id);location.hash="video";}}/>
     </Dialog>
     <ProjectCreateDialog open={creatingProject&&canCreate} onClose={()=>setCreatingProject(false)} onCreate={createProject}/>
-    <TeamSettings initialSection={settingsSection} open={settings&&authorized} onClose={closeSettings} workspace={workspace} user={user} workers={workers} call={call} onChanged={refresh} onSignOut={onSignOut}/>
+    <TeamSettings
+      initialSection={authorized?settings:null} navigation={workspaceMenu.settings} onClose={closeSettings}
+      workspace={workspace} user={user} workers={workers} call={call} onChanged={refresh} onSignOut={onSignOut}
+    />
   </div>;
 }
 
