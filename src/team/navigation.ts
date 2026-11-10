@@ -18,6 +18,9 @@ export type ImageTab="create"|"angles"|"relight"|"edit"|"upscale"|"cutout";
 export type ImageEditEntry="annotate"|"modify"|"relight";
 type Readiness="checking"|"ready"|"unavailable";
 type RouterAvailability=(feature:CloudFeature)=>boolean;
+export type VideoMenuId="openjutsu"|"create"|"trim"|"edit"|"talk"|"storyboard"|"transform"|"motion"|"enhance";
+
+const videoEntry=(id:VideoMenuId,title:string,text:string,href:string)=>({id,title,text,href});
 
 export type NavigationInput={
   hash:string;
@@ -140,9 +143,7 @@ function modelAvailability(input:NavigationInput){
   const imageStudios={remix:implemented.filter(remixImageModel),marketing:implemented.filter(adImageModel)};
   const motionChoices=implemented.filter(isMotionTransfer);
   return {catalogue,implemented,ready,image,previs,defaultEffects,imageStudios,motionChoices,threeDImages:imageTo3DWorkflows(catalogue),
-    effects:!!defaultEffects&&input.ready.has(defaultEffects.id),
-    motion:motionChoices.some(manifest=>input.ready.has(manifest.id)),
-    enhance:ready.some(manifest=>capabilitySurface(manifest)==="video-enhance")};
+    effects:!!defaultEffects&&input.ready.has(defaultEffects.id)};
 }
 type Models=ReturnType<typeof modelAvailability>;
 
@@ -151,14 +152,21 @@ function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailabili
   const cloudJobs=signedIn&&input.cloud.canSubmit===true;
   const sections=["video","image","3d",...(!hosted?["audio"]:[]),"make",...(!hosted||cloudJobs?["catalogue","nodes"]:[]),"library","projects"];
   const footer=!hosted?"catalogue":signedIn&&input.cloud.worker?"import":null;
-  const video=[
-    ...(!hosted||router("openjutsu")?["openjutsu"]:[]),"create",
-    ...(input.requirements.trim==="ready"?["trim"]:[]),...(input.requirements.editArea?["edit"]:[]),
-    ...(hosted&&router("talk")?["talk"]:[]),...(!hosted||router("video-create")?["storyboard"]:[]),
-    "transform",...(models.motion?["motion"]:[]),...(models.enhance?["enhance"]:[]),
-  ];
-  const videoWorkflows=models.ready.filter(manifest=>isVideoWorkflow(manifest)&&(!hosted||cloudJobs&&supportsCloud(manifest))&&!/^vace-.*restyle/.test(manifest.id)&&
+  const videoWorkflows=models.ready.filter(manifest=>isVideoWorkflow(manifest)&&
+    (!hosted||cloudJobs&&input.cloud.worker&&supportsCloud(manifest))&&!/^vace-.*restyle/.test(manifest.id)&&
     (capabilitySurface(manifest)!=="video-create"||isFlashVideoCreate(manifest.id)||imported(manifest)));
+  const enhance=videoWorkflows.find(manifest=>manifest.category==="enhance");
+  const video=[
+    ...(!hosted||router("openjutsu")?[videoEntry("openjutsu","OpenJutsu · H3 API","Experimental character/reference video generation through Comfy Router","#openjutsu")]:[]),
+    videoEntry("create","Create Video","Generate video from text or images","#video/create"),
+    ...(input.requirements.trim==="ready"?[videoEntry("trim","Trim Video","Cut an exact decoded frame range locally","#video/trim")]:[]),
+    ...(input.requirements.editArea?[videoEntry("edit","Edit Area","Edit a selected area of your video","#video/edit")]:[]),
+    ...(hosted&&router("talk")?[videoEntry("talk","Make it talk","Lip sync a video to a voice","#audio")]:[]),
+    ...(!hosted||router("video-create")?[videoEntry("storyboard","Storyboard","Plan shots and assemble them into one video","#video/storyboard")]:[]),
+    videoEntry("transform","Transform Video","Transfer motion, swap objects or restyle a video","#video/transform"),
+    ...(videoWorkflows.some(isMotionTransfer)?[videoEntry("motion","Motion Control","Transfer motion from a video to a character","#motion")]:[]),
+    ...(enhance?[videoEntry("enhance","Video Upscale","Enhance video quality",nativeWorkflowHash(enhance))]:[]),
+  ];
   const localImageTabs=(["create","angles","relight"] as const).filter(tab=>imageTabTarget(tab,models.image));
   const image=[...(!hosted&&!localImageTabs.includes("create")?[]:["create"]),"fotofield"];
   if(hosted){

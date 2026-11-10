@@ -51,7 +51,7 @@ import {beginOperation,finishOperation,invalidateOperation,operationGate} from "
 import type {IntentTarget} from "./intent/router";
 import {nativeWorkflowHash,videoWorkflowMode,type VideoWorkspaceMode} from "./workflow-navigation";
 import {isOpenJutsuAdvanced} from "../capabilities/openjutsu-advanced";
-import {imageTabFor,imageTabTarget,resolveScreen,type ImageTab,type ResolvedScreen} from "./navigation";
+import {imageTabFor,imageTabTarget,resolveScreen,type ImageTab,type ResolvedScreen,type VideoMenuId} from "./navigation";
 export {imageTabFor,imageTabTarget} from "./navigation";
 export type {ImageTab} from "./navigation";
 import {sectionFromHash} from "./route-state";
@@ -65,6 +65,9 @@ import {RecreateMediaProvider,RecreateProvider,type RecreateMedia,type RecreateR
 
 /** A worker's kind comes from the server; the shared Worker type does not carry it yet. */
 export {videoWorkflowMode} from "./workflow-navigation";
+const VIDEO_MENU_ICONS:Partial<Record<VideoMenuId,typeof Sparkles>>={
+  create:Video,trim:Scissors,storyboard:Clapperboard,motion:Move,enhance:Maximize2,
+};
 const VIDEO_TAB_LABELS:Record<string,string>={
   workflow:"Workflow",storyboard:"Storyboard",keyframes:"Keyframes",create:"Create Video",
   edit:"Edit Area",transform:"Transform Video",openjutsu:"OpenJutsu",makereal:"Make it real",effects:"Effects",trim:"Trim",
@@ -404,7 +407,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const openedImageRun=openedImageId?imageRuns.find(run=>run.output_ids.includes(openedImageId)):undefined;
   const preferPruna=(openedImageRun?.capability_id??capabilityId).startsWith("pruna-p-h3-");
   const editRoute=(preferPruna?editRoutes.find(option=>option.manifest.id==="pruna-p-h3-edit"):undefined)??editRoutes[0];
-  const readyManifests=catalogue.filter(m=>statuses[m.id]?.state==="ready"),readyImages=(studio?catalogue.filter(m=>localReady.has(m.id)):readyManifests).filter(isImageCapability),shownImages=catalogue.filter(m=>m.coverage.local==="implemented"&&isImageCapability(m)),readyEdit=readyManifests.some(isMaskedEdit),readyMotion=readyManifests.some(isMotionTransfer),readyEnhance=readyManifests.some(m=>m.category==="enhance");
+  const readyManifests=catalogue.filter(m=>statuses[m.id]?.state==="ready"),readyImages=(studio?catalogue.filter(m=>localReady.has(m.id)):readyManifests).filter(isImageCapability),shownImages=catalogue.filter(m=>m.coverage.local==="implemented"&&isImageCapability(m)),readyEdit=readyManifests.some(isMaskedEdit);
   /* The image screen's own tabs: the open workflow decides which one is on, and a tab for a tool that is not
      ready here is never drawn (rule 26). */
   const chatgpt=resolved?.kind==="chatgpt"?resolved:undefined;
@@ -548,21 +551,21 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     const result=await refreshWorkerInventory(workers,workspace.role==="admin",w=>call(workspacePath(workspace.id,`workers/${w.id}/probe`),"POST"),()=>call<Worker[]>(workspacePath(workspace.id,"workers")));
     setWorkers(result.workers);if(result.probeError)setError((result.probeError as Error).message);
   }catch(e){setWorkers([]);setError((e as Error).message);}finally{setChecking(false);}},[workers,call,workspace.id,workspace.role]);
-  /** New look runs on HyperFlow Flash only (2026-11-09); the Wan VACE restyles leave the menu. */
-  const isWanRestyle=(id:string)=>/^vace-.*restyle/.test(id);
+  const allWorkflows={label:"All workflows",onSelect:()=>{location.hash="catalogue";}};
+  const guestImport=workspaceMenu.videoFooter==="import"?{label:"Add workflows from Comfy",onSelect:()=>{location.hash="nodes";}}:undefined;
   const videoMenu:NonNullable<NavItem["menu"]>={
-    features:[
-      ...(user.guest&&!routerModelsFor("openjutsu").length?[]:[{id:"openjutsu",icon:<Sparkles size={18}/>,title:"OpenJutsu · H3 API",text:"Experimental character/reference video generation through Comfy Router",onSelect:()=>{location.hash="openjutsu";}}]),
-      {id:"create",icon:<Video size={18}/>,title:"Create Video",text:"Generate video from text or images",onSelect:()=>{setVideoMode("create");setCapabilityId("");location.hash="video";}},
-      ...(trimReady?[{id:"trim",icon:<Scissors size={18}/>,title:"Trim Video",text:"Cut an exact decoded frame range locally",onSelect:()=>{setVideoMode("trim");location.hash="video";}}]:[]),
-      ...(swapMaskRoute&&swapEditRoute?[{id:"edit",icon:<Sparkles size={18}/>,title:"Edit Area",text:"Edit a selected area of your video",onSelect:()=>{setVideoMode("edit");location.hash="video/edit";}}]:[]),
-      ...(workspaceMenu.video.includes("talk")?[{id:"talk",icon:<Sparkles size={18}/>,title:"Make it talk",text:"Lip sync a video to a voice",onSelect:()=>{location.hash="audio";}}]:[]),
-      ...(user.guest&&!routerModelsFor("video-create").length?[]:[{id:"storyboard",icon:<Clapperboard size={18}/>,title:"Storyboard",text:"Plan shots and assemble them into one video",onSelect:()=>{location.hash="video/storyboard";}}]),
-      {id:"transform",icon:<Sparkles size={18}/>,title:"Transform Video",text:"Transfer motion, swap objects or restyle a video",onSelect:()=>{setVideoMode("transform");location.hash="video";}},
-      ...(readyMotion?[{id:"motion",icon:<Move size={18}/>,title:"Motion Control",text:"Transfer motion from a video to a character",onSelect:()=>{location.hash="motion";}}]:[]),
-      ...(readyEnhance?[{id:"enhance",icon:<Maximize2 size={18}/>,title:"Video Upscale",text:"Enhance video quality",onSelect:()=>{setVideoMode("create");setCapabilityId(readyManifests.find(m=>m.category==="enhance")?.id??"");location.hash="video";}}]:[]),
-    ],
-    models:readyManifests.filter(m=>isVideoWorkflow(m)&&!isWanRestyle(m.id)&&(capabilitySurface(m)!=="video-create"||isFlashVideoCreate(m.id)||isImported(m.id))).map(m=>({id:m.id,icon:<Sparkles size={18}/>,title:menuTitle(m),text:capabilityPurpose(m),...(isImported(m.id)?{hint:importedHint(m)}:{}),onSelect:()=>choose(m.id)})),
+    features:workspaceMenu.video.map(({id,title,text,href})=>{
+      const Icon=VIDEO_MENU_ICONS[id]??Sparkles;
+      return {id,title,text,icon:<Icon size={18}/>,onSelect:()=>{
+        if(id==="create")setCapabilityId("");
+        location.hash=href;
+      }};
+    }),
+    models:catalogue.filter(m=>workspaceMenu.videoWorkflows.includes(m.id)).map(m=>({
+      id:m.id,icon:<Sparkles size={18}/>,title:menuTitle(m),text:capabilityPurpose(m),
+      ...(isImported(m.id)?{hint:importedHint(m)}:{}),onSelect:()=>choose(m.id),
+    })),
+    footer:workspaceMenu.videoFooter==="catalogue"?allWorkflows:guestImport,
   };
   const threeDMenu:NonNullable<NavItem["menu"]>={features:NATIVE_THREE_D_TOOLS.filter(tool=>workspaceMenu.threeD.includes(tool.id)).map(tool=>({id:tool.id,icon:<Box size={18}/>,title:tool.title,text:tool.text,onSelect:()=>{location.hash=`3d/${tool.id}`;}})),
     /* Imported 3D workflows open in the general workflow screen, which runs any app and shows its model. */
@@ -576,12 +579,8 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     models:menuImages.map(m=>({id:m.id,icon:<Sparkles size={18}/>,title:menuTitle(m),text:capabilityPurpose(m),...(isImported(m.id)?{hint:importedHint(m)}:{}),onSelect:()=>choose(m.id)})),
   };
   /* Both menus show their entries as rows by function (FunctionMenu); "All workflows" opens the full list. */
-  const allWorkflows={label:"All workflows",onSelect:()=>{location.hash="catalogue";}};
-  videoMenu.groups=groupMenu("video",[...videoMenu.features,...videoMenu.models]);videoMenu.footer=allWorkflows;
+  videoMenu.groups=groupMenu("video",[...videoMenu.features,...videoMenu.models]);
   threeDMenu.groups=groupMenu("3d",[...threeDMenu.features,...threeDMenu.models]);
-  /* Online, a guest signed in to Comfy Cloud imports Comfy workflows from here; without the sign-in there is nothing to import into. */
-  const guestImport=workspaceMenu.videoFooter==="import"?{label:"Add workflows from Comfy",onSelect:()=>{location.hash="nodes";}}:undefined;
-  if(user.guest)videoMenu.footer=guestImport;
   imageMenu.groups=groupMenu("image",[...imageMenu.features,...imageMenu.models]);imageMenu.footer=user.guest?guestImport:allWorkflows;
   /* Until something can render (a guest signed in, or a worker or Comfy Cloud set up) Free input and Jobs only add noise,
      and a guest's account circle is just Sign in, far right. */
