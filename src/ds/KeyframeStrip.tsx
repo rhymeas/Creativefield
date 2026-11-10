@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState,type DragEvent as ReactDragEvent,type PointerEvent as ReactPointerEvent,type KeyboardEvent as ReactKeyboardEvent,type ReactNode} from 'react';
 import {ChevronDown,ChevronLeft,Plus,VolumeX,X} from 'lucide-react';
-import {ASSET_DRAG,IconButton,Slider,referenceTrayDrop} from './components';
+import {ASSET_DRAG,IconButton,Slider,TextField,referenceTrayDrop} from './components';
 import {EXAMPLE_DRAG} from './example-media';
 import './keyframe-strip.css';
 
@@ -14,6 +14,11 @@ const CARD=.2275,GAP=(1-4*CARD)/3,X0=.06,X1=.94,NOTCH=.035;
 const NOTCH_H=6,ELBOW=17,TRACK=34;
 const clamp=(value:number,min:number,max:number)=>Math.max(min,Math.min(max,value));
 const nearest=(values:number[],target:number)=>values.reduce((best,v)=>Math.abs(v-target)<Math.abs(best-target)?v:best,values[0]);
+/** Within a quarter second of a major tick, aim at that tick using only valid model frames. */
+export function snapKeyframeTime(positions:number[],frame:number,fps:number):number|undefined{
+ const wholeSecond=Math.round(frame/fps)*fps;
+ return nearest(positions,Math.abs(frame-wholeSecond)<=fps/4?wholeSecond:frame);
+}
 const pct=(fraction:number)=>`${fraction*100}%`;
 export const keyframeSeconds=(frame:number,fps:number)=>Number((frame/fps).toFixed(2));
 
@@ -57,6 +62,7 @@ export function KeyframeStrip({frames,fps,maxFrame,disabled=false,activeSegment=
  const rail=useRef<HTMLDivElement>(null);
  const [width,setWidth]=useState(0),[dragging,setDragging]=useState<number|null>(null),[hot,setHot]=useState<number|null>(null);
  const [ghost,setGhost]=useState<{frame:number;drop:boolean}|null>(null),[moving,setMoving]=useState<number|null>(null),[target,setTarget]=useState<number|null>(null);
+ const [durationDraft,setDurationDraft]=useState<string|null>(null);
  useEffect(()=>{const el=rail.current;if(!el||typeof ResizeObserver==='undefined')return;const observer=new ResizeObserver(([entry])=>setWidth(entry.contentRect.width));observer.observe(el);return()=>observer.disconnect();},[]);
  const at=(frame:number)=>X0+(maxFrame?clamp(frame/maxFrame,0,1):0)*(X1-X0);
  const railX=(clientX:number)=>{const r=rail.current?.getBoundingClientRect();return r?.width?{x:(clientX-r.left)/r.width,w:r.width}:null;};
@@ -64,33 +70,48 @@ export function KeyframeStrip({frames,fps,maxFrame,disabled=false,activeSegment=
  const anchors=frames.map(f=>at(f.frame)),centres=keyframeCardCentres(anchors);
  const notches=anchors.map((x,i)=>clamp(x,centres[i]-CARD/2+NOTCH,centres[i]+CARD/2-NOTCH));
  const last=frames.length-1,durations=positions(last),lit=dragging??hot;
+ const duration=frames[last].frame,seconds=keyframeSeconds(duration,fps),durationDisabled=disabled||durations.length<2;
  const fallbackInsert=insertPositions.find(p=>p>frames[last].frame)??insertPositions[Math.floor(insertPositions.length/2)];
  const insertAt=ghost?.frame??fallbackInsert;
  const ticks=Math.max(1,Math.round(maxFrame/fps*2));
 
+ function setDuration(next:number|undefined){
+  if(!durationDisabled&&next!==undefined&&next!==duration)onMove(last,next);
+ }
+ function commitDuration(){
+  const typed=durationDraft?.trim();
+  setDurationDraft(null);
+  if(!typed||!/^\d+(?:[.,]\d*)?$/.test(typed))return;
+  const value=Number(typed.replace(',','.'));
+  if(Number.isFinite(value))setDuration(nearest(durations,value*fps));
+ }
+
  function hover(e:ReactPointerEvent<HTMLDivElement>){
   const p=railX(e.clientX);
   if(disabled||dragging!==null||!insertPositions.length||!p||anchors.some(a=>Math.abs(a-p.x)*p.w<14)){setGhost(null);return;}
-  const frame=nearest(insertPositions,frameAt(p.x));
+  const frame=snapKeyframeTime(insertPositions,frameAt(p.x),fps);
+  if(frame===undefined)return;
   setGhost(Math.abs(at(frame)-p.x)*p.w<=40?{frame,drop:false}:null);
  }
  function drag(index:number,e:ReactPointerEvent<HTMLButtonElement>){
   if(!e.currentTarget.hasPointerCapture(e.pointerId))return;
   const options=positions(index),p=railX(e.clientX);if(!options.length||!p)return;
-  const next=nearest(options,frameAt(p.x));if(next!==frames[index].frame)onMove(index,next);
+  const next=snapKeyframeTime(options,frameAt(p.x),fps);if(next!==undefined&&next!==frames[index].frame)onMove(index,next);
  }
- function key(index:number,e:ReactKeyboardEvent<HTMLButtonElement>){
+ function key(index:number,e:ReactKeyboardEvent<HTMLElement>){
   const options=positions(index),now=frames[index].frame;if(!options.length)return;
   const next=e.key==='ArrowLeft'||e.key==='ArrowDown'?options.filter(v=>v<now).at(-1):e.key==='ArrowRight'||e.key==='ArrowUp'?options.find(v=>v>now):e.key==='Home'?options[0]:e.key==='End'?options.at(-1):null;
   if(next===null)return;e.preventDefault();if(next!==undefined&&next!==now)onMove(index,next);
  }
  function mediaOver(e:ReactDragEvent<HTMLDivElement>){
   const p=railX(e.clientX);if(disabled||!insertPositions.length||!p||!carriesMedia(e.dataTransfer))return;
-  e.preventDefault();e.dataTransfer.dropEffect='copy';setGhost({frame:nearest(insertPositions,frameAt(p.x)),drop:true});
+  const frame=snapKeyframeTime(insertPositions,frameAt(p.x),fps);if(frame===undefined)return;
+  e.preventDefault();e.dataTransfer.dropEffect='copy';setGhost({frame,drop:true});
  }
  function mediaDrop(e:ReactDragEvent<HTMLDivElement>){
   const p=railX(e.clientX);if(disabled||!insertPositions.length||!p||!carriesMedia(e.dataTransfer))return;
-  e.preventDefault();const drop=referenceTrayDrop(e.dataTransfer);setGhost(null);onInsert(nearest(insertPositions,frameAt(p.x)),drop);
+  const frame=snapKeyframeTime(insertPositions,frameAt(p.x),fps);if(frame===undefined)return;
+  e.preventDefault();const drop=referenceTrayDrop(e.dataTransfer);setGhost(null);onInsert(frame,drop);
  }
  function cardOver(index:number,e:ReactDragEvent<HTMLDivElement>){
   if(disabled||!e.dataTransfer.types.includes(KEYFRAME_DRAG))return;
@@ -119,7 +140,15 @@ export function KeyframeStrip({frames,fps,maxFrame,disabled=false,activeSegment=
    {insertAt!==undefined&&!disabled&&<button type="button" className="ds-kstrip__insert" style={{left:pct(at(insertAt))}} data-show={!!ghost} aria-label={`Add a keyframe at ${keyframeSeconds(insertAt,fps)} seconds`} onClick={()=>{setGhost(null);onInsert(insertAt,null);}}><Plus size={13} strokeWidth={2.5}/></button>}
    {bubble&&<span className="ds-kstrip__bubble" style={{left:pct(bubble.x)}}>{keyframeSeconds(bubble.frame,fps)}s</span>}
   </div>
-  <label className="ds-kstrip__duration"><span>Duration</span><Slider aria-label="Duration" min={durations[0]??frames[last].frame} max={durations.at(-1)??frames[last].frame} step={1} value={frames[last].frame} disabled={disabled||durations.length<2} onChange={e=>{const next=nearest(durations,Number(e.target.value));if(next!==undefined&&next!==frames[last].frame)onMove(last,next);}}/><span className="ds-kstrip__seconds">{keyframeSeconds(frames[last].frame,fps)} sec</span>{end}</label>
+  <div className="ds-kstrip__duration">
+   <span>Duration</span>
+   <Slider aria-label="Adjust duration" aria-valuetext={`${seconds} seconds`} min={durations[0]??duration} max={durations.at(-1)??duration} step={1} value={duration} disabled={durationDisabled} onKeyDown={e=>key(last,e)} onChange={e=>setDuration(snapKeyframeTime(durations,Number(e.target.value),fps))}/>
+   <TextField hideLabel label="Duration in seconds" inputMode="decimal" title="Seconds, rounded to the closest time supported by the model" value={durationDraft??String(seconds)} disabled={durationDisabled} onChange={setDurationDraft} onBlur={commitDuration} onKeyDown={e=>{
+    if(e.key==='Enter'){e.preventDefault();e.currentTarget.blur();}
+    if(e.key==='Escape'&&durationDraft!==null){e.preventDefault();e.stopPropagation();setDurationDraft(null);}
+   }}/>
+   <span aria-hidden="true">sec</span>{end}
+  </div>
  </div>;
 }
 

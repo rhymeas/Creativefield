@@ -523,7 +523,7 @@ function onDocumentPaste(e: ClipboardEvent) {
 }
 
 function usePasteTarget(accept: string, disabled: boolean, onFile: (f: File) => void, filledRef?: RefObject<HTMLElement>) {
-  const ref = useRef<HTMLLabelElement>(null);
+  const ref = useRef<HTMLElement | null>(null);
   const hovered = useRef(false);
   const latest = useRef({ accept, disabled, onFile });
   latest.current = { accept, disabled, onFile };
@@ -542,7 +542,7 @@ function usePasteTarget(accept: string, disabled: boolean, onFile: (f: File) => 
     }
     return () => { pasteTargets.delete(target); };
   }, []);
-  return { ref, onPointerEnter: () => { hovered.current = true; }, onPointerLeave: () => { hovered.current = false; } };
+  return { ref: (element: HTMLElement | null) => { ref.current = element; }, onPointerEnter: () => { hovered.current = true; }, onPointerLeave: () => { hovered.current = false; } };
 }
 
 /* Project media carries its existing asset id, content address and type while it is dragged. */
@@ -684,18 +684,12 @@ export function UploadSlot({
 
   if (onBrowse) {
     return (
-      <label
+      <div
         ref={paste.ref}
         className={cx("ds-upload", compact && "ds-upload--compact", tile && "ds-upload--tile")}
         data-drag={drag}
-        role="button"
-        tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled}
         title={hint||"Drop, paste or choose a project image"}
-        onClick={() => { if (!disabled) { pasteRevision.current++; onBrowse(); } }}
-        onKeyDown={(e) => {
-          if (!disabled && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); pasteRevision.current++; onBrowse(); }
-        }}
         onPointerEnter={paste.onPointerEnter}
         onPointerLeave={paste.onPointerLeave}
         onDragOver={(e) => { if (!disabled) { e.preventDefault(); setDrag(true); } }}
@@ -709,8 +703,9 @@ export function UploadSlot({
           <p className="ds-upload__label">{label}</p>
           {(pasteError||exampleError) && <p role="status">{pasteError||exampleError}</p>}
         </div>
+        <button type="button" className="ds-upload__browse" aria-label={label} disabled={disabled} onClick={() => { pasteRevision.current++; onBrowse(); }} />
         {!disabled && <button type="button" className="ds-upload__paste" aria-label="Paste from clipboard" onClick={(e)=>{e.preventDefault();e.stopPropagation();void pasteFromClipboard();}}>Paste</button>}
-      </label>
+      </div>
     );
   }
 
@@ -743,7 +738,7 @@ export function UploadSlot({
         {(pasteError||exampleError) && <p role="status">{pasteError||exampleError}</p>}
       </div>
       {!disabled && <button type="button" className="ds-upload__paste" aria-label="Paste from clipboard" onClick={(e)=>{e.preventDefault();e.stopPropagation();void pasteFromClipboard();}}>Paste</button>}
-      <input disabled={disabled} type="file" accept={accept} multiple={multiple} onChange={(e) => {
+      <input aria-label={label} disabled={disabled} type="file" accept={accept} multiple={multiple} onChange={(e) => {
         pasteRevision.current++;
         const files=Array.from(e.target.files??[]);
         if(multiple&&files.length){if(onFiles)onFiles(files);else onFile(files[0]);}
@@ -3516,6 +3511,7 @@ export function TextField({
   error,
   type = "text",
   inputRef,
+  hideLabel = false,
   ...rest
 }: Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "type"> & {
   label: string;
@@ -3525,13 +3521,15 @@ export function TextField({
   error?: string;
   type?: "text" | "email" | "password" | "url" | "number";
   inputRef?: RefObject<HTMLInputElement>;
+  /** The layout already shows the field name. Keep its accessible label. */
+  hideLabel?: boolean;
 }) {
   const id = useId();
   const [shown, setShown] = useState(false);
   const secret = type === "password";
   return (
     <div className="ds-field" data-invalid={error ? true : undefined}>
-      <label className="ds-field__label" htmlFor={id}>
+      <label className={hideLabel?"ds-sr-only":"ds-field__label"} htmlFor={id}>
         {label}
       </label>
       <span className="ds-field__box">

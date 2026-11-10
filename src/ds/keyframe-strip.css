@@ -12,7 +12,7 @@
 .ds-kstrip .ds-kstrip__card .ds-upload:not(.ds-upload--filled) { min-height: 0; border-style: dashed; border-color: var(--line-hover); }
 .ds-kstrip__card .ds-upload:not(.ds-upload--filled) > div { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .ds-kstrip__card .ds-upload:not(.ds-upload--filled)::before,
-.ds-kstrip__card .ds-upload:not(.ds-upload--filled)::after { content: ""; position: absolute; left: 50%; top: 50%; width: 16px; height: 1.5px; border-radius: 1px; background: var(--text-tertiary); transform: translate(-50%, -50%); }
+.ds-kstrip__card .ds-upload:not(.ds-upload--filled)::after { content: ""; position: absolute; left: 50%; top: 50%; width: 16px; height: 1.5px; border-radius: 1px; background: var(--text-tertiary); transform: translate(-50%, -50%); pointer-events: none; }
 .ds-kstrip__card .ds-upload:not(.ds-upload--filled)::after { transform: translate(-50%, -50%) rotate(90deg); }
 .ds-kstrip__card .ds-upload img { width: 100%; height: 100%; max-height: none; object-fit: cover; border-radius: calc(var(--radius-sm) - 2px); -webkit-user-drag: none; }
 .ds-kstrip__card[data-lit="true"] .ds-upload, .ds-kstrip__card .ds-upload:hover { border-color: var(--accent-ring); }
@@ -53,8 +53,8 @@
 .ds-kstrip__insert[data-show="true"], .ds-kstrip__insert:focus-visible { opacity: 1; pointer-events: auto; transform: scale(1); }
 .ds-kstrip__insert:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .ds-kstrip__bubble { position: absolute; top: calc(var(--kstrip-track) - 40px); z-index: 4; padding: var(--pad-chip); border: 1px solid var(--line-strong); border-radius: var(--radius-xs); background: var(--surface-control); color: var(--text-primary); font-size: var(--text-xs); line-height: var(--lh-xs); font-variant-numeric: tabular-nums; white-space: nowrap; transform: translateX(-50%); box-shadow: var(--shadow-lift); pointer-events: none; }
-.ds-kstrip__duration { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: var(--space-3); color: var(--text-secondary); font-size: var(--text-sm); line-height: var(--lh-sm); }
-.ds-kstrip__seconds { min-width: 4.5em; color: var(--text-primary); text-align: right; font-variant-numeric: tabular-nums; }
+.ds-kstrip__duration { display: grid; grid-template-columns: auto minmax(0, 1fr) 5em auto auto; align-items: center; gap: var(--space-2); color: var(--text-secondary); font-size: var(--text-sm); line-height: var(--lh-sm); }
+.ds-kstrip__duration input:not([type="range"]) { font-variant-numeric: tabular-nums; }
 
 /* KeyframeSegment */
 .ds-kseg { border-radius: var(--radius-sm); background: var(--surface-control); overflow: hidden; }

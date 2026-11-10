@@ -90,7 +90,7 @@ export function KeyframeStudio({workspace,project,user,catalogue,workers,call,au
   try{
    if(id)await resolveImageReference(id,known?[known,...assets]:assets,workspace.id,project.id,call);
    if(selectionEpoch.current[index]!==epoch)return;
-   setFrames(old=>old.map((frame,i)=>i===index?{...frame,assetId:id}:frame));setPicker(null);setError('');
+   setFrames(old=>old.map((frame,i)=>i===index?{...frame,assetId:id}:frame));setPicker(open=>open===index?null:open);setError('');
   }catch(e){if(selectionEpoch.current[index]===epoch)setError((e as Error).message);}
  }
  async function upload(index:number,file:File|null){if(!file){void choose(index,'');return;}const epoch=selectionEpoch.current[index]=(selectionEpoch.current[index]??0)+1;setBusy('upload');try{const form=new FormData();form.append('file',file);const asset=await call<Asset>(workspacePath(workspace.id,`assets?projectId=${project.id}`),'POST',form);setAssets(old=>[asset,...old.filter(a=>a.id!==asset.id)]);if(selectionEpoch.current[index]===epoch)await choose(index,asset.id,asset);onChanged();}catch(e){if(selectionEpoch.current[index]===epoch)setError((e as Error).message);}finally{setBusy('');}}
@@ -123,7 +123,13 @@ export function KeyframeStudio({workspace,project,user,catalogue,workers,call,au
    {error&&<Notice inline title="Animation did not start" details={error}>{creationUncertain?'Check your storyboards before trying again; creation may have succeeded.':pending?'Retry keeps the same request.':'Check the inputs and try again.'}</Notice>}
   </div>
  </Panel><ProductionContent><ToolHero kind="keyframes"/>{board&&<StoryboardResults key={`${board.id}:${version}`} boardId={board.id} boardRevision={board.revision} workspace={workspace} user={user} call={call} authorized={authorized} canEdit={canEdit} version={version} onActiveChange={setRendering}/>}<StoryboardLibrary workspace={workspace.id} assets={assets} disabled={locked} onSelect={id=>{const empty=frames.findIndex(f=>!f.assetId);void choose(empty<0?Math.max(0,activeSegment):empty,id);}}/><ExampleTiles kind="video"/></ProductionContent>
- <Dialog open={infoOpen} title="Key frames" onClose={()=>setInfoOpen(false)}><Meta>Add two to four images, position the keyframes and describe each transition. The selected model determines which timings are available.</Meta><LabeledRow label="Model"><InlineSelect label="Keyframe model" value={model?.id??''} disabled={locked||!models.length} onChange={changeModel} options={models.map(m=>({value:m.id,label:m.title}))}/></LabeledRow></Dialog>
- <Dialog wide open={picker!==null} title="Choose a keyframe" onClose={()=>setPicker(null)}><div className="cf-form"><UploadSlot label="Upload image" hint="Choose or drop a picture" accept="image/png,image/jpeg,image/webp" kinds={['image']} disabled={locked} onFile={file=>{if(picker!==null)void upload(picker,file);}}/><ThumbGrid label="Project images">{images.map(image=><Thumb key={image.id} src={assetUrl(workspace.id,image.id)} label={image.name} disabled={locked} onSelect={()=>{if(!locked&&picker!==null)choose(picker,image.id);}}/>)}</ThumbGrid>{libraryError&&<Notice inline title="Couldn't load more images" details={libraryError}>Try again.</Notice>}{assetCursor&&<Button variant="secondary" disabled={locked} onClick={()=>void moreAssets()}>{busy==='library'?'Loading…':'Load more'}</Button>}</div></Dialog>
+ <Dialog open={infoOpen} title="Key frames" onClose={()=>setInfoOpen(false)}><Meta>Add two to four images, position the keyframes and describe each transition. The timeline snaps near whole seconds. If the model cannot end at the requested time, the closest supported time is shown.</Meta><LabeledRow label="Model"><InlineSelect label="Keyframe model" value={model?.id??''} disabled={locked||!models.length} onChange={changeModel} options={models.map(m=>({value:m.id,label:m.title}))}/></LabeledRow></Dialog>
+ <Dialog wide open={picker!==null} title="Choose a keyframe" onClose={()=>setPicker(null)}><div className="cf-form">
+  <ThumbGrid label="Project images">
+   <UploadSlot tile label="Upload" hint="Choose, drop or paste a picture" accept={imageTypes} disabled={locked} onFile={file=>{if(picker!==null&&file)void upload(picker,file);}}/>
+   {images.map(image=><Thumb key={image.id} src={assetUrl(workspace.id,image.id)} label={image.name} disabled={locked} onActivate={()=>{if(!locked&&picker!==null)void choose(picker,image.id);}}/>)}
+  </ThumbGrid>
+  {libraryError&&<Notice inline title="Couldn't load more images" details={libraryError}>Try again.</Notice>}{assetCursor&&<Button variant="secondary" disabled={locked} onClick={()=>void moreAssets()}>{busy==='library'?'Loading…':'Load more'}</Button>}
+ </div></Dialog>
  </div>;
 }
