@@ -41,8 +41,10 @@ export type NavigationInput={
 };
 
 type RunChoice={target:RunTarget;action:"select"|"sign-in"|"setup"|"consent"|"plan-required"};
-type NamedScreen="make"|"projects"|"catalogue"|"nodes"|"audio";
+type NamedScreen="make"|"projects"|"catalogue"|"audio";
 export type LibraryScreen={kind:"library";tab:"assets"}|{kind:"library";tab:"runs";linkedRunId?:string};
+type NodeEntry={kind:"feature"|"run";id:string};
+export type NodesScreen={kind:"nodes";target:"local";entry?:NodeEntry}|{kind:"nodes";target:"cloud"};
 type BlockDelivery={kind:"router"}|{kind:"previs"|"depth";manifest:CapabilityManifestV2};
 export type BlockScreen={kind:"block";delivery?:BlockDelivery}|{kind:"film-studio"};
 type OpenJutsuSelection=ReturnType<typeof resolveOpenJutsu>["screen"];
@@ -57,6 +59,7 @@ export type ResolvedScreen=
   | {kind:"motion";manifest:CapabilityManifestV2;workflowIds:string[]}
   | BlockScreen
   | LibraryScreen
+  | NodesScreen
   | {kind:"video";mode:VideoWorkspaceMode;workflowId?:string;change?:ReturnType<typeof changeChoiceFromHash>}
   | {kind:"storyboard";boardId?:string;target:"local"|"cloud"|"router"}
   | {kind:"keyframes";target:"local"|"router"}
@@ -187,6 +190,16 @@ function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailabili
     threeDWorkflows:threeDWorkflows.map(manifest=>manifest.id),threeD:input.canCreate?threeDTools:[],videoFooter:footer,imageFooter:footer};
 }
 
+/** The stored graph link is scoped and validated by the editor server. */
+export const runFromHash=(hash:string)=>/^#nodes\/run\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.exec(hash)?.[1]??null;
+
+function nodeEntry(hash:string):NodeEntry|undefined{
+  const feature=/^#nodes\/feature\/([a-z0-9][a-z0-9-]{0,79})$/.exec(hash)?.[1];
+  if(feature)return {kind:"feature",id:feature};
+  const run=runFromHash(hash);
+  if(run)return {kind:"run",id:run};
+}
+
 /** Resolves workspace navigation from an immutable snapshot. Components own drafts and events. */
 export function resolveScreen(input:NavigationInput){
   const requestedHash=input.hash;
@@ -234,6 +247,7 @@ export function resolveScreen(input:NavigationInput){
   const canCloudThreeD=cloudThreeD.some(manifest=>!namedThreeD||manifest.id===namedThreeD);
   const threeDTarget:RunTarget=targets.selected==="cloud"&&canCloudThreeD?"cloud":
     (hosted||targets.selected==="router")&&routerThreeD?"router":hosted?targets.selected:"local";
+  const nodes=section==="nodes";
   const library=section==="library",libraryTab=part==="runs"?"runs":"assets";
   const characters=section==="characters"||section==="influencer";
   const characterTab=section==="influencer"||part==="scenes"?"scenes":"characters";
@@ -242,7 +256,7 @@ export function resolveScreen(input:NavigationInput){
   const blockTarget:RunTarget=blockRouter&&(hosted||targets.selected==="router")?"router":"local";
   const audio=section==="audio",routerAudio=audio&&router("talk");
   const audioTarget:RunTarget=hosted||(targets.selected==="router"&&routerAudio)?"router":"local";
-  const runTargets=library||characters||filmStudio?{selected:targets.selected,choices:[]}
+  const runTargets=nodes||library||characters||filmStudio?{selected:targets.selected,choices:[]}
     :block?{selected:blockTarget,choices:targets.choices.filter(choice=>choice.target==="router"?blockRouter:choice.target==="local")}
     :audio?{selected:audioTarget,choices:targets.choices.filter(choice=>
     choice.target==="local"||choice.target==="router"&&routerAudio)}
@@ -288,6 +302,7 @@ export function resolveScreen(input:NavigationInput){
 
   function screen():ResolvedScreen{
     if(root!=="app")return {kind:root};
+    if(nodes)return hosted?{kind:"nodes",target:"cloud"}:{kind:"nodes",target:"local",entry:nodeEntry(hash)};
     if(!input.hasProject||section==="projects")return {kind:"projects"};
     if(library)return libraryTab==="runs"?{kind:"library",tab:"runs",linkedRunId:detail}:{kind:"library",tab:"assets"};
     if(characters){

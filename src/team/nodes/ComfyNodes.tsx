@@ -6,6 +6,7 @@ import type {CapabilityManifestV2} from "../../capabilities/types";
 import {request,workspacePath} from "../api";
 import {plainProblem} from "../problems";
 import "./comfy-nodes.css";
+import type {NodesScreen} from "../navigation";
 import type {ThreeDTool} from "../three-d/tools";
 
 type SavedWorkflow = {
@@ -32,10 +33,6 @@ type ImportMode = "templates" | "comfy" | "hub" | "file";
 type ComfyTemplate = { name: string; title: string; description: string; group: string; mediaType: string; api: boolean; models: string[]; url: string; runsOn: Array<"local"|"cloud">; customNodes: string[] };
 const CLOUD_ORIGIN = "https://cloud.comfy.org";
 type FeatureResult = { applied: boolean; errors?: string[]; workflowId?: string; revisionId?: string; version?: number; changes: { added: string[]; removed: string[]; changed: string[] } };
-/** "#nodes/feature/<capability id>" opens that feature's graph in the editor. */
-const featureFromHash = () => { const match = /^#nodes\/feature\/([a-z0-9][a-z0-9-]{0,79})$/.exec(location.hash); return match?.[1] ?? null; };
-/** "#nodes/run/<run id>" opens the graph that run submitted in the editor, read-only. */
-export const runFromHash = (hash: string) => /^#nodes\/run\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.exec(hash)?.[1] ?? null;
 /** The editor address: a feature's graph or a run's graph opens in the same frame. */
 export const editorSource = (url: string, options: { version: number; tool?: ThreeDTool; feature?: string | null; run?: string | null }) =>
   `${url}?v=${options.version}${options.tool ? `&studio3d=${options.tool}` : ""}${options.feature ? `&comfyfield_feature=${encodeURIComponent(options.feature)}` : ""}${options.run ? `&comfyfield_run=${encodeURIComponent(options.run)}` : ""}`;
@@ -49,7 +46,11 @@ export function nodeStarters(catalogue:CapabilityManifestV2[],query:string){
 }
 
 /** The official editor uses a separate origin so extension scripts cannot read app APIs. */
-export function ComfyNodes({ workspace, workers, catalogue=[], tool, importOnly = false, canEdit = false, serverOffline = false, canStartLocal = false, onChanged, onWorkerSettings }: { workspace: Workspace; workers: Worker[]; catalogue?:CapabilityManifestV2[]; tool?: ThreeDTool; /** Only the workflow list and the import, no node editor (online, on Comfy Cloud). */ importOnly?: boolean; canEdit?: boolean; serverOffline?: boolean; canStartLocal?: boolean; onChanged?: () => void | Promise<void>; /** Where a person registers or checks a worker. Every offline state leads here, so it is required. */ onWorkerSettings: () => void }) {
+export function ComfyNodes({ workspace, workers, catalogue=[], tool, screen, canEdit = false, serverOffline = false, canStartLocal = false, onChanged, onWorkerSettings }: { workspace: Workspace; workers: Worker[]; catalogue?:CapabilityManifestV2[]; tool?: ThreeDTool; screen?: NodesScreen; canEdit?: boolean; serverOffline?: boolean; canStartLocal?: boolean; onChanged?: () => void | Promise<void>; /** Where a person registers or checks a worker. Every offline state leads here, so it is required. */ onWorkerSettings: () => void }) {
+  const importOnly=screen?.target==="cloud";
+  const entry=screen?.target==="local"?screen.entry:undefined;
+  const feature=entry?.kind==="feature"?entry.id:undefined;
+  const run=entry?.kind==="run"?entry.id:undefined;
   // The editor proxy prefers an online local worker; don't let an earlier offline
   // entry hide the editor when another enabled worker is available.
   const worker = workers.find(candidate => candidate.enabled && candidate.inventory?.online === true)
@@ -87,15 +88,19 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, importOnly 
   const [hubUrl,setHubUrl]=useState("");
   const [file,setFile]=useState<{name:string;json:string}|null>(null);
   const [check,setCheck]=useState<HubCheck|null>(null);
-  const [feature,setFeature]=useState<string|null>(featureFromHash);
-  const [run,setRun]=useState<string|null>(()=>runFromHash(location.hash));
   const [featureResult,setFeatureResult]=useState<FeatureResult|null>(null);
   const [runError,setRunError]=useState("");
   const [runNotice,setRunNotice]=useState("");
   const [runEditingAvailable,setRunEditingAvailable]=useState(false);
   const frameRef=useRef<HTMLIFrameElement>(null);
   const runAttempt=useRef<{run:string;json:string;key:string}|null>(null);
-  useEffect(()=>{const sync=()=>{setFeature(featureFromHash());setRun(runFromHash(location.hash));setFeatureResult(null);setRunError("");setRunNotice("");runAttempt.current=null;};window.addEventListener("hashchange",sync);return()=>window.removeEventListener("hashchange",sync);},[]);
+  useEffect(()=>{
+    setLoaded(false);
+    setFeatureResult(null);
+    setRunError("");
+    setRunNotice("");
+    runAttempt.current=null;
+  },[feature,run]);
   useEffect(()=>{
     setRunEditingAvailable(false);
     if(!run||!canEdit)return;
@@ -219,13 +224,13 @@ export function ComfyNodes({ workspace, workers, catalogue=[], tool, importOnly 
     finally{setShelfBusy("");}
   }
   useEffect(()=>{
-    if(serverOffline)return;
+    if(importOnly||serverOffline)return;
     const controller=new AbortController();setError("");
     request<{url:string}>(workspacePath(workspace.id,"node-editor"),"GET",undefined,controller.signal)
       .then(result=>{setTarget({workspaceId:workspace.id,url:result.url});setLoaded(false);})
       .catch(error=>{if(!controller.signal.aborted)setError((error as Error).message);});
     return()=>controller.abort();
-  },[workspace.id,version,serverOffline]);
+  },[workspace.id,version,serverOffline,importOnly]);
   const src=target?.workspaceId===workspace.id?editorSource(target.url,{version,tool,feature,run}):undefined;
 
   /* The offline state waits for the worker on its own: it asks again with a backoff and hands
