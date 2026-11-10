@@ -9,7 +9,7 @@ import {rootViewFromHash,routeState,sectionFromHash,type RouteState} from "./rou
 import {changeChoiceFromHash,startTasks} from "./start-tasks";
 import {NATIVE_THREE_D_TOOLS,threeDTool,type ThreeDTool} from "./three-d/tools";
 import {videoModeFromHash} from "./video-edit/state";
-import type {ChangeChoice} from "./transform-video-state";
+import {isMotionTransfer,type ChangeChoice} from "./transform-video-state";
 import {nativeWorkflowHash,videoWorkflowMode,type VideoWorkspaceMode} from "./workflow-navigation";
 
 export type RunTarget="local"|"cloud"|"router"|"chatgpt";
@@ -40,7 +40,7 @@ export type NavigationInput={
 };
 
 type RunChoice={target:RunTarget;action:"select"|"sign-in"|"setup"|"consent"|"plan-required"};
-type NamedScreen="make"|"projects"|"library"|"catalogue"|"nodes"|"block"|"audio"|"motion"|"characters"|"influencer";
+type NamedScreen="make"|"projects"|"library"|"catalogue"|"nodes"|"block"|"audio"|"characters"|"influencer";
 type OpenJutsuSelection=ReturnType<typeof resolveOpenJutsu>["screen"];
 export type ResolvedScreen=
   | Exclude<RouteState,{kind:"screen"}>
@@ -49,6 +49,7 @@ export type ResolvedScreen=
   | {kind:"fotofield"|"imageedit";assetId?:string;entry?:ImageEditEntry}
   | {kind:"image";tab:ImageTab;workflowId?:string}
   | {kind:"remix"|"marketing";manifest:CapabilityManifestV2;choices:CapabilityManifestV2[]}
+  | {kind:"motion";manifest:CapabilityManifestV2;workflowIds:string[]}
   | {kind:"video";mode:VideoWorkspaceMode;workflowId?:string;change?:ReturnType<typeof changeChoiceFromHash>}
   | {kind:"storyboard";boardId?:string;target:"local"|"cloud"|"router"}
   | {kind:"keyframes";target:"local"|"router"}
@@ -84,7 +85,7 @@ export function imageTabTarget<T extends {id:string}>(tab:ImageTab,models:T[]):T
   return routeTask(tab==="angles"?"image.angles":tab==="relight"?"image.relight":"image.create",models)?.pack;
 }
 
-function selectStudioModel<T extends {id:string}>(choices:T[],ready:ReadonlySet<string>,current?:string,named?:string):T|undefined{
+function selectReadyWorkflow(choices:CapabilityManifestV2[],ready:ReadonlySet<string>,current?:string,named?:string):CapabilityManifestV2|undefined{
   const requested=choices.find(model=>model.id===named);
   const previous=choices.find(model=>model.id===current);
   const available=choices.find(model=>ready.has(model.id));
@@ -125,9 +126,10 @@ function modelAvailability(input:NavigationInput){
   const previs=input.audience==="local"?routeTask("video.previs",catalogue.filter(manifest=>localReady.has(manifest.id)))?.pack:undefined;
   const defaultEffects=implemented.find(manifest=>isEffectClips(manifest.id)&&!isSupersededLocalVideoWorkflow(manifest.id));
   const imageStudios={remix:implemented.filter(remixImageModel),marketing:implemented.filter(adImageModel)};
-  return {catalogue,implemented,ready,image,previs,defaultEffects,imageStudios,
+  const motionChoices=implemented.filter(isMotionTransfer);
+  return {catalogue,implemented,ready,image,previs,defaultEffects,imageStudios,motionChoices,
     effects:!!defaultEffects&&input.ready.has(defaultEffects.id),
-    motion:ready.some(manifest=>capabilitySurface(manifest)==="motion"),
+    motion:motionChoices.some(manifest=>input.ready.has(manifest.id)),
     enhance:ready.some(manifest=>capabilitySurface(manifest)==="video-enhance")};
 }
 type Models=ReturnType<typeof modelAvailability>;
@@ -163,7 +165,7 @@ function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailabili
     vfx:router("video-upscale")||cloudJobs&&input.studioReadiness?.cloudUpscale,
   }:{
     block:hasSurface("video-effect"),h3effects:models.effects,audio:hasSurface("audio"),
-    replace:input.studioReadiness?.replace,motion:hasSurface("motion"),edit:hasSurface("video-edit"),
+    replace:input.studioReadiness?.replace,motion:models.motionChoices.length>0,edit:hasSurface("video-edit"),
     restyle:hasSurface("video-effect"),video:models.implemented.some(isCreateVideoWorkflow),
     film:models.implemented.some(isCreateVideoWorkflow),image:models.image.length>0,vfx:input.studioReadiness?.videoUpscale,
     remiximage:models.imageStudios.remix.some(manifest=>(input.localReady??input.ready).has(manifest.id)),
@@ -209,7 +211,10 @@ export function resolveScreen(input:NavigationInput){
   const makeReal=section==="video"?pinnedPrevis:undefined;
   const studio=section==="remix"||section==="marketing"?section:undefined;
   const studioChoices=studio?models.imageStudios[studio]:[];
-  const studioManifest=studio?selectStudioModel(studioChoices,input.localReady??input.ready,input.selection?.workflowId,part):undefined;
+  const studioManifest=studio?selectReadyWorkflow(studioChoices,input.localReady??input.ready,input.selection?.workflowId,part):undefined;
+  const motion=section==="motion";
+  const motionChoices=hosted?models.motionChoices.filter(supportsCloud):models.motionChoices;
+  const motionManifest=motion?selectReadyWorkflow(motionChoices,input.ready,input.selection?.workflowId,part):undefined;
   const localReady=input.canCreate?input.localReady??input.ready:input.ready;
   const reframe=transform&&!hosted?models.catalogue.find(manifest=>manifest.id===VIDEO_REFRAME_ID&&localReady.has(manifest.id)):undefined;
   const targets=resolveTarget(input,section,openJutsu);
@@ -266,7 +271,7 @@ export function resolveScreen(input:NavigationInput){
     const availability=routeState({section,hash,mode:videoMode,workflowIds,canCreate:input.canCreate,
       catalogueKnown:catalogueReady(input),video:hasRouter||!!createWorkflow,
       effects:hasRouter||effectAvailable,
-      motion:hasRouter||models.implemented.some(manifest=>capabilitySurface(manifest)==="motion"),
+      motion:hasRouter||!!motionManifest,
       image:hasRouter||!!(studio?studioManifest:imageWorkflow),
       audioKnown:input.requirements.audio!=="checking",audio:input.requirements.audio==="ready",
       trimKnown:input.requirements.trim!=="checking",trim:input.requirements.trim==="ready"});
@@ -281,7 +286,8 @@ export function resolveScreen(input:NavigationInput){
     };
     if(hasRouter)return {kind:"router",feature,assetId:section==="3d"?assetId:remoteEditAssetId};
     if(routerScreen&&feature!=="unsupported"&&!router(feature)&&hosted)return missing("This tool is unavailable here","Choose a tool with a Comfy Router model.");
-    if(routerScreen&&(createVideo||editArea||transform||effects||section==="image"||editingImage)&&feature!=="unsupported")return {kind:"router",feature};
+    if(routerScreen&&(createVideo||editArea||transform||effects||motion||section==="image"||editingImage)&&feature!=="unsupported")return {kind:"router",feature};
+    if(motion&&hosted&&catalogueReady(input)&&!motionManifest)return missing("Motion Control uses Comfy Router here","Choose Comfy Router in Run on to transfer motion.");
     if(availability.kind!=="screen")return availability;
     if(hosted&&named){
       const manifest=explicitWorkflow??models.catalogue.find(candidate=>candidate.id===(section==="3d"?detail:part));
@@ -291,6 +297,7 @@ export function resolveScreen(input:NavigationInput){
     }
     if(explicitWorkflow)return {kind:"workflow",manifest:explicitWorkflow};
     if(studio&&studioManifest)return {kind:studio,manifest:studioManifest,choices:studioChoices};
+    if(motionManifest)return {kind:"motion",manifest:motionManifest,workflowIds:motionChoices.map(manifest=>manifest.id)};
     if(section==="video"){
       if(videoMode==="storyboard")return {kind:"storyboard",boardId:detail,target:hosted?"router":target==="cloud"?"cloud":"local"};
       if(videoMode==="keyframes")return {kind:"keyframes",target:target==="local"?"local":"router"};

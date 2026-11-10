@@ -17,7 +17,7 @@ export const TRANSFORM_MODES:{id:TransformMode;label:string;title:string;text:st
 
 /** Motion transfer routes take a driving performance. Character replacement with
  *  SCAIL-2 lives in the dedicated Video > Replace flow, not in this picker. */
-const isMotion=(manifest:CapabilityManifestV2)=>manifest.category==="motion"&&manifest.inputs.some(port=>port.id==="motion_video");
+export const isMotionTransfer=(manifest:CapabilityManifestV2)=>manifest.category==="motion"&&manifest.inputs.some(port=>port.id==="motion_video");
 /** Restyle means a video-effect workflow driven by the clip itself. A depth-guided
  *  restyle needs a depth clip the user does not have, so it stays out of this mode. */
 /** New look runs on HyperFlow H3 Flash only (user, 2026-11-09): the Wan VACE restyles are not good enough.
@@ -39,7 +39,7 @@ export function restylePresentation(manifest:CapabilityManifestV2):CapabilityMan
 export function transformCandidates(manifests:Catalogue){
   const implemented=manifests.filter(manifest=>manifest.coverage.local==="implemented");
   return {
-    motion:implemented.filter(isMotion),
+    motion:implemented.filter(isMotionTransfer),
     swap:implemented.filter(isMaskedEdit),
     restyle:implemented.filter(isRestyle),
   };

@@ -57,7 +57,7 @@ export {imageTabFor,imageTabTarget} from "./navigation";
 export type {ImageTab} from "./navigation";
 import {routeState,sectionFromHash} from "./route-state";
 import {videoHashPart,videoWorkflowHash} from "../ui/studio-route";
-import {selectTransformManifest} from "./transform-video-state";
+import {isMotionTransfer,selectTransformManifest} from "./transform-video-state";
 import {catalogueTitles} from "./job-queue";
 import {ToolHero,type HeroKind} from "./heroes";
 import {ProductionContent} from "./ProductionWorkspace";
@@ -214,7 +214,15 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     void Promise.all([call<Project[]>(workspacePath(workspace.id,"projects")),call<Worker[]>(workspacePath(workspace.id,"workers")),call<Catalogue>(workspacePath(workspace.id,"catalogue"))]).then(([p,w,c])=>{if(!current)return;setProjects(p);setWorkers(w);setCatalogue(c);setProjectId(id=>p.some(p=>p.id===id)?id:p[0]?.id??"");setError("");}).catch(e=>{if(current)setError((e as Error).message);});
     return()=>{current=false;};
   },[call,workspace.id,version,authorized]);
-  useEffect(()=>{if(route!=="video"&&route!=="motion")return;if(route==="video"&&(["create","edit","transform","effects","workflow"].includes(videoMode)))return;setCapabilityId(id=>{const selected=catalogue.find(m=>m.id===id);if(selected&&(route==="motion"?selected.category==="motion":(isCreateVideoWorkflow(selected)&&isFlashVideoCreate(selected.id))||capabilitySurface(selected)==="video-enhance"))return id;return (route==="video"?routeTask("video.create",catalogue.filter(m=>m.coverage.local==="implemented"&&isFlashVideoCreate(m.id)))?.pack.id:undefined)??catalogue.find(m=>m.coverage.local==="implemented"&&(route==="motion"?m.category==="motion":route==="video"&&m.category==="t2v"&&isFlashVideoCreate(m.id)))?.id??"";});},[route,catalogue,videoMode]);
+  useEffect(()=>{
+    if(route!=="video"||["create","edit","transform","effects","workflow"].includes(videoMode))return;
+    setCapabilityId(id=>{
+      const selected=catalogue.find(m=>m.id===id);
+      if(selected&&(isCreateVideoWorkflow(selected)&&isFlashVideoCreate(selected.id)||capabilitySurface(selected)==="video-enhance"))return id;
+      const flash=catalogue.filter(m=>m.coverage.local==="implemented"&&isFlashVideoCreate(m.id));
+      return routeTask("video.create",flash)?.pack.id??flash.find(m=>m.category==="t2v")?.id??"";
+    });
+  },[route,catalogue,videoMode]);
   /* A link may name the video workflow: `#video/camera`. It selects once the list is known, and an
      unknown id falls back to this screen's default. */
   useEffect(()=>{
@@ -248,7 +256,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const readyIds=new Set(Object.keys(statuses).filter(id=>statuses[id].state==="ready"));
   const localReady=runOn==="local"||runOn==="router"?readyIds:new Set(offline?[]:
     catalogue.filter(m=>localWorkers.some(w=>workerReadiness(m,w).state==="ready")).map(m=>m.id));
-  const navigation=["openjutsu","video","block","workflow","image","imageedit","remix","marketing"].includes(route)?resolveScreen({
+  const navigation=["openjutsu","video","motion","block","workflow","image","imageedit","remix","marketing"].includes(route)?resolveScreen({
     hash:routeHash,
     audience:user.guest?(account?.connected?"signed-in-guest":"guest"):"local",
     hasProject:!!project,
@@ -269,9 +277,10 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   }):undefined;
   const resolved=navigation?.screen;
   const studio=resolved?.kind==="remix"||resolved?.kind==="marketing"?resolved:undefined;
+  const motion=resolved?.kind==="motion"?resolved:undefined;
   const studioRoute=route==="remix"||route==="marketing";
-  const manifest=studioRoute?studio?.manifest:route==="image"?navigation?.imageWorkflow:catalogue.find(m=>m.id===capabilityId);
-  useEffect(()=>{if((route==="image"||studioRoute)&&manifest)setCapabilityId(manifest.id);},[route,manifest?.id]);
+  const manifest=studioRoute?studio?.manifest:route==="image"?navigation?.imageWorkflow:route==="motion"?motion?.manifest:catalogue.find(m=>m.id===capabilityId);
+  useEffect(()=>{if((route==="image"||studioRoute||route==="motion")&&manifest)setCapabilityId(manifest.id);},[route,manifest?.id]);
   /* The draft is set from the tab that is opening: its own earlier draft, or the picture already chosen on
      the tab being left. `imageDraft` is read once here on purpose, so it is not a dependency. */
   useEffect(()=>{if((route==="image"||studioRoute)&&manifest&&isImageCapability(manifest)){setImageDraft(imageDraftForTab(manifest,imageDraftMemory.current,imageDraft));setImageIntentKey("");}},[route,manifest?.id,manifest?.version]);
@@ -388,25 +397,29 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const openedImageRun=openedImageId?imageRuns.find(run=>run.output_ids.includes(openedImageId)):undefined;
   const preferPruna=(openedImageRun?.capability_id??capabilityId).startsWith("pruna-p-h3-");
   const editRoute=(preferPruna?editRoutes.find(option=>option.manifest.id==="pruna-p-h3-edit"):undefined)??editRoutes[0];
-  const readyManifests=catalogue.filter(m=>statuses[m.id]?.state==="ready"),readyImages=(studio?catalogue.filter(m=>localReady.has(m.id)):readyManifests).filter(isImageCapability),shownImages=catalogue.filter(m=>m.coverage.local==="implemented"&&isImageCapability(m)),readyEdit=readyManifests.some(isMaskedEdit),readyMotion=readyManifests.some(m=>m.category==="motion"),readyEnhance=readyManifests.some(m=>m.category==="enhance"),readyEffects=readyManifests.some(m=>m.id===FLASH_EFFECT_CLIPS_ID);
+  const readyManifests=catalogue.filter(m=>statuses[m.id]?.state==="ready"),readyImages=(studio?catalogue.filter(m=>localReady.has(m.id)):readyManifests).filter(isImageCapability),shownImages=catalogue.filter(m=>m.coverage.local==="implemented"&&isImageCapability(m)),readyEdit=readyManifests.some(isMaskedEdit),readyMotion=readyManifests.some(isMotionTransfer),readyEnhance=readyManifests.some(m=>m.category==="enhance"),readyEffects=readyManifests.some(m=>m.id===FLASH_EFFECT_CLIPS_ID);
   /* The image screen's own tabs: the open workflow decides which one is on, and a tab for a tool that is not
      ready here is never drawn (rule 26). */
   const chatgptUnsupported=(navigation?.runTargets.selected??runOn)==="chatgpt"&&["video","motion","3d","audio","characters","influencer"].includes(route);
   const chatgpt=resolved?.kind==="chatgpt"?resolved:undefined;
-  const renderScreen=route==="image"||route==="imageedit"?resolved:videoScreen;
+  const renderScreen=route==="image"||route==="imageedit"||route==="motion"?resolved:videoScreen;
   const routerScreen=renderScreen?.kind==="router"?renderScreen:undefined;
-  const routerPage=renderScreen?!!routerScreen:runOn==="router"&&["video","motion","3d","audio","characters","influencer"].includes(route)&&(route!=="3d"||routeHash.startsWith("#3d/image"));
+  const routerPage=renderScreen?!!routerScreen:runOn==="router"&&["video","3d","audio","characters","influencer"].includes(route)&&(route!=="3d"||routeHash.startsWith("#3d/image"));
   const linkedImage=chatgpt?.assetId??(route==="imageedit"?routerScreen?.assetId:undefined);
   const incoming=linkedImage?{inputs:{source_image:linkedImage},prompt:""}:
     routerIncoming?.workspaceId===workspace.id&&routerIncoming.projectId===project?.id?routerIncoming:undefined;
   const imageTabItems=navigation?.tabs?.items.map(id=>({id:id as ImageTab,label:IMAGE_TAB_LABELS[id as ImageTab]}))??[];
   const imageTab=resolved?.kind==="image"?resolved.tab:imageTabFor(manifest?.id,route);
   const previsTarget=navigation?.makeRealEntry;
-  const intentImage=imageTabTarget("create",readyImages),intentVideo=routeTask("video.create",readyManifests.filter(m=>isFlashVideoCreate(m.id)))?.pack,intentMotion=readyManifests.find(m=>m.category==="motion");
+  const intentImage=imageTabTarget("create",readyImages),intentVideo=routeTask("video.create",readyManifests.filter(m=>isFlashVideoCreate(m.id)))?.pack,intentMotion=readyManifests.find(isMotionTransfer);
   const intentAvailable={image:intentReference?!!intentImageReferenceTarget(readyImages):!!intentImage,"image-edit":!!intentImageReferenceTarget(readyImages,manifest?.id),video:intentReference?!!routeImageToVideo(readyManifests.filter(isCreateVideoWorkflow)):!!intentVideo,motion:!!intentMotion,edit:readyEdit,trim:trimReady,storyboard:!!project&&canCreate,audio:audioReady};
   const choose=(id:string)=>{const selected=catalogue.find(m=>m.id===id);if(!selected||statuses[id]?.state!=="ready")return;setCapabilityId(id);if(isImageCapability(selected))setImageDraft(defaultImageDraft(selected));setVideoMode(videoWorkflowMode(selected));location.hash=nativeWorkflowHash(selected);};
   /** A workflow picked on the video screen takes its place in the address, so reload and back keep it. */
-  const chooseWorkflow=(id:string)=>{setCapabilityId(id);if(route==="video"&&(videoMode==="create"||videoMode==="effects"||videoMode==="workflow"))location.hash=videoWorkflowHash(id);};
+  const chooseWorkflow=(id:string)=>{
+    setCapabilityId(id);
+    if(motion)location.hash="motion/"+id;
+    else if(route==="video"&&(videoMode==="create"||videoMode==="effects"||videoMode==="workflow"))location.hash=videoWorkflowHash(id);
+  };
   /** An All tools card opens its screen: a task that names one workflow selects it, every other card starts from that screen's default. */
   const openStartTask=(task:StartTask)=>{
     /* A guest sharpens a clip on Comfy Router: the Transform screen with that change chosen. */
@@ -557,7 +570,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   imageMenu.groups=groupMenu("image",[...imageMenu.features,...imageMenu.models]);imageMenu.footer=user.guest?guestImport:allWorkflows;
   /* All tools lists every tool the app has a workflow for, not only those this computer answers for right now: the page of a tool says when ComfyUI is offline. */
   const implemented=catalogue.filter(m=>m.coverage.local==="implemented");
-  const localTools={remiximage:catalogue.some(m=>localReady.has(m.id)&&remixImageModel(m)),adimage:catalogue.some(m=>localReady.has(m.id)&&adImageModel(m)),h3effects:readyEffects,replace:implemented.some(m=>m.id==="scail2-character-replace"),motion:implemented.some(m=>m.category==="motion"),effects:implemented.some(m=>capabilitySurface(m)==="video-effect"),edit:implemented.some(isMaskedEdit),vfx:implemented.some(m=>m.id==="nvidia-vfx-upscale"),video:implemented.some(m=>isCreateVideoWorkflow(m)),image:shownImages.length>0,audio:implemented.some(m=>m.category==="audio"||/chatterbox|lip-?sync|speech/.test(m.id))};
+  const localTools={remiximage:catalogue.some(m=>localReady.has(m.id)&&remixImageModel(m)),adimage:catalogue.some(m=>localReady.has(m.id)&&adImageModel(m)),h3effects:readyEffects,replace:implemented.some(m=>m.id==="scail2-character-replace"),motion:implemented.some(isMotionTransfer),effects:implemented.some(m=>capabilitySurface(m)==="video-effect"),edit:implemented.some(isMaskedEdit),vfx:implemented.some(m=>m.id==="nvidia-vfx-upscale"),video:implemented.some(m=>isCreateVideoWorkflow(m)),image:shownImages.length>0,audio:implemented.some(m=>m.category==="audio"||/chatterbox|lip-?sync|speech/.test(m.id))};
   /* A hosted guest runs only what Comfy Router (any plan) or Comfy Cloud (paid plan) can do; local-only tools are left out (rule 26). */
   const cloudJobs=account?.canSubmit===true,routes=(feature:CloudFeature)=>routerModelsFor(feature).length>0;
   const listedTools:typeof localTools&{restyle:boolean;film:boolean;block:boolean}=user.guest?{block:routes("restyle"),remiximage:false,adimage:false,h3effects:routes("effects"),effects:false,audio:routes("talk"),film:false,
@@ -575,7 +588,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const fallback=(route==="video"?videoScreen:resolved)??routeState({
     section:route,mode:videoMode,hash:routeHash,workflowIds:catalogue.filter(m=>route==="video"?isVideoWorkflow(m):route==="image"?isImageCapability(m):true).map(m=>m.id),canCreate,
     catalogueKnown:offline||!authorized||catalogue.length>0,
-    video:!!manifest,motion:catalogue.some(m=>m.coverage.local==="implemented"&&m.category==="motion"),image:shownImages.length>0,
+    video:!!manifest,motion:false,image:shownImages.length>0,
     audioKnown:!authorized||!!audioRequirements,audio:audioReady,
   });
   const showScreen=fallback.kind!=="missing"&&fallback.kind!=="checking";
@@ -911,9 +924,9 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
           onPremiseConsumed={()=>setStoryboardIdea(null)} onIncomingConsumed={()=>setStoryboardImage(null)}
           user={user} workspace={workspace} project={project} catalogue={catalogue} workers={targetWorkers(workers,storyboard.target)}
           call={call} authorized={authorized} canEdit={canCreate}/>:
-        (route==="video"||route==="motion")&&composerManifest?
+        (route==="video"||motion)&&composerManifest?
           <TeamComposer key={`${project.id}:${composerManifest.id}`} manifest={composerManifest}
-            workflowIds={effects?[effects.id]:undefined} onCapability={chooseWorkflow} {...composerProps} project={project} workers={makeReal?localWorkers:runWorkers}/>:route==="library"?<TeamLibrary titles={catalogueTitles(catalogue)} key={project.id} workspace={workspace} project={project} call={call} canEdit={canCreate} authorized={authorized} version={version} user={user} videoEditReady={trimReady} onEditVideo={asset=>{setVideoMode("trim");location.hash=`video/trim/${asset.id}`;}}/>:null}
+            workflowIds={effects?[effects.id]:motion?.workflowIds} onCapability={chooseWorkflow} {...composerProps} project={project} workers={makeReal?localWorkers:runWorkers}/>:route==="library"?<TeamLibrary titles={catalogueTitles(catalogue)} key={project.id} workspace={workspace} project={project} call={call} canEdit={canCreate} authorized={authorized} version={version} user={user} videoEditReady={trimReady} onEditVideo={asset=>{setVideoMode("trim");location.hash=`video/trim/${asset.id}`;}}/>:null}
       </section>}
     </div>}
     {intentMode&&route!=="openjutsu"&&route!=="imageedit"&&section!=="catalogue"&&section!=="nodes"&&section!=="3d"&&project&&<IntentDock imageWorkspace={["image","remix","marketing"].includes(route)} videoWorkspace={route==="video"||route==="motion"} value={intentText} onChange={setIntentText} onSubmit={runIntent} available={intentAvailable} busy={imageBusy||intentUploading} reference={intentReference?{name:intentReference.name,src:assetUrl(workspace.id,intentReference.id)}:undefined} referenceError={intentReferenceError} onReferenceAsset={id=>void intentAsset(id)} onReferenceFile={file=>void intentFile(file)} onRemoveReference={clearIntentReference}/>}
