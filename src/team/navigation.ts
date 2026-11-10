@@ -46,6 +46,10 @@ type ImageMenuAction=
   | {kind:"router";tab:"angles"|"relight"|"upscale"|"cutout"}
   | {kind:"workflow";workflowId:string};
 type ImageMenuEntry={id:string;title:string;text:string;action:ImageMenuAction};
+export type AccountAction="guide"|"settings"|"sign-out-comfy"|"sign-out";
+type AccountNavigation=
+  | {kind:"sign-in"}
+  | {kind:"menu";items:AccountAction[];showKeyPrivacy:boolean};
 const routerImageTools=[
   ["angles","camera angles","Turn the subject to a new angle"],
   ["relight","relight","Change the light and the mood"],
@@ -283,7 +287,11 @@ function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailabili
     .map(task=>hosted&&!cloudJobs&&task.id==="sharpen"
       ? {...task,href:"#video/transform/upscale",workflow:undefined}
       : task);
-  const account=input.audience==="guest"?["sign-in"]:["guide","settings",...(signedIn?["sign-out-comfy"]:input.localSingleUser?[]:["sign-out"])];
+  const account:AccountNavigation=input.audience==="guest"?{kind:"sign-in"}:{
+    kind:"menu",
+    items:["guide","settings",...(signedIn?["sign-out-comfy"] as const:input.localSingleUser?[]:["sign-out"] as const)],
+    showKeyPrivacy:signedIn,
+  };
   const settingsTabs=hosted?["account","workers"]:["account","chatgpt",...(input.workspaceAdmin?["members","workers","ai-text","providers"]:[])];
   return {sections,video,image,threeD,tools,account,settingsTabs,
     videoWorkflows:videoWorkflows.map(manifest=>manifest.id),imageWorkflows:hosted?[]:models.image.map(manifest=>manifest.id),

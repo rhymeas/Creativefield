@@ -1,4 +1,4 @@
-import {Box,CircleHelp,Github,Clapperboard,Cloud,Footprints,Image as ImageIcon,LayoutGrid,Library as LibraryIcon,LogOut,Maximize2,Move,Palette,Plus,Scissors,Settings,Sparkles,Video} from "lucide-react";
+import {Box,CircleHelp,Github,Clapperboard,Footprints,Image as ImageIcon,LayoutGrid,Library as LibraryIcon,LogOut,Maximize2,Move,Palette,Plus,Scissors,Settings,Sparkles,Video} from "lucide-react";
 import {annotationStorageKey,imageAnnotationsSchema} from "../image/annotations";
 import {enableBrowserLibrary} from "./browser-library";
 import {StartScreen} from "./StartScreen";
@@ -11,7 +11,7 @@ import {ReferenceReplacePanel} from "./ReferenceReplacePanel";
 import {changeChoiceFromHash,type StartTask} from "./start-tasks";
 import {ProjectCreateDialog,TeamProjects,useProjectSelection} from "./TeamProjects";
 import {useCallback,useEffect,useRef,useState,type ReactNode} from "react";
-import {usePhone,IconButton,IconLink,type NavItem,Panel,Reveal,ExpandToggle,AmbientReelProvider,MediaEditProvider,type MediaEditSource,type MediaToolSet,ScrollFades,useDensity,Button,EmptyState,Page,ShimmerText,ToastHost,UserMenu,ProblemBar,ProblemHost,Dialog,Meta,Notice,TopBar,WorkspaceBar,LinkButton} from "../ds";
+import {usePhone,IconButton,IconLink,type NavItem,Panel,Reveal,ExpandToggle,AmbientReelProvider,MediaEditProvider,type MediaEditSource,type MediaToolSet,ScrollFades,useDensity,Button,EmptyState,Page,ShimmerText,ToastHost,UserMenu,type UserMenuItem,ProblemBar,ProblemHost,Dialog,Meta,Notice,TopBar,WorkspaceBar,LinkButton} from "../ds";
 import {AuthPanel} from "./AuthPanel";
 import {ApiError,storeCloudKey,assetUrl,composerAssets,composerResultAssets,mergeAssets,request,workspacePath,type Asset,type Call,type RequestOptions,type Run,type User,type Workspace,type Project,type Worker,type Catalogue,type CharacterRecord} from "./api";
 import {TeamComposer} from "./TeamComposer";
@@ -49,7 +49,7 @@ import {beginOperation,finishOperation,invalidateOperation,operationGate} from "
 import type {IntentTarget} from "./intent/router";
 import {nativeWorkflowHash,videoWorkflowMode,type VideoWorkspaceMode} from "./workflow-navigation";
 import {isOpenJutsuAdvanced} from "../capabilities/openjutsu-advanced";
-import {imageTabFor,imageTabTarget,resolveScreen,type ImageTab,type ResolvedScreen,type VideoMenuId} from "./navigation";
+import {imageTabFor,imageTabTarget,resolveScreen,type AccountAction,type ImageTab,type ResolvedScreen,type VideoMenuId} from "./navigation";
 export {imageTabFor,imageTabTarget,imageTabs} from "./navigation";
 export type {ImageTab} from "./navigation";
 import {sectionFromHash} from "./route-state";
@@ -246,6 +246,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const navigation=resolveScreen({
     hash:routeHash,
     audience:workspaceAudience,
+    localSingleUser:user.localSingleUser,
     hasProject:!!project,
     canCreate,
     access:offline?"offline":authorized?"ready":"reconnect",
@@ -589,7 +590,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   imageMenu.groups=groupMenu("image",[...imageMenu.features,...imageMenu.models]);
   /* Until something can render (a guest signed in, or a worker or Comfy Cloud set up) Free input and Jobs only add noise,
      and a guest's account circle is just Sign in, far right. */
-  const canRunAnything=user.guest?!!account?.connected:workers.length>0||!!account?.connected,signInFirst=workspaceAudience==="guest";
+  const canRunAnything=user.guest?!!account?.connected:workers.length>0||!!account?.connected;
   const section=sectionOf(route);
   const workspaceBar=!catalogueScreen&&!nodes&&section!=="3d";
   useDensity();
@@ -934,21 +935,76 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     showcase:()=>null, // Standalone roots are mounted by main.tsx.
     "node-design":()=>null,
   } satisfies Record<ResolvedScreen["kind"],()=>ReactNode>;
+
+  const accountMenu=workspaceMenu.account;
+  const accountName=account?.name??user.email;
+  const accountAudience=audienceOf(user);
+  const accountActions:Record<AccountAction,UserMenuItem>={
+    guide:{id:"guide",label:"How it works",icon:<CircleHelp size={14}/>,onSelect:()=>setGuide(true)},
+    settings:{id:"settings",label:settingsLabel(accountAudience),icon:<Settings size={14}/>,onSelect:()=>setSettings(true)},
+    "sign-out-comfy":{id:"cloud-out",label:"Sign out of Comfy",icon:<LogOut size={14}/>,onSelect:()=>void signOutCloud()},
+    "sign-out":{id:"out",label:"Sign out",icon:<LogOut size={14}/>,onSelect:()=>void onSignOut()},
+  };
+  const accountControl=accountMenu.kind==="sign-in"
+    ?<Button variant="primary" onClick={()=>setCloudSignIn(true)}>Sign in</Button>
+    :<UserMenu
+      initials={accountName.slice(0,1).toUpperCase()}
+      name={accountName}
+      meta={account?.connected
+        ?<><Meta>{account.email}</Meta><Meta>{account.workspace}</Meta></>
+        :<Meta parts={workspaceFacts(accountAudience,workspace)}/>}
+      extra={account?.connected?<>
+        {typeof account.credits==="number"&&<span className="ds-usermenu__row">
+          <Meta>{account.credits.toLocaleString()+" credits"}</Meta>
+          {account.addCreditsUrl&&<LinkButton variant="ghost" href={account.addCreditsUrl} target="_blank" rel="noreferrer">
+            {account.canSubmit===false?"Upgrade plan":"Add credits"}
+          </LinkButton>}
+        </span>}
+        {account.canSubmit===false&&<Meta>{CLOUD_PLAN_LINE}</Meta>}
+        {accountMenu.showKeyPrivacy&&<Meta>Your Comfy key is saved in this browser only. CreativeField never stores it.</Meta>}
+      </>:undefined}
+      items={accountMenu.items.map(action=>accountActions[action])}
+    />;
+  const runControls=<>
+    {route!=="openjutsu"&&canRunAnything&&<ExpandToggle icon={<Sparkles size={16}/>} label="Free input" on={intentMode} onChange={setIntentMode}/>}
+    {runOnControl}
+    {workspaceControl}
+  </>;
   return <div className="cf-team">
-    <Welcome tools={workspaceMenu.tools} onOpen={openStartTask} onCloud={signInFirst?()=>setCloudSignIn(true):undefined}/>
+    <Welcome tools={workspaceMenu.tools} onOpen={openStartTask} onCloud={accountMenu.kind==="sign-in"?()=>setCloudSignIn(true):undefined}/>
     {guide&&<Guide hosted={!!user.guest} cloudConnected={!!account?.connected} onClose={()=>setGuide(false)} onCloudSignIn={user.guest?()=>{setGuide(false);setCloudSignIn(true);}:undefined} onOpenWorkers={user.guest||workspace.role!=="admin"?undefined:()=>{setGuide(false);openWorkerSettings();}}/>}
     {cloudSignIn&&<CloudSignIn workspaceId={workspace.id} call={call} onClose={()=>setCloudSignIn(false)} onSignedIn={signedInCloud}/>}
     <ScrollFades/><Reveal/>
-    <TopBar more={phone?<>{route!=="openjutsu"&&canRunAnything&&<ExpandToggle icon={<Sparkles size={16}/>} label="Free input" on={intentMode} onChange={setIntentMode}/>} {runOnControl}{workspaceControl}</>:undefined} brand={<img className="ds-topbar__brand-image" src={logo} alt="CreativeField"/>} current={topCurrent} items={[{label:"Video",href:"#video",menu:videoMenu,icon:<Clapperboard size={20}/>},{label:"Image",href:"#image",menu:imageMenu,icon:<ImageIcon size={20}/>},{label:"3D",href:"#3d",menu:threeDMenu},
-      ...(workspaceMenu.sections.includes("audio")?[{label:"Audio",href:"#audio"}]:[]),{label:"All tools",href:"#make",icon:<LayoutGrid size={20}/>},...(!workspaceMenu.sections.includes("nodes")?[]:[{label:"Models",href:"#catalogue",onSelect:openModels},{label:"Nodes",href:"#nodes"}])]} secondary={[{label:"Library",href:"#library",icon:<LibraryIcon size={20}/>},{label:"Projects",href:"#projects",suffix:project?.name,dropdown:{items:projects.map(p=>({id:p.id,title:p.name,onSelect:()=>setProjectId(p.id)})),selectedId:projectId,footer:canCreate?{id:"add",icon:<Plus size={14}/>,title:"Add project",onSelect:()=>setCreatingProject(true)}:undefined}}]} end={phone?<><IconLink label="Source code on GitHub" href="https://github.com/rhymeas/Creativefield"><Github size={18}/></IconLink><IconButton label="How it works" onClick={()=>setGuide(true)}><CircleHelp size={18}/></IconButton>{jobs}{signInFirst?<Button variant="primary" onClick={()=>setCloudSignIn(true)}>Sign in</Button>:<UserMenu initials={(account?.name??user.email).slice(0,1).toUpperCase()} name={account?.name??user.email} meta={account?.connected?<><Meta>{account.email}</Meta><Meta>{account.workspace}</Meta></>:<Meta parts={workspaceFacts(audienceOf(user),workspace)}/>} extra={account?.connected?<>
-      {typeof account.credits==="number"&&<span className="ds-usermenu__row"><Meta>{`${account.credits.toLocaleString()} credits`}</Meta>{account.addCreditsUrl&&<LinkButton variant="ghost" href={account.addCreditsUrl} target="_blank" rel="noreferrer">{account.canSubmit===false?"Upgrade plan":"Add credits"}</LinkButton>}</span>}
-      {account.canSubmit===false&&<Meta>{CLOUD_PLAN_LINE}</Meta>}
-      {user.guest&&<Meta>Your Comfy key is saved in this browser only. CreativeField never stores it.</Meta>}
-    </>:undefined} items={[{id:"guide",label:"How it works",icon:<CircleHelp size={14}/>,onSelect:()=>setGuide(true)},{id:"settings",label:settingsLabel(audienceOf(user)),icon:<Settings size={14}/>,onSelect:()=>setSettings(true)},...(user.guest?[account?.connected?{id:"cloud-out",label:"Sign out of Comfy",icon:<LogOut size={14}/>,onSelect:()=>void signOutCloud()}:{id:"cloud-in",label:"Sign in with your Comfy key",icon:<Cloud size={14}/>,onSelect:()=>setCloudSignIn(true)}]:[]),...(user.localSingleUser||user.guest?[]:[{id:"out",label:"Sign out",icon:<LogOut size={14}/>,onSelect:()=>void onSignOut()}])]}/>}</>:<>{route!=="openjutsu"&&canRunAnything&&<ExpandToggle icon={<Sparkles size={16}/>} label="Free input" on={intentMode} onChange={setIntentMode}/>} {runOnControl}{workspaceControl}<IconLink label="Source code on GitHub" href="https://github.com/rhymeas/Creativefield"><Github size={16}/></IconLink><IconButton label="How it works" onClick={()=>setGuide(true)}><CircleHelp size={16}/></IconButton>{jobs}{signInFirst?<Button variant="primary" onClick={()=>setCloudSignIn(true)}>Sign in</Button>:<UserMenu initials={(account?.name??user.email).slice(0,1).toUpperCase()} name={account?.name??user.email} meta={account?.connected?<><Meta>{account.email}</Meta><Meta>{account.workspace}</Meta></>:<Meta parts={workspaceFacts(audienceOf(user),workspace)}/>} extra={account?.connected?<>
-      {typeof account.credits==="number"&&<span className="ds-usermenu__row"><Meta>{`${account.credits.toLocaleString()} credits`}</Meta>{account.addCreditsUrl&&<LinkButton variant="ghost" href={account.addCreditsUrl} target="_blank" rel="noreferrer">{account.canSubmit===false?"Upgrade plan":"Add credits"}</LinkButton>}</span>}
-      {account.canSubmit===false&&<Meta>{CLOUD_PLAN_LINE}</Meta>}
-      {user.guest&&<Meta>Your Comfy key is saved in this browser only. CreativeField never stores it.</Meta>}
-    </>:undefined} items={[{id:"guide",label:"How it works",icon:<CircleHelp size={14}/>,onSelect:()=>setGuide(true)},{id:"settings",label:settingsLabel(audienceOf(user)),icon:<Settings size={14}/>,onSelect:()=>setSettings(true)},...(user.guest?[account?.connected?{id:"cloud-out",label:"Sign out of Comfy",icon:<LogOut size={14}/>,onSelect:()=>void signOutCloud()}:{id:"cloud-in",label:"Sign in with your Comfy key",icon:<Cloud size={14}/>,onSelect:()=>setCloudSignIn(true)}]:[]),...(user.localSingleUser||user.guest?[]:[{id:"out",label:"Sign out",icon:<LogOut size={14}/>,onSelect:()=>void onSignOut()}])]}/>}</>}/>
+    <TopBar
+      more={phone?runControls:undefined}
+      brand={<img className="ds-topbar__brand-image" src={logo} alt="CreativeField"/>}
+      current={topCurrent}
+      items={[
+        {label:"Video",href:"#video",menu:videoMenu,icon:<Clapperboard size={20}/>},
+        {label:"Image",href:"#image",menu:imageMenu,icon:<ImageIcon size={20}/>},
+        {label:"3D",href:"#3d",menu:threeDMenu},
+        ...(workspaceMenu.sections.includes("audio")?[{label:"Audio",href:"#audio"}]:[]),
+        {label:"All tools",href:"#make",icon:<LayoutGrid size={20}/>},
+        ...(workspaceMenu.sections.includes("nodes")?[
+          {label:"Models",href:"#catalogue",onSelect:openModels},{label:"Nodes",href:"#nodes"},
+        ]:[]),
+      ]}
+      secondary={[
+        {label:"Library",href:"#library",icon:<LibraryIcon size={20}/>},
+        {label:"Projects",href:"#projects",suffix:project?.name,dropdown:{
+          items:projects.map(p=>({id:p.id,title:p.name,onSelect:()=>setProjectId(p.id)})),
+          selectedId:projectId,
+          footer:canCreate?{id:"add",icon:<Plus size={14}/>,title:"Add project",onSelect:()=>setCreatingProject(true)}:undefined,
+        }},
+      ]}
+      end={<>
+        {!phone&&runControls}
+        <IconLink label="Source code on GitHub" href="https://github.com/rhymeas/Creativefield"><Github size={phone?18:16}/></IconLink>
+        <IconButton label="How it works" onClick={()=>setGuide(true)}><CircleHelp size={phone?18:16}/></IconButton>
+        {jobs}
+        {accountControl}
+      </>}
+    />
     <WorkflowInfoProvider><MediaEditProvider canAnnotate={!!editRoute} onEdit={canCreate?editPreview:undefined} saveCrop={canCreate?savePreviewCrop:undefined} tools={mediaTools}><RecreateProvider value={recreate}><RecreateMediaProvider value={recreateMedia}><AmbientReelProvider src={reelForSection(section)}>
     <div className="cf-team__body">
     <div className="cf-team__main ds-canvas">
