@@ -256,6 +256,7 @@ export function resolveScreen(input:NavigationInput){
   const threeDTarget:RunTarget=targets.selected==="cloud"&&canCloudThreeD?"cloud":
     (hosted||targets.selected==="router")&&routerThreeD?"router":hosted?targets.selected:"local";
   const nodes=section==="nodes";
+  const projects=!catalogueAddress&&!nodes&&(section==="projects"||!input.hasProject);
   const library=section==="library",libraryTab=part==="runs"?"runs":"assets";
   const characters=section==="characters"||section==="influencer";
   const characterTab=section==="influencer"||part==="scenes"?"scenes":"characters";
@@ -264,7 +265,7 @@ export function resolveScreen(input:NavigationInput){
   const blockTarget:RunTarget=blockRouter&&(hosted||targets.selected==="router")?"router":"local";
   const audio=section==="audio",routerAudio=audio&&router("talk");
   const audioTarget:RunTarget=hosted||(targets.selected==="router"&&routerAudio)?"router":"local";
-  const runTargets=catalogueAddress||nodes||library||characters||filmStudio?{selected:targets.selected,choices:[]}
+  const runTargets=projects||catalogueAddress||nodes||library||characters||filmStudio?{selected:targets.selected,choices:[]}
     :block?{selected:blockTarget,choices:targets.choices.filter(choice=>choice.target==="router"?blockRouter:choice.target==="local")}
     :audio?{selected:audioTarget,choices:targets.choices.filter(choice=>
     choice.target==="local"||choice.target==="router"&&routerAudio)}
@@ -312,7 +313,7 @@ export function resolveScreen(input:NavigationInput){
     if(root!=="app")return {kind:root};
     if(catalogueAddress)return {kind:"catalogue"};
     if(nodes)return hosted?{kind:"nodes",target:"cloud"}:{kind:"nodes",target:"local",entry:nodeEntry(hash)};
-    if(!input.hasProject||section==="projects")return {kind:"projects"};
+    if(projects)return {kind:"projects"};
     if(library)return libraryTab==="runs"?{kind:"library",tab:"runs",linkedRunId:detail}:{kind:"library",tab:"assets"};
     if(characters){
       const editors=hosted||!input.canCreate?[]:models.imageStudios.remix.filter(manifest=>localReady.has(manifest.id));

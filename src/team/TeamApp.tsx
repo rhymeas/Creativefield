@@ -9,7 +9,7 @@ import {Guide} from "./Guide";
 import {SwapThingPanel} from "./SwapThingPanel";
 import {ReferenceReplacePanel} from "./ReferenceReplacePanel";
 import {changeChoiceFromHash,startTasks,type StartTask} from "./start-tasks";
-import {ProjectCreateDialog,TeamProjects} from "./TeamProjects";
+import {ProjectCreateDialog,TeamProjects,useProjectSelection} from "./TeamProjects";
 import {useCallback,useEffect,useRef,useState,type ReactNode} from "react";
 import {usePhone,IconButton,IconLink,type NavItem,Panel,Reveal,ExpandToggle,AmbientReelProvider,MediaEditProvider,type MediaEditSource,type MediaToolSet,ScrollFades,useDensity,Button,EmptyState,Page,ShimmerText,ToastHost,UserMenu,ProblemBar,ProblemHost,Dialog,Meta,Notice,TopBar,WorkspaceBar,LinkButton} from "../ds";
 import {AuthPanel} from "./AuthPanel";
@@ -54,7 +54,7 @@ import {isOpenJutsuAdvanced} from "../capabilities/openjutsu-advanced";
 import {adImageModel,imageTabFor,imageTabTarget,remixImageModel,resolveScreen,type ImageTab,type ResolvedScreen} from "./navigation";
 export {imageTabFor,imageTabTarget} from "./navigation";
 export type {ImageTab} from "./navigation";
-import {routeState,sectionFromHash} from "./route-state";
+import {ROUTES,routeState,sectionFromHash} from "./route-state";
 import {videoHashPart,videoWorkflowHash} from "../ui/studio-route";
 import {isMotionTransfer,selectTransformManifest} from "./transform-video-state";
 import {catalogueTitles} from "./job-queue";
@@ -174,7 +174,8 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   /* On a phone the top bar keeps only the job queue and the account; Run on and the rest move into its More sheet. */
   const phone=usePhone();
   const [routeHash,setRouteHash]=useState(location.hash);
-  const [route,setRoute]=useState(sectionFromHash(location.hash)),[settings,setSettings]=useState(false),[modelsRequested,setModelsRequested]=useState(false),[creatingProject,setCreatingProject]=useState(false),[projects,setProjects]=useState<Project[]>([]),[projectId,setProjectId]=useState("");
+  const [route,setRoute]=useState(sectionFromHash(location.hash)),[settings,setSettings]=useState(false),[modelsRequested,setModelsRequested]=useState(false),[creatingProject,setCreatingProject]=useState(false);
+  const {projects,projectsLoading,project,projectId,setProjectId,replaceProjects,addProject}=useProjectSelection(user.id,workspace.id);
   const [workers,setWorkers]=useState<Worker[]>([]),[catalogue,setCatalogue]=useState<Catalogue>([]),[capabilityId,setCapabilityId]=useState("");
   const [addressWorkflow,setAddressWorkflow]=useState<string|null>(()=>videoWorkflowFromHash(location.hash)??null);
   const [videoMode,setVideoMode]=useState<VideoWorkspaceMode>(()=>videoModeFromHash(location.hash)??"create");
@@ -207,9 +208,9 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   useEffect(()=>{if(!authorized){setVideoEditRequirements(null);return;}let current=true;void call<VideoEditRequirements>(workspacePath(workspace.id,"video-extension-requirements")).then(result=>{if(current)setVideoEditRequirements(result);}).catch(()=>{/* Retain the inspected workspace during a transient outage; call owns the connection notice. */});return()=>{current=false;};},[authorized,workspace.id,call,version]);
   useEffect(()=>{
     if(!authorized)return;let current=true;
-    void Promise.all([call<Project[]>(workspacePath(workspace.id,"projects")),call<Worker[]>(workspacePath(workspace.id,"workers")),call<Catalogue>(workspacePath(workspace.id,"catalogue"))]).then(([p,w,c])=>{if(!current)return;setProjects(p);setWorkers(w);setCatalogue(c);setProjectId(id=>p.some(p=>p.id===id)?id:p[0]?.id??"");setError("");}).catch(e=>{if(current)setError((e as Error).message);});
+    void Promise.all([call<Project[]>(workspacePath(workspace.id,"projects")),call<Worker[]>(workspacePath(workspace.id,"workers")),call<Catalogue>(workspacePath(workspace.id,"catalogue"))]).then(([p,w,c])=>{if(!current)return;replaceProjects(p);setWorkers(w);setCatalogue(c);setError("");}).catch(e=>{if(current)setError((e as Error).message);});
     return()=>{current=false;};
-  },[call,workspace.id,version,authorized]);
+  },[call,workspace.id,version,authorized,replaceProjects]);
   useEffect(()=>{
     if(route!=="video"||["create","edit","transform","effects","workflow"].includes(videoMode))return;
     setCapabilityId(id=>{
@@ -228,7 +229,6 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     if(named&&route==="video"&&isVideoWorkflow(named)&&(isEffectClips(named.id)||!isCreateVideoWorkflow(named)||isFlashVideoCreate(named.id))){setCapabilityId(named.id);setVideoMode(videoWorkflowMode(named));}
     setAddressWorkflow(null);
   },[addressWorkflow,catalogue,route]);
-  const project=projects.find(p=>p.id===projectId);
   intentScope.current=`${workspace.id}:${project?.id??""}`;
   /* The Comfy account behind the cloud key, shown in the user menu. */
   const [account,setAccount]=useState<CloudAccountFacts|null>(null),[cloudSignIn,setCloudSignIn]=useState(reopenCloudSignIn),[guide,setGuide]=useState(false);
@@ -278,7 +278,8 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     setModelsRequested(false);
     if(modelsOverlay.closeHash)location.hash=modelsOverlay.closeHash;
   };
-  const navigation=["openjutsu","video","motion","block","workflow","image","imageedit","remix","marketing","3d","audio","characters","influencer","library","nodes","catalogue"].includes(route)?workspaceNavigation:undefined;
+  const projectsScreen=workspaceNavigation.screen.kind==="projects";
+  const navigation=projectsScreen||route!=="make"&&ROUTES.includes(route)?workspaceNavigation:undefined;
   const resolved=navigation?.screen;
   const characters=resolved?.kind==="characters"?resolved:undefined;
   const library=resolved?.kind==="library"?resolved:undefined;
@@ -338,7 +339,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   /* Signing in names the credits in its own words, so it is also the yes to running on Comfy Cloud. */
   async function signedInCloud(next:CloudAccountFacts){setAccount(next);setCloudSignIn(false);try{localStorage.setItem(cloudConsentKey,"yes");}catch{}const w=await call<Worker[]>(workspacePath(workspace.id,"workers")).catch(()=>null);if(w)setWorkers(w);setRunOn(next.canSubmit===false?"router":"cloud");}
   async function signOutCloud(){storeCloudKey("");await call(workspacePath(workspace.id,"cloud-key"),"DELETE").catch(()=>undefined);setAccount({connected:false});setRunOn("local");}
-  async function createProject(name:string,description:string){setError("");try{const p=await call<Project>(workspacePath(workspace.id,"projects"),"POST",{name,description:description||undefined});setProjects(old=>[p,...old]);setProjectId(p.id);return true;}catch(e){setError((e as Error).message);return false;}}
+  async function createProject(name:string,description:string){setError("");try{const p=await call<Project>(workspacePath(workspace.id,"projects"),"POST",{name,description:description||undefined});addProject(p);refresh();return true;}catch(e){setError((e as Error).message);return false;}}
   const imageWorkers=studio?localWorkers:runWorkers;
   const imageReadiness=manifest&&(studio&&!offline?bestWorkerReadiness(manifest,imageWorkers):statuses[manifest.id]);
   const readyImageWorkers=manifest&&isImageCapability(manifest)?imageWorkers.filter(worker=>workerReadiness(manifest,worker).state==="ready").sort((a,b)=>a.id.localeCompare(b.id)):[];
@@ -821,7 +822,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     {cloudSignIn&&<CloudSignIn workspaceId={workspace.id} call={call} onClose={()=>setCloudSignIn(false)} onSignedIn={signedInCloud}/>}
     <ScrollFades/><Reveal/>
     <TopBar more={phone?<>{route!=="openjutsu"&&canRunAnything&&<ExpandToggle icon={<Sparkles size={16}/>} label="Free input" on={intentMode} onChange={setIntentMode}/>} {runOnControl}{workspaceControl}</>:undefined} brand={<img className="ds-topbar__brand-image" src={logo} alt="CreativeField"/>} current={topCurrent} items={[{label:"Video",href:"#video",menu:videoMenu,icon:<Clapperboard size={20}/>},{label:"Image",href:"#image",menu:imageMenu,icon:<ImageIcon size={20}/>},{label:"3D",href:"#3d",menu:canCreate?threeDMenu:undefined},
-      ...(workspaceMenu.sections.includes("audio")?[{label:"Audio",href:"#audio"}]:[]),{label:"All tools",href:"#make",icon:<LayoutGrid size={20}/>},...(!workspaceMenu.sections.includes("nodes")?[]:[{label:"Models",href:"#catalogue",onSelect:openModels},{label:"Nodes",href:"#nodes"}])]} secondary={[{label:"Library",href:"#library",icon:<LibraryIcon size={20}/>},{label:"Projects",href:"#projects",suffix:project?.name,dropdown:{items:projects.map(p=>({id:p.id,title:p.name,onSelect:()=>setProjectId(p.id)})),selectedId:projectId,footer:{id:"add",icon:<Plus size={14}/>,title:"Add project",onSelect:()=>setCreatingProject(true)}}}]} end={phone?<><IconLink label="Source code on GitHub" href="https://github.com/rhymeas/Creativefield"><Github size={18}/></IconLink><IconButton label="How it works" onClick={()=>setGuide(true)}><CircleHelp size={18}/></IconButton>{jobs}{signInFirst?<Button variant="primary" onClick={()=>setCloudSignIn(true)}>Sign in</Button>:<UserMenu initials={(account?.name??user.email).slice(0,1).toUpperCase()} name={account?.name??user.email} meta={account?.connected?<><Meta>{account.email}</Meta><Meta>{account.workspace}</Meta></>:<Meta parts={workspaceFacts(audienceOf(user),workspace)}/>} extra={account?.connected?<>
+      ...(workspaceMenu.sections.includes("audio")?[{label:"Audio",href:"#audio"}]:[]),{label:"All tools",href:"#make",icon:<LayoutGrid size={20}/>},...(!workspaceMenu.sections.includes("nodes")?[]:[{label:"Models",href:"#catalogue",onSelect:openModels},{label:"Nodes",href:"#nodes"}])]} secondary={[{label:"Library",href:"#library",icon:<LibraryIcon size={20}/>},{label:"Projects",href:"#projects",suffix:project?.name,dropdown:{items:projects.map(p=>({id:p.id,title:p.name,onSelect:()=>setProjectId(p.id)})),selectedId:projectId,footer:canCreate?{id:"add",icon:<Plus size={14}/>,title:"Add project",onSelect:()=>setCreatingProject(true)}:undefined}}]} end={phone?<><IconLink label="Source code on GitHub" href="https://github.com/rhymeas/Creativefield"><Github size={18}/></IconLink><IconButton label="How it works" onClick={()=>setGuide(true)}><CircleHelp size={18}/></IconButton>{jobs}{signInFirst?<Button variant="primary" onClick={()=>setCloudSignIn(true)}>Sign in</Button>:<UserMenu initials={(account?.name??user.email).slice(0,1).toUpperCase()} name={account?.name??user.email} meta={account?.connected?<><Meta>{account.email}</Meta><Meta>{account.workspace}</Meta></>:<Meta parts={workspaceFacts(audienceOf(user),workspace)}/>} extra={account?.connected?<>
       {typeof account.credits==="number"&&<span className="ds-usermenu__row"><Meta>{`${account.credits.toLocaleString()} credits`}</Meta>{account.addCreditsUrl&&<LinkButton variant="ghost" href={account.addCreditsUrl} target="_blank" rel="noreferrer">{account.canSubmit===false?"Upgrade plan":"Add credits"}</LinkButton>}</span>}
       {account.canSubmit===false&&<Meta>{CLOUD_PLAN_LINE}</Meta>}
       {user.guest&&<Meta>Your Comfy key is saved in this browser only. CreativeField never stores it.</Meta>}
@@ -891,10 +892,12 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
         workspace={workspace} workers={targetWorkers(workers,nodes.target)} catalogue={catalogue.filter(m=>localReady.has(m.id))}
         canEdit={canCreate} serverOffline={offline} onChanged={refresh} onWorkerSettings={openWorkerSettings}/></section>
       :catalogueScreen?null
+      :projectsScreen?<section className="cf-team__content"><Page narrow><TeamProjects
+        projects={projects} projectId={projectId} loading={projectsLoading&&!waiting} canCreate={canCreate}
+        onCreate={createProject} onOpen={id=>{setProjectId(id);location.hash="library";}}/></Page></section>
       :<div className="cf-team__body">
-      {(route==="projects"||!project)&&<section className="cf-team__content"><Page narrow><TeamProjects projects={projects} projectId={projectId} canCreate={canCreate} onCreate={createProject} onOpen={id=>{setProjectId(id);location.hash="library";}}/></Page></section>}
-      {!routerPage&&project&&route!=="projects"&&route!=="openjutsu"&&!showScreen&&<section className="cf-team__content"><Page narrow><EmptyState stage title={fallbackTitle} text={fallbackText} action={fallbackNext?<Button variant="secondary" onClick={()=>{location.hash=fallbackNext.href;}}>{fallbackNext.label}</Button>:undefined}/></Page></section>}
-      {!routerPage&&project&&route!=="projects"&&route!=="openjutsu"&&showScreen&&<section className={`cf-team__content ds-page${route==="imageedit"?" ds-page--workspace":fillPage?" ds-page--fill":""}`}>
+      {!routerPage&&project&&route!=="openjutsu"&&!showScreen&&<section className="cf-team__content"><Page narrow><EmptyState stage title={fallbackTitle} text={fallbackText} action={fallbackNext?<Button variant="secondary" onClick={()=>{location.hash=fallbackNext.href;}}>{fallbackNext.label}</Button>:undefined}/></Page></section>}
+      {!routerPage&&project&&route!=="openjutsu"&&showScreen&&<section className={`cf-team__content ds-page${route==="imageedit"?" ds-page--workspace":fillPage?" ds-page--fill":""}`}>
         {pageHeroKind&&<div className="cf-team__pagehero"><ToolHero kind={pageHeroKind}/></div>}
         {block?<BlockWorkspace screen={block} key={project.id} workspace={workspace} project={project} call={call}
           canCreate={canCreate} onQueued={refresh} depthRoute={id=>routeFor(id,localWorkers)}
@@ -994,7 +997,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
         library={controls=><ComfyLibraryPanel workspace={workspace} workers={workers} call={call} controls={controls} onWorkerSettings={()=>setSettings(true)}/>}
         onLibrary={()=>{const enhancer=readyManifests.find(m=>m.category==="enhance");if(!enhancer)return;setModelsRequested(false);setVideoMode("create");setCapabilityId(enhancer.id);location.hash="video";}}/>
     </Dialog>
-    <ProjectCreateDialog open={creatingProject} onClose={()=>setCreatingProject(false)} onCreate={createProject}/>
+    <ProjectCreateDialog open={creatingProject&&canCreate} onClose={()=>setCreatingProject(false)} onCreate={createProject}/>
     <TeamSettings initialSection={settingsSection} open={settings&&authorized} onClose={closeSettings} workspace={workspace} user={user} workers={workers} call={call} onChanged={refresh} onSignOut={onSignOut}/>
   </div>;
 }

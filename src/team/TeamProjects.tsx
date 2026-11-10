@@ -1,7 +1,29 @@
-import {useState} from "react";
+import {useCallback,useEffect,useState} from "react";
 import {FolderOpen,Plus} from "lucide-react";
-import {Button,Dialog,EmptyState,ItemList,ListItem,SectionHeader,StatusText,TextField} from "../ds";
+import {Button,Dialog,EmptyState,ItemList,ListItem,SectionHeader,StatusText,TextField,Working} from "../ds";
 import type {Project} from "./api";
+
+/** Keep a browser preference only when the current workspace list confirms it. */
+export function useProjectSelection(userId:string,workspaceId:string){
+  const key=`comfyfield.project:v1:${userId}:${workspaceId}`;
+  const [projects,setProjects]=useState<Project[]|null>(null);
+  const [projectId,setProjectId]=useState(()=>{
+    try{return localStorage.getItem(key)??"";}catch{return "";}
+  });
+  const project=projects?.find(item=>item.id===projectId);
+  useEffect(()=>{
+    if(project)try{localStorage.setItem(key,project.id);}catch{/* Browsing still works without storage. */}
+  },[key,project?.id]);
+  const replaceProjects=useCallback((next:Project[])=>{
+    setProjects(next);
+    setProjectId(id=>next.some(item=>item.id===id)?id:next[0]?.id??"");
+  },[]);
+  function addProject(item:Project){
+    setProjects(current=>[item,...(current??[]).filter(project=>project.id!==item.id)]);
+    setProjectId(item.id);
+  }
+  return {projects:projects??[],projectsLoading:projects===null,project,projectId,setProjectId,replaceProjects,addProject};
+}
 
 export function ProjectCreateDialog({open,onClose,onCreate}:{open:boolean;onClose:()=>void;onCreate:(name:string,description:string)=>Promise<boolean>}){
   const [name,setName]=useState(""),[description,setDescription]=useState(""),[busy,setBusy]=useState(false);
@@ -14,8 +36,9 @@ export function ProjectCreateDialog({open,onClose,onCreate}:{open:boolean;onClos
   </Dialog>;
 }
 
-export function TeamProjects({projects,projectId,canCreate,onOpen,onCreate}:{projects:Project[];projectId:string;canCreate:boolean;onOpen:(id:string)=>void;onCreate:(name:string,description:string)=>Promise<boolean>}){
+export function TeamProjects({projects,projectId,loading,canCreate,onOpen,onCreate}:{projects:Project[];projectId:string;loading:boolean;canCreate:boolean;onOpen:(id:string)=>void;onCreate:(name:string,description:string)=>Promise<boolean>}){
   const [creating,setCreating]=useState(false);
+  if(loading)return <><SectionHeader large title="Projects"/><Working label="Loading projects"/></>;
   const create=canCreate?<Button variant="primary" onClick={()=>setCreating(true)}><Plus size={14}/>New project</Button>:undefined;
   return <>
     <SectionHeader large title="Projects" end={projects.length>0?create:undefined}/>
