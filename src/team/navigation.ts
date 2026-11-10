@@ -37,10 +37,13 @@ export type NavigationInput={
   selection?:{videoMode?:VideoWorkspaceMode;workflowId?:string;imageTab?:ImageTab};
   models?:{open:boolean;returnHash?:string};
   openJutsuExperiment?:string;
+  filmStudioInstalled?:boolean;
 };
 
 type RunChoice={target:RunTarget;action:"select"|"sign-in"|"setup"|"consent"|"plan-required"};
-type NamedScreen="make"|"projects"|"library"|"catalogue"|"nodes"|"block"|"audio";
+type NamedScreen="make"|"projects"|"library"|"catalogue"|"nodes"|"audio";
+type BlockDelivery={kind:"router"}|{kind:"previs"|"depth";manifest:CapabilityManifestV2};
+export type BlockScreen={kind:"block";delivery?:BlockDelivery}|{kind:"film-studio"};
 type OpenJutsuSelection=ReturnType<typeof resolveOpenJutsu>["screen"];
 export type ResolvedScreen=
   | Exclude<RouteState,{kind:"screen"}>
@@ -51,6 +54,7 @@ export type ResolvedScreen=
   | {kind:"characters";tab:"characters"|"scenes";imageEditor?:CapabilityManifestV2}
   | {kind:"remix"|"marketing";manifest:CapabilityManifestV2;choices:CapabilityManifestV2[]}
   | {kind:"motion";manifest:CapabilityManifestV2;workflowIds:string[]}
+  | BlockScreen
   | {kind:"video";mode:VideoWorkspaceMode;workflowId?:string;change?:ReturnType<typeof changeChoiceFromHash>}
   | {kind:"storyboard";boardId?:string;target:"local"|"cloud"|"router"}
   | {kind:"keyframes";target:"local"|"router"}
@@ -230,9 +234,14 @@ export function resolveScreen(input:NavigationInput){
     (hosted||targets.selected==="router")&&routerThreeD?"router":hosted?targets.selected:"local";
   const characters=section==="characters"||section==="influencer";
   const characterTab=section==="influencer"||part==="scenes"?"scenes":"characters";
+  const block=section==="block",filmStudio=block&&part==="film";
+  const blockRouter=block&&router("restyle");
+  const blockTarget:RunTarget=blockRouter&&(hosted||targets.selected==="router")?"router":"local";
   const audio=section==="audio",routerAudio=audio&&router("talk");
   const audioTarget:RunTarget=hosted||(targets.selected==="router"&&routerAudio)?"router":"local";
-  const runTargets=characters?{selected:targets.selected,choices:[]}:audio?{selected:audioTarget,choices:targets.choices.filter(choice=>
+  const runTargets=characters||filmStudio?{selected:targets.selected,choices:[]}
+    :block?{selected:blockTarget,choices:targets.choices.filter(choice=>choice.target==="router"?blockRouter:choice.target==="local")}
+    :audio?{selected:audioTarget,choices:targets.choices.filter(choice=>
     choice.target==="local"||choice.target==="router"&&routerAudio)}
     :threeD==="image"?{selected:threeDTarget,choices:targets.choices.filter(choice=>
     choice.target==="local"||choice.target==="router"&&routerThreeD||choice.target==="cloud"&&canCloudThreeD)}
@@ -280,6 +289,19 @@ export function resolveScreen(input:NavigationInput){
       const editors=hosted||!input.canCreate?[]:models.imageStudios.remix.filter(manifest=>localReady.has(manifest.id));
       const imageEditor=selectReadyWorkflow(editors,localReady,taskPacks("image.edit")[0]);
       return {kind:"characters",tab:characterTab,imageEditor};
+    }
+    if(filmStudio)return input.filmStudioInstalled?{kind:"film-studio"}:
+      missing("Film Studio is unavailable here","You can draw a layout and make a shot in Block.","#block","Open Block");
+    if(block){
+      if(blockTarget==="router")return {kind:"block",delivery:{kind:"router"}};
+      if(hosted)return missing("Block is unavailable here","Choose a tool with a Comfy Router model.");
+      if(!input.canCreate)return {kind:"block"};
+      if(models.previs)return {kind:"block",delivery:{kind:"previs",manifest:models.previs}};
+      const depth=models.implemented.find(manifest=>localReady.has(manifest.id)&&manifest.audioPolicies.includes("mute")&&
+        ["source_video","depth_video"].every(id=>manifest.inputs.some(port=>port.id===id&&port.type==="video"&&port.required)));
+      if(depth)return {kind:"block",delivery:{kind:"depth",manifest:depth}};
+      if(!catalogueReady(input))return {kind:"checking"};
+      return missing("Block needs a ready video workflow","Check the local previs and depth workflows in Models.","#catalogue","Open Models");
     }
     if(openJutsu)return {kind:"openjutsu",selection:openJutsu.screen};
     if(studio&&hosted)return missing(studio==="remix"?"Remix Studio runs on this computer":"Ad Studio runs on this computer","Open the local app to use its image editing workflows.");

@@ -32,7 +32,7 @@ import type {CapabilityManifestV2,Readiness} from "../capabilities/types";
 import "./team.css";
 import {isMaskedEdit} from "./masked-state";
 import {WorkflowInfoProvider,WorkflowInfoButton} from "./workflow-info";
-import {BlockShot} from "./BlockShot";
+import {BlockWorkspace,filmStudioInstalled} from "./BlockShot";
 import {reelForSection} from "./reels";
 import {capabilityPurpose,capabilitySurface,isCreateVideoWorkflow,isImageWorkflow,isVideoWorkflow} from "../capabilities/surfaces";
 import {isSelectedImageModel} from "../capabilities/image-model-selection";
@@ -269,13 +269,14 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       trim:videoEditRequirements?(trimReady?"ready":"unavailable"):"checking",
       editArea:!!(swapMaskRoute&&swapEditRoute),
     },
-    openJutsuExperiment:replaceRoute?.manifest.id,
+    openJutsuExperiment:replaceRoute?.manifest.id,filmStudioInstalled,
     selection:{videoMode,workflowId:capabilityId,imageTab:routerImageTab},
   });
   const navigation=["openjutsu","video","motion","block","workflow","image","imageedit","remix","marketing","3d","audio","characters","influencer"].includes(route)?workspaceNavigation:undefined;
   const resolved=navigation?.screen;
   const characters=resolved?.kind==="characters"?resolved:undefined;
   const characterEditor=characters?.imageEditor;
+  const block=resolved?.kind==="block"||resolved?.kind==="film-studio"?resolved:undefined;
   const studio=resolved?.kind==="remix"||resolved?.kind==="marketing"?resolved:undefined;
   const motion=resolved?.kind==="motion"?resolved:undefined;
   const threeD=resolved?.kind==="3d"?resolved:undefined;
@@ -801,7 +802,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     <TeamChoice label="Workspace" variant="pill" display={workspace.name} value={workspace.id} onChange={onWorkspace}
       options={workspaces.map(w=>({value:w.id,label:w.name,note:w.role}))}/>
   </div>;
-  const fillPage=explicitWorkflow||route==="block"||route==="imageedit"||((route==="image"||studioRoute)&&!!manifest)
+  const fillPage=explicitWorkflow||block||route==="imageedit"||((route==="image"||studioRoute)&&!!manifest)
     ||storyboard||keyframes||editArea||transform||trim
     ||((route==="video"||route==="motion")&&!!composerManifest);
   return <div className="cf-team">
@@ -883,8 +884,11 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       {!routerPage&&project&&route!=="projects"&&route!=="openjutsu"&&!showScreen&&<section className="cf-team__content"><Page narrow><EmptyState stage title={fallbackTitle} text={fallbackText} action={fallbackNext?<Button variant="secondary" onClick={()=>{location.hash=fallbackNext.href;}}>{fallbackNext.label}</Button>:undefined}/></Page></section>}
       {!routerPage&&project&&route!=="projects"&&route!=="openjutsu"&&showScreen&&<section className={`cf-team__content ds-page${route==="imageedit"?" ds-page--workspace":fillPage?" ds-page--fill":""}`}>
         {pageHeroKind&&<div className="cf-team__pagehero"><ToolHero kind={pageHeroKind}/></div>}
-        {route==="block"&&<BlockShot key={`${workspace.id}:${project.id}`} workspace={workspace} project={project} call={call} workers={runWorkers} catalogue={catalogue} canCreate={canCreate} onQueued={refresh} router={runOn==="router"&&routerModelsFor("restyle").length?(layoutId,look)=>{setRouterIncoming({workspaceId:workspace.id,projectId:project.id,inputs:{source_video:layoutId},prompt:look});setVideoMode("transform");location.hash="video/transform/restyle";}:undefined} makeReal={previsTarget&&canCreate?layoutId=>{try{presetTool(previsTarget.manifest,{source_video:layoutId});location.hash=previsTarget.hash;}catch(e){setError((e as Error).message);}}:undefined}/>}
-        {explicitWorkflow?<TeamComposer key={`${project.id}:${routeHash}`} manifest={explicitWorkflow}
+        {block?<BlockWorkspace screen={block} key={project.id} workspace={workspace} project={project} call={call}
+          canCreate={canCreate} onQueued={refresh} depthRoute={id=>routeFor(id,localWorkers)}
+          presetTool={presetTool} onTarget={setRunOn}
+          onRouter={(id,prompt)=>setRouterIncoming({workspaceId:workspace.id,projectId:project.id,inputs:{source_video:id},prompt})}/>:
+        explicitWorkflow?<TeamComposer key={`${project.id}:${routeHash}`} manifest={explicitWorkflow}
           onCapability={choose} {...composerProps} project={project} workers={runWorkers}/>:
         route==="make"?<StartScreen ready={listedTools} onOpen={openStartTask} hosted={!!user.guest}/>:
         editScreen?<ImageEditor key={`${user.id}:${workspace.id}:${project.id}:${editScreen.assetId??""}`}
