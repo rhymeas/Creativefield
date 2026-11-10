@@ -1,9 +1,10 @@
 import {isSelectedImageModel} from "../capabilities/image-model-selection";
 import {cloudFeature,routerModelsFor,type CloudFeature} from "../capabilities/router-models";
 import {capabilitySurface,isCreateVideoWorkflow,isImageWorkflow,isVideoWorkflow} from "../capabilities/surfaces";
-import {isEffectClips,isFlashVideoCreate,isSupersededLocalVideoWorkflow,routeTask,taskPacks} from "../capabilities/tasks";
+import {FLASH_EFFECT_CLIPS_ID,isEffectClips,isFlashVideoCreate,isSupersededLocalVideoWorkflow,routeTask,taskPacks} from "../capabilities/tasks";
 import type {CapabilityManifestV2} from "../capabilities/types";
 import {VIDEO_REFRAME_ID} from "../capabilities/video-reframe";
+import {isMaskedEdit} from "./masked-state";
 import {resolveOpenJutsu} from "./openjutsu-navigation";
 import {rootViewFromHash,routeState,sectionFromHash,type RouteState} from "./route-state";
 import {changeChoiceFromHash,startTasks} from "./start-tasks";
@@ -33,7 +34,6 @@ export type NavigationInput={
   localReady?:ReadonlySet<string>;
   routerFeatures?:ReadonlySet<CloudFeature>;
   requirements:{trim:Readiness;audio:Readiness;editArea:boolean};
-  studioReadiness?:{replace:boolean;videoUpscale:boolean;cloudUpscale:boolean};
   selection?:{videoMode?:VideoWorkspaceMode;workflowId?:string;imageTab?:ImageTab};
   models?:{open:boolean;returnHash?:string};
   openJutsuExperiment?:string;
@@ -170,19 +170,27 @@ function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailabili
   const threeDTools=NATIVE_THREE_D_TOOLS.filter(tool=>!hosted||tool.id==="viewer"||tool.id==="image"&&hostedImageTo3D).map(tool=>tool.id);
   const threeDWorkflows=hosted||!input.canCreate?[]:models.implemented.filter(manifest=>manifest.category==="3d"&&imported(manifest));
   const hasSurface=(surface:ReturnType<typeof capabilitySurface>)=>models.implemented.some(manifest=>capabilitySurface(manifest)===surface);
+  const canMakeVideo=models.implemented.some(isCreateVideoWorkflow);
+  const upscale=models.implemented.find(manifest=>manifest.id==="nvidia-vfx-upscale");
+  const localReady=input.localReady??input.ready;
+  // Installed tools can still open their setup when a local worker is offline.
   const tools=startTasks(hosted?{
     block:router("restyle"),h3effects:router("effects"),audio:router("talk"),
     replace:router("replace-character")||router("openjutsu"),motion:router("motion-transfer"),edit:router("object-swap"),
     restyle:router("restyle"),video:router("video-create"),image:router("image-create"),
-    vfx:router("video-upscale")||cloudJobs&&input.studioReadiness?.cloudUpscale,
+    vfx:router("video-upscale")||cloudJobs&&upscale?.routes.some(route=>route.execution==="comfy_cloud"),
   }:{
-    block:hasSurface("video-effect"),h3effects:models.effects,audio:hasSurface("audio"),
-    replace:input.studioReadiness?.replace,motion:models.motionChoices.length>0,edit:hasSurface("video-edit"),
-    restyle:hasSurface("video-effect"),video:models.implemented.some(isCreateVideoWorkflow),
-    film:models.implemented.some(isCreateVideoWorkflow),image:models.image.length>0,vfx:input.studioReadiness?.videoUpscale,
-    remiximage:models.imageStudios.remix.some(manifest=>(input.localReady??input.ready).has(manifest.id)),
-    adimage:models.imageStudios.marketing.some(manifest=>(input.localReady??input.ready).has(manifest.id)),
-  });
+    block:hasSurface("video-effect"),h3effects:input.ready.has(FLASH_EFFECT_CLIPS_ID),
+    audio:models.implemented.some(manifest=>manifest.category==="audio"||/chatterbox|lip-?sync|speech/.test(manifest.id)),
+    replace:models.implemented.some(manifest=>manifest.id==="scail2-character-replace"),
+    motion:models.motionChoices.length>0,edit:models.implemented.some(isMaskedEdit),
+    restyle:hasSurface("video-effect"),video:canMakeVideo,film:canMakeVideo,image:models.image.length>0,vfx:!!upscale,
+    remiximage:models.imageStudios.remix.some(manifest=>localReady.has(manifest.id)),
+    adimage:models.imageStudios.marketing.some(manifest=>localReady.has(manifest.id)),
+  }).filter(task=>input.filmStudioInstalled||task.href!=="#block/film")
+    .map(task=>hosted&&!cloudJobs&&task.id==="sharpen"
+      ? {...task,href:"#video/transform/upscale",workflow:undefined}
+      : task);
   const account=input.audience==="guest"?["sign-in"]:["guide","settings",...(signedIn?["sign-out-comfy"]:input.localSingleUser?[]:["sign-out"])];
   const settingsTabs=hosted?["account","workers"]:["account","chatgpt",...(input.workspaceAdmin?["members","workers","ai-text","providers"]:[])];
   return {sections,video,image,threeDTools,localImageTabs,tools,account,settingsTabs,

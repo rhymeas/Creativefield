@@ -8,7 +8,7 @@ import {CloudSignIn,reopenCloudSignIn,type CloudAccountFacts} from "./CloudSignI
 import {Guide} from "./Guide";
 import {SwapThingPanel} from "./SwapThingPanel";
 import {ReferenceReplacePanel} from "./ReferenceReplacePanel";
-import {changeChoiceFromHash,startTasks,type StartTask} from "./start-tasks";
+import {changeChoiceFromHash,type StartTask} from "./start-tasks";
 import {ProjectCreateDialog,TeamProjects,useProjectSelection} from "./TeamProjects";
 import {useCallback,useEffect,useRef,useState,type ReactNode} from "react";
 import {usePhone,IconButton,IconLink,type NavItem,Panel,Reveal,ExpandToggle,AmbientReelProvider,MediaEditProvider,type MediaEditSource,type MediaToolSet,ScrollFades,useDensity,Button,EmptyState,Page,ShimmerText,ToastHost,UserMenu,ProblemBar,ProblemHost,Dialog,Meta,Notice,TopBar,WorkspaceBar,LinkButton} from "../ds";
@@ -22,7 +22,7 @@ import {feedMode,feedScope} from "./media-feed";
 import {groupMenu} from "./menu-groups";
 import {runLocation} from "./job-queue";
 import {JobQueueIndicator} from "./JobQueueIndicator";
-import {cloudFeature,routerModelsFor,type CloudFeature} from "../capabilities/router-models";
+import {cloudFeature,routerModelsFor} from "../capabilities/router-models";
 import {TeamChoice} from "./TeamChoice";
 import {CapabilityCatalogue} from "../ui/CapabilityCatalogue";
 import {bestWorkerReadiness,defaultDraft,draftKey,restoreDraft,refreshWorkerInventory,workerReadiness} from "./state";
@@ -38,7 +38,7 @@ import {capabilityPurpose,capabilitySurface,isCreateVideoWorkflow,isImageWorkflo
 import {isSelectedImageModel} from "../capabilities/image-model-selection";
 import {identityPhotosetWorkerAllowed} from "../image/identity-photoset";
 import {addCharacterReferences,defaultImageDraft,imageDraftWithReferences,imageRunBody,restoreImageRetakeDraft,type ImageDraft} from "../image/image-state";
-import {FLASH_EFFECT_CLIPS_ID,isEffectClips,isFlashVideoCreate,isOpenJutsuSingleSwap,routeImageToVideo,routeImageToVideoDraft,routeTask} from "../capabilities/tasks";
+import {isEffectClips,isFlashVideoCreate,isOpenJutsuSingleSwap,routeImageToVideo,routeImageToVideoDraft,routeTask} from "../capabilities/tasks";
 import type {AudioRequirements} from "./audio/state";
 import {videoModeFromHash,type VideoEditRequirements} from "./video-edit/state";
 import {AudioStudio,CharacterWorkspace,ChatgptImageStudio,CloudRenderStudio,ComfyNodes,ImageEditor,ImageStudio,ImageTo3DPanel,KeyframeStudio,ModelToolsPanel,TeamSettings,TeamStoryboard,TextTo3DPanel,ThreeDStudio,TransformVideo,VideoEditStudio} from "./lazy-screens";
@@ -51,10 +51,10 @@ import {beginOperation,finishOperation,invalidateOperation,operationGate} from "
 import type {IntentTarget} from "./intent/router";
 import {nativeWorkflowHash,videoWorkflowMode,type VideoWorkspaceMode} from "./workflow-navigation";
 import {isOpenJutsuAdvanced} from "../capabilities/openjutsu-advanced";
-import {adImageModel,imageTabFor,imageTabTarget,remixImageModel,resolveScreen,type ImageTab,type ResolvedScreen} from "./navigation";
+import {imageTabFor,imageTabTarget,resolveScreen,type ImageTab,type ResolvedScreen} from "./navigation";
 export {imageTabFor,imageTabTarget} from "./navigation";
 export type {ImageTab} from "./navigation";
-import {ROUTES,routeState,sectionFromHash} from "./route-state";
+import {routeState,sectionFromHash} from "./route-state";
 import {videoHashPart,videoWorkflowHash} from "../ui/studio-route";
 import {isMotionTransfer,selectTransformManifest} from "./transform-video-state";
 import {catalogueTitles} from "./job-queue";
@@ -252,9 +252,10 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const readyIds=new Set(Object.keys(statuses).filter(id=>statuses[id].state==="ready"));
   const localReady=runOn==="local"||runOn==="router"?readyIds:new Set(offline?[]:
     catalogue.filter(m=>localWorkers.some(w=>workerReadiness(m,w).state==="ready")).map(m=>m.id));
-  const workspaceNavigation=resolveScreen({
+  const workspaceAudience=user.guest?(account?.connected?"signed-in-guest":"guest"):"local";
+  const navigation=resolveScreen({
     hash:routeHash,
-    audience:user.guest?(account?.connected?"signed-in-guest":"guest"):"local",
+    audience:workspaceAudience,
     hasProject:!!project,
     canCreate,
     access:offline?"offline":authorized?"ready":"reconnect",
@@ -272,15 +273,15 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     models:{open:modelsRequested,returnHash:modelsReturnHash.current},
     selection:{videoMode,workflowId:capabilityId,imageTab:routerImageTab},
   });
-  const workspaceMenu=workspaceNavigation.menu;
-  const modelsOverlay=workspaceNavigation.overlay;
+  const workspaceMenu=navigation.menu;
+  const modelsOverlay=navigation.overlay;
   const closeModels=()=>{
     setModelsRequested(false);
     if(modelsOverlay.closeHash)location.hash=modelsOverlay.closeHash;
   };
-  const projectsScreen=workspaceNavigation.screen.kind==="projects";
-  const navigation=projectsScreen||route!=="make"&&ROUTES.includes(route)?workspaceNavigation:undefined;
-  const resolved=navigation?.screen;
+  const resolved=navigation.screen;
+  const projectsScreen=resolved.kind==="projects";
+  const makeScreen=resolved.kind==="make";
   const characters=resolved?.kind==="characters"?resolved:undefined;
   const library=resolved?.kind==="library"?resolved:undefined;
   const nodes=resolved?.kind==="nodes"&&resolved;
@@ -384,7 +385,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const inpaintRoute=inpaintManifest&&inpaintWorker&&inpaintRouteId&&canCreate?{manifest:inpaintManifest,workerId:inpaintWorker.id,routeId:inpaintRouteId}:undefined;
   const openJutsuNav=route==="openjutsu"?navigation:undefined;
   const openJutsuScreen=resolved?.kind==="openjutsu"?resolved:undefined;
-  const screenRunChoices=navigation?runChoices?.filter(choice=>navigation.runTargets.choices.some(option=>option.target===choice.value)):runChoices;
+  const screenRunChoices=runChoices?.filter(choice=>navigation.runTargets.choices.some(option=>option.target===choice.value));
   const openjutsuCanRunLocal=!!openJutsuNav?.runTargets.choices.some(option=>option.target==="local");
   const videoScreen=route==="video"&&(navigation?.pinnedMakeReal||videoMode!=="workflow")
     &&(resolved?.kind!=="video"||resolved.mode==="create")?resolved:undefined;
@@ -409,7 +410,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const openedImageRun=openedImageId?imageRuns.find(run=>run.output_ids.includes(openedImageId)):undefined;
   const preferPruna=(openedImageRun?.capability_id??capabilityId).startsWith("pruna-p-h3-");
   const editRoute=(preferPruna?editRoutes.find(option=>option.manifest.id==="pruna-p-h3-edit"):undefined)??editRoutes[0];
-  const readyManifests=catalogue.filter(m=>statuses[m.id]?.state==="ready"),readyImages=(studio?catalogue.filter(m=>localReady.has(m.id)):readyManifests).filter(isImageCapability),shownImages=catalogue.filter(m=>m.coverage.local==="implemented"&&isImageCapability(m)),readyEdit=readyManifests.some(isMaskedEdit),readyMotion=readyManifests.some(isMotionTransfer),readyEnhance=readyManifests.some(m=>m.category==="enhance"),readyEffects=readyManifests.some(m=>m.id===FLASH_EFFECT_CLIPS_ID);
+  const readyManifests=catalogue.filter(m=>statuses[m.id]?.state==="ready"),readyImages=(studio?catalogue.filter(m=>localReady.has(m.id)):readyManifests).filter(isImageCapability),shownImages=catalogue.filter(m=>m.coverage.local==="implemented"&&isImageCapability(m)),readyEdit=readyManifests.some(isMaskedEdit),readyMotion=readyManifests.some(isMotionTransfer),readyEnhance=readyManifests.some(m=>m.category==="enhance");
   /* The image screen's own tabs: the open workflow decides which one is on, and a tab for a tool that is not
      ready here is never drawn (rule 26). */
   const chatgptUnsupported=(navigation?.runTargets.selected??runOn)==="chatgpt"&&["video","motion","3d"].includes(route);
@@ -435,8 +436,6 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   };
   /** An All tools card opens its screen: a task that names one workflow selects it, every other card starts from that screen's default. */
   const openStartTask=(task:StartTask)=>{
-    /* A guest sharpens a clip on Comfy Router: the Transform screen with that change chosen. */
-    if(user.guest&&task.id==="sharpen"&&account?.canSubmit!==true){setVideoMode("transform");location.hash="video/transform/upscale";return;}
     const target=task.workflow?routeFor(task.workflow):undefined;setCapabilityId(target?.manifest.id??"");location.hash=task.href.slice(1);};
   function openCharacterImages(record:CharacterRecord,target:Catalogue[number],projectId:string){
     try{
@@ -593,17 +592,9 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const guestImport=workspaceMenu.videoFooter==="import"?{label:"Add workflows from Comfy",onSelect:()=>{location.hash="nodes";}}:undefined;
   if(user.guest)videoMenu.footer=guestImport;
   imageMenu.groups=groupMenu("image",[...imageMenu.features,...imageMenu.models]);imageMenu.footer=user.guest?guestImport:allWorkflows;
-  /* All tools lists every tool the app has a workflow for, not only those this computer answers for right now: the page of a tool says when ComfyUI is offline. */
-  const implemented=catalogue.filter(m=>m.coverage.local==="implemented");
-  const localTools={remiximage:catalogue.some(m=>localReady.has(m.id)&&remixImageModel(m)),adimage:catalogue.some(m=>localReady.has(m.id)&&adImageModel(m)),h3effects:readyEffects,replace:implemented.some(m=>m.id==="scail2-character-replace"),motion:implemented.some(isMotionTransfer),effects:implemented.some(m=>capabilitySurface(m)==="video-effect"),edit:implemented.some(isMaskedEdit),vfx:implemented.some(m=>m.id==="nvidia-vfx-upscale"),video:implemented.some(m=>isCreateVideoWorkflow(m)),image:shownImages.length>0,audio:implemented.some(m=>m.category==="audio"||/chatterbox|lip-?sync|speech/.test(m.id))};
-  /* A hosted guest runs only what Comfy Router (any plan) or Comfy Cloud (paid plan) can do; local-only tools are left out (rule 26). */
-  const cloudJobs=account?.canSubmit===true,routes=(feature:CloudFeature)=>routerModelsFor(feature).length>0;
-  const listedTools:typeof localTools&{restyle:boolean;film:boolean;block:boolean}=user.guest?{block:routes("restyle"),remiximage:false,adimage:false,h3effects:routes("effects"),effects:false,audio:routes("talk"),film:false,
-    replace:routes("replace-character")||routes("openjutsu"),motion:routes("motion-transfer"),edit:routes("object-swap"),restyle:routes("restyle"),video:routes("video-create"),image:routes("image-create"),
-    vfx:routes("video-upscale")||cloudJobs&&implemented.some(m=>m.id==="nvidia-vfx-upscale"&&m.routes.some(r=>r.execution==="comfy_cloud"))}:{...localTools,restyle:localTools.effects,film:localTools.video,block:localTools.effects};
   /* Until something can render (a guest signed in, or a worker or Comfy Cloud set up) Free input and Jobs only add noise,
      and a guest's account circle is just Sign in, far right. */
-  const canRunAnything=user.guest?!!account?.connected:workers.length>0||!!account?.connected,signInFirst=!!user.guest&&!account?.connected;
+  const canRunAnything=user.guest?!!account?.connected:workers.length>0||!!account?.connected,signInFirst=workspaceAudience==="guest";
   const section=sectionOf(route);
   const workspaceBar=!catalogueScreen&&!nodes&&section!=="3d";
   /* List-only areas keep a page hero. Production tools own their hero inside the shared right column. */
@@ -817,7 +808,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     ||storyboard||keyframes||editArea||transform||trim
     ||((route==="video"||route==="motion")&&!!composerManifest);
   return <div className="cf-team">
-    <Welcome tools={startTasks(listedTools)} onOpen={openStartTask} onCloud={user.guest&&!account?.connected?()=>setCloudSignIn(true):undefined}/>
+    <Welcome tools={workspaceMenu.tools} onOpen={openStartTask} onCloud={signInFirst?()=>setCloudSignIn(true):undefined}/>
     {guide&&<Guide hosted={!!user.guest} cloudConnected={!!account?.connected} onClose={()=>setGuide(false)} onCloudSignIn={user.guest?()=>{setGuide(false);setCloudSignIn(true);}:undefined} onOpenWorkers={user.guest||workspace.role!=="admin"?undefined:()=>{setGuide(false);openWorkerSettings();}}/>}
     {cloudSignIn&&<CloudSignIn workspaceId={workspace.id} call={call} onClose={()=>setCloudSignIn(false)} onSignedIn={signedInCloud}/>}
     <ScrollFades/><Reveal/>
@@ -857,7 +848,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
           location.hash=target?nativeWorkflowHash(target):"image";
         },items:imageTabItems}
         :undefined}
-      end={<><ProblemBar/>{route==="make"&&<GettingStarted userId={user.id} workspaceId={workspace.id} admin={workspace.role==="admin"} audience={audienceOf(user)} workers={workers} onModels={openModels} onSettings={()=>{setSettingsSection("workers");setSettings(true);}}/>}</>}
+      end={<><ProblemBar/>{navigation.section==="make"&&<GettingStarted userId={user.id} workspaceId={workspace.id} admin={workspace.role==="admin"} audience={audienceOf(user)} workers={workers} onModels={openModels} onSettings={()=>{setSettingsSection("workers");setSettings(true);}}/>}</>}
       info={<WorkflowInfoButton/>}
       />}
     {askCloud&&<CloudRunConsent onUse={useCloud} onKeep={keepLocal}/>}
@@ -877,7 +868,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
         <ThreeDStudio tool={threeD.tool} tools={workspaceMenu.threeDTools} status={<ProblemBar/>}>
           {threeD.tool==="image"?<ImageTo3DPanel manifest={threeD.manifest} workflows={threeD.choices}
             initialAssetId={threeD.assetId} onCapability={id=>{location.hash="3d/image/"+id+(threeD.assetId?"/"+threeD.assetId:"");}}
-            user={user} workspace={workspace} project={project} workers={targetWorkers(workers,workspaceNavigation.runTargets.selected)}
+            user={user} workspace={workspace} project={project} workers={targetWorkers(workers,navigation.runTargets.selected)}
             call={call} canEdit={canCreate} authorized={authorized} onQueued={refresh}/>
           :threeD.tool==="text"?<TextTo3DPanel key={project.id} catalogue={catalogue} user={user}
             workspace={workspace} project={project} workers={runWorkers} call={call} canEdit={canCreate}
@@ -905,7 +896,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
           onRouter={(id,prompt)=>setRouterIncoming({workspaceId:workspace.id,projectId:project.id,inputs:{source_video:id},prompt})}/>:
         explicitWorkflow?<TeamComposer key={`${project.id}:${routeHash}`} manifest={explicitWorkflow}
           onCapability={choose} {...composerProps} project={project} workers={runWorkers}/>:
-        route==="make"?<StartScreen ready={listedTools} onOpen={openStartTask} hosted={!!user.guest}/>:
+        makeScreen?<StartScreen tools={workspaceMenu.tools} onOpen={openStartTask} hosted={workspaceAudience!=="local"}/>:
         editScreen?<ImageEditor key={`${user.id}:${workspace.id}:${project.id}:${editScreen.assetId??""}`}
           openAssetId={editScreen.assetId} openEntry={editScreen.entry} userId={user.id} freeInput={intentMode}
           workspace={workspace} project={project} call={call} canEdit={canCreate} authorized={authorized}
@@ -991,7 +982,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     </div>
     </AmbientReelProvider></RecreateMediaProvider></RecreateProvider></MediaEditProvider></WorkflowInfoProvider>
     <Dialog wide className="cf-models-dialog" open={modelsOverlay.open&&authorized} title="Models" onClose={closeModels}>
-      <CapabilityCatalogue embedded manifests={workspaceNavigation.catalogueManifests} statuses={statuses} checking={checking}
+      <CapabilityCatalogue embedded manifests={navigation.catalogueManifests} statuses={statuses} checking={checking}
         recheckLabel={workspace.role==="admin"?"Probe workers and recheck":"Refresh status"}
         onRecheck={()=>void recheck()} onChoose={id=>{setModelsRequested(false);choose(id);}}
         library={controls=><ComfyLibraryPanel workspace={workspace} workers={workers} call={call} controls={controls} onWorkerSettings={()=>setSettings(true)}/>}

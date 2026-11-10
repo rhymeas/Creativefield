@@ -4,7 +4,7 @@ import {Block,Button,EmptyState,Hero,RotatingVideo,PresetCard,PresetGrid,SearchF
 import {Box,Brush,Camera,Clapperboard,Film,Flame,Footprints,ImagePlus,Maximize2,MessageCircle,Palette,RotateCw,Shapes,UserRound,UserRoundPen} from "lucide-react";
 import {POOL_VIDEOS} from "./reels";
 import {LOAD_TURN} from "./reload-turn";
-import {START_GROUPS,matchTasks,startTasks,type StartNeed,type StartTask,type StartTaskId} from "./start-tasks";
+import {START_GROUPS,matchTasks,type StartTask,type StartTaskId} from "./start-tasks";
 
 const ICONS:Record<StartTaskId,ReactNode>={
   remix:<Palette size={20}/>,ad:<Camera size={20}/>,block:<Camera size={20}/>,"effect-clips":<Flame size={20}/>,"swap-person":<UserRoundPen size={20}/>,"copy-moves":<Footprints size={20}/>,"new-look":<Palette size={20}/>,"swap-thing":<Shapes size={20}/>,
@@ -15,13 +15,13 @@ const ICONS:Record<StartTaskId,ReactNode>={
 /** "All tools": one card per task this computer can run, each opening its screen directly. The start field narrows them
     by name and line.
     A task with its own workflow opens the composer on that workflow through `onOpen`. */
-export function StartScreen({ready,onOpen,hosted=false}:{ready:Partial<Record<StartNeed,boolean>>;onOpen?:(task:StartTask)=>void;hosted?:boolean}){
+export function StartScreen({tools,onOpen,hosted=false}:{tools:StartTask[];onOpen?:(task:StartTask)=>void;hosted?:boolean}){
   const [query,setQuery]=useState("");
   /* Example pictures are dropped into public/examples and listed in its index.json ({"video": "video.webp"}): no code change per picture. */
   const [examples,setExamples]=useState<Record<string,string>>({}),[pool,setPool]=useState<string[]>([]);
   useEffect(()=>{let current=true;fetch("/examples/pool.json").then(r=>r.ok?r.json():{images:[]}).then((p:{images?:string[]})=>{if(current&&Array.isArray(p?.images))setPool(p.images.map((f:string)=>`/examples/${f}`));}).catch(()=>{});return()=>{current=false;};},[]);
   useEffect(()=>{let current=true;fetch("/examples/index.json").then(r=>r.ok?r.json():{}).then(map=>{if(current&&map&&typeof map==="object")setExamples(map as Record<string,string>);}).catch(()=>{});return()=>{current=false;};},[]);
-  const all=startTasks(ready),shown=matchTasks(all,query);
+  const shown=matchTasks(tools,query);
   return <div className="cf-start">
     <Hero title="What do you want to make?" text={hosted?"Free and open source, powered by ComfyUI. Renders run on your own Comfy account.":"Free and open source, powered by ComfyUI. Nothing leaves your computer."} media={<RotatingVideo srcs={POOL_VIDEOS.slice(LOAD_TURN%POOL_VIDEOS.length).concat(POOL_VIDEOS.slice(0,LOAD_TURN%POOL_VIDEOS.length))}/>}>
       <SearchField label="Search tools" value={query} onChange={setQuery} placeholder="Describe it: a video of my dog, a product shot…"/>
