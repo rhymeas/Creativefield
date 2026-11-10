@@ -50,7 +50,7 @@ import type {IntentTarget} from "./intent/router";
 import {nativeWorkflowHash,videoWorkflowMode,type VideoWorkspaceMode} from "./workflow-navigation";
 import {isOpenJutsuAdvanced} from "../capabilities/openjutsu-advanced";
 import {imageTabFor,imageTabTarget,resolveScreen,type ImageTab,type ResolvedScreen,type VideoMenuId} from "./navigation";
-export {imageTabFor,imageTabTarget} from "./navigation";
+export {imageTabFor,imageTabTarget,imageTabs} from "./navigation";
 export type {ImageTab} from "./navigation";
 import {sectionFromHash} from "./route-state";
 import {videoHashPart,videoWorkflowHash} from "../ui/studio-route";
@@ -92,17 +92,11 @@ export function CloudRunConsent({onUse,onKeep}:{onUse:()=>void;onKeep:()=>void})
   return <Dialog open title="Use Comfy Cloud?" onClose={onKeep} footer={<><Button variant="ghost" onClick={onKeep}>Keep local</Button><Button variant="primary" onClick={onUse}>Use Comfy Cloud</Button></>}><Meta>Cloud runs use your Comfy Cloud credits.</Meta></Dialog>;
 }
 
-/* The image workspace: Create and Edit, plus the picture tools that have a ready workflow of their own.
-   Angles and Relight are tabs of this screen, so switching between them keeps the picture already chosen. */
 /** Replace character on Comfy Cloud, in the order the Model row offers them. */
 const CLOUD_REPLACE_MODELS=["scail2-character-replace","cloud-h3-character-swap","cloud-kling-omni-edit","cloud-seedance2-reference"];
-const IMAGE_TAB_LABELS:Record<ImageTab,string>={create:"Create",angles:"Angles",relight:"Relight",edit:"Edit",upscale:"Upscale",cutout:"Cut out"};
 /** The angle workflow this computer really has ready: the camera-angle tool first, then the 45° angle shots. */
 export function angleWorkflow<T extends {id:string}>(ready:T[]):T|undefined{
   return routeTask("image.angles",ready)?.pack;
-}
-export function imageTabs(models:Array<{id:string}>):Array<{id:ImageTab;label:string}>{
-  return (["create","angles","relight"] as const).filter(tab=>imageTabTarget(tab,models)).map(id=>({id,label:IMAGE_TAB_LABELS[id]}));
 }
 /** The model picker stays within the active Image workspace. */
 export function imageModelsForTab<T extends {id:string}>(models:T[],tab:ImageTab):T[]{
@@ -406,15 +400,13 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const preferPruna=(openedImageRun?.capability_id??capabilityId).startsWith("pruna-p-h3-");
   const editRoute=(preferPruna?editRoutes.find(option=>option.manifest.id==="pruna-p-h3-edit"):undefined)??editRoutes[0];
   const readyManifests=catalogue.filter(m=>statuses[m.id]?.state==="ready"),readyImages=(studio?catalogue.filter(m=>localReady.has(m.id)):readyManifests).filter(isImageCapability),shownImages=catalogue.filter(m=>m.coverage.local==="implemented"&&isImageCapability(m)),readyEdit=readyManifests.some(isMaskedEdit);
-  /* The image screen's own tabs: the open workflow decides which one is on, and a tab for a tool that is not
-     ready here is never drawn (rule 26). */
   const chatgpt=resolved?.kind==="chatgpt"?resolved:undefined;
   const routerScreen=resolved.kind==="router"?resolved:undefined;
   const linkedImage=chatgpt?.assetId??routerScreen?.assetId;
   const incoming:{inputs:Record<string,string>;prompt:string}|undefined=linkedImage
     ?{inputs:routerScreen?.feature==="image-to-3d"?{image:linkedImage}:{source_image:linkedImage},prompt:""}:
     routerIncoming?.workspaceId===workspace.id&&routerIncoming.projectId===project?.id?routerIncoming:undefined;
-  const imageTabItems=navigation?.tabs?.items.map(id=>({id:id as ImageTab,label:IMAGE_TAB_LABELS[id as ImageTab]}))??[];
+  const imageTabs=navigation.imageTabs;
   const imageTab=resolved?.kind==="image"?resolved.tab:imageTabFor(manifest?.id,route);
   const previsTarget=navigation?.makeRealEntry;
   const intentImage=imageTabTarget("create",readyImages),intentVideo=routeTask("video.create",readyManifests.filter(m=>isFlashVideoCreate(m.id)))?.pack,intentMotion=readyManifests.find(isMotionTransfer);
@@ -973,14 +965,17 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
           onChange:id=>{location.hash=library?`library/${id}`:id==="scenes"?"characters/scenes":"characters";},
           items:navigation.tabs.items.map(id=>({id,label:id==="characters"?"Cast":id[0].toUpperCase()+id.slice(1)})),
         }
-        :section==="image"&&project?{label:"Image workspace",value:navigation?.tabs?.active??imageTab,onChange:(id:string)=>{
-          if(runOn==="router"||runOn==="chatgpt"){setRouterImageTab(id as ImageTab);location.hash=id==="edit"?"imageedit":"image";return;}
-          if(id===imageTab)return;
-          if(id==="edit"){location.hash="imageedit";return;}
-          const target=imageTabTarget(id as ImageTab,shownImages);
-          if(target){setImageDraft(imageDraftForTab(target,imageDraftMemory.current,imageDraft));setCapabilityId(target.id);}
-          location.hash=target?nativeWorkflowHash(target):"image";
-        },items:imageTabItems}
+        :imageTabs?{label:"Image workspace",value:imageTabs.active,items:imageTabs.items,onChange:id=>{
+          const tab=imageTabs.items.find(item=>item.id===id);
+          if(!tab?.action)return;
+          const {action}=tab;
+          if(action.kind==="provider")setRouterImageTab(tab.id);
+          else{
+            setImageDraft(imageDraftForTab(action.manifest,imageDraftMemory.current,imageDraft));
+            setCapabilityId(action.manifest.id);
+          }
+          location.hash=action.href;
+        }}
         :undefined}
       end={<><ProblemBar/>{navigation.section==="make"&&<GettingStarted userId={user.id} workspaceId={workspace.id} admin={workspace.role==="admin"} audience={audienceOf(user)} workers={workers} onModels={openModels} onSettings={()=>{setSettingsSection("workers");setSettings(true);}}/>}</>}
       info={<WorkflowInfoButton/>}

@@ -113,6 +113,35 @@ export function imageTabTarget<T extends {id:string}>(tab:ImageTab,models:T[]):T
   return routeTask(tab==="angles"?"image.angles":tab==="relight"?"image.relight":"image.create",models)?.pack;
 }
 
+const IMAGE_TAB_LABELS:Record<ImageTab,string>={create:"Create",angles:"Angles",relight:"Relight",edit:"Edit",upscale:"Upscale",cutout:"Cut out"};
+const NATIVE_IMAGE_TABS=["create","angles","relight"] as const;
+
+function nativeImageTabs<T extends {id:string}>(models:T[]){
+  return NATIVE_IMAGE_TABS.flatMap(id=>{
+    const manifest=imageTabTarget(id,models);
+    return manifest?[{id,label:IMAGE_TAB_LABELS[id],manifest}]:[];
+  });
+}
+
+export function imageTabs(models:Array<{id:string}>):Array<{id:ImageTab;label:string}>{
+  return nativeImageTabs(models).map(({id,label})=>({id,label}));
+}
+
+type ImageTabAction={kind:"provider";href:string}|{kind:"workflow";manifest:CapabilityManifestV2;href:string};
+type ImageWorkspaceTab={id:ImageTab;label:string;action?:ImageTabAction};
+
+function resolveImageWorkspaceTabs(target:RunTarget,tab:ImageTab,models:CapabilityManifestV2[],router:RouterAvailability){
+  const remoteTabs:ImageTab[]|undefined=target==="chatgpt"?["angles","relight"]:target==="router"?
+    [...NATIVE_IMAGE_TABS,...(router("image-upscale")?["upscale" as const]:[]),...(router("image-cutout")?["cutout" as const]:[])]:undefined;
+  const items:ImageWorkspaceTab[]=remoteTabs
+    ?remoteTabs.map(id=>({id,label:IMAGE_TAB_LABELS[id],action:{kind:"provider",href:"#image"}}))
+    :nativeImageTabs(models).map(({id,label,manifest})=>({id,label,
+      action:id===tab?undefined:{kind:"workflow",manifest,href:nativeWorkflowHash(manifest)},
+    }));
+  const active=items.some(item=>item.id===tab)||tab==="edit"?tab:items[0]?.id;
+  return {active,items};
+}
+
 function selectReadyWorkflow(choices:CapabilityManifestV2[],ready:ReadonlySet<string>,current?:string,named?:string):CapabilityManifestV2|undefined{
   const requested=choices.find(model=>model.id===named);
   const previous=choices.find(model=>model.id===current);
@@ -206,7 +235,6 @@ function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailabili
     ...(videoWorkflows.some(isMotionTransfer)?[videoEntry("motion","Motion Control","Transfer motion from a video to a character","#motion")]:[]),
     ...(enhance?[videoEntry("enhance","Video Upscale","Enhance video quality",nativeWorkflowHash(enhance))]:[]),
   ];
-  const localImageTabs=(["create","angles","relight"] as const).filter(tab=>imageTabTarget(tab,models.image));
   const image=resolveImageMenu(hosted,models,router);
   const hostedImageTo3D=router("image-to-3d")||cloudJobs&&input.cloud.worker&&models.threeDImages.some(supportsCloud);
   const threeDTools=NATIVE_THREE_D_TOOLS.filter(tool=>!hosted||tool.id==="viewer"||tool.id==="image"&&hostedImageTo3D)
@@ -239,7 +267,7 @@ function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailabili
       : task);
   const account=input.audience==="guest"?["sign-in"]:["guide","settings",...(signedIn?["sign-out-comfy"]:input.localSingleUser?[]:["sign-out"])];
   const settingsTabs=hosted?["account","workers"]:["account","chatgpt",...(input.workspaceAdmin?["members","workers","ai-text","providers"]:[])];
-  return {sections,video,image,threeD,localImageTabs,tools,account,settingsTabs,
+  return {sections,video,image,threeD,tools,account,settingsTabs,
     videoWorkflows:videoWorkflows.map(manifest=>manifest.id),imageWorkflows:hosted?[]:models.image.map(manifest=>manifest.id),
     videoFooter:footer,imageFooter:footer};
 }
@@ -340,6 +368,8 @@ export function resolveScreen(input:NavigationInput){
   const imageTab:ImageTab=section==="imageedit"?"edit":runTargets.selected==="router"||runTargets.selected==="chatgpt"?input.selection?.imageTab??"create":
     imageTabFor(imageWorkflow?.id,section);
   const editingImage=section==="imageedit";
+  const imageWorkspace=input.hasProject&&root==="app"&&(section==="image"||editingImage)
+    ?resolveImageWorkspaceTabs(runTargets.selected,imageTab,models.image,router):null;
   const layers=editingImage&&part==="layers";
   const editAssetId=editingImage?(layers?detail:part):undefined;
   const remoteEditAssetId=/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(editAssetId??"")?editAssetId:undefined;
@@ -355,11 +385,7 @@ export function resolveScreen(input:NavigationInput){
         ...(!hosted||router("keyframes")?["keyframes"]:[]),"create",...(input.requirements.editArea?["edit"]:[]),"transform",
         ...(!hosted||router("openjutsu")?["openjutsu"]:[]),...(models.previs?["makereal"]:[]),
         ...(models.effects||hosted&&router("effects")?["effects"]:[]),...(input.requirements.trim==="ready"?["trim"]:[])]};
-    if(section==="image"||section==="imageedit"){
-      const items=runTargets.selected==="chatgpt"?["angles","relight"]:runTargets.selected==="router"?
-        ["create","angles","relight",...(router("image-upscale")?["upscale"]:[]),...(router("image-cutout")?["cutout"]:[])]:menu.localImageTabs;
-      return {active:items.includes(imageTab)||imageTab==="edit"?imageTab:items[0],items};
-    }
+    if(imageWorkspace)return {active:imageWorkspace.active,items:imageWorkspace.items.map(item=>item.id)};
     if(library)return {active:libraryTab,items:["assets","runs"]};
     if(characters)return {active:characterTab,items:["characters","scenes"]};
     if(section==="3d")return {active:threeD&&menu.threeD.tools.some(tool=>tool.id===threeD)?threeD:"overview",items:menu.threeD.tabs.map(tab=>tab.id)};
@@ -473,5 +499,6 @@ export function resolveScreen(input:NavigationInput){
 
   const makeRealEntry=models.previs?{manifest:models.previs,hash:nativeWorkflowHash(models.previs)}:undefined;
   return {requestedHash,redirect,section,screen:screen(),tabs:tabs(),menu,runTargets,overlay,catalogueManifests,makeRealEntry,imageWorkflow,
+    imageTabs:section==="image"&&imageWorkspace?.active?{...imageWorkspace,active:imageWorkspace.active}:null,
     access:input.access??"ready"};
 }
