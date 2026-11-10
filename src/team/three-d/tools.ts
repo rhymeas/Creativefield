@@ -1,3 +1,5 @@
+import type {CapabilityManifestV2} from "../../capabilities/types";
+
 /* Native generation contracts are exposed in the studio; legacy template links retain recovery. */
 export const THREE_D_TOOLS = [
   {id:"viewer",title:"3D viewer",text:"Preview local models, lighting and materials."},
@@ -22,3 +24,9 @@ export function threeDContinuationHash(action:ThreeDContinuation,assetId:string)
 
 /** Tools with a native generation contract or an existing model viewer. */
 export const NATIVE_THREE_D_TOOLS=THREE_D_TOOLS;
+
+export function imageTo3DWorkflows(catalogue:CapabilityManifestV2[]){
+  return catalogue.filter(manifest=>manifest.category==="3d"&&manifest.inputs.some(port=>port.type==="image")
+    &&manifest.outputs.some(port=>port.type==="model3d")
+    &&manifest.routes.some(route=>route.execution==="local_comfy"&&route.implementation==="implemented"));
+}

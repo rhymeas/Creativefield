@@ -9,13 +9,13 @@ import {WorkflowDescription} from "../workflow-info";
 import {LibraryChoice} from "../LibraryChoice";
 
 import {TeamMediaInput} from "../TeamMediaInput";
-import {threeDContinuationHash} from "./tools";
+import {threeDContinuationHash,type ThreeDTool} from "./tools";
 
 const Preview=lazy(()=>import("../../image/OrbitPreview").then(m=>({default:m.OrbitPreview})));
 
-export function ModelToolsPanel({mode,workspace,project,call,canEdit,onChanged}:{mode:"mesh"|"texture"|"viewer";workspace:Workspace;project:Project;call:Call;canEdit:boolean;onChanged:()=>void}){
+export function ModelToolsPanel({mode,workspace,project,call,canEdit,onChanged,initialAssetId,tools}:{mode:"mesh"|"texture"|"viewer";workspace:Workspace;project:Project;call:Call;canEdit:boolean;onChanged:()=>void;initialAssetId?:string;tools:readonly ThreeDTool[]}){
 
- const [assets,setAssets]=useState<Asset[]>([]),[source,setSource]=useState(location.hash.split("/")[2]??""),[texture,setTexture]=useState(""),[result,setResult]=useState<Asset>(),[scale,setScale]=useState("1"),[rotation,setRotation]=useState("0"),[center,setCenter]=useState(true),[busy,setBusy]=useState(""),[error,setError]=useState(""),[loading,setLoading]=useState(true),[retry,setRetry]=useState(0),[cursor,setCursor]=useState<string|null>(null),[previewStatus,setPreviewStatus]=useState<"loading"|"ready"|"failed">("loading");
+ const [assets,setAssets]=useState<Asset[]>([]),[source,setSource]=useState(initialAssetId??""),[texture,setTexture]=useState(""),[result,setResult]=useState<Asset>(),[scale,setScale]=useState("1"),[rotation,setRotation]=useState("0"),[center,setCenter]=useState(true),[busy,setBusy]=useState(""),[error,setError]=useState(""),[loading,setLoading]=useState(true),[retry,setRetry]=useState(0),[cursor,setCursor]=useState<string|null>(null),[previewStatus,setPreviewStatus]=useState<"loading"|"ready"|"failed">("loading");
 
  const working=useRef(false),loadingMoreRef=useRef(false),mounted=useRef(true),preview=useRef<OrbitPreviewHandle>(null);useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
  const [loadingMore,setLoadingMore]=useState(false),[moreError,setMoreError]=useState("");
@@ -72,7 +72,12 @@ export function ModelToolsPanel({mode,workspace,project,call,canEdit,onChanged}:
 
   {mode==="texture"?<><TeamMediaInput projectId={project.id} onLoadMore={cursor?()=>void more():undefined} loadingMore={loadingMore} loadMoreError={moreError} label="Base-color texture" type="image" hint="Applied to existing UVs" accept="image/png,image/jpeg,image/webp" file={null} selected={image} options={images} disabled={!!busy||!canEdit} canUpload={canEdit} workspace={workspace.id} onFile={f=>void upload(f,"image")} onSelect={setTexture} onUpload={()=>{}}/></>:mode==="mesh"?<><TextField label="Scale multiplier" type="number" value={scale} min={0.01} max={100} disabled={!!busy} onChange={setScale}/><TextField label="Y rotation (degrees)" type="number" value={rotation} min={-360} max={360} disabled={!!busy} onChange={setRotation}/><Checkbox checked={center} disabled={!!busy} onChange={setCenter}>Center at origin</Checkbox></>:null}
 
-  {mode==="viewer"&&shown&&<PanelSection label="Continue with"><Toolbar><Button variant="secondary" disabled={previewStatus!=="ready"||!!busy} onClick={()=>void continueFromView("edit")}>Image edit</Button><Button variant="secondary" disabled={previewStatus!=="ready"||!!busy} onClick={()=>void continueFromView("image")}>Image to 3D</Button><Button variant="ghost" disabled={!!busy} onClick={()=>{location.hash=threeDContinuationHash("texture",shown.id);}}>Textures</Button><Button variant="ghost" disabled={!!busy} onClick={()=>{location.hash=threeDContinuationHash("mesh",shown.id);}}>Mesh tools</Button></Toolbar></PanelSection>}
+  {mode==="viewer"&&shown&&<PanelSection label="Continue with"><Toolbar>
+    <Button variant="secondary" disabled={previewStatus!=="ready"||!!busy} onClick={()=>void continueFromView("edit")}>Image edit</Button>
+    {tools.includes("image")&&<Button variant="secondary" disabled={previewStatus!=="ready"||!!busy} onClick={()=>void continueFromView("image")}>Image to 3D</Button>}
+    {tools.includes("texture")&&<Button variant="ghost" disabled={!!busy} onClick={()=>{location.hash=threeDContinuationHash("texture",shown.id);}}>Textures</Button>}
+    {tools.includes("mesh")&&<Button variant="ghost" disabled={!!busy} onClick={()=>{location.hash=threeDContinuationHash("mesh",shown.id);}}>Mesh tools</Button>}
+  </Toolbar></PanelSection>}
 
   {error&&<Notice priority={50} title="3D tool needs attention" actions={<Button variant="secondary" onClick={()=>setRetry(n=>n+1)}>Refresh Library</Button>}>{error}</Notice>}
 

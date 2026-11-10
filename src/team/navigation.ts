@@ -7,7 +7,7 @@ import {VIDEO_REFRAME_ID} from "../capabilities/video-reframe";
 import {resolveOpenJutsu} from "./openjutsu-navigation";
 import {rootViewFromHash,routeState,sectionFromHash,type RouteState} from "./route-state";
 import {changeChoiceFromHash,startTasks} from "./start-tasks";
-import {NATIVE_THREE_D_TOOLS,threeDTool,type ThreeDTool} from "./three-d/tools";
+import {imageTo3DWorkflows,NATIVE_THREE_D_TOOLS,threeDTool,type ThreeDTool} from "./three-d/tools";
 import {videoModeFromHash} from "./video-edit/state";
 import {isMotionTransfer,type ChangeChoice} from "./transform-video-state";
 import {nativeWorkflowHash,videoWorkflowMode,type VideoWorkspaceMode} from "./workflow-navigation";
@@ -60,7 +60,8 @@ export type ResolvedScreen=
   | {kind:"trim";assetId?:string}
   | {kind:"workflow";manifest:CapabilityManifestV2}
   | {kind:"router";feature:CloudFeature;assetId?:string}
-  | {kind:"3d";tool:ThreeDTool|"overview";workflowId?:string;assetId?:string}
+  | {kind:"3d";tool:"image";manifest:CapabilityManifestV2;choices:CapabilityManifestV2[];assetId?:string}
+  | {kind:"3d";tool:Exclude<ThreeDTool,"image">|"overview";assetId?:string}
   | {kind:"openjutsu";selection:OpenJutsuSelection};
 
 const imported=(manifest:CapabilityManifestV2)=>manifest.id.startsWith("imported-");
@@ -127,7 +128,7 @@ function modelAvailability(input:NavigationInput){
   const defaultEffects=implemented.find(manifest=>isEffectClips(manifest.id)&&!isSupersededLocalVideoWorkflow(manifest.id));
   const imageStudios={remix:implemented.filter(remixImageModel),marketing:implemented.filter(adImageModel)};
   const motionChoices=implemented.filter(isMotionTransfer);
-  return {catalogue,implemented,ready,image,previs,defaultEffects,imageStudios,motionChoices,
+  return {catalogue,implemented,ready,image,previs,defaultEffects,imageStudios,motionChoices,threeDImages:imageTo3DWorkflows(catalogue),
     effects:!!defaultEffects&&input.ready.has(defaultEffects.id),
     motion:motionChoices.some(manifest=>input.ready.has(manifest.id)),
     enhance:ready.some(manifest=>capabilitySurface(manifest)==="video-enhance")};
@@ -155,7 +156,8 @@ function resolveMenu(input:NavigationInput,models:Models,router:RouterAvailabili
     if(routeTask("image.angles",models.image)?.fallback===false)image.push("angles");
     if(localImageTabs.includes("relight"))image.push("relight");
   }
-  const threeDTools=NATIVE_THREE_D_TOOLS.filter(tool=>!hosted||tool.id==="viewer"||tool.id==="image"&&router("image-to-3d")).map(tool=>tool.id);
+  const hostedImageTo3D=router("image-to-3d")||cloudJobs&&input.cloud.worker&&models.threeDImages.some(supportsCloud);
+  const threeDTools=NATIVE_THREE_D_TOOLS.filter(tool=>!hosted||tool.id==="viewer"||tool.id==="image"&&hostedImageTo3D).map(tool=>tool.id);
   const threeDWorkflows=hosted||!input.canCreate?[]:models.implemented.filter(manifest=>manifest.category==="3d"&&imported(manifest));
   const hasSurface=(surface:ReturnType<typeof capabilitySurface>)=>models.implemented.some(manifest=>capabilitySurface(manifest)===surface);
   const tools=startTasks(hosted?{
@@ -218,7 +220,16 @@ export function resolveScreen(input:NavigationInput){
   const localReady=input.canCreate?input.localReady??input.ready:input.ready;
   const reframe=transform&&!hosted?models.catalogue.find(manifest=>manifest.id===VIDEO_REFRAME_ID&&localReady.has(manifest.id)):undefined;
   const targets=resolveTarget(input,section,openJutsu);
-  const runTargets=(reframeRequested||makeReal||studio)&&!hosted
+  const threeD=section==="3d"?threeDTool(part):null;
+  const namedThreeD=threeD==="image"&&detail!=="auto"?detail:undefined;
+  const routerThreeD=threeD==="image"&&!namedThreeD&&router("image-to-3d");
+  const cloudThreeD=models.threeDImages.filter(supportsCloud);
+  const canCloudThreeD=cloudThreeD.some(manifest=>!namedThreeD||manifest.id===namedThreeD);
+  const threeDTarget:RunTarget=targets.selected==="cloud"&&canCloudThreeD?"cloud":
+    (hosted||targets.selected==="router")&&routerThreeD?"router":hosted?targets.selected:"local";
+  const runTargets=threeD==="image"?{selected:threeDTarget,choices:targets.choices.filter(choice=>
+    choice.target==="local"||choice.target==="router"&&routerThreeD||choice.target==="cloud"&&canCloudThreeD)}
+    :(reframeRequested||makeReal||studio)&&!hosted
     ? {selected:"local" as const,choices:targets.choices.filter(choice=>choice.target==="local")}
     : targets;
   const createWorkflow=createVideo
@@ -236,7 +247,6 @@ export function resolveScreen(input:NavigationInput){
   const entry=layers?assetId:detail;
   const editEntry:{entry?:ImageEditEntry}=entry==="annotate"||entry==="modify"||entry==="relight"?{entry}:{};
   const previsSelected=!!pinnedPrevis&&pinnedPrevis.id===models.previs?.id;
-  const threeD=threeDTool(part);
 
   function tabs(){
     if(!input.hasProject||root!=="app")return null;
@@ -263,9 +273,22 @@ export function resolveScreen(input:NavigationInput){
     if(studio&&hosted)return missing(studio==="remix"?"Remix Studio runs on this computer":"Ad Studio runs on this computer","Open the local app to use its image editing workflows.");
     if(layers||hosted&&remoteEditAssetId)return {kind:"fotofield",assetId:editAssetId,...editEntry};
     const target=runTargets.selected;
+    if(section==="3d"){
+      if(part&&(!threeD||!menu.threeDTools.includes(threeD)))return missing("This 3D tool is unavailable","Choose a tool from the 3D workspace.","#3d","3D overview");
+      if(!input.canCreate)return {kind:"missing",title:"3D tools require creator access",text:"Ask your workspace administrator for creator access to open the 3D workspace."};
+      if(threeD!=="image")return {kind:"3d",tool:threeD??"overview",assetId:detail};
+      if(target==="router"&&routerThreeD)return {kind:"router",feature:"image-to-3d",assetId};
+      if(!catalogueReady(input))return {kind:"checking"};
+      const choices=hosted||target==="cloud"?cloudThreeD:models.threeDImages;
+      const selected=namedThreeD?choices.find(manifest=>manifest.id===namedThreeD):
+        selectReadyWorkflow(choices,target==="local"?localReady:input.ready);
+      if(selected)return {kind:"3d",tool:"image",manifest:selected,choices,assetId};
+      if(namedThreeD||hosted)return missing("This 3D workflow is unavailable","Choose an available tool from the 3D workspace.");
+      return missing("No image-to-3D workflow loaded","Check Models for available workflows and their requirements.","#catalogue","Open Models");
+    }
     const feature=cloudFeature(section,videoMode,imageTab,change);
     const dedicated=section==="video"&&(["storyboard","keyframes","trim","workflow"].includes(videoMode)||change==="reframe");
-    const routerScreen=target==="router"&&!dedicated&&(!namedVideo||createVideo||editArea||transform||effects)&&(section!=="3d"||part==="image"&&(!detail||detail==="auto"));
+    const routerScreen=target==="router"&&!dedicated&&(!namedVideo||createVideo||editArea||transform||effects);
     const hasRouter=feature!=="unsupported"&&routerScreen&&router(feature);
     const workflowIds=section==="workflow"?(explicitWorkflow?[explicitWorkflow.id]:[]):section==="image"?images.map(manifest=>manifest.id):models.catalogue.filter(manifest=>section!=="video"||isVideoWorkflow(manifest)).map(manifest=>manifest.id);
     const availability=routeState({section,hash,mode:videoMode,workflowIds,canCreate:input.canCreate,
@@ -275,22 +298,21 @@ export function resolveScreen(input:NavigationInput){
       image:hasRouter||!!(studio?studioManifest:imageWorkflow),
       audioKnown:input.requirements.audio!=="checking",audio:input.requirements.audio==="ready",
       trimKnown:input.requirements.trim!=="checking",trim:input.requirements.trim==="ready"});
-    const named=section==="workflow"||section==="image"&&!!part||section==="video"&&!!part&&!modeFromHash||section==="3d"&&part==="image"&&!!detail&&detail!=="auto";
+    const named=section==="workflow"||section==="image"&&!!part||section==="video"&&!!part&&!modeFromHash;
     if(named&&!catalogueReady(input))return {kind:"checking"};
     if(trim&&target==="router"&&(!named||namedVideo))return {kind:"router",feature:"unsupported"};
     if((named||section==="video"&&modeFromHash==="transform")&&availability.kind==="missing")return availability;
-    if(section==="3d"&&part&&(!threeD||!menu.threeDTools.includes(threeD)))return missing("This 3D tool is unavailable","Choose a tool from the 3D workspace.","#3d","3D overview");
     if(target==="chatgpt"&&(section==="image"||editingImage))return {
       kind:"chatgpt",feature:imageTab==="angles"?"image-angles":imageTab==="relight"?"image-relight":"image-edit",
       assetId:remoteEditAssetId,
     };
-    if(hasRouter)return {kind:"router",feature,assetId:section==="3d"?assetId:remoteEditAssetId};
+    if(hasRouter)return {kind:"router",feature,assetId:remoteEditAssetId};
     if(routerScreen&&feature!=="unsupported"&&!router(feature)&&hosted)return missing("This tool is unavailable here","Choose a tool with a Comfy Router model.");
     if(routerScreen&&(createVideo||editArea||transform||effects||motion||section==="image"||editingImage)&&feature!=="unsupported")return {kind:"router",feature};
     if(motion&&hosted&&catalogueReady(input)&&!motionManifest)return missing("Motion Control uses Comfy Router here","Choose Comfy Router in Run on to transfer motion.");
     if(availability.kind!=="screen")return availability;
     if(hosted&&named){
-      const manifest=explicitWorkflow??models.catalogue.find(candidate=>candidate.id===(section==="3d"?detail:part));
+      const manifest=explicitWorkflow??models.catalogue.find(candidate=>candidate.id===part);
       if(target!=="cloud"||!manifest||!supportsCloud(manifest)){
         return missing("This workflow is unavailable here","Choose a workflow that can run on your Comfy account.");
       }
@@ -315,7 +337,6 @@ export function resolveScreen(input:NavigationInput){
       const workflow=createVideo?createWorkflow:selectedVideo;
       return {kind:"video",mode:videoMode,workflowId:workflow?.id,change};
     }
-    if(section==="3d")return {kind:"3d",tool:threeD??"overview",workflowId:threeD==="image"&&detail!=="auto"?detail:undefined,assetId:threeD==="image"?assetId:detail};
     if(section==="image")return {kind:"image",tab:imageTab,workflowId:imageWorkflow?.id};
     if(editingImage)return {kind:"imageedit",assetId:editAssetId,...editEntry};
     return {kind:section as NamedScreen};
