@@ -31,6 +31,15 @@ const VIDEO_TAB_LABELS:Record<VideoTabId,string>={
 const videoTab=(id:VideoTabId,href?:string,mode?:VideoWorkspaceMode):VideoTab=>({id,label:VIDEO_TAB_LABELS[id],href,mode});
 const videoModeTab=(mode:Exclude<VideoWorkspaceMode,"replace"|"workflow">)=>videoTab(mode,mode==="create"?"#video":`#video/${mode}`,mode);
 
+const libraryTabs=[
+  {id:"assets",label:"Assets",href:"#library/assets"},
+  {id:"runs",label:"Runs",href:"#library/runs"},
+];
+const characterTabs=[
+  {id:"characters",label:"Cast",href:"#characters"},
+  {id:"scenes",label:"Scenes",href:"#characters/scenes"},
+];
+
 type ImageMenuAction=
   | {kind:"open";href:string}
   | {kind:"create";workflowId:string}
@@ -354,6 +363,9 @@ export function resolveScreen(input:NavigationInput){
   const library=section==="library",libraryTab=part==="runs"?"runs":"assets";
   const characters=section==="characters"||section==="influencer";
   const characterTab=section==="influencer"||part==="scenes"?"scenes":"characters";
+  const projectTabs=!input.hasProject||root!=="app"?null:
+    library?{label:"Project content",active:libraryTab,items:libraryTabs}:
+    characters?{label:"Character workspace",active:characterTab,items:characterTabs}:null;
   const block=section==="block",filmStudio=block&&part==="film";
   const blockRouter=block&&router("restyle");
   const blockTarget:RunTarget=blockRouter&&(hosted||targets.selected==="router")?"router":"local";
@@ -407,8 +419,7 @@ export function resolveScreen(input:NavigationInput){
     if(!input.hasProject||root!=="app")return null;
     if(videoTabs)return {active:videoTabs.active,items:videoTabs.items.map(item=>item.id)};
     if(imageWorkspace)return {active:imageWorkspace.active,items:imageWorkspace.items.map(item=>item.id)};
-    if(library)return {active:libraryTab,items:["assets","runs"]};
-    if(characters)return {active:characterTab,items:["characters","scenes"]};
+    if(projectTabs)return {active:projectTabs.active,items:projectTabs.items.map(item=>item.id)};
     if(section==="3d")return {active:threeD&&menu.threeD.tools.some(tool=>tool.id===threeD)?threeD:"overview",items:menu.threeD.tabs.map(tab=>tab.id)};
     return null;
   }
@@ -518,7 +529,7 @@ export function resolveScreen(input:NavigationInput){
     return {kind:section as NamedScreen};
   }
 
-  return {requestedHash,redirect,section,screen:screen(),tabs:tabs(),menu,runTargets,overlay,catalogueManifests,makeRealEntry,imageWorkflow,videoTabs,
+  return {requestedHash,redirect,section,screen:screen(),tabs:tabs(),menu,runTargets,overlay,catalogueManifests,makeRealEntry,imageWorkflow,videoTabs,projectTabs,
     imageTabs:section==="image"&&imageWorkspace?.active?{...imageWorkspace,active:imageWorkspace.active}:null,
     access:input.access??"ready"};
 }

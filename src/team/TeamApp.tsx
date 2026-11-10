@@ -405,6 +405,11 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
   const imageTabs=navigation.imageTabs;
   const imageTab=resolved?.kind==="image"?resolved.tab:imageTabFor(manifest?.id,route);
   const videoTabs=navigation.videoTabs;
+  const projectTabs=navigation.projectTabs;
+  function openProjectTab(id:string){
+    const tab=projectTabs?.items.find(item=>item.id===id);
+    if(tab)location.hash=tab.href;
+  }
   const intentImage=imageTabTarget("create",readyImages),intentVideo=routeTask("video.create",readyManifests.filter(m=>isFlashVideoCreate(m.id)))?.pack,intentMotion=readyManifests.find(isMotionTransfer);
   const intentAvailable={image:intentReference?!!intentImageReferenceTarget(readyImages):!!intentImage,"image-edit":!!intentImageReferenceTarget(readyImages,manifest?.id),video:intentReference?!!routeImageToVideo(readyManifests.filter(isCreateVideoWorkflow)):!!intentVideo,motion:!!intentMotion,edit:readyEdit,trim:trimReady,storyboard:!!project&&canCreate,audio:audioReady};
   const choose=(id:string)=>{const selected=catalogue.find(m=>m.id===id);if(!selected||statuses[id]?.state!=="ready")return;setCapabilityId(id);if(isImageCapability(selected))setImageDraft(defaultImageDraft(selected));setVideoMode(videoWorkflowMode(selected));location.hash=nativeWorkflowHash(selected);};
@@ -885,8 +890,8 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     fotofield:renderEdit,
     characters:inProject(project=>characters&&page(<CharacterWorkspace {...studioAccess} mode={characters.tab} project={project} catalogue={catalogue}
       onOpenStoryboard={boardId=>{setVideoMode("storyboard");location.hash=`video/storyboard/${encodeURIComponent(boardId)}`;}}
-      onOpenCharacters={()=>{location.hash="characters";}}
-      onOpenScenes={canCreate?()=>{location.hash="characters/scenes";}:undefined}
+      onOpenCharacters={()=>openProjectTab("characters")}
+      onOpenScenes={canCreate?()=>openProjectTab("scenes"):undefined}
       onOpenImages={characterEditor?record=>openCharacterImages(record,characterEditor,project.id):undefined}
         />,undefined,characters.tab==="characters"?"cast":"scenes")),
     audio:inProject(project=>audioRequirements&&page(<AudioStudio userId={user.id} key={`${workspace.id}:${project.id}`} workspace={workspace} project={project} call={call} requirements={audioRequirements} onChanged={refresh} onLipSync={canCreate&&readyManifests.some(m=>!!m.voiceContract)?(assetId,imageAssetId)=>void useAudioInLipSync(assetId,imageAssetId):undefined}/>)),
@@ -955,10 +960,8 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
           if(tab?.href)location.hash=tab.href;
         },
       }
-        :(characters||library)&&navigation?.tabs?{
-          label:library?"Project content":"Character workspace",value:navigation.tabs.active,
-          onChange:id=>{location.hash=library?`library/${id}`:id==="scenes"?"characters/scenes":"characters";},
-          items:navigation.tabs.items.map(id=>({id,label:id==="characters"?"Cast":id[0].toUpperCase()+id.slice(1)})),
+        :projectTabs?{
+          label:projectTabs.label,value:projectTabs.active,items:projectTabs.items,onChange:openProjectTab,
         }
         :imageTabs?{label:"Image workspace",value:imageTabs.active,items:imageTabs.items,onChange:id=>{
           const tab=imageTabs.items.find(item=>item.id===id);
