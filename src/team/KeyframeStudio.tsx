@@ -5,12 +5,13 @@ import type {CapabilityManifestV2} from '../capabilities/types';
 import {hasQualifiedDurationMapping} from '../capabilities/timing';
 import {isFlashVideoCreate,routeTask} from '../capabilities/tasks';
 import {ApiError,assetUrl,composerAssets,mergeAssets,workspacePath,type Asset,type AssetPage,type Call,type Project,type User,type Worker,type Workspace} from './api';
-import {workerReadiness} from './state';
+import {defaultDraft,h3GeneratedAudio,workerReadiness} from './state';
 import {planKeyframeSegments,qualifyKeyframeTiming,keyframePositions,keyframeInsertPositions,insertKeyframe,moveKeyframeImage,fitKeyframesToModel,removeKeyframe,type Keyframe} from './keyframe-plan';
-import {buildKeyframeShots,definitiveKeyframeRejection,uncertainKeyframeCreation} from './keyframe-submission';
+import {buildKeyframeShots,definitiveKeyframeRejection,keyframeSteps,uncertainKeyframeCreation} from './keyframe-submission';
+import {fillKeyframePrompts} from './keyframe-prompts';
 import {StoryboardResults} from './StoryboardResults';
 import {StoryboardLibrary} from './StoryboardLibrary';
-import {saveOutcome,type Board as SavedBoard,type SaveIntent} from './storyboard-state';
+import {saveOutcome,type Assembly,type Board as SavedBoard,type SaveIntent} from './storyboard-state';
 import {ProductionContent} from './ProductionWorkspace';
 import {ToolHero} from './heroes';
 import {ExampleTiles} from './ExampleTiles';
@@ -23,8 +24,8 @@ import {routerSegmentRuns} from './keyframe-router';
 import {TeamChoice} from './TeamChoice';
 
 type Board={id:string;revision:number};
-type Pending={board:Board;request:{revision:number;workerId:string;idempotencyKey:string;assembly:{width:number;height:number;fps:number;audioPolicy:'mute';keyframeBoundaries:true}}};
-type Draft={modelId:string;frames:Keyframe[];prompts:string[];fps?:number;orientation?:'landscape'|'portrait';turbo?:boolean};
+type Pending={board:Board;request:{revision:number;workerId:string;idempotencyKey:string;assembly:Assembly&{keyframeBoundaries:true}}};
+type Draft={modelId:string;frames:Keyframe[];prompts:string[];fps?:number;orientation?:'landscape'|'portrait';turbo?:boolean;steps?:number;sound?:boolean};
 const timeLabel=(frame:number,fps:number)=>`${Number((frame/fps).toFixed(2))}s`;
 const imageTypes='image/png,image/jpeg,image/webp';
 export const keyframeModels=(catalogue:CapabilityManifestV2[])=>catalogue.filter(m=>isFlashVideoCreate(m.id)&&m.coverage.local==='implemented'&&m.audioPolicies.includes('mute')&&[16,24,25,30,60].includes(m.timing?.fps??0)&&m.inputs.some(p=>p.id==='start_image'&&p.type==='image')&&m.inputs.some(p=>p.id==='end_image'&&p.type==='image')&&hasQualifiedDurationMapping(m));
@@ -46,14 +47,17 @@ export function KeyframeStudio({workspace,project,user,catalogue,workers,call,au
  const [activeSegment,setActiveSegment]=useState(0);
  const segmentPrompt=useRef<HTMLTextAreaElement>(null);
  const [infoOpen,setInfoOpen]=useState(false);
- const [orientation,setOrientation]=useState<'landscape'|'portrait'>(initialDraft?.orientation==='portrait'?'portrait':'landscape'),[turbo,setTurbo]=useState(initialDraft?.turbo!==false);
+ const [orientation,setOrientation]=useState<'landscape'|'portrait'>(initialDraft?.orientation==='portrait'?'portrait':'landscape'),[chosenSteps,setChosenSteps]=useState(initialDraft?.steps);
+ const [sound,setSound]=useState(initialDraft?.sound!==false);
+ const turbo=initialDraft?.turbo!==false;
  const model=models.find(m=>m.id===modelId)??routeTask('video.first-last',models.filter(m=>workers.some(w=>workerReadiness(m,w).state==='ready')))?.pack??routeTask('video.first-last',models)?.pack,fps=model?.timing?.fps??16;
+ const stepOptions=keyframeSteps(model),steps=chosenSteps!==undefined&&stepOptions.includes(chosenSteps)?chosenSteps:model?Number(defaultDraft(model).controls.steps):undefined;
  const canChooseOrientation=!!(model?.resolutions?.landscape&&model.resolutions.portrait)||!!model?.controls.find(c=>c.id==='aspect_ratio'&&c.options?.some(v=>typeof v==='string'&&v.startsWith('9:16')));
  const previousTiming=useRef<{id:string;fps:number}|null>(null);
  useEffect(()=>{if(!model||previousTiming.current?.id===model.id)return;const oldFps=previousTiming.current?.fps??(initialDraft?draftFrameRate(initialDraft,catalogue,fps):16);previousTiming.current={id:model.id,fps};try{setFrames(old=>fitKeyframesToModel(old,oldFps,model));}catch(e){setError((e as Error).message);}},[model?.id]);
  const readyWorker=model?workers.find(w=>workerReadiness(model,w).state==='ready'):undefined;
  useEffect(()=>{try{if(board)localStorage.setItem(storageKey,JSON.stringify(board));}catch{}},[storageKey,board]);
- useEffect(()=>{try{localStorage.setItem(`${storageKey}:draft`,JSON.stringify({modelId:model?.id??modelId,frames,prompts,fps,orientation,turbo}));}catch{}},[storageKey,modelId,model?.id,fps,frames,prompts,orientation,turbo]);
+ useEffect(()=>{try{localStorage.setItem(`${storageKey}:draft`,JSON.stringify({modelId:model?.id??modelId,frames,prompts,fps,orientation,turbo,steps:chosenSteps,sound}));}catch{}},[storageKey,modelId,model?.id,fps,frames,prompts,orientation,turbo,chosenSteps,sound]);
  useEffect(()=>{let current=true;if(authorized)void composerAssets(call,workspace.id,project.id,[]).then(page=>{if(current){setAssets(page.items);setAssetCursor(page.nextCursor);}}).catch(e=>{if(current)setError((e as Error).message);});return()=>{current=false;};},[authorized,call,workspace.id,project.id]);
  const images=assets.filter(a=>a.media_type==='image');
  let problem='';try{if(!model)throw new Error('No first-and-last-frame model is available.');qualifyKeyframeTiming(model,planKeyframeSegments(frames,prompts),fps);}catch(e){problem=(e as Error).message;}
@@ -63,7 +67,9 @@ export function KeyframeStudio({workspace,project,user,catalogue,workers,call,au
  const routerModels=routerModelsFor('keyframes'),[routerId,setRouterId]=useState(routerModels[0]?.id??'');
  const routerModel:RouterModel|undefined=localEnabled?undefined:routerModels.find(m=>m.id===routerId)??routerModels[0];
  const canRender=canEdit&&(localEnabled||!!routerModel);
+ const canGenerateSound=localEnabled&&!!model&&h3GeneratedAudio(model);
  const [sent,setSent]=useState('');
+ const [promptFallback,setPromptFallback]=useState(false);
  async function animateOnRouter(m:RouterModel){
   const runs=routerSegmentRuns(m,project.id,frames,prompts,fps);
   for(const run of runs)await call(workspacePath(workspace.id,'runs'),'POST',run);
@@ -97,29 +103,37 @@ export function KeyframeStudio({workspace,project,user,catalogue,workers,call,au
  async function moreAssets(){if(!assetCursor||busy)return;setBusy('library');setLibraryError('');try{const page=await call<AssetPage>(workspacePath(workspace.id,`assets?projectId=${encodeURIComponent(project.id)}&cursor=${encodeURIComponent(assetCursor)}`));setAssets(old=>mergeAssets(old,page.items));setAssetCursor(page.nextCursor);}catch(e){setLibraryError((e as Error).message);}finally{setBusy('');}}
  function changeModel(id:string){if(models.some(m=>m.id===id))setModelId(id);}
  async function send(p:Pending){await call(workspacePath(workspace.id,`storyboards/${p.board.id}/renders`),'POST',p.request);setBoard(p.board);setPending(null);try{sessionStorage.removeItem(`${storageKey}:pending`);}catch{}setVersion(v=>v+1);onChanged();}
- async function generate(){if(gate.current||!canRender)return;gate.current=true;setBusy('render');setError('');setSent('');try{
+ async function generate(){if(gate.current||!canRender)return;gate.current=true;setBusy('render');setError('');setSent('');setPromptFallback(false);try{
   if(routerModel){await animateOnRouter(routerModel);return;}
   if(pending){await send(pending);return;}
   if(!model||!readyWorker)return;
-  const {shots,width,height}=buildKeyframeShots(model,frames,prompts,fps,{orientation:canChooseOrientation?orientation:'landscape',turbo});
+  const {shots,width,height,assemblyAudio}=buildKeyframeShots(model,frames,prompts,fps,{orientation:canChooseOrientation?orientation:'landscape',turbo,steps,sound:canGenerateSound&&sound});
+  if(shots.some(shot=>!shot.prompt.trim()))setBusy('prompt');
+  const prepared=await fillKeyframePrompts(shots,call,workspace.id,project.id,readyWorker.id);
+  setPromptFallback(prepared.fallback);setBusy('render');
   let current=board;
   if(!current){try{current=await call<Board>(workspacePath(workspace.id,'storyboards'),'POST',{projectId:project.id,name:'Keyframe animation'});setBoard(current);}catch(e){setCreationUncertain(uncertainKeyframeCreation(e instanceof ApiError?e.status:undefined));throw e;}}
-  const intent:SaveIntent={revision:current.revision,shots:shots.map(s=>({...s,assets:[...s.assets].sort((a,b)=>a.role.localeCompare(b.role))}))};
+  const intent:SaveIntent={revision:current.revision,shots:prepared.shots.map(s=>({...s,assets:[...s.assets].sort((a,b)=>a.role.localeCompare(b.role))}))};
   let saved:{revision:number};try{saved=await call<{revision:number}>(workspacePath(workspace.id,`storyboards/${current.id}/shots`),'PUT',intent);}catch(e){
    if(e instanceof ApiError&&e.status<500)throw e;
    const latest=await call<SavedBoard>(workspacePath(workspace.id,`storyboards/${current.id}`)).catch(()=>null);
    if(!latest||saveOutcome(intent,latest)!=='saved')throw e;saved={revision:latest.revision};
   }
   current={...current,revision:saved.revision};setBoard(current);
-  const next:Pending={board:current,request:{revision:current.revision,workerId:readyWorker.id,idempotencyKey:crypto.randomUUID(),assembly:{width,height,fps,audioPolicy:'mute',keyframeBoundaries:true}}};try{sessionStorage.setItem(`${storageKey}:pending`,JSON.stringify(next));}catch{throw new Error('Request tracking is unavailable; no render was submitted.');}setPending(next);await send(next);
+  const next:Pending={board:current,request:{revision:current.revision,workerId:readyWorker.id,idempotencyKey:crypto.randomUUID(),assembly:{width,height,fps,audioPolicy:assemblyAudio,keyframeBoundaries:true}}};try{sessionStorage.setItem(`${storageKey}:pending`,JSON.stringify(next));}catch{throw new Error('Request tracking is unavailable; no render was submitted.');}setPending(next);await send(next);
  }catch(e){if(e instanceof ApiError&&definitiveKeyframeRejection(e.status)){setPending(null);try{sessionStorage.removeItem(`${storageKey}:pending`);}catch{}}setError((e as Error).message);}finally{gate.current=false;setBusy('');}}
- return <div className="cf-production cf-keyframes"><Panel footer={<GenerateButton busy={busy==='render'||rendering} label={pending?'Retry submission':'Animate'} disabled={!canRender||!!busy||rendering||creationUncertain||(routerModel?frames.some(f=>!f.assetId):(!pending&&(!readyWorker||!!problem)))} disabledReason={routerModel?(frames.some(f=>!f.assetId)?'Add a picture to every keyframe':undefined):!localEnabled?'Choose This computer in the top bar to animate':!readyWorker?'A ready local model is needed':problem||undefined} onClick={()=>void generate()}/> }>
+ return <div className="cf-production cf-keyframes"><Panel footer={<GenerateButton busy={busy==='prompt'||busy==='render'||rendering} label={busy==='prompt'?'Reading keyframes…':pending?'Retry submission':'Animate'} disabled={!canRender||!!busy||rendering||creationUncertain||(routerModel?frames.some(f=>!f.assetId):(!pending&&(!readyWorker||!!problem)))} disabledReason={routerModel?(frames.some(f=>!f.assetId)?'Add a picture to every keyframe':undefined):!localEnabled?'Choose This computer in the top bar to animate':!readyWorker?'A ready local model is needed':problem||undefined} onClick={()=>void generate()}/> }>
   <div className="cf-form">{routerModel&&routerModels.length>1&&<TeamChoice label="Model" display={routerModel.title} value={routerModel.id} disabled={!!busy||rendering} options={routerModels.map(m=>({value:m.id,label:m.title,note:'Comfy Router'}))} onChange={setRouterId}/>}{!localEnabled&&<Meta>{routerModel?`Animates on ${routerModel.title} through Comfy Router, one clip per segment, on your Comfy credits.`:'Choose This computer in the top bar to use local keyframe models.'}</Meta>}
    <KeyframeStrip frames={frames.map(f=>({frame:f.frame,filled:!!f.assetId}))} fps={fps} maxFrame={15*fps} disabled={locked} activeSegment={Math.min(activeSegment,frames.length-2)} positions={positionsFor} insertPositions={insertPositions} onMove={moveFrame} onReorder={reorder} onInsert={insertFrame} onRemove={frames.length>2?removeFrame:undefined} mention={mentionLabel} onMention={mentionFrame} end={<IconButton label="About keyframes" onClick={()=>setInfoOpen(true)}><Info size={16}/></IconButton>}
     media={index=><UploadSlot tile label={`Frame ${index+1}`} hint="" accept={imageTypes} kinds={['image']} preview={frames[index].assetId?assetUrl(workspace.id,frames[index].assetId):null} previewKind="image" disabled={locked} removeLabel={frames.length>2?`Remove frame ${index+1}`:`Clear frame ${index+1}`} onBrowse={()=>setPicker(index)} onFile={file=>{if(!file&&frames.length>2)removeFrame(index);else void upload(index,file);}} onAsset={id=>choose(index,id)}/>}/>
-   <div>{frames.slice(1).map((frame,index)=><KeyframeSegment key={index} time={`${timeLabel(frames[index].frame,fps).replace(/s$/,'')}–${timeLabel(frame.frame,fps)}`} title={`Segment ${index+1}`} summary={prompts[index]} open={activeSegment===index} onToggle={()=>setActiveSegment(activeSegment===index?-1:index)}><PromptField textareaRef={segmentPrompt} tokens={['@Image 1','@Image 2']} compact label={`Segment ${index+1} prompt (optional)`} placeholder="Describe this transition" value={prompts[index]??''} disabled={locked} onChange={value=>setPrompts(old=>old.map((p,i)=>i===index?value:p))}/></KeyframeSegment>)}</div>
-   <KeyframeOptions silent><InlineSelect label="Aspect ratio" value={orientation} disabled={locked||!canChooseOrientation} onChange={setOrientation} options={[{value:'landscape',label:'16:9'},{value:'portrait',label:'9:16'}]}/><InlineSelect label="Render speed" value={turbo?'fast':'quality'} disabled={locked||!model?.controls.some(c=>c.id==='turbo')} onChange={value=>setTurbo(value==='fast')} options={[{value:'fast',label:'Fast'},{value:'quality',label:'Quality'}]}/></KeyframeOptions>
+   <div>{frames.slice(1).map((frame,index)=><KeyframeSegment key={index} time={`${timeLabel(frames[index].frame,fps).replace(/s$/,'')}–${timeLabel(frame.frame,fps)}`} title={`Segment ${index+1}`} summary={prompts[index]} open={activeSegment===index} onToggle={()=>setActiveSegment(activeSegment===index?-1:index)}><PromptField textareaRef={segmentPrompt} tokens={['@Image 1','@Image 2']} compact label={`Segment ${index+1} prompt (optional)`} placeholder={localEnabled?'Describe the transition or leave it to Keyframes':'Describe this transition'} value={prompts[index]??''} disabled={locked} onChange={value=>setPrompts(old=>old.map((p,i)=>i===index?value:p))}/></KeyframeSegment>)}</div>
+   <KeyframeOptions silent={!canGenerateSound}>
+    <InlineSelect label="Aspect ratio" value={orientation} disabled={locked||!canChooseOrientation} onChange={setOrientation} options={[{value:'landscape',label:'16:9'},{value:'portrait',label:'9:16'}]}/>
+    {localEnabled&&stepOptions.length>1&&<InlineSelect label="Quality" value={String(steps)} disabled={locked} onChange={value=>setChosenSteps(Number(value))} options={stepOptions.map((value,index)=>({value:String(value),label:index===0?'Fast':index===stepOptions.length-1?'Quality':'Standard'}))}/>}
+    {canGenerateSound&&<InlineSelect label="Audio" value={sound?'on':'off'} disabled={locked} onChange={value=>setSound(value==='on')} options={[{value:'on',label:'Sound'},{value:'off',label:'Muted'}]}/>}
+   </KeyframeOptions>
    {sent&&<Meta>{sent}</Meta>}
+   {promptFallback&&<Meta>Some images could not be read by the local prompt model. Their transitions use the keyframes directly.</Meta>}
    {error&&<Notice inline title="Animation did not start" details={error}>{creationUncertain?'Check your storyboards before trying again; creation may have succeeded.':pending?'Retry keeps the same request.':'Check the inputs and try again.'}</Notice>}
   </div>
  </Panel><ProductionContent><ToolHero kind="keyframes"/>{board&&<StoryboardResults key={`${board.id}:${version}`} boardId={board.id} boardRevision={board.revision} workspace={workspace} user={user} call={call} authorized={authorized} canEdit={canEdit} version={version} onActiveChange={setRendering}/>}<StoryboardLibrary workspace={workspace.id} assets={assets} disabled={locked} onSelect={id=>{const empty=frames.findIndex(f=>!f.assetId);void choose(empty<0?Math.max(0,activeSegment):empty,id);}}/><ExampleTiles kind="video"/></ProductionContent>

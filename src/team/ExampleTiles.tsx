@@ -1,5 +1,5 @@
 import {useEffect,useState,type ReactNode} from "react";
-import {Block,LazyVideo,MediaViewer,MediaViewerInfo,ResultGrid,ResultTile} from "../ds";
+import {Block,LazyVideo,MediaViewerInfo,ResultGrid,ResultTile} from "../ds";
 import {FEATURED_VIDEO_EXAMPLES,LOW_PRIORITY_EXAMPLES,OPENJUTSU_SHOWCASE,POOL_VIDEOS,SQUAREHEAD_EXAMPLE_IMAGES,SQUAREHEAD_EXAMPLE_VIDEOS} from "./reels";
 import {LOAD_TURN} from "./reload-turn";
 import {useRecreateMedia} from "./recreate";
@@ -36,22 +36,23 @@ const PROMPT="Replace the person in <Video 1> with the fantasy character in <Pic
 const SQUAREHEAD_PROMPT="Replace the person in <Video 1> with the single CreativeField mascot shown in <Picture 1>. The picture is a character sheet with front, side and back views of the same character. Give the performer the giant rounded yellow cube head with raised yellow CF, black CreativeField hoodie and black shorts, white gloves and glossy oversized black shoes. Keep the original action, body motion, camera and environment. No phone interface, text overlays or extra people.";
 
 function SquareheadTile({src,kind,onHide}:{src:string;kind:"image"|"video";onHide:()=>void}){
-  const [open,setOpen]=useState(false);
   const index=(kind==="video"?SQUAREHEAD_EXAMPLE_VIDEOS:SQUAREHEAD_EXAMPLE_IMAGES).indexOf(src);
   const number=index+1,source=`/examples/squarehead/source-0${number}.mp4`,character="/examples/squarehead/mascot-character-sheet.jpg",seed=index===0?904239:904240+index;
   const recreate=useRecreateMedia()({capabilityId:"openjutsu-h3-swap",inputs:{source_video:{src:source,name:`mascot-source-${number}.mp4`},character_image:{src:character,name:"mascot-character-sheet.jpg"}},controls:{prompt:SQUAREHEAD_PROMPT,seconds:5,resolution:480,seed}});
-  return <><ResultTile caption={kind==="image"?"Video still":"OpenJutsu example"} onDelete={onHide} {...REMOVE} onOpen={()=>setOpen(true)} onRecreate={recreate?()=>void recreate():undefined}>{kind==="video"?<LazyVideo src={src}/>:<img draggable={false} loading="lazy" src={src} alt=""/>}</ResultTile>
-    <MediaViewer open={open} src={src} name={`CreativeField mascot example ${number}`} mediaType={kind} onClose={()=>setOpen(false)} onRecreate={recreate} info={<MediaViewerInfo mode={kind==="image"?"Still from character swap":"Character swap"} model="MiniMax H3 · OpenJutsu" inputs={[{src:source,label:"Source video (5 s)",video:true},{src:character,label:"CreativeField mascot character sheet"}]} prompt={SQUAREHEAD_PROMPT} facts={[{label:"Workflow",value:"5 s source → H3 character swap"},{label:"Settings",value:`480p · 8 steps · CFG 1 · seed ${seed}`},...(kind==="image"?[{label:"Image",value:"Frame extracted from the generated video"}]:[])]}/>}/></>;
+  return <ResultTile caption={kind==="image"?"Video still":"OpenJutsu example"} onDelete={onHide} {...REMOVE} onRecreate={recreate}
+    viewerInfo={<MediaViewerInfo mode={kind==="image"?"Still from character swap":"Character swap"} model="MiniMax H3 · OpenJutsu" inputs={[{src:source,label:"Source video (5 s)",video:true},{src:character,label:"CreativeField mascot character sheet"}]} prompt={SQUAREHEAD_PROMPT} facts={[{label:"Workflow",value:"5 s source → H3 character swap"},{label:"Settings",value:`480p · 8 steps · CFG 1 · seed ${seed}`},...(kind==="image"?[{label:"Image",value:"Frame extracted from the generated video"}]:[])]}/>}>
+    {kind==="video"?<LazyVideo src={src} label={`CreativeField mascot example ${number}`}/>:<img draggable={false} loading="lazy" src={src} alt={`CreativeField mascot example ${number}`}/>}
+  </ResultTile>;
 }
 
 function ShowcaseTile({src,onHide}:{src:string;onHide:()=>void}){
-  const [open,setOpen]=useState(false);
   const example=OPENJUTSU_SHOWCASE.find(item=>item.result===src)!;
   const recreate=useRecreateMedia()({capabilityId:"openjutsu-h3-swap",inputs:{source_video:{src:example.source,name:`openjutsu-example-${example.number}-source.mp4`},character_image:{src:example.character,name:`openjutsu-example-${example.number}-character.png`}},controls:{prompt:PROMPT}});
-  return <><ResultTile caption="OpenJutsu example" onDelete={onHide} {...REMOVE} onOpen={()=>setOpen(true)} onRecreate={recreate?()=>void recreate():undefined}><LazyVideo src={src}/></ResultTile>
-    {/* The same column as every result's full view: mode, reference tiles, prompt, model and settings. */}
-    <MediaViewer open={open} src={src} name={`OpenJutsu example ${example.number}`} mediaType="video" onClose={()=>setOpen(false)} onRecreate={recreate} info={<MediaViewerInfo mode="Character swap" model="MiniMax H3 · OpenJutsu"
+  return <ResultTile caption="OpenJutsu example" onDelete={onHide} {...REMOVE} onRecreate={recreate}
+    viewerInfo={<MediaViewerInfo mode="Character swap" model="MiniMax H3 · OpenJutsu"
       inputs={[{src:example.original,label:"Original video",video:true},{src:example.source,label:"Prepared input",video:true},{src:example.character,label:`Character reference ${example.number}`}]}
       prompt={PROMPT}
-      facts={[{label:"Workflow",value:"10 s prepared reference → H3 swap → 2× resize"},{label:"Quality",value:"480p · 8 steps · CFG 1 · 24 fps"},...(example.number===2?[{label:"Length",value:"Source slowed to 10 s, last frames held"}]:[])]}/>}/></>;
+      facts={[{label:"Workflow",value:"10 s prepared reference → H3 swap → 2× resize"},{label:"Quality",value:"480p · 8 steps · CFG 1 · 24 fps"},...(example.number===2?[{label:"Length",value:"Source slowed to 10 s, last frames held"}]:[])]}/>}>
+    <LazyVideo src={src} label={`OpenJutsu example ${example.number}`}/>
+  </ResultTile>;
 }

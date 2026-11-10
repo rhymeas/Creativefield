@@ -1,5 +1,10 @@
 import { useEffect, useRef, type RefObject } from "react";
 
+export function isTopmostModal(panel:HTMLElement|null){
+  const dialogs=document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+  return dialogs[dialogs.length-1]===panel;
+}
+
 /** Shared by Dialog and MediaViewer so keyboard focus stays in the topmost modal. */
 export function useModalFocus(open: boolean, panel: RefObject<HTMLElement>, onClose: () => void) {
   const closing = useRef(onClose);
@@ -10,8 +15,7 @@ export function useModalFocus(open: boolean, panel: RefObject<HTMLElement>, onCl
     const previous = document.activeElement as HTMLElement | null;
     panel.current?.focus();
     const onKey = (event: KeyboardEvent) => {
-      const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
-      if (dialogs[dialogs.length - 1] !== panel.current) return;
+      if (!isTopmostModal(panel.current)) return;
       if (document.querySelector('[data-comfy-menu]') && (event.key === "Escape" ||
         (document.activeElement as Element | null)?.closest('[data-comfy-menu]'))) return;
       if (event.key === "Escape") {

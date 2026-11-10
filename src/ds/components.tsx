@@ -1,6 +1,7 @@
 import { selectProblems } from "./problems";
 import {EXAMPLE_DRAG,readExampleFile} from "./example-media";
-import { useModalFocus } from "./useModalFocus";
+import { isTopmostModal,useModalFocus } from "./useModalFocus";
+import { adjacentMedia,MediaSequence,MediaSequenceContext,type MediaDirection } from "./MediaSequence";
 import {useDragDismiss,useSwipeClose} from "./gestures";
 import {linkMediaPlayback} from "./linked-playback";
 import "./media-input-paste.css";
@@ -414,7 +415,7 @@ export function LazyVideo({ src, poster, label, controls, className, draggable }
   }, [near, controls, reduced]);
   // A still tile shows its first frame, not black (Safari paints nothing for preload="metadata" alone).
   const shown = near ? (poster || src.includes("#") ? src : `${src}#t=0.1`) : undefined;
-  return <video ref={video} className={className} src={shown} poster={poster} muted={!controls} loop={!controls} controls={controls} playsInline preload={near ? "metadata" : "none"} draggable={draggable} aria-label={label} aria-hidden={label ? undefined : true} />;
+  return <video ref={video} className={className} src={shown} data-preview-src={src} poster={poster} muted={!controls} loop={!controls} controls={controls} playsInline preload={near ? "metadata" : "none"} draggable={draggable} aria-label={label} aria-hidden={label ? undefined : true} />;
 }
 
 /* ── Panel ──────────────────────────────────────────────────── */
@@ -1526,7 +1527,7 @@ export function ShotTile({
 /* Small square reference images. Interactive thumbs are checkable; read-only thumbs stay quiet. */
 export function ThumbGrid({ children, label, compact }: { children: ReactNode; label: string; /** Small tiles in one scrolling row (a quick pick under a field). */ compact?: boolean }) {
   const [density] = useDensity();
-  return <div className={cx("ds-thumbgrid", compact && "ds-thumbgrid--compact")} role="group" aria-label={label} style={{ ["--cols" as string]: densityColumns(density, gridItemCount(children)) }}>{children}</div>;
+  return <div className={cx("ds-thumbgrid", compact && "ds-thumbgrid--compact")} role="group" aria-label={label} style={{ ["--cols" as string]: densityColumns(density, gridItemCount(children)) }}><MediaSequence>{children}</MediaSequence></div>;
 }
 
 /* InfoDot: a small "i" on an image. Hover or click shows what the image is (name, source, ids) over the image,
@@ -2165,14 +2166,14 @@ export function ResultGrid({ count, aspect, label, children }: { count: number; 
   const columns = densityColumns(density, count);
   return (
     <div className="ds-resultgrid" role="list" aria-label={label} data-count={count} data-masonry={aspect > 0 ? undefined : ""} style={{ ["--cols" as string]: columns, ["--tile-aspect" as string]: aspect > 0 ? aspect : "auto" }}>
-      {children}
+      <MediaSequence>{children}</MediaSequence>
     </div>
   );
 }
 
 /* ResultTile: one image in a ResultGrid, or its place while it is being made (pass a status instead of children). */
-export function ResultTile({ children, status, caption, actions, onOpen, develop, dragAsset, onRecreate, onDelete, deleteTitle = "Delete this file?", deleteText = "It is removed from this project for everyone." }: { /** Opens the tool this was made in with the same inputs and settings: the hover button bottom right. */ onRecreate?: () => void; /** Removes the tile after a confirm (rule 69): every upload, reference, film and example can go, not only results. */ onDelete?: () => Promise<void> | void; deleteTitle?: string; deleteText?: string; children?: ReactNode; status?: ReactNode; caption?: ReactNode; actions?: ReactNode; onOpen?: () => void; dragAsset?: { id: string; url: string; contentType?: string }; develop?: { src?: string; label: ReactNode; detail?: ReactNode; elapsed?: ReactNode; /** One word for what the job does now ("Rendering", "Upscaling"), set small before the clock. */ stage?: ReactNode; progress?: number; active?: boolean; onCancel?: () => void; cancelling?: boolean } }) {
-  const preview=useSurfacePreview({onRecreate});
+export function ResultTile({ children, status, caption, actions, onOpen, develop, dragAsset, onRecreate, onDelete, viewerInfo, deleteTitle = "Delete this file?", deleteText = "It is removed from this project for everyone." }: { /** Opens the tool this was made in with the same inputs and settings: the hover button bottom right. */ onRecreate?: () => void; /** Removes the tile after a confirm (rule 69): every upload, reference, film and example can go, not only results. */ onDelete?: () => Promise<void> | void; deleteTitle?: string; deleteText?: string; children?: ReactNode; status?: ReactNode; caption?: ReactNode; actions?: ReactNode; onOpen?: () => void; viewerInfo?: ReactNode; dragAsset?: { id: string; url: string; contentType?: string }; develop?: { src?: string; label: ReactNode; detail?: ReactNode; elapsed?: ReactNode; /** One word for what the job does now ("Rendering", "Upscaling"), set small before the clock. */ stage?: ReactNode; progress?: number; active?: boolean; onCancel?: () => void; cancelling?: boolean } }) {
+  const preview=useSurfacePreview({onRecreate,info:viewerInfo,navigable:!develop&&!onOpen});
   const open=onOpen??preview.open;
   const [removing,setRemoving]=useState(false),[deleting,setDeleting]=useState(false);
   return (
@@ -3171,21 +3172,36 @@ export function MediaViewerInfo({mode,inputs,prompt="",model,facts,date}:{mode?:
 }
 function mediaAt(root:HTMLElement|null){
   const media=root?.querySelector<HTMLImageElement|HTMLVideoElement>("img,video");
-  return media?.getAttribute("src")?{src:media.getAttribute("src")!,name:media.getAttribute("alt")||media.getAttribute("aria-label")||"Preview",mediaType:media.tagName==="VIDEO"?"video" as const:"image" as const}:null;
+  const src=media?.getAttribute("data-preview-src")??media?.getAttribute("src");
+  return media&&src?{src,name:media.getAttribute("alt")||media.getAttribute("aria-label")||"Preview",mediaType:media.tagName==="VIDEO"?"video" as const:"image" as const}:null;
 }
 function hasMediaNode(node:ReactNode):boolean{
   return Children.toArray(node).some(child=>isValidElement<{children?:ReactNode}>(child)&&(["img","video"].includes(String(child.type))||hasMediaNode(child.props.children)));
 }
 /** `info` is shown beside the media in the full view (how it was made); `onOpen` runs when the full view opens. */
-function useSurfacePreview<T extends HTMLElement=HTMLDivElement>(options:{info?:ReactNode;onOpen?:()=>void;onRecreate?:()=>void}={}){
-  const ref=useRef<T>(null),[source,setSource]=useState<ReturnType<typeof mediaAt>>(null),editor=useContext(mediaEditContext);
+function useSurfacePreview<T extends HTMLElement=HTMLDivElement>(options:{info?:ReactNode;onOpen?:()=>void;onRecreate?:()=>void;navigable?:boolean}={}){
+  const ref=useRef<T>(null),[source,setSource]=useState<ReturnType<typeof mediaAt>>(null),editor=useContext(mediaEditContext),sequence=useContext(MediaSequenceContext);
   const open=()=>{const media=mediaAt(ref.current);ref.current?.querySelectorAll("video").forEach(video=>video.pause());setSource(media);if(media)options.onOpen?.();};
+  const openRef=useRef(open);openRef.current=open;
+  const navigable=options.navigable!==false;
+  useEffect(()=>{
+    const element=ref.current;if(!sequence||!navigable||!element)return;
+    sequence.set(element,{available:()=>!!mediaAt(element),open:()=>openRef.current()});
+    return()=>{sequence.delete(element);};
+  },[sequence,navigable]);
+  const navigate=sequence&&navigable?(direction:MediaDirection)=>{
+    if(!ref.current)return;
+    const next=adjacentMedia(sequence,ref.current,direction);
+    if(next){setSource(null);next.open();}
+  }:undefined;
   const edit=()=>{const media=mediaAt(ref.current);if(media)void Promise.resolve(editor.onEdit?.({...media,intent:"edit"})).catch(()=>setSource(media));};
-  return {ref,open,edit,canEdit:!!editor.onEdit,actions:<><IconButton label="Full view" onClick={open}><Maximize2 size={14}/></IconButton>{editor.onEdit&&<IconButton label="Edit media" onClick={edit}><Pencil size={14}/></IconButton>}</>,viewer:source&&<MediaViewer open={true} src={source?.src??""} name={source?.name??"Preview"} mediaType={source?.mediaType} info={options.info} onRecreate={options.onRecreate} onClose={()=>setSource(null)}/>};
+  return {ref,open,edit,canEdit:!!editor.onEdit,actions:<><IconButton label="Full view" onClick={open}><Maximize2 size={14}/></IconButton>{editor.onEdit&&<IconButton label="Edit media" onClick={edit}><Pencil size={14}/></IconButton>}</>,viewer:source&&<MediaViewer open={true} src={source.src} name={source.name} mediaType={source.mediaType} info={options.info} onRecreate={options.onRecreate} onClose={()=>setSource(null)} onNavigate={navigate}/>};
 }
 
 /* Full preview shares image crop and the app's existing editor routes. Cropping always saves a copy. */
-export function MediaViewer({ open, src, name, onClose, actions, onActivate, mediaType = "image",onCrop,compare,info,onRecreate }: { /** Recreate for media that is not a run of this project (an example): opens its tool with the same inputs. */ onRecreate?: () => Promise<void> | void; open: boolean; src: string; name: string; onClose: () => void; actions?: ReactNode; onActivate?: () => void; mediaType?: "image" | "video";onCrop?:SaveCrop;compare?:{src:string;name:string};
+export function MediaViewer({ open, src, name, onClose, actions, onActivate, mediaType = "image",onCrop,compare,info,onRecreate,onNavigate }: { /** Recreate for media that is not a run of this project (an example): opens its tool with the same inputs. */ onRecreate?: () => Promise<void> | void; open: boolean; src: string; name: string; onClose: () => void; actions?: ReactNode; onActivate?: () => void; mediaType?: "image" | "video";onCrop?:SaveCrop;compare?:{src:string;name:string};
+  /** Move within the collection that opened this viewer. */
+  onNavigate?:(direction:MediaDirection)=>void;
   /** How this was made (mode, prompt, model, quality, references), in a column beside the media. */
   info?: ReactNode }) {
   const panel = useRef<HTMLDivElement>(null);
@@ -3238,7 +3254,12 @@ export function MediaViewer({ open, src, name, onClose, actions, onActivate, med
   useSwipeClose(swipeFrame,onClose,open&&!annotationOpen&&!chooser&&!crop);
   if (!open) return null;
   return createPortal(
-    <div className="ds-viewer" role="dialog" aria-modal="true" aria-label={name} tabIndex={-1} ref={panel} data-sheet-scroll onClick={event=>event.stopPropagation()} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="ds-viewer" role="dialog" aria-modal="true" aria-label={name} aria-keyshortcuts={onNavigate?"ArrowLeft ArrowRight":undefined} tabIndex={-1} ref={panel} data-sheet-scroll onClick={event=>event.stopPropagation()} onMouseDown={(e) => e.target === e.currentTarget && onClose()} onKeyDown={event=>{
+      if(!onNavigate||busy||crop||annotationOpen||chooser||event.defaultPrevented||event.altKey||event.ctrlKey||event.metaKey||event.shiftKey||!isTopmostModal(panel.current))return;
+      if(event.key!=="ArrowLeft"&&event.key!=="ArrowRight")return;
+      if(event.target instanceof Element&&event.target.closest('input,textarea,select,[contenteditable="true"],[role="slider"]'))return;
+      event.preventDefault();event.stopPropagation();onNavigate(event.key==="ArrowLeft"?-1:1);
+    }}>
       <div className="ds-viewer__frame" ref={swipeFrame} onMouseDown={event=>{if(event.target===event.currentTarget)onClose();}}>
         {mediaType === "video" ? compare?<div className="ds-viewer__video-pair"><figure><figcaption>{compare.name}</figcaption><video ref={reference} src={compare.src} aria-label={compare.name} controls muted playsInline preload="metadata"/></figure><figure><figcaption>Result</figcaption><video ref={primary} src={current.src} aria-label="Comparison result" controls playsInline preload="metadata"/></figure></div>:<video ref={primary} src={current.src} aria-label={current.name} controls autoPlay playsInline onDoubleClick={onActivate} /> : <div className="ds-viewer__image" data-cropping={!!crop||undefined}
           onPointerDown={event=>{if(!crop||busy)return;event.preventDefault();start.current=point(event);event.currentTarget.setPointerCapture(event.pointerId);setCrop({...start.current,w:0,h:0});}}
@@ -3900,7 +3921,7 @@ export function HistoryItem({
   const [removing, setRemoving] = useState(false), [deleting, setDeleting] = useState(false), [deleteError, setDeleteError] = useState("");
   // The full view tells how this was made: mode, references, prompt (copyable), model and settings, date.
   const viewerInfo = <MediaViewerInfo mode={mode} inputs={inputs} prompt={prompt} model={typeof model==="string"?model:undefined} facts={facts} date={date}/>;
-  const preview=useSurfacePreview({info:viewerInfo,onOpen:onOpenDetails});
+  const preview=useSurfacePreview({info:viewerInfo,onOpen:onOpenDetails,navigable:hasMediaNode(media)});
   const mediaElement=isValidElement(media)?media:undefined;
   const mediaProps=mediaElement?.props as {src?:unknown}|undefined;
   const mediaSrc=typeof mediaProps?.src==="string"?mediaProps.src:"";

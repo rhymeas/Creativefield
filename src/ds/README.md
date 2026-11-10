@@ -206,4 +206,8 @@ Library and Paste in an `UploadSlot` are separate actions. Use a native button f
 
 The Keyframes timeline attracts anchors to whole-second ticks when moving or adding a frame. Use the closest supported frame when the model cannot land exactly on the tick. Duration accepts typed seconds and moves the final anchor through the same model timing rules.
 
+The Keyframes options show the active model's available quality levels and a sound choice when it can generate audio. Blank segments use the local image reader to prepare a transition, while the prompt field remains available for authored directions.
+
+Full View browses the current collection with Left and Right. Keep the visible collection's order and stop at its edges. Crop, annotation, text input and any dialog above Full View retain their keyboard controls.
+
 Storyboard: a scene-cut creator. The shot strip is the film; the side panel shows only the selected shot (workflow, picture, prompt, size and duration) and Render film. A text-only shot gets its picture through `ShotFrame` in place of a picture input. Film-wide output (worker, size, FPS, audio, cuts or fades) is one Film settings dialog. No bulk title lists, idea planners, contact sheets or explainer sections in the panel.

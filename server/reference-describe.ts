@@ -4,7 +4,7 @@
    SCAIL-2 re-renders the whole frame from the prompt, so words that say how each person looks are what
    put two pictures on the two right people (docs/TRANSFORM-EVIDENCE.md, "the second person").
    The description is cached per picture, so the same picture costs one model run, not one per pass. */
-import {readFile} from "node:fs/promises";
+import {readFile,stat} from "node:fs/promises";
 import type {FastifyInstance} from "fastify";
 import type {Pool} from "pg";
 import {z} from "zod";
@@ -18,6 +18,8 @@ export const VISION_CLIP = "qwen3vl_8b_int8_convrot.safetensors";
 const VISION_TYPE = "qwen_image";
 const MAX_LOOK_TOKENS = 160;
 const LOOK_TIMEOUT_MS = 240_000;
+const KEYFRAME_INSTRUCTION = "Describe this storyboard keyframe in one short sentence. Include the visible subject, pose or action, camera framing, setting and any readable branding. If the image only shows graphics or lettering, describe its layout and exact visible words. Describe only visible details.";
+type Purpose = "character" | "keyframe";
 
 /** ComfyUI reads a picture from its own input folder, so the model gets a LoadImage of it and the
  *  answer comes back through PreviewAny, which is where a TextGenerate result shows up. */
@@ -36,9 +38,9 @@ const looks = new Map<string, string>();
 const LOOK_CACHE_LIMIT = 64;
 
 /** The sentence cached for this picture, or undefined when it has not been read yet. */
-const lookKey = (worker: Pick<Worker, "origin">, picture: Pick<Picture, "sha256" | "scope">) => `${picture.scope ?? ""}|${worker.origin}|${picture.sha256}`;
+const lookKey = (worker: Pick<Worker, "origin">, picture: Pick<Picture, "sha256" | "scope">, purpose:Purpose) => `${picture.scope ?? ""}|${worker.origin}|${purpose}|${picture.sha256}`;
 export function cachedLook(worker: Pick<Worker, "origin">, picture: Pick<Picture, "sha256" | "scope">): string | undefined {
-  return looks.get(lookKey(worker, picture));
+  return looks.get(lookKey(worker, picture, "character"));
 }
 
 /** Forget every reading. Only tests and a rebuilt worker inventory need this. */
@@ -52,8 +54,9 @@ export type Picture = {bytes: Uint8Array; mediaType: string; sha256: string; /**
 
 /** Ask the worker's vision model what this picture's person looks like. A worker that cannot read the
  *  picture costs nothing: the caller keeps the words it would have used anyway. */
-export async function describePicture(worker: Worker, picture: Picture): Promise<string | undefined> {
-  const seen = looks.get(lookKey(worker, picture));
+export async function describePicture(worker: Worker, picture: Picture, purpose:Purpose="character"): Promise<string | undefined> {
+  const key=lookKey(worker,picture,purpose);
+  const seen = looks.get(key);
   if (seen) return seen;
   const api = `${worker.origin}${worker.api_prefix ?? ""}`;
   const json = async (path: string, init?: RequestInit) => {
@@ -70,7 +73,7 @@ export async function describePicture(worker: Worker, picture: Picture): Promise
     if (typeof name !== "string" || !name) return undefined;
     const queued = await json("/prompt", {
       method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({prompt: visionGraph(name, lookInstruction())}),
+      body: JSON.stringify({prompt: visionGraph(name, purpose==="keyframe"?KEYFRAME_INSTRUCTION:lookInstruction())}),
     });
     const id: unknown = queued?.prompt_id;
     if (typeof id !== "string") return undefined;
@@ -81,8 +84,11 @@ export async function describePicture(worker: Worker, picture: Picture): Promise
       if (entry?.status?.status_str === "error") return undefined;
       const text: unknown = entry?.outputs?.["4"]?.text?.[0];
       const look = typeof text === "string" ? lookWords(text) : undefined;
-      if (!look) continue;
-      looks.set(lookKey(worker, picture), look);
+      if (!look) {
+        if(entry?.status?.completed)return undefined;
+        continue;
+      }
+      looks.set(key, look);
       while (looks.size > LOOK_CACHE_LIMIT) looks.delete(looks.keys().next().value!);
       return look;
     }
@@ -93,8 +99,8 @@ export async function describePicture(worker: Worker, picture: Picture): Promise
 }
 
 /** The worker that can read a picture, as reference-plan.ts picks it. */
-export async function visionWorker(pool: Pool, workspaceId: string): Promise<Worker | undefined> {
-  return (await pool.query("SELECT origin,api_prefix FROM workers WHERE workspace_id=$1 AND enabled=true ORDER BY checked_at DESC NULLS LAST,id LIMIT 1", [workspaceId])).rows[0] as Worker | undefined;
+export async function visionWorker(pool: Pool, workspaceId: string, workerId?:string): Promise<Worker | undefined> {
+  return (await pool.query("SELECT origin,api_prefix FROM workers WHERE workspace_id=$1 AND enabled=true AND kind='local' AND ($2::uuid IS NULL OR id=$2) ORDER BY checked_at DESC NULLS LAST,id LIMIT 1", [workspaceId,workerId??null])).rows[0] as Worker | undefined;
 }
 
 const faceSchema = z.object({
@@ -109,6 +115,8 @@ const requestSchema = z.object({
   people: z.array(faceSchema).min(1).max(4),
   scene: z.string().trim().max(2000).optional(),
   keep: z.string().trim().max(300).optional(),
+  purpose: z.enum(["character","keyframe"]).default("character"),
+  workerId: z.uuid().optional(),
 }).strict();
 
 /** Reads each picture once and returns the describing sentence the pass should run on. Nothing is
@@ -119,20 +127,22 @@ export async function referenceDescribeRoutes(app: FastifyInstance, pool: Pool, 
     const {workspaceId} = z.object({workspaceId: z.uuid()}).parse(request.params);
     await member(pool, request, workspaceId, "creator");
     const body = requestSchema.parse(request.body ?? {});
-    const worker = await visionWorker(pool, workspaceId);
+    const worker = await visionWorker(pool, workspaceId,body.workerId);
     const read: Record<string, string> = {};
     for (const person of body.people) {
       const asset = (await pool.query("SELECT storage_key,sha256,content_type FROM assets WHERE workspace_id=$1 AND project_id=$2 AND id=$3", [workspaceId, body.projectId, person.assetId])).rows[0];
-      if (!worker || !asset) continue;
-      const bytes = await readFile(await store.file(workspaceId, asset.storage_key));
-      const look = await describePicture(worker, {bytes, mediaType: asset.content_type, sha256: asset.sha256, scope: workspaceId});
+      if (!worker || !asset || !["image/png","image/jpeg","image/webp"].includes(asset.content_type)) continue;
+      const file=await store.file(workspaceId,asset.storage_key);
+      if(body.purpose==="keyframe"&&(await stat(file)).size>15*1024*1024)continue;
+      const bytes = await readFile(file);
+      const look = await describePicture(worker, {bytes, mediaType: asset.content_type, sha256: asset.sha256, scope: workspaceId},body.purpose);
       if (look) read[person.label] = look;
     }
-    const prompt = describeReplacePrompt({
+    const prompt = body.purpose==="character"?describeReplacePrompt({
       people: body.people.map((person) => ({where: person.where, look: read[person.label], outfit: person.outfit})),
       scene: body.scene,
       keep: body.keep,
-    });
+    }):undefined;
     return {looks: read, source: Object.keys(read).length ? "local" : "none", prompt};
   });
 }

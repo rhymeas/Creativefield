@@ -2,6 +2,7 @@ import {useEffect,useRef,useState,type CSSProperties,type ReactNode} from 'react
 import './mosaic-grid.css';
 import {useDensity} from './components';
 import {usePhone} from './gestures';
+import {MediaSequence} from './MediaSequence';
 
 /* The shared result feed. Its columns follow the global size slider (useDensity) like every result grid; each
    tile is one column wide and as tall as its media. Tiles go, in feed order, into the column that is shortest so
@@ -57,7 +58,7 @@ export function MosaicGrid({label,head,children}:{label:string;
  return <section className="ds-mosaic" aria-label={label}>
   {head&&<div className="ds-mosaic__head"><span className="ds-mosaic__title">{head.start}</span>{head.end&&<span className="ds-mosaic__filter">{head.end}</span>}</div>}
   <div ref={grid} className="ds-mosaic__grid" role="list" style={{['--mosaic-cols' as string]:cols,['--mosaic-row' as string]:`${ROW}px`} as CSSProperties}>
-   {children}
+   <MediaSequence>{children}</MediaSequence>
   </div>
  </section>;
 }
