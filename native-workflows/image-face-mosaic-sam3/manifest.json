@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 2,
+  "id": "image-face-mosaic-sam3",
+  "version": "0.1.0",
+  "title": "Hide faces",
+  "category": "image",
+  "description": "Find the faces in a picture with SAM 3.1 and cover them with a pixel mosaic. Edit the word to hide something else.",
+  "inputs": [
+    {
+      "id": "source_image",
+      "label": "Picture",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "1",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "image",
+      "label": "Picture with hidden faces",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "target",
+      "label": "What to hide",
+      "type": "string",
+      "default": "face",
+      "binding": {
+        "node": "3",
+        "field": "text"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "image-face-mosaic-sam3",
+      "requirements": [
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install a ComfyUI version providing LoadImage."
+        },
+        {
+          "id": "node:CheckpointLoaderSimple",
+          "kind": "node",
+          "name": "CheckpointLoaderSimple",
+          "instructions": "Install a ComfyUI version providing CheckpointLoaderSimple."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Install a ComfyUI version providing CLIPTextEncode."
+        },
+        {
+          "id": "node:SAM3_Detect",
+          "kind": "node",
+          "name": "SAM3_Detect",
+          "instructions": "Install a ComfyUI version providing SAM3_Detect."
+        },
+        {
+          "id": "node:GrowMask",
+          "kind": "node",
+          "name": "GrowMask",
+          "instructions": "Install a ComfyUI version providing GrowMask."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Install a ComfyUI version providing GetImageSize."
+        },
+        {
+          "id": "node:ImageScaleBy",
+          "kind": "node",
+          "name": "ImageScaleBy",
+          "instructions": "Install a ComfyUI version providing ImageScaleBy."
+        },
+        {
+          "id": "node:ImageScale",
+          "kind": "node",
+          "name": "ImageScale",
+          "instructions": "Install a ComfyUI version providing ImageScale."
+        },
+        {
+          "id": "node:ImageCompositeMasked",
+          "kind": "node",
+          "name": "ImageCompositeMasked",
+          "instructions": "Install a ComfyUI version providing ImageCompositeMasked."
+        },
+        {
+          "id": "node:SaveImage",
+          "kind": "node",
+          "name": "SaveImage",
+          "instructions": "Install a ComfyUI version providing SaveImage."
+        },
+        {
+          "id": "model:sam3.1-multiplex-fp16",
+          "kind": "model",
+          "name": "sam3.1_multiplex_fp16.safetensors",
+          "location": "checkpoints",
+          "version": "sha256:9ba99c92703c2e8b4f47de2d34a539bb8e18923049e238b780d70dbe6368eb03",
+          "source": "https://huggingface.co/Comfy-Org/sam3.1/blob/main/checkpoints/sam3.1_multiplex_fp16.safetensors",
+          "instructions": "Install the SAM 3.1 multiplex FP16 checkpoint into models/checkpoints and verify its SHA-256; review the Meta SAM license before use."
+        }
+      ],
+      "evidence": [
+        "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/image-face-mosaic-sam3.json (MIT, commit c307034); only SaveImage/SaveGLB output prefixes were set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
+        "2026-10-30: run 298f834e-66e0-4be9-8907-f56611d9b70c through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, so no GPU was used), workflow hash d2b357078a24, 103 s. Input: Pexels portrait-woman-studio.jpg at 768 px, target word face. Result: 768x1152, 5.9% of the pixels changed, the face is covered by a mosaic and the rest is untouched. One single face only; groups, profiles and masks over small faces are not tested. Receipt: scripts/utility-packs-e2e.mjs."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Graph from workingprototype/Fuobe (MIT, commit c307034) built on ComfyUI core nodes: GPL-3.0. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "SAM 3.1 multiplex FP16 checkpoint",
+        "license": "Meta SAM License for SAM 3 / 3.1 weights (custom license). Review the license file in the source repository before any distribution or commercial use.",
+        "source": "https://huggingface.co/Comfy-Org/sam3.1"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/image-face-mosaic-sam3.json",
+      "observedAt": "2026-10-30",
+      "kind": "implementation"
+    }
+  ],
+  "credit": {
+    "name": "Fuobe",
+    "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/image-face-mosaic-sam3.json",
+    "license": "MIT",
+    "what": "The workflow behind this app"
+  },
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 2,
+  "id": "z-image-2k-upscale",
+  "version": "0.1.0",
+  "title": "Upscale to 2K, creative",
+  "category": "image",
+  "description": "Enlarge a picture to about 2K and let Z-Image Turbo add fresh fine detail: RealESRGAN first, then a light redraw. Raise Detail for more new texture; faces and small objects may change above 0.25.",
+  "inputs": [
+    {
+      "id": "source_image",
+      "label": "Picture",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "77",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "image",
+      "label": "Upscaled picture",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "denoise",
+      "label": "Detail",
+      "type": "number",
+      "min": 0.1,
+      "max": 0.4,
+      "step": 0.05,
+      "default": 0.2,
+      "binding": {
+        "node": "87:69",
+        "field": "denoise"
+      }
+    },
+    {
+      "id": "prompt",
+      "label": "Prompt (optional)",
+      "type": "string",
+      "default": "masterpiece, 8k",
+      "binding": {
+        "node": "87:67",
+        "field": "text"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 20261031,
+      "binding": {
+        "node": "87:69",
+        "field": "seed"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "z-image-2k-upscale",
+      "requirements": [
+        {
+          "id": "node:SaveImage",
+          "kind": "node",
+          "name": "SaveImage",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:ImageUpscaleWithModel",
+          "kind": "node",
+          "name": "ImageUpscaleWithModel",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:VAEEncode",
+          "kind": "node",
+          "name": "VAEEncode",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:ImageScaleBy",
+          "kind": "node",
+          "name": "ImageScaleBy",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:UpscaleModelLoader",
+          "kind": "node",
+          "name": "UpscaleModelLoader",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:ModelSamplingAuraFlow",
+          "kind": "node",
+          "name": "ModelSamplingAuraFlow",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:ImageScaleToTotalPixels",
+          "kind": "node",
+          "name": "ImageScaleToTotalPixels",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "model:z-image-turbo",
+          "kind": "model",
+          "name": "z_image_turbo_bf16.safetensors",
+          "location": "diffusion_models",
+          "source": "https://huggingface.co/Comfy-Org/z_image_turbo",
+          "instructions": "Install z_image_turbo_bf16.safetensors into ComfyUI models/diffusion_models."
+        },
+        {
+          "id": "model:qwen-3-4b",
+          "kind": "model",
+          "name": "qwen_3_4b.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/Comfy-Org/z_image_turbo",
+          "instructions": "Install qwen_3_4b.safetensors into ComfyUI models/text_encoders."
+        },
+        {
+          "id": "model:z-image-vae",
+          "kind": "model",
+          "name": "ae.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/z_image_turbo",
+          "instructions": "Install ae.safetensors into ComfyUI models/vae."
+        },
+        {
+          "id": "model:realesrgan-x4plus",
+          "kind": "model",
+          "name": "RealESRGAN_x4plus.safetensors",
+          "location": "upscale_models",
+          "source": "https://huggingface.co/Comfy-Org/Real-ESRGAN_repackaged",
+          "instructions": "Install RealESRGAN_x4plus.safetensors into ComfyUI models/upscale_models."
+        }
+      ],
+      "evidence": [
+        "2026-10-31: official https://github.com/Comfy-Org/workflow_templates/blob/main/templates/utility_z_image_turbo_2k_upscaler.app.json, converted by the ComfyUI 0.43.0 frontend. Changes: editor-only ImageCompare dropped, denoise default 0.2 (template 0.33; 0.15-0.25 keeps faces and small objects)."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Workflow: Comfy-Org workflow_templates (MIT). ComfyUI core: GPL-3.0.",
+    "weights": [
+      {
+        "name": "Z-Image Turbo, Qwen 3 4B encoder, Z-Image VAE, RealESRGAN x4plus",
+        "license": "Z-Image Turbo: Apache-2.0; RealESRGAN: BSD-3-Clause.",
+        "source": "https://huggingface.co/Comfy-Org/z_image_turbo"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/Comfy-Org/workflow_templates/blob/main/templates/utility_z_image_turbo_2k_upscaler.app.json",
+      "observedAt": "2026-10-31",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

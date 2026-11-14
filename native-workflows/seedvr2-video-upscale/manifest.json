@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 2,
+  "id": "seedvr2-video-upscale",
+  "version": "0.1.0",
+  "title": "Upscale video, quality (SeedVR2)",
+  "category": "enhance",
+  "description": "Restore and enlarge a clip with SeedVR2 3B: sharper faces, textures and edges that stay steady from frame to frame. Slow: plan minutes per few seconds of 720p.",
+  "finishStep": {"step": "upscale", "option": "best", "rank": 1, "order": 20, "label": "SeedVR2 2x", "controls": {"scale": 2}},
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Your video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "73",
+        "field": "file"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Upscaled video",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "scale",
+      "label": "Enlarge by",
+      "type": "select",
+      "options": [
+        2,
+        4
+      ],
+      "default": 2,
+      "binding": {
+        "node": "66:57",
+        "field": "resize_type.multiplier"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 20261031,
+      "binding": {
+        "node": "66:54",
+        "field": "seed"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "seedvr2-video-upscale",
+      "requirements": [
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:VAEEncodeTiled",
+          "kind": "node",
+          "name": "VAEEncodeTiled",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:VAEDecodeTiled",
+          "kind": "node",
+          "name": "VAEDecodeTiled",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:ResizeImageMaskNode",
+          "kind": "node",
+          "name": "ResizeImageMaskNode",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:SeedVR2Preprocess",
+          "kind": "node",
+          "name": "SeedVR2Preprocess",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:SeedVR2PostProcessing",
+          "kind": "node",
+          "name": "SeedVR2PostProcessing",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:SeedVR2Conditioning",
+          "kind": "node",
+          "name": "SeedVR2Conditioning",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:Video Slice",
+          "kind": "node",
+          "name": "Video Slice",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:ComfySwitchNode",
+          "kind": "node",
+          "name": "ComfySwitchNode",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:SeedVR2TemporalChunk",
+          "kind": "node",
+          "name": "SeedVR2TemporalChunk",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:SeedVR2TemporalMerge",
+          "kind": "node",
+          "name": "SeedVR2TemporalMerge",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "node:PrimitiveBoolean",
+          "kind": "node",
+          "name": "PrimitiveBoolean",
+          "instructions": "Use ComfyUI 0.43 or newer (native SeedVR2 nodes)."
+        },
+        {
+          "id": "model:seedvr2-3b-int8",
+          "kind": "model",
+          "name": "seedvr2_3b_int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "source": "https://huggingface.co/Comfy-Org/SeedVR2",
+          "instructions": "Install seedvr2_3b_int8_convrot.safetensors into ComfyUI models/diffusion_models."
+        },
+        {
+          "id": "model:seedvr2-vae",
+          "kind": "model",
+          "name": "seedvr2_ema_vae_fp16.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/SeedVR2",
+          "instructions": "Install seedvr2_ema_vae_fp16.safetensors into ComfyUI models/vae."
+        }
+      ],
+      "evidence": [
+        "2026-10-31: official https://github.com/Comfy-Org/workflow_templates/blob/main/templates/utility_seedvr2_3b_int8_upscale_video.json, converted by the ComfyUI 0.43.0 frontend; only the output prefix changed."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Workflow: Comfy-Org workflow_templates (MIT). ComfyUI core: GPL-3.0.",
+    "weights": [
+      {
+        "name": "SeedVR2 3B int8 and SeedVR2 VAE",
+        "license": "Apache-2.0.",
+        "source": "https://huggingface.co/Comfy-Org/SeedVR2"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/Comfy-Org/workflow_templates/blob/main/templates/utility_seedvr2_3b_int8_upscale_video.json",
+      "observedAt": "2026-10-31",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "preserve",
+    "mute"
+  ]
+}

@@ -1,0 +1,274 @@
+{
+  "schemaVersion": 2,
+  "id": "minimax-h3-image-edit",
+  "version": "0.1.0",
+  "title": "MiniMax H3 Image with references",
+  "category": "image",
+  "description": "Local MiniMax H3-Image (33B, 6 steps, no CFG) from the pruned Q4_K_M GGUF, guided by up to four pictures. Write @Image 1 to @Image 4 in the prompt; they reach the model as <Picture 1> to <Picture 4>, renumbered when a slot is empty. Picture 1 is the main reference or the picture to change. Output keeps Picture 1's proportions by default; choose a format to set them yourself. Size choice is 4, 6, 8, 12 or 20 MP; 12 and 20 MP reference edits are verified through the app.",
+  "inputs": [
+    {
+      "id": "source_image",
+      "label": "Picture 1",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "10",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image",
+      "label": "Picture 2 (optional)",
+      "type": "image",
+      "required": false,
+      "omitWhenMissing": true,
+      "binding": {
+        "node": "11",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image_2",
+      "label": "Picture 3 (optional)",
+      "type": "image",
+      "required": false,
+      "omitWhenMissing": true,
+      "binding": {
+        "node": "12",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image_3",
+      "label": "Picture 4 (optional)",
+      "type": "image",
+      "required": false,
+      "omitWhenMissing": true,
+      "binding": {
+        "node": "13",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "image",
+      "label": "Generated image",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Prompt",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "5",
+        "field": "prompt"
+      }
+    },
+    {
+      "id": "aspect_ratio",
+      "label": "Resolution",
+      "type": "select",
+      "default": "Same as Picture 1",
+      "options": [
+        "Same as Picture 1",
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)"
+      ],
+      "binding": {
+        "node": "1",
+        "field": "aspect_ratio"
+      }
+    },
+    {
+      "id": "megapixels",
+      "label": "Size",
+      "type": "select",
+      "default": 12,
+      "binding": {
+        "node": "1",
+        "field": "megapixels"
+      },
+      "options": [
+        4,
+        6,
+        8,
+        12,
+        20
+      ],
+      "sizeChoice": true
+    },
+    {
+      "id": "images",
+      "label": "Images",
+      "type": "integer",
+      "min": 1,
+      "max": 4,
+      "default": 1,
+      "runCount": true
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 42,
+      "binding": {
+        "node": "7",
+        "field": "seed"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "minimax-h3-image-edit",
+      "requirements": [
+        {
+          "id": "node:MiniMaxH3ImageConditioning",
+          "kind": "node",
+          "name": "MiniMaxH3ImageConditioning",
+          "instructions": "Install ComfyUI 0.45.0 or newer, which provides native MiniMax H3-Image conditioning."
+        },
+        {
+          "id": "node:UnetLoaderGGUF",
+          "kind": "node",
+          "name": "UnetLoaderGGUF",
+          "instructions": "Install the reviewed GGUF loader (gguf_reviewed) on the local worker."
+        },
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install a ComfyUI version providing LoadImage."
+        },
+        {
+          "id": "node:ResolutionSelector",
+          "kind": "node",
+          "name": "ResolutionSelector",
+          "instructions": "Install a ComfyUI version providing ResolutionSelector."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install a ComfyUI version providing CLIPLoader with the minimax type."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install a ComfyUI version providing VAELoader."
+        },
+        {
+          "id": "node:ConditioningZeroOut",
+          "kind": "node",
+          "name": "ConditioningZeroOut",
+          "instructions": "Install a ComfyUI version providing ConditioningZeroOut."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Install a ComfyUI version providing KSampler."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install a ComfyUI version providing VAEDecode."
+        },
+        {
+          "id": "node:SaveImageAdvanced",
+          "kind": "node",
+          "name": "SaveImageAdvanced",
+          "instructions": "Install a ComfyUI version providing SaveImageAdvanced."
+        },
+        {
+          "id": "model:minimax-h3-image-q4km",
+          "kind": "model",
+          "name": "MiniMax-H3-Image-Pruned-Q4_K_M.gguf",
+          "location": "unet_gguf",
+          "version": "sha256:be2b96003c01e046c62f534c08caf07748f6e4c6259df3a00cc892a2bb4bc7e7",
+          "source": "https://huggingface.co/Abiray/MiniMax-H3-Image-GGUF/blob/main/MiniMax-H3-Image-Pruned-Q4_K_M.gguf",
+          "instructions": "Install the exact community Q4_K_M GGUF (11.6 GB) and verify its SHA-256. It is an unofficial conversion; review the MiniMax-H3-Image Community License before use."
+        },
+        {
+          "id": "model:encoder",
+          "kind": "model",
+          "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+          "location": "text_encoders",
+          "instructions": "Add the MiniMax H3 text encoder (shared with HyperFlow H3 Flash)."
+        },
+        {
+          "id": "model:image-vae",
+          "kind": "model",
+          "name": "minimax_h3_image_vae_fp16.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3-Image/blob/main/vae/minimax_h3_image_vae_fp16.safetensors",
+          "instructions": "Add the 24-channel MiniMax H3-Image VAE. The video VAE and SD or Flux VAEs do not work."
+        }
+      ],
+      "evidence": [
+        "Same graph as minimax-h3-image-t2i plus the official multi-image pattern from Comfy-Org image_minimax_h3_image_edit.json: each picture is a LoadImage connected to MiniMaxH3ImageConditioning images.image_N. The node sorts the slots by number and labels them <Picture 1>, <Picture 2>, ... in packed order (ComfyUI 0.45.1 comfy_extras/nodes_minimax_h3.py _image_refs). The official edit template pre-scales the source to 4 MP; here the node's own reference scaling is used and the canvas comes from the format control.",
+        "2026-11-12: Size choice is 4, 6, 8, 12 or 20 MP. ComfyUI's core ResolutionSelector refuses megapixels above 16, so src/capabilities/h3-image-mentions.ts computes the 32 px canvas from the format and writes width/height straight into MiniMaxH3ImageConditioning for 20 MP; the 4-12 MP path stays on the selector unchanged. App runs through :8787 on the H3 worker: 12 MP 3552x3552 in 341.5 s (run 539d56b4, asset b843c4ab), 20 MP 4576x4576 in 357.7 s (run 527b4e92, asset 0766d9fe), both with two pictures: the fisherman source plus the portrait reference, which appears next to him in the 20 MP result."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Comfy-Org workflow_templates: MIT. Integration license follows this repository; full dependency audit pending.",
+    "weights": [
+      {
+        "name": "MiniMax-H3-Image and the community GGUF conversion",
+        "license": "MiniMax-H3-Image Community License Agreement. Third-party summaries report regional exclusions and written permission for hosted services or large commercial use; read the license before relying on it.",
+        "source": "https://huggingface.co/MiniMaxAI/MiniMax-H3-Image"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/Comfy-Org/workflow_templates/blob/main/templates/image_minimax_h3_image_edit.json",
+      "observedAt": "2026-11-10",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://huggingface.co/Abiray/MiniMax-H3-Image-GGUF",
+      "observedAt": "2026-11-10",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://docs.comfy.org/tutorials/image/minimax/minimax-h3-image",
+      "observedAt": "2026-11-10",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3-Image",
+      "observedAt": "2026-11-10",
+      "kind": "research"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": "realesrgan-x4",
+  "kind": "enhance",
+  "label": "Real-ESRGAN x4 (upscale)",
+  "display": {
+    "title": "Upscale",
+    "subtitle": "Real-ESRGAN x4plus · keeps frame rate and length",
+    "short": "Real-ESRGAN"
+  },
+  "execution": { "route": "native-comfy" },
+  "inputs": {
+    "source_video": { "node": "1", "field": "file" },
+    "scale": { "node": "5", "field": "scale_by" }
+  },
+  "outputs": {
+    "video": { "node": "7" }
+  },
+  "nativeScale": 4,
+  "factors": [2, 4],
+  "maxOutputEdge": 4096,
+  "requires": {
+    "models": [
+      { "folder": "upscale_models", "file": "RealESRGAN_x4plus.pth" }
+    ]
+  }
+}

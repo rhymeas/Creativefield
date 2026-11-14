@@ -1,0 +1,240 @@
+{
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyField/z-image-2k-upscale",
+      "images": [
+        "87:65",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image",
+      "cnr_id": "comfy-core",
+      "ver": "0.3.64"
+    }
+  },
+  "77": {
+    "inputs": {
+      "image": "fighter_jet.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image",
+      "cnr_id": "comfy-core",
+      "ver": "0.13.0"
+    }
+  },
+  "87:71": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "87:62",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)",
+      "cnr_id": "comfy-core",
+      "ver": "0.3.73"
+    }
+  },
+  "87:79": {
+    "inputs": {
+      "upscale_model": [
+        "87:76",
+        0
+      ],
+      "image": [
+        "87:78",
+        0
+      ]
+    },
+    "class_type": "ImageUpscaleWithModel",
+    "_meta": {
+      "title": "Upscale Image (using Model)",
+      "cnr_id": "comfy-core",
+      "ver": "0.13.0"
+    }
+  },
+  "87:80": {
+    "inputs": {
+      "pixels": [
+        "87:81",
+        0
+      ],
+      "vae": [
+        "87:63",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode",
+      "cnr_id": "comfy-core",
+      "ver": "0.13.0"
+    }
+  },
+  "87:81": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "scale_by": 0.5,
+      "image": [
+        "87:79",
+        0
+      ]
+    },
+    "class_type": "ImageScaleBy",
+    "_meta": {
+      "title": "Upscale Image By",
+      "cnr_id": "comfy-core",
+      "ver": "0.13.0"
+    }
+  },
+  "87:69": {
+    "inputs": {
+      "seed": 824287194145573,
+      "steps": 5,
+      "cfg": 1,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler": "beta",
+      "denoise": 0.2,
+      "model": [
+        "87:70",
+        0
+      ],
+      "positive": [
+        "87:67",
+        0
+      ],
+      "negative": [
+        "87:71",
+        0
+      ],
+      "latent_image": [
+        "87:80",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler",
+      "cnr_id": "comfy-core",
+      "ver": "0.3.64"
+    }
+  },
+  "87:66": {
+    "inputs": {
+      "unet_name": "z_image_turbo_bf16.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model",
+      "cnr_id": "comfy-core",
+      "ver": "0.3.73"
+    }
+  },
+  "87:62": {
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "lumina2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP",
+      "cnr_id": "comfy-core",
+      "ver": "0.3.73"
+    }
+  },
+  "87:67": {
+    "inputs": {
+      "text": "masterpiece, 8k",
+      "clip": [
+        "87:62",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)",
+      "cnr_id": "comfy-core",
+      "ver": "0.3.73"
+    }
+  },
+  "87:63": {
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE",
+      "cnr_id": "comfy-core",
+      "ver": "0.3.73"
+    }
+  },
+  "87:76": {
+    "inputs": {
+      "model_name": "RealESRGAN_x4plus.safetensors"
+    },
+    "class_type": "UpscaleModelLoader",
+    "_meta": {
+      "title": "Load Upscale Model",
+      "cnr_id": "comfy-core",
+      "ver": "0.13.0"
+    }
+  },
+  "87:70": {
+    "inputs": {
+      "shift": 3,
+      "sampling": "flow",
+      "model": [
+        "87:66",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "ModelSamplingAuraFlow",
+      "cnr_id": "comfy-core",
+      "ver": "0.3.64"
+    }
+  },
+  "87:65": {
+    "inputs": {
+      "samples": [
+        "87:69",
+        0
+      ],
+      "vae": [
+        "87:63",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode",
+      "cnr_id": "comfy-core",
+      "ver": "0.3.64"
+    }
+  },
+  "87:78": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "megapixels": 1,
+      "resolution_steps": 1,
+      "image": [
+        "77",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "Scale Image to Total Pixels",
+      "cnr_id": "comfy-core",
+      "ver": "0.13.0"
+    }
+  }
+}

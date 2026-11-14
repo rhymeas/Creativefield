@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 2,
+  "id": "overlay-inpaint",
+  "version": "0.1.0",
+  "title": "Wan 2.1 VACE overlay inpaint",
+  "category": "finishing",
+  "description": "Takes app overlays off a clip: the still pixels inside an aligned mask are re-painted with the colour measured around them, and every pixel outside the mask is the source's own. The server runs this itself with a mask it measured per clip (server/video-overlay-mask.ts) as part of a clean source; it is not a picker workflow.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Source video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "4",
+        "field": "file"
+      }
+    },
+    {
+      "id": "edit_mask",
+      "label": "Aligned overlay mask",
+      "type": "mask",
+      "representation": "video",
+      "required": true,
+      "binding": {
+        "node": "6",
+        "field": "file"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Clip without the overlays",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "What the masked area becomes",
+      "type": "string",
+      "default": "Empty background that matches the scene.",
+      "binding": {
+        "node": "10",
+        "field": "text"
+      }
+    },
+    {
+      "id": "negative",
+      "label": "Negative prompt",
+      "type": "string",
+      "default": "blurry, distorted, unstable, text, watermark, logo",
+      "binding": {
+        "node": "11",
+        "field": "text"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 543,
+      "binding": {
+        "node": "17",
+        "field": "seed"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "experimental",
+      "workflowId": "overlay-inpaint",
+      "requirements": [
+        { "id": "node:UNETLoader", "kind": "node", "name": "UNETLoader", "instructions": "Install a ComfyUI version providing UNETLoader." },
+        { "id": "node:CLIPLoader", "kind": "node", "name": "CLIPLoader", "instructions": "Install a ComfyUI version providing CLIPLoader." },
+        { "id": "node:VAELoader", "kind": "node", "name": "VAELoader", "instructions": "Install a ComfyUI version providing VAELoader." },
+        { "id": "node:LoadVideo", "kind": "node", "name": "LoadVideo", "instructions": "Install a ComfyUI version providing LoadVideo." },
+        { "id": "node:GetVideoComponents", "kind": "node", "name": "GetVideoComponents", "instructions": "Install a ComfyUI version providing GetVideoComponents." },
+        { "id": "node:ImageToMask", "kind": "node", "name": "ImageToMask", "instructions": "Install a ComfyUI version providing ImageToMask." },
+        { "id": "node:GetImageSize", "kind": "node", "name": "GetImageSize", "instructions": "Install a ComfyUI version providing GetImageSize." },
+        { "id": "node:CLIPTextEncode", "kind": "node", "name": "CLIPTextEncode", "instructions": "Install a ComfyUI version providing CLIPTextEncode." },
+        { "id": "node:InvertMask", "kind": "node", "name": "InvertMask", "instructions": "Install a ComfyUI version providing InvertMask." },
+        { "id": "node:MaskToImage", "kind": "node", "name": "MaskToImage", "instructions": "Install a ComfyUI version providing MaskToImage." },
+        { "id": "node:ImageCompositeMasked", "kind": "node", "name": "ImageCompositeMasked", "instructions": "Install a ComfyUI version providing ImageCompositeMasked." },
+        { "id": "node:WanVaceToVideo", "kind": "node", "name": "WanVaceToVideo", "instructions": "Install a ComfyUI version providing WanVaceToVideo." },
+        { "id": "node:ModelSamplingSD3", "kind": "node", "name": "ModelSamplingSD3", "instructions": "Install a ComfyUI version providing ModelSamplingSD3." },
+        { "id": "node:KSampler", "kind": "node", "name": "KSampler", "instructions": "Install a ComfyUI version providing KSampler." },
+        { "id": "node:VAEDecode", "kind": "node", "name": "VAEDecode", "instructions": "Install a ComfyUI version providing VAEDecode." },
+        { "id": "node:CreateVideo", "kind": "node", "name": "CreateVideo", "instructions": "Install a ComfyUI version providing CreateVideo." },
+        { "id": "node:SaveVideo", "kind": "node", "name": "SaveVideo", "instructions": "Install a ComfyUI version providing SaveVideo." },
+        {
+          "id": "model:vace13b",
+          "kind": "model",
+          "name": "wan2.1_vace_1.3B_fp16.safetensors",
+          "location": "diffusion_models",
+          "version": "123acf1cc74bccbb9bfff8ac1ee72edc08c2341d",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the pinned Wan 2.1 VACE 1.3B FP16 diffusion model (4.31 GB). Qualification uses an RTX 4090; minimum VRAM is not measured."
+        },
+        {
+          "id": "model:umt5",
+          "kind": "model",
+          "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the UMT5 XXL FP8 scaled text encoder."
+        },
+        {
+          "id": "model:vae",
+          "kind": "model",
+          "name": "wan_2.1_vae.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the Wan 2.1 VAE."
+        }
+      ],
+      "evidence": [
+        "Same graph shape as the qualified wan21-vace-masked-edit pack; the clean step runs it in 81-frame windows on a 0.25 MP envelope and composites the result back inside a measured static mask. See docs/TRANSFORM-VIDEO.md."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "experimental",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0; see upstream LICENSE. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "Wan2.1-VACE-1.3B",
+        "license": "Apache-2.0 (upstream LICENSE.txt); full dependency license audit pending",
+        "source": "https://huggingface.co/Wan-AI/Wan2.1-VACE-1.3B/blob/main/LICENSE.txt"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://comfy.org/workflows/video_wan_vace_inpainting-a1bb55d904c9/",
+      "observedAt": "2026-10-26",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": ["VID-05"],
+  "audioPolicies": ["mute"],
+  "mediaContract": {
+    "kind": "aligned_video_mask_v1",
+    "sourceInput": "source_video",
+    "maskInput": "edit_mask"
+  }
+}

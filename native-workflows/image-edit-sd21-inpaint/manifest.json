@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 2,
+  "id": "image-edit-sd21-inpaint",
+  "version": "0.1.0",
+  "title": "Stable Diffusion 2.1 image inpaint",
+  "category": "canvas",
+  "description": "Experimental local image inpainting from a source PNG and an aligned PNG mask with identical dimensions. White edits and black preserves.",
+  "inputs": [
+    {
+      "id": "source_image",
+      "label": "Source image",
+      "type": "image",
+      "required": true,
+      "binding": { "node": "1", "field": "image" }
+    },
+    {
+      "id": "edit_mask",
+      "label": "Aligned edit mask",
+      "type": "mask",
+      "representation": "image",
+      "required": true,
+      "binding": { "node": "2", "field": "image" }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "edited_image",
+      "label": "Edited image",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Edit prompt",
+      "type": "string",
+      "default": "Replace the selected area",
+      "binding": { "node": "5", "field": "text" }
+    },
+    {
+      "id": "negative",
+      "label": "Negative prompt",
+      "type": "string",
+      "default": "blurry, distorted, low quality",
+      "binding": { "node": "6", "field": "text" }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 543,
+      "binding": { "node": "8", "field": "seed" }
+    },
+    {
+      "id": "steps",
+      "label": "Steps",
+      "type": "integer",
+      "min": 1,
+      "max": 50,
+      "default": 25,
+      "binding": { "node": "8", "field": "steps" }
+    },
+    {
+      "id": "denoise",
+      "label": "Inpaint strength",
+      "type": "number",
+      "min": 0.1,
+      "max": 1,
+      "step": 0.05,
+      "default": 1,
+      "binding": { "node": "8", "field": "denoise" }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "experimental",
+      "workflowId": "image-edit-sd21-inpaint",
+      "requirements": [
+        { "id": "node:LoadImage", "kind": "node", "name": "LoadImage", "instructions": "Install a ComfyUI version providing LoadImage." },
+        { "id": "node:ImageToMask", "kind": "node", "name": "ImageToMask", "instructions": "Install a ComfyUI version providing ImageToMask." },
+        { "id": "node:CheckpointLoaderSimple", "kind": "node", "name": "CheckpointLoaderSimple", "instructions": "Install a ComfyUI version providing CheckpointLoaderSimple." },
+        { "id": "node:CLIPTextEncode", "kind": "node", "name": "CLIPTextEncode", "instructions": "Install a ComfyUI version providing CLIPTextEncode." },
+        { "id": "node:VAEEncodeForInpaint", "kind": "node", "name": "VAEEncodeForInpaint", "instructions": "Install a ComfyUI version providing VAEEncodeForInpaint." },
+        { "id": "node:KSampler", "kind": "node", "name": "KSampler", "instructions": "Install a ComfyUI version providing KSampler." },
+        { "id": "node:VAEDecode", "kind": "node", "name": "VAEDecode", "instructions": "Install a ComfyUI version providing VAEDecode." },
+        { "id": "node:ImageCompositeMasked", "kind": "node", "name": "ImageCompositeMasked", "instructions": "Install a ComfyUI version providing ImageCompositeMasked." },
+        { "id": "node:SaveImage", "kind": "node", "name": "SaveImage", "instructions": "Install a ComfyUI version providing SaveImage." },
+        {
+          "id": "model:sd21-inpaint",
+          "kind": "model",
+          "name": "512-inpainting-ema.safetensors",
+          "location": "checkpoints",
+          "version": "sha256:b29e2ed9a8fe58e76f7e801bda091d23738bd74c1da3f339bcbe2d40922fcb",
+          "bytes": 5214662094,
+          "sourceRevision": "ec5db49993ae0a935f32ff9f36c1cfbd5f94cca6",
+          "source": "https://huggingface.co/Comfy-Org/stable-diffusion-v2-1/tree/ec5db49993ae0a935f32ff9f36c1cfbd5f94cca6",
+          "instructions": "Install the pinned 5,214,662,094-byte Stable Diffusion 2.1 inpainting checkpoint under ComfyUI/models/checkpoints and verify its SHA-256 before use."
+        }
+      ],
+      "evidence": [
+        "The checkpoint size/hash and required local core-node inventory were verified on 2026-10-17. The graph has not completed a qualified local or offline run, so execution remains unavailable.",
+        "2026-10-29 local 4090 run through the app: 15 s, but the masked area is a smeared brown haze and ignores the prompt. Hidden from the menus; Flux 2 Klein preserve-edit with a SAM mask is the working mask edit."
+      ]
+    }
+  ],
+  "coverage": { "local": "experimental", "hosted": "planned" },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0; integration license follows this repository. Full dependency audit pending.",
+    "weights": [
+      {
+        "name": "Stable Diffusion 2.1 inpainting checkpoint",
+        "license": "CreativeML Open RAIL++-M as declared upstream; review the complete license terms before distribution or use.",
+        "source": "https://huggingface.co/Comfy-Org/stable-diffusion-v2-1/tree/ec5db49993ae0a935f32ff9f36c1cfbd5f94cca6"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://huggingface.co/Comfy-Org/stable-diffusion-v2-1/tree/ec5db49993ae0a935f32ff9f36c1cfbd5f94cca6",
+      "observedAt": "2026-10-17",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": ["FIN-02", "CNV-01", "CNV-02"],
+  "audioPolicies": [],
+  "imageInputContract": {
+    "kind": "aligned_still_image_mask_v1",
+    "schemaVersion": 1,
+    "sourceInput": "source_image",
+    "maskInput": "edit_mask",
+    "semantics": "white_edits_black_preserves",
+    "dimensionMultiple": 8
+  },
+  "imageArtifacts": {
+    "kind": "image_artifacts_v1",
+    "schemaVersion": 1,
+    "maxArtifacts": 1,
+    "artifacts": [
+      {
+        "id": "edited-image",
+        "outputPort": "edited_image",
+        "node": "11",
+        "nodeOutput": 0,
+        "role": "image",
+        "contentType": "image/png",
+        "cardinality": { "min": 1, "max": 1 },
+        "indexing": { "strategy": "history_array", "start": 0 },
+        "dimensions": {
+          "mode": "match_input",
+          "inputPort": "source_image",
+          "maxWidth": 8192,
+          "maxHeight": 8192,
+          "maxPixels": 67108864
+        },
+        "maxBytes": 67108864,
+        "alpha": "allow",
+        "parents": [
+          { "order": 0, "inputPort": "source_image", "role": "source" },
+          { "order": 1, "inputPort": "edit_mask", "role": "mask" }
+        ]
+      }
+    ]
+  }
+}

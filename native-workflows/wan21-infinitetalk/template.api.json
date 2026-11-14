@@ -1,0 +1,19 @@
+{
+  "1": {"class_type":"LoadImage","inputs":{"image":"portrait.png"}},
+  "2": {"class_type":"LoadAudio","inputs":{"audio":"voice.wav"}},
+  "3": {"class_type":"VAELoader","inputs":{"vae_name":"wan_2.1_vae.safetensors"}},
+  "4": {"class_type":"UNETLoader","inputs":{"unet_name":"Wan2_1-I2V-14B-480p_fp8_e4m3fn_scaled_KJ.safetensors","weight_dtype":"default"}},
+  "5": {"class_type":"CLIPLoader","inputs":{"clip_name":"umt5_xxl_fp8_e4m3fn_scaled.safetensors","type":"wan","device":"default"}},
+  "6": {"class_type":"CLIPTextEncode","inputs":{"text":"A person speaking naturally to camera, stable portrait and lighting.","clip":["5",0]}},
+  "7": {"class_type":"CLIPTextEncode","inputs":{"text":"distorted mouth, extra teeth, unstable face, camera movement","clip":["5",0]}},
+  "8": {"class_type":"AudioEncoderLoader","inputs":{"audio_encoder_name":"wav2vec2-chinese-base_fp16.safetensors"}},
+  "9": {"class_type":"ModelPatchLoader","inputs":{"name":"wan2.1_infiniteTalk_single_fp16.safetensors"}},
+  "10": {"class_type":"AudioEncoderEncode","inputs":{"audio_encoder":["8",0],"audio":["15",0]}},
+  "11": {"class_type":"WanInfiniteTalkToVideo","inputs":{"mode":"single_speaker","model":["17",0],"model_patch":["9",0],"positive":["6",0],"negative":["7",0],"vae":["3",0],"width":480,"height":832,"length":49,"start_image":["1",0],"audio_encoder_output_1":["10",0],"motion_frame_count":9,"audio_scale":1}},
+  "12": {"class_type":"KSampler","inputs":{"model":["11",0],"seed":20261021,"steps":6,"cfg":1,"sampler_name":"euler","scheduler":"normal","positive":["11",1],"negative":["11",2],"latent_image":["11",3],"denoise":1}},
+  "13": {"class_type":"VAEDecode","inputs":{"samples":["12",0],"vae":["3",0]}},
+  "14": {"class_type":"CreateVideo","inputs":{"images":["13",0],"fps":25,"audio":["15",0]}},
+  "15": {"class_type":"TrimAudioDuration","inputs":{"audio":["2",0],"start_index":0,"duration":1.96}},
+  "16": {"class_type":"SaveVideo","inputs":{"video":["14",0],"filename_prefix":"ComfyField/lip-sync","format":"auto","format.codec":"auto"}},
+  "17": {"class_type":"LoraLoaderModelOnly","inputs":{"model":["4",0],"lora_name":"wan2.1_i2v_lora_rank64_lightx2v_4step.safetensors","strength_model":1}}
+}

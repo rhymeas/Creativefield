@@ -1,0 +1,30 @@
+.cf-nodes-page { display:flex; flex-direction:column; height:100%; min-height:0; }
+.cf-nodes { height:100%; min-height:0; }
+.cf-nodes .ds-canvas { height:100%; min-height:0; }
+.cf-nodes__shelf { display:flex; flex-direction:column; gap:var(--gap-stack); padding:var(--gap-stack) 0; }
+.cf-nodes__shelf-head { display:flex; align-items:center; justify-content:space-between; gap:var(--gap-block); flex-wrap:wrap; }
+.cf-nodes__saved { display:flex; flex-direction:column; gap:var(--gap-inline); }
+.cf-nodes__saved-item { display:flex; align-items:center; gap:var(--gap-inline); flex-wrap:wrap; }
+.cf-nodes__import { display:flex; flex-direction:column; gap:var(--gap-stack); }
+.cf-nodes__sources { display:flex; flex-wrap:wrap; gap:var(--gap-inline); }
+.cf-nodes__mapping { display:flex; flex-direction:column; gap:var(--gap-inline); }
+.cf-nodes__stage { position:relative; flex:1; min-height:0; }
+.cf-nodes__loading { position:absolute; inset:0; display:grid; place-items:center; z-index:2; }
+.cf-nodes__frame { display:block; width:100%; height:100%; min-height:0; border:0; }
+
+.cf-nodes__shelf-title { display:flex; flex-direction:column; gap:var(--space-1); min-width:0; flex:1 1 320px; }
+.cf-nodes__saved-item { gap:var(--gap-block); }
+.cf-nodes__saved-name { flex:1 1 260px; min-width:0; }
+
+/* Spacing pass: the shelf breathes, rows keep distance from text and from each other. */
+.cf-nodes__shelf { padding:var(--gap-block) var(--gap-block); gap:var(--gap-block); }
+.cf-nodes__saved { gap:var(--gap-block); padding:var(--gap-inline) 0; }
+.cf-nodes__saved-item { padding:var(--gap-inline) var(--gap-block); }
+.cf-nodes__shelf-head { gap:var(--gap-block); padding-bottom:var(--gap-inline); }
+
+/* Saved workflows as small cards: name on top, status and actions together underneath. */
+.cf-nodes__saved { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:var(--gap-block); padding:var(--gap-inline) 0; }
+.cf-nodes__saved-item { flex-direction:column; align-items:flex-start; gap:var(--gap-inline); padding:var(--gap-block) calc(var(--gap-block) * 1.25); }
+.cf-nodes__saved-name { flex:none; }
+.cf-nodes__saved-item { flex-direction:row; flex-wrap:wrap; align-items:center; }
+.cf-nodes__saved-name { flex:1 1 100%; }

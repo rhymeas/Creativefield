@@ -1,0 +1,148 @@
+{
+ "2": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "start.png"
+  },
+  "_meta": {
+   "title": "LoadImage"
+  }
+ },
+ "10": {
+  "class_type": "SaveGLB",
+  "inputs": {
+   "mesh": [
+    "19:9",
+    0
+   ],
+   "filename_prefix": "3d/comfyfield"
+  },
+  "_meta": {
+   "title": "SaveGLB"
+  }
+ },
+ "19:1": {
+  "class_type": "ImageOnlyCheckpointLoader",
+  "inputs": {
+   "ckpt_name": "hunyuan_3d_v2.1.safetensors"
+  },
+  "_meta": {
+   "title": "ImageOnlyCheckpointLoader"
+  }
+ },
+ "19:3": {
+  "class_type": "ModelSamplingAuraFlow",
+  "inputs": {
+   "model": [
+    "19:1",
+    0
+   ],
+   "shift": 1,
+   "sampling": "flow"
+  },
+  "_meta": {
+   "title": "ModelSamplingAuraFlow"
+  }
+ },
+ "19:13": {
+  "class_type": "CLIPVisionEncode",
+  "inputs": {
+   "clip_vision": [
+    "19:1",
+    1
+   ],
+   "image": [
+    "2",
+    0
+   ],
+   "crop": "center"
+  },
+  "_meta": {
+   "title": "CLIPVisionEncode"
+  }
+ },
+ "19:6": {
+  "class_type": "Hunyuan3Dv2Conditioning",
+  "inputs": {
+   "clip_vision_output": [
+    "19:13",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Hunyuan3Dv2Conditioning"
+  }
+ },
+ "19:4": {
+  "class_type": "EmptyLatentHunyuan3Dv2",
+  "inputs": {
+   "resolution": 4096,
+   "batch_size": 1
+  },
+  "_meta": {
+   "title": "EmptyLatentHunyuan3Dv2"
+  }
+ },
+ "19:7": {
+  "class_type": "KSampler",
+  "inputs": {
+   "model": [
+    "19:3",
+    0
+   ],
+   "seed": 952805179515179,
+   "steps": 30,
+   "cfg": 5,
+   "sampler_name": "euler",
+   "scheduler": "normal",
+   "positive": [
+    "19:6",
+    0
+   ],
+   "negative": [
+    "19:6",
+    1
+   ],
+   "latent_image": [
+    "19:4",
+    0
+   ],
+   "denoise": 1
+  },
+  "_meta": {
+   "title": "KSampler"
+  }
+ },
+ "19:8": {
+  "class_type": "VAEDecodeHunyuan3D",
+  "inputs": {
+   "samples": [
+    "19:7",
+    0
+   ],
+   "vae": [
+    "19:1",
+    2
+   ],
+   "num_chunks": 8000,
+   "octree_resolution": 256
+  },
+  "_meta": {
+   "title": "VAEDecodeHunyuan3D"
+  }
+ },
+ "19:9": {
+  "class_type": "VoxelToMesh",
+  "inputs": {
+   "voxel": [
+    "19:8",
+    0
+   ],
+   "algorithm": "surface net",
+   "threshold": 0.6
+  },
+  "_meta": {
+   "title": "VoxelToMesh"
+  }
+ }
+}

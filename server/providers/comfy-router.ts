@@ -1,0 +1,61 @@
+import {H3_EFFECTS,KLING_VOICES,ROUTER_CONTRACTS,ROUTER_MODELS,routerManifest,type RouterModel} from '../../src/capabilities/router-models';
+import type {Invocation} from '../../src/capabilities/types';
+import type {DirectAdapter,OwnedInput,PreparedInputs} from './types';
+import type {Registration} from './registry';
+import {withH3Video,withVideoCut} from './h3-video';
+import {prepareH3Images} from './h3-image';
+
+const object=(v:unknown):Record<string,any>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,any>:{};
+const id=(v:unknown):v is string=>typeof v==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,199}$/.test(v);
+const root=(m:RouterModel)=>`/v2/models/${m.model}/requests`;
+function requestPath(m:RouterModel,remoteId:string){if(!id(remoteId))throw new Error('Invalid request ID');return `${root(m)}/${encodeURIComponent(remoteId)}`;}
+async function bytes(input:OwnedInput){const parts:Buffer[]=[];let n=0;for await(const c of await input.open()){const b=Buffer.from(c);n+=b.length;if(n>10*1024*1024)throw new Error('Reference exceeds 10 MB');parts.push(b);}return Buffer.concat(parts);}
+function body(m:RouterModel,i:Invocation,p:PreparedInputs){
+ const c=i.controls,prompt=String(c.prompt);
+ if(m.kind==='flux')return {prompt,width:c.width,height:c.height,seed:c.seed,output_format:'png',prompt_upsampling:false,...Object.fromEntries(['source_image','reference_image','reference_image_2'].filter(k=>p[k]).map((k,n)=>[n?`input_image_${n+1}`:'input_image',p[k]]))};
+ if(m.kind==='seedance')return {content:[{type:'text',text:prompt},...(p.start_image?[{type:'image_url',image_url:{url:p.start_image},role:'first_frame'}]:[]),...(p.end_image?[{type:'image_url',image_url:{url:p.end_image},role:'last_frame'}]:[])],duration:c.duration,resolution:c.resolution,seed:c.seed,generate_audio:false,watermark:false};
+ if(m.kind==='h3-reference')return {content:[{type:'text',text:`Use the character in Image 1 for the person shown in Video 1. Follow the reference performance, camera and scene.${p.reference_image_2?' Image 2 is an additional scene reference.':''} ${prompt}`},{type:'video_url',video_url:{url:p.source_video},role:'reference_video'},...['reference_image','reference_image_2'].filter(k=>p[k]).map(k=>({type:'image_url',image_url:{url:p[k]},role:'reference_image'}))],duration:c.duration,resolution:c.resolution,seed:c.seed,ratio:'adaptive',aigc_watermark:false};
+ if(m.kind==='kling-lipsync')return {input:{mode:'text2video',video_url:p.source_video,text:prompt.trim(),voice_id:KLING_VOICES.find(v=>v.name===c.voice)?.id??'oversea_male1',voice_language:'en',voice_speed:c.voice_speed}};
+ if(m.kind==='h3-create')return {content:[{type:'text',text:prompt.trim()},...(p.start_image?[{type:'image_url',image_url:{url:p.start_image},role:'first_frame'}]:[]),...(p.end_image?[{type:'image_url',image_url:{url:p.end_image},role:'last_frame'}]:[])],duration:c.duration,resolution:c.resolution,seed:c.seed,aigc_watermark:false};
+ if(m.kind==='h3-effect'){const effect=H3_EFFECTS.find(e=>e.title===c.effect)?.prompt??H3_EFFECTS[0].prompt;return {content:[{type:'text',text:prompt.trim()?`${effect} ${prompt.trim()}`:effect},{type:'image_url',image_url:{url:p.start_image},role:'first_frame'}],duration:c.duration,resolution:c.resolution,seed:c.seed,aigc_watermark:false};}
+ if(m.kind==='bria-cutout')return {image:p.source_image,preserve_alpha:true,sync:false};
+ if(m.kind==='bria-video-cutout')return {video:p.source_video,background_color:c.background_color,output_container_and_codec:'mp4_h264',preserve_audio:true};
+ if(m.kind==='bria-upscale')return {image:p.source_image,desired_increase:c.desired_increase,sync:false};
+ if(m.kind==='sf3d')return {image:p.image,texture_resolution:c.texture_resolution,remesh:c.remesh,foreground_ratio:c.foreground_ratio};
+ if(m.kind==='bfl-video-upscale')return {input_video:p.source_video,upscale_factor:c.upscale_factor,creativity:c.creativity,...(prompt.trim()?{prompt}:{})};
+ const images=['reference_image','reference_image_2'].filter(k=>p[k]);
+ return {prompt:prompt.replace(/@Image\s*([12])\b/gi,(match,n:string)=>Number(n)<=images.length?`<<<image_${n}>>>`:match).replace(/@Video\s*1\b/gi,'<<<video_1>>>'),mode:c.mode,sound:'off',video_list:[{video_url:p.source_video,refer_type:m.kind==='kling-edit'?'base':'feature',keep_original_sound:'no'}],image_list:images.map(k=>({image_url:p[k]})),...(m.kind==='kling-motion'?{duration:c.duration,aspect_ratio:'16:9'}:{})};
+}
+/** A failed Router request in words a person can act on. */
+export function routerFailureReason(m:RouterModel,errorType:string,detail:string):string{
+ const said=detail.trim().replace(/\s+/g,' ').slice(0,240);
+ if(/moderat|sensitive|safety|policy|nsfw/i.test(errorType+' '+said))return `${m.title} blocked it as sensitive content.${said?` ${said}`:''} Try another picture or prompt.`;
+ if(errorType==='invalid_input'){
+  const picture=m.inputs.some(p=>p.type==='image');
+  return `${m.title} turned the request down as invalid.${picture?' The usual cause is the first picture: providers refuse photos of real-looking people, very small or very large pictures, or unusual formats. Try it without a picture, or with a drawn or non-human subject.':''} Settings or a very long prompt can also cause it.`;
+ }
+ return said||`${m.title} failed (${errorType}).`;
+}
+export function routerAdapter(m:RouterModel):DirectAdapter{
+ return {id:`comfy-router-${m.kind}`,version:'1.0.0',provider:'comfy-router',recovery:'unsupported',cancellation:'supported',
+  validate(i){
+    const limit=m.kind==='kling-lipsync'?120:m.kind==='h3-reference'||m.kind==='h3-effect'||m.kind==='h3-create'?500:m.kind.startsWith('kling')?2500:20000,prompt=i.controls.prompt;
+    /* Bria Upscale has no prompt at all; the others treat it as optional or require it. */
+    const optionalPrompt=m.kind==='h3-reference'||m.kind==='h3-effect'||m.kind==='bfl-video-upscale';
+    const reason=m.kind==='bria-upscale'||m.kind==='bria-cutout'||m.kind==='bria-video-cutout'||m.kind==='sf3d'?undefined:typeof prompt!=='string'?'Write a prompt.':!optionalPrompt&&!prompt.trim()?'Write a prompt.':prompt.length>limit?`${m.title} takes a prompt of up to ${limit} characters; this one has ${prompt.length}. Shorten it.`:i.audioPolicy!==(m.kind==='h3-reference'?'replace':'mute')?'This sound setting is not available for this model.':m.kind==='h3-reference'&&!(i.inputs.source_video&&i.inputs.reference_image)?'Add your video and a character picture.':undefined;
+    return reason?{valid:false,code:'invalid_input',reason}:{valid:true};
+  },
+  async estimate(){return {kind:'unknown'};},
+  async prepareInputs(inputs,context){const images=inputs.filter(i=>i.contentType.startsWith('image/'));if(m.kind!=='h3-reference'&&images.reduce((n,i)=>n+i.bytes,0)>10*1024*1024)throw new Error('References exceed 10 MB combined');const p:Record<string,string>=m.kind==='h3-reference'||m.kind==='h3-effect'||m.kind==='h3-create'?await prepareH3Images(images):{};for(const input of inputs){if(input.contentType.startsWith('image/')&&m.kind==='sf3d'){if(!context.transport.upload)throw new Error('Cloud media upload is unavailable');p[input.role]=await context.transport.upload(input);continue;}if(input.contentType.startsWith('image/')){if(m.kind==='h3-reference'||m.kind==='h3-effect'||m.kind==='h3-create')continue;if(!['image/png','image/jpeg'].includes(input.contentType))throw new Error('Use PNG or JPEG references');const b=await bytes(input);p[input.role]=m.kind==='seedance'?`data:${input.contentType};base64,${b.toString('base64')}`:b.toString('base64');}else{if(!context.transport.upload)throw new Error('Cloud media upload is unavailable');p[input.role]=m.kind==='h3-reference'&&input.role==='source_video'?await withH3Video(input,context.transport.upload):m.kind.startsWith('kling')&&input.role==='source_video'?await withVideoCut(input,10,context.transport.upload):m.kind==='bfl-video-upscale'&&input.role==='source_video'?await withVideoCut(input,20,context.transport.upload):m.kind==='bria-video-cutout'&&input.role==='source_video'?await withVideoCut(input,60,context.transport.upload):await context.transport.upload(input);}}return p;},
+  async submit(i,p,context){try{const r=object(await context.transport.api(root(m),{method:'POST',body:body(m,i,p),idempotencyKey:context.requestId}));return id(r.request_id)?{kind:'accepted',remoteId:r.request_id}:{kind:'unknown'};}catch(e){const status=(e as {status?:number}).status;return status&&[400,401,402,403,422,429].includes(status)?{kind:'rejected',code:status===401?'unauthorized':status===402?'payment_required':'rejected'}:{kind:'unknown'};}},
+  async poll(remote,context){const r=object(await context.transport.api(`${requestPath(m,remote)}/status`));if(r.status==='COMPLETED'){if(r.error_type){if(r.error_type==='cancelled'||r.error_type==='canceled')return {state:'canceled'};
+   /* Say why: Router's own words, and the usual cause for an invalid request. */
+   const detail=await context.transport.api(requestPath(m,remote)).then(x=>String(object(x).detail??''),e=>String(object(e).detail??(e as Error)?.message??'')).catch(()=>'');
+   return {state:'failed',code:'rejected',reason:routerFailureReason(m,String(r.error_type),detail)};}return {state:'succeeded'};}if(r.status==='IN_QUEUE')return {state:'pending'};if(r.status==='IN_PROGRESS')return {state:'running'};throw new Error('Unknown Router status');},
+  async cancel(remote,context){await context.transport.api(`${requestPath(m,remote)}/cancel`,{method:'PUT'});return {kind:'accepted'};},
+  async recover(){return {kind:'unsupported'};},
+  async outputs(remote,context){const r=object(await context.transport.api(requestPath(m,remote)));if(r.error_type||(m.kind==='h3-reference'||m.kind==='h3-effect'||m.kind==='h3-create')&&object(r.task).status!=='succeeded')throw new Error('Router result failed');const urls=m.kind==='sf3d'?[r.model]:m.kind==='flux'||m.kind==='bfl-video-upscale'?[object(r.result).sample]:m.kind==='bria-upscale'||m.kind==='bria-cutout'?[object(r.result).image_url]:m.kind==='bria-video-cutout'?[object(r.result).video_url??object(r.result).image_url]:m.kind==='seedance'?[object(r.content).video_url]:m.kind==='h3-reference'||m.kind==='h3-effect'||m.kind==='h3-create'?[object(object(r.task).content).url]:(object(object(r.data).task_result).videos??[]).map((v:any)=>v.url);if(!urls.length||urls.some((u:unknown)=>typeof u!=='string'||!u))throw new Error('Missing Router output');return urls.map((url:string)=>({url,mediaType:m.output,contentType:m.output==='image'?'image/png':m.output==='model3d'?'model/gltf-binary':'video/mp4'}));},
+ };
+}
+export const routerRegistrations:Registration[]=ROUTER_CONTRACTS.map(m=>({qualified:true,adapter:routerAdapter(m),binding:{capabilityId:m.id,capabilityVersion:'1.0.0',routeId:'router',adapterId:`comfy-router-${m.kind}`,adapterVersion:'1.0.0',provider:'comfy-router',model:m.model,upstreamProviders:[m.model.split('/')[0]],apiOrigins:['https://api.comfy.org','https://cloud.comfy.org'],artifactOrigins:['https://storage.googleapis.com','https://api.comfy.org','https://cloud.comfy.org','https://delivery-us1.bfl.ai','https://delivery-eu1.bfl.ai',...(m.kind.startsWith('kling')?['https://v16-kling.klingai.com','https://v21-kling.klingai.com','https://v26-kling.klingai.com','https://v16-kling-fdl.klingai.com','https://s21-kling.klingai.com']:[])]}}));
+export const routerBundles=ROUTER_MODELS.map(m=>({manifest:routerManifest(m)}));

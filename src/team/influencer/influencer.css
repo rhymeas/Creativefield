@@ -1,0 +1,7 @@
+/* Influencer Studio layout only. Visual rules remain in src/ds. */
+.cf-influencer__cast { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:var(--gap-stack); }
+.cf-influencer { display:flex; align-items:flex-start; gap:var(--gap-section); min-width:0; }
+.cf-influencer>.ds-panel { flex-shrink:0; position:sticky; top:0; max-height:calc(100dvh - var(--topbar-h) - var(--row-h) * 2); }
+.cf-influencer__scenes { flex:1; min-width:0; max-width:calc(var(--panel-w) * 2.6); display:flex; flex-direction:column; gap:var(--gap-block); }
+.cf-influencer__scene { display:flex; flex-direction:column; gap:var(--gap-inline); }
+.cf-influencer__scene .ds-toolbar { flex-wrap:nowrap; }

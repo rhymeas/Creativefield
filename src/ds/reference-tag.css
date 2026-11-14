@@ -1,0 +1,2 @@
+.ds-btn.cf-image-reference-tag { position:absolute; top:var(--space-2); left:var(--space-2); z-index:3; height:auto; min-height:0; border:1px solid var(--accent-ring); border-radius:var(--radius-sm); padding:var(--space-1) var(--space-2); background:var(--surface-input); color:var(--accent); font-size:var(--text-xs); cursor:pointer; }
+.ds-btn.cf-image-reference-tag:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }

@@ -1,0 +1,9 @@
+{
+  "1": { "class_type": "LoadVideo", "inputs": { "file": "clip.mp4" }, "_meta": { "title": "Load Video" } },
+  "2": { "class_type": "GetVideoComponents", "inputs": { "video": ["1", 0] }, "_meta": { "title": "Get Video Components" } },
+  "3": { "class_type": "UpscaleModelLoader", "inputs": { "model_name": "RealESRGAN_x4plus.pth" }, "_meta": { "title": "Load Upscale Model" } },
+  "4": { "class_type": "ImageUpscaleWithModel", "inputs": { "upscale_model": ["3", 0], "image": ["2", 0] }, "_meta": { "title": "Upscale Image (using Model)" } },
+  "5": { "class_type": "ImageScaleBy", "inputs": { "image": ["4", 0], "upscale_method": "lanczos", "scale_by": 0.5 }, "_meta": { "title": "Scale to the chosen size" } },
+  "6": { "class_type": "CreateVideo", "inputs": { "images": ["5", 0], "fps": ["2", 2], "audio": ["2", 1] }, "_meta": { "title": "Create Video" } },
+  "7": { "class_type": "SaveVideo", "inputs": { "video": ["6", 0], "filename_prefix": "video/upscaled", "format": "auto", "codec": "auto" }, "_meta": { "title": "Save Video" } }
+}

@@ -1,0 +1,73 @@
+/* Film Studio: LAYOUT ONLY (flex, grid, gap, sizing, overflow, position).
+   Colours, fonts, borders, radii and shadows belong to src/ds/. */
+
+.fs-shell { height:100%; min-height:0; display:flex; flex-direction:column; gap:var(--gap-stack); }
+.fs-body { flex:1; min-height:0; display:flex; min-width:0; }
+.fs-actions { display:flex; align-items:center; gap:var(--gap-inline); }
+/* Mode row: back + notes on the left, the mode tabs centred, actions on the right. */
+.fs-modebar { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; }
+.fs-modebar__start { display:flex; align-items:center; gap:var(--gap-inline); min-width:0; }
+.fs-modebar > .ds-toolbar__end { justify-self:end; margin-left:0; }
+
+.fs-studio { flex:1; min-height:0; min-width:0; display:flex; flex-direction:column; gap:var(--gap-block); }
+.fs-studio__main { flex:1; min-height:0; min-width:0; display:flex; gap:var(--gap-block); }
+/* FotoField-style: the stage is the work surface, the boxes stand in one column on the right. */
+.fs-boxes { width:var(--panel-w); flex:none; min-height:0; overflow:auto; }
+.fs-studio__main > .ds-canvas { flex:1; min-width:0; min-height:0; }
+
+.fs-stage { flex:1; min-height:0; min-width:0; display:flex; position:relative; }
+.fs-viewport { flex:1; min-height:0; min-width:0; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+.fs-viewport__canvas { display:block; flex:none; }
+
+.fs-timeline { flex:none; display:flex; flex-direction:column; gap:var(--gap-stack); min-width:0; }
+.fs-transport { display:flex; align-items:center; gap:var(--gap-stack); min-width:0; }
+.fs-transport__keys { flex:none; display:flex; align-items:center; gap:var(--gap-inline); }
+.fs-tags { flex:1; display:flex; align-items:center; gap:var(--gap-inline); overflow-x:auto; scrollbar-width:none; min-width:0; padding-block:var(--space-1); }
+.fs-tags > * { flex:none; }
+.fs-scrub { width:100%; min-width:0; }
+
+.fs-reference { display:flex; flex-direction:column; gap:var(--gap-stack); min-width:0; }
+.fs-reference__player { position:relative; width:100%; aspect-ratio:16 / 9; overflow:hidden; }
+.fs-reference__player iframe,
+.fs-reference__player video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+/* The captured tab stream is read from this 1px video in the player's corner; it only ever holds
+   the live stream, never a file. */
+.fs-reference__player .fs-reference__capture { position:absolute; left:0; top:0; width:1px; height:1px; pointer-events:none; }
+.fs-reference__actions { display:flex; align-items:center; gap:var(--gap-inline); flex-wrap:wrap; }
+
+.fs-desk { display:flex; flex-direction:column; gap:var(--gap-stack); min-width:0; }
+.fs-editor { display:flex; flex-direction:column; gap:var(--gap-stack); min-width:0; }
+
+.fs-shots { flex:1; min-height:0; overflow:auto; display:flex; flex-direction:column; gap:var(--gap-block); }
+.fs-shots__row { display:flex; flex-direction:column; align-items:flex-start; gap:var(--gap-inline); min-width:0; }
+
+@media (max-width: 760px) {
+  .fs-studio__main { flex-direction:column; overflow:auto; }
+  .fs-boxes { width:100%; }
+  .fs-studio__main > .ds-canvas { min-height:calc(320px * var(--ui-scale)); }
+  .fs-transport { flex-wrap:wrap; }
+  .fs-viewport__canvas { min-height:calc(280px * var(--ui-scale)); }
+}
+
+/* Viewport overlays (the reference studio keeps its controls inside the stage). */
+.fs-stage__overlay { position:absolute; display:flex; align-items:center; gap:var(--gap-inline); z-index:3; }
+.fs-stage__overlay--view { left:var(--gap-stack); bottom:var(--gap-stack); flex-direction:column; align-items:flex-start; }
+.fs-stage__overlay--shot { left:var(--gap-stack); top:var(--gap-stack); flex-direction:column; align-items:flex-start; max-width:60%; }
+.fs-stage__tools { display:flex; align-items:center; gap:var(--gap-inline); }
+.fs-stage__overlay--labels { right:var(--gap-stack); top:var(--gap-stack); }
+.fs-stage__overlay--cam { right:var(--gap-stack); bottom:var(--gap-stack); }
+.fs-viewport__canvas { cursor:grab; touch-action:none; }
+.fs-viewport__canvas:active { cursor:grabbing; }
+.fs-camcapsule { display:flex; }
+.fs-caminfo { display:flex; flex-direction:column; gap:var(--gap-inline); min-width:calc(var(--panel-w) * .9); }
+
+/* The shot actions popup: a rectangular wireframe still above the shot facts. */
+.fs-shotactions { display:flex; flex-direction:column; gap:var(--gap-stack); min-width:0; }
+.fs-shotactions__still { display:block; width:100%; height:auto; }
+
+/* Reference analysis: its action sits under the player, facts under the action. */
+.fs-reference__analysis { display:flex; flex-direction:column; align-items:flex-start; gap:var(--gap-inline); min-width:0; }
+
+/* Geometry module: one recorded measurement per shot, stacked like the shot list (layout only). */
+.fs-geometry { flex:1; min-height:0; min-width:0; overflow:auto; display:flex; flex-direction:column; gap:var(--gap-block); }
+.fs-geometry__list { display:flex; flex-direction:column; gap:var(--gap-inline); min-width:0; }

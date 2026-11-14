@@ -1,0 +1,19 @@
+{
+  "video": "promo/video-studio.webp",
+  "film": "promo/film-studio.webp",
+  "picture": "picture.webp",
+  "angles": "promo/angles.webp",
+  "new-look": "promo/new-look.webp",
+  "swap-thing": "promo/swap-thing.webp",
+  "sharpen": "promo/sharpen.webp",
+  "copy-moves": "promo/copy-moves.webp",
+  "swap-person": "promo/reshoot.webp",
+  "character": "promo/identity-studio.webp",
+  "talk": "promo/talk.webp",
+  "model3d": "promo/model3d.webp",
+  "fix-picture": "promo/photofield.webp",
+  "effect-clips": "promo/effects-lab.webp",
+  "block": "promo/block-shot.webp",
+  "remix": "promo/remix-studio.webp",
+  "ad": "promo/ad-studio.webp"
+}

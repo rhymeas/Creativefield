@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 2,
+  "id": "video-edit",
+  "version": "0.2.0",
+  "title": "Deterministic trim and VACE forward extension",
+  "category": "video",
+  "description": "Local VACE forward continuation with server-derived context, exact frame stitching and durable SDK jobs. Qualified on one RTX 4090 fixture at 832x480, 13 generated frames; model motion remains approximate.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Source video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "4",
+        "field": "file"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Trimmed or extended video",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Continuation prompt",
+      "type": "string",
+      "default": "A continuous shot, natural motion continuing from the preceding frames.",
+      "binding": {
+        "node": "10",
+        "field": "text"
+      }
+    },
+    {
+      "id": "negative",
+      "label": "Negative prompt",
+      "type": "string",
+      "default": "blurry, distorted, unstable, jump cut",
+      "binding": {
+        "node": "11",
+        "field": "text"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 543,
+      "binding": {
+        "node": "14",
+        "field": "seed"
+      }
+    },
+    {
+      "id": "generation_frames",
+      "label": "Generation frames",
+      "type": "integer",
+      "min": 5,
+      "max": 13,
+      "step": 4,
+      "default": 13,
+      "binding": {
+        "node": "12",
+        "field": "length"
+      }
+    },
+    {
+      "id": "overlap_frames",
+      "label": "Overlap frames",
+      "type": "integer",
+      "min": 1,
+      "max": 12,
+      "default": 5,
+      "binding": {
+        "node": "6",
+        "field": "length"
+      }
+    },
+    {
+      "id": "context_start_frame",
+      "label": "Context start frame",
+      "type": "integer",
+      "min": 0,
+      "max": 160,
+      "default": 0,
+      "binding": {
+        "node": "6",
+        "field": "batch_index"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "video-edit-extend-vace",
+      "requirements": [
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install the reviewed ComfyUI core node CLIPLoader."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Install the reviewed ComfyUI core node CLIPTextEncode."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Install the reviewed ComfyUI core node CreateVideo."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Install the reviewed ComfyUI core node GetImageSize."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Install the reviewed ComfyUI core node GetVideoComponents."
+        },
+        {
+          "id": "node:ImageFromBatch",
+          "kind": "node",
+          "name": "ImageFromBatch",
+          "instructions": "Install the reviewed ComfyUI core node ImageFromBatch."
+        },
+        {
+          "id": "node:ImageToMask",
+          "kind": "node",
+          "name": "ImageToMask",
+          "instructions": "Install the reviewed ComfyUI core node ImageToMask."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Install the reviewed ComfyUI core node KSampler."
+        },
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Install the reviewed ComfyUI core node LoadVideo."
+        },
+        {
+          "id": "node:ModelSamplingSD3",
+          "kind": "node",
+          "name": "ModelSamplingSD3",
+          "instructions": "Install the reviewed ComfyUI core node ModelSamplingSD3."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install the reviewed ComfyUI core node SaveVideo."
+        },
+        {
+          "id": "node:ThresholdMask",
+          "kind": "node",
+          "name": "ThresholdMask",
+          "instructions": "Install the reviewed ComfyUI core node ThresholdMask."
+        },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Install the reviewed ComfyUI core node UNETLoader."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install the reviewed ComfyUI core node VAEDecode."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install the reviewed ComfyUI core node VAELoader."
+        },
+        {
+          "id": "node:WanVaceToVideo",
+          "kind": "node",
+          "name": "WanVaceToVideo",
+          "instructions": "Install the reviewed ComfyUI core node WanVaceToVideo."
+        },
+        {
+          "id": "model:vace14b-fp8-local",
+          "kind": "model",
+          "name": "wan2.1_vace_14B_fp8_e4m3fn_local.safetensors",
+          "location": "diffusion_models",
+          "version": "123acf1cc74bccbb9bfff8ac1ee72edc08c2341d",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Convert the pinned upstream VACE 14B FP16 source with scripts/convert-model-fp8-stream.py. See docs/VIDEO-FORWARD-EVIDENCE.md for source/output hashes and the qualified RTX 4090 profile; this filename is a local derivative, not an upstream download.",
+          "bytes": 17342189824,
+          "sourceRevision": "123acf1cc74bccbb9bfff8ac1ee72edc08c2341d"
+        },
+        {
+          "id": "model:umt5",
+          "kind": "model",
+          "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the UMT5 XXL FP8 scaled text encoder."
+        },
+        {
+          "id": "model:vae",
+          "kind": "model",
+          "name": "wan_2.1_vae.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the Wan 2.1 VAE."
+        }
+      ],
+      "evidence": [
+        "2026-10-22 native VACE first-clip graph: context zero-mask, gray/white-mask generation tail; 50 steps and shift16.",
+        "Native prompt4d9ffdd4-c166-431f-b890-c0c1bed710df: 832x480,13 frames,16 FPS.",
+        "Isolated app job0bce0094-f05c-4fcc-91cf-deb8333bcea7; SDK runa6c9d225-b883-442c-b367-975c36fc7293 survived service restart and produced24 frames from16 retained +8 generated. See docs/VIDEO-FORWARD-EVIDENCE.md for limits."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0; FFmpeg build licensing depends on the installed build.",
+    "weights": [
+      {
+        "name": "Wan2.1-VACE-14B, local FP8 derivative",
+        "license": "Apache-2.0 upstream; locally quantized derivative",
+        "source": "https://huggingface.co/Wan-AI/Wan2.1-VACE-14B/blob/main/LICENSE.txt"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/ali-vilab/VACE/blob/main/UserGuide.md",
+      "observedAt": "2026-10-17",
+      "kind": "research"
+    },
+    {
+      "url": "https://docs.comfy.org/tutorials/video/wan/vace",
+      "observedAt": "2026-10-17",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [
+    "VID-05"
+  ],
+  "timing": {
+    "fps": 16,
+    "minSeconds": 0.0625,
+    "maxSeconds": 5.0625,
+    "sourceTimed": true
+  },
+  "audioPolicies": [
+    "mute"
+  ]
+}

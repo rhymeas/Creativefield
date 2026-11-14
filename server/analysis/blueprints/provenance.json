@@ -1,0 +1,18 @@
+{
+  "source": "<your ComfyUI_windows_portable folder>/ComfyUI/blueprints",
+  "capturedAt": "2026-11-10T23:07:55.150Z",
+  "comfyuiVersion": "0.37.0",
+  "blueprints": {
+    "moge": {
+      "file": "geometry-estimation-moge.json",
+      "bytes": 33828,
+      "sha256": "4dcade33793c31a491c60bd864f2653d0538ad3759dc41938d624a2f35181f22"
+    },
+    "sam3": {
+      "file": "video-segmentation-sam3.json",
+      "bytes": 21577,
+      "sha256": "1ca3002622b2d3d1bf45c4f910019e047c3b68373841013c9e644e7957710f0d"
+    }
+  }
+}
+

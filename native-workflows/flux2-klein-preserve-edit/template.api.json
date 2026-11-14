@@ -1,0 +1,247 @@
+{
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "484",
+        0
+      ],
+      "filename_prefix": "ComfyField/precision-final"
+    },
+    "_meta": {
+      "title": "SaveImage"
+    }
+  },
+  "76": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "handbag_white.png"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  },
+  "90": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "fibo2_edit_turbo_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "91": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+      "type": "fibo2",
+      "device": "default"
+    }
+  },
+  "92": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    }
+  },
+  "93": {
+    "class_type": "TextEncodeFibo2",
+    "inputs": {
+      "prompt": "Change only the selected object to blue.",
+      "negative_prompt": "",
+      "width": 768,
+      "height": 768,
+      "batch_size": 1,
+      "clip": [
+        "91",
+        0
+      ],
+      "images.image_1": [
+        "482",
+        1
+      ],
+      "vae": [
+        "92",
+        0
+      ]
+    }
+  },
+  "94": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 20261019,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "90",
+        0
+      ],
+      "positive": [
+        "93",
+        0
+      ],
+      "negative": [
+        "93",
+        1
+      ],
+      "latent_image": [
+        "93",
+        2
+      ]
+    }
+  },
+  "95": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "94",
+        0
+      ],
+      "vae": [
+        "92",
+        0
+      ]
+    }
+  },
+  "477": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "MASK_REQUIRED.png"
+    }
+  },
+  "481": {
+    "class_type": "ImageToMask",
+    "inputs": {
+      "image": [
+        "477",
+        0
+      ],
+      "channel": "red"
+    }
+  },
+  "482": {
+    "class_type": "InpaintCrop",
+    "inputs": {
+      "context_expand_pixels": 32,
+      "context_expand_factor": 1.1,
+      "fill_mask_holes": false,
+      "blur_mask_pixels": 0,
+      "invert_mask": false,
+      "blend_pixels": 0,
+      "rescale_algorithm": "bicubic",
+      "mode": "forced size",
+      "force_width": 768,
+      "force_height": 768,
+      "rescale_factor": 1,
+      "min_width": 512,
+      "min_height": 512,
+      "max_width": 768,
+      "max_height": 768,
+      "padding": 32,
+      "image": [
+        "76",
+        0
+      ],
+      "mask": [
+        "489",
+        0
+      ]
+    }
+  },
+  "483": {
+    "class_type": "InpaintStitch",
+    "inputs": {
+      "stitch": [
+        "482",
+        0
+      ],
+      "inpainted_image": [
+        "95",
+        0
+      ],
+      "rescale_algorithm": "bicubic"
+    }
+  },
+  "484": {
+    "class_type": "KleinEditComposite",
+    "inputs": {
+      "delta_e_threshold": -1,
+      "flow_quality": "medium",
+      "use_occlusion": false,
+      "occlusion_threshold": -1,
+      "noise_removal_pct": 0,
+      "close_radius_pct": 0.5,
+      "fill_holes": false,
+      "fill_borders": false,
+      "max_islands": 0,
+      "grow_mask_pct": 0,
+      "feather_pct": 0.5,
+      "color_match_blend": 0,
+      "poisson_blend_edges": false,
+      "generated_image": [
+        "483",
+        0
+      ],
+      "original_image": [
+        "76",
+        0
+      ],
+      "custom_mask": [
+        "489",
+        0
+      ],
+      "custom_mask_mode": "replace",
+      "enable_debug": false
+    }
+  },
+  "485": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "483",
+        0
+      ],
+      "filename_prefix": "ComfyField/precision-candidate"
+    }
+  },
+  "486": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": [
+        "484",
+        1
+      ]
+    }
+  },
+  "487": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "486",
+        0
+      ],
+      "filename_prefix": "ComfyField/precision-effective-mask"
+    }
+  },
+  "488": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "484",
+        2
+      ]
+    }
+  },
+  "489": {
+    "class_type": "GrowMask",
+    "inputs": {
+      "mask": [
+        "481",
+        0
+      ],
+      "expand": 8,
+      "tapered_corners": false
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 2,
+  "id": "hunyuan3d-21",
+  "version": "0.1.0",
+  "title": "Hunyuan3D 2.1 image to 3D",
+  "category": "3d",
+  "description": "Local image-to-mesh workflow from the official ComfyUI template. Produces an untextured GLB mesh of the main subject; used by Camera angles to render true viewpoints from real geometry. A product fixture produced a 10.6 MB GLB in 76 s on RTX 4090 / 64 GB RAM.",
+  "inputs": [
+    { "id": "start_image", "label": "Subject image", "type": "image", "required": true, "binding": { "node": "2", "field": "image" } }
+  ],
+  "outputs": [
+    { "id": "model", "label": "3D model (GLB)", "type": "model3d", "required": true }
+  ],
+  "controls": [
+    { "id": "seed", "label": "Seed", "type": "integer", "min": 0, "max": 2147483647, "default": 528, "binding": { "node": "19:7", "field": "seed" } },
+    { "id": "steps", "label": "Steps", "type": "integer", "min": 10, "max": 50, "default": 30, "binding": { "node": "19:7", "field": "steps" } },
+    { "id": "octree_resolution", "label": "Mesh detail", "type": "integer", "min": 128, "max": 512, "step": 64, "default": 256, "binding": { "node": "19:8", "field": "octree_resolution" } }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "hunyuan3d-21",
+      "requirements": [
+        { "id": "node:LoadImage", "kind": "node", "name": "LoadImage", "instructions": "Install a ComfyUI version providing LoadImage." },
+        { "id": "node:ImageOnlyCheckpointLoader", "kind": "node", "name": "ImageOnlyCheckpointLoader", "instructions": "Install a ComfyUI version providing ImageOnlyCheckpointLoader." },
+        { "id": "node:ModelSamplingAuraFlow", "kind": "node", "name": "ModelSamplingAuraFlow", "instructions": "Install a ComfyUI version providing ModelSamplingAuraFlow." },
+        { "id": "node:CLIPVisionEncode", "kind": "node", "name": "CLIPVisionEncode", "instructions": "Install a ComfyUI version providing CLIPVisionEncode." },
+        { "id": "node:Hunyuan3Dv2Conditioning", "kind": "node", "name": "Hunyuan3Dv2Conditioning", "instructions": "Install ComfyUI 0.37.0 or another version with native Hunyuan3D v2 nodes." },
+        { "id": "node:EmptyLatentHunyuan3Dv2", "kind": "node", "name": "EmptyLatentHunyuan3Dv2", "instructions": "Install ComfyUI 0.37.0 or another version with native Hunyuan3D v2 nodes." },
+        { "id": "node:KSampler", "kind": "node", "name": "KSampler", "instructions": "Install a ComfyUI version providing KSampler." },
+        { "id": "node:VAEDecodeHunyuan3D", "kind": "node", "name": "VAEDecodeHunyuan3D", "instructions": "Install ComfyUI 0.37.0 or another version with native Hunyuan3D v2 nodes." },
+        { "id": "node:VoxelToMesh", "kind": "node", "name": "VoxelToMesh", "instructions": "Install a ComfyUI version providing VoxelToMesh." },
+        { "id": "node:SaveGLB", "kind": "node", "name": "SaveGLB", "instructions": "Install a ComfyUI version providing SaveGLB." },
+        { "id": "model:hunyuan3d-21", "kind": "model", "name": "hunyuan_3d_v2.1.safetensors", "location": "checkpoints", "version": "sha256:5f21e98a6cb99b13b5e224abaee33929570fff7af2b6a0060001559a04ba9d72", "source": "https://huggingface.co/Comfy-Org/hunyuan3D_2.1_repackaged", "instructions": "Install the pinned 7,365,943,290-byte Hunyuan3D 2.1 checkpoint on G: and verify its SHA-256. Its license does not apply in the EU, UK or South Korea." }
+      ],
+      "evidence": ["2026-10-23: official template converted to 10 API nodes; direct native run on a teal-cup product fixture succeeded in 76 s and wrote comfyfield-h3d-test_00001_.glb (10,594,396 bytes). Mesh is untextured. Other subjects and app-ledger runs remain unproven."]
+    }
+  ],
+  "coverage": { "local": "implemented", "hosted": "planned" },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Integration license follows this repository.",
+    "weights": [
+      { "name": "Hunyuan3D 2.1", "license": "Tencent Hunyuan 3D 2.1 Community License; not licensed in the European Union, United Kingdom or South Korea. See docs/LICENSE-INVENTORY.md.", "source": "https://huggingface.co/tencent/Hunyuan3D-2.1" }
+    ]
+  },
+  "sources": [
+    { "url": "https://comfy.org/workflows/", "observedAt": "2026-10-23", "kind": "discovery" },
+    { "url": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/3d_hunyuan3d-v2.1.json", "observedAt": "2026-10-23", "kind": "implementation" }
+  ],
+  "tickets": ["F01"],
+  "audioPolicies": ["mute"]
+}

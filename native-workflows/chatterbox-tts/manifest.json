@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 2,
+  "id": "chatterbox-tts",
+  "version": "0.1.0",
+  "title": "Chatterbox speech",
+  "category": "audio",
+  "description": "Local text to speech with Resemble AI's Chatterbox in its default voice (no voice cloning). A 3.8 s line rendered in 60 s on RTX 4090 including the first model download.",
+  "inputs": [],
+  "outputs": [
+    { "id": "speech", "label": "Speech (FLAC)", "type": "audio", "required": true }
+  ],
+  "controls": [
+    { "id": "prompt", "label": "Text to speak", "type": "string", "default": "", "meaning": "prompt_hint", "binding": { "node": "1", "field": "text" } },
+    { "id": "exaggeration", "label": "Expressiveness", "type": "number", "min": 0.25, "max": 2, "step": 0.05, "default": 0.5, "binding": { "node": "1", "field": "exaggeration" } },
+    { "id": "seed", "label": "Seed", "type": "integer", "min": 0, "max": 2147483647, "default": 7, "binding": { "node": "1", "field": "seed" } }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "chatterbox-tts",
+      "requirements": [
+        { "id": "node:FL_ChatterboxTTS", "kind": "node", "name": "FL_ChatterboxTTS", "instructions": "Install the ComfyUI_Fill-ChatterBox node pack (MIT) with its requirements into ComfyUI's own Python (python -s -m pip install -r requirements.txt joblib)." },
+        { "id": "node:SaveAudio", "kind": "node", "name": "SaveAudio", "instructions": "Install a ComfyUI version providing SaveAudio." }
+      ],
+      "evidence": ["2026-10-24: direct native run produced comfyfield-tts-test_00001.flac, 3.76 s, FLAC mono 24 kHz, in 60 s including the first download of ResembleAI/chatterbox (about 3.2 GB) to models/chatterbox on G:."]
+    }
+  ],
+  "coverage": { "local": "implemented", "hosted": "planned" },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. ComfyUI_Fill-ChatterBox: MIT (declared in its README). Integration license follows this repository.",
+    "weights": [
+      { "name": "ResembleAI/chatterbox", "license": "MIT", "source": "https://huggingface.co/ResembleAI/chatterbox" }
+    ]
+  },
+  "sources": [
+    { "url": "https://comfy.org/workflows/", "observedAt": "2026-10-24", "kind": "discovery" },
+    { "url": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/audio-chatterbox_tts.json", "observedAt": "2026-10-24", "kind": "implementation" },
+    { "url": "https://github.com/filliptm/ComfyUI_Fill-ChatterBox", "observedAt": "2026-10-24", "kind": "implementation" }
+  ],
+  "tickets": ["F10"],
+  "audioPolicies": ["mute"]
+}

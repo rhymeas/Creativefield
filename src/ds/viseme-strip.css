@@ -1,0 +1,6 @@
+.ds-visemestrip { display:flex; gap:var(--gap-inline); overflow-x:auto; max-width:100%; padding:var(--pad-chip); }
+.ds-visemestrip__item { flex:none; width:var(--control-h); height:var(--control-h); padding:0; border:1px solid var(--line-soft); border-radius:var(--radius-sm); background:var(--surface-control); color:var(--text-secondary); cursor:pointer; }
+.ds-visemestrip__item:hover { background:var(--surface-control-hover); color:var(--text-primary); }
+.ds-visemestrip__item[aria-current] { border-color:var(--accent); color:var(--text-primary); }
+.ds-visemestrip__item:focus-visible { outline:1px solid var(--accent-ring); outline-offset:2px; }
+.ds-visemestrip__item svg { display:block; width:100%; height:100%; fill:none; stroke:currentColor; stroke-width:1.5; }

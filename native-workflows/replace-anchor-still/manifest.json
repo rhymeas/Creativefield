@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 2,
+  "id": "replace-anchor-still",
+  "version": "0.2.0",
+  "title": "Replace character anchor still",
+  "category": "replacement",
+  "description": "One still: a frame from the clip with the people replaced by the uploaded pictures, so the replacement can be approved before any video is made. The frame is the edit target and the first reference; the pictures follow as second and third references, so each picture lands on its own person. Meant for a clip already made clean (a screen recording's app icons removed); the still keeps the frame's pose, position, scale, light and background.",
+  "feedHidden": true,
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Clip",
+      "type": "video",
+      "required": false,
+      "binding": {
+        "node": "1",
+        "field": "file"
+      }
+    },
+    {
+      "id": "source_image",
+      "label": "Still frame instead",
+      "type": "image",
+      "required": false,
+      "binding": {
+        "node": "4",
+        "field": "image"
+      }
+    },
+    {
+      "id": "character_image",
+      "label": "First person's picture",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "5",
+        "field": "image"
+      }
+    },
+    {
+      "id": "character_image_2",
+      "label": "Second person's picture",
+      "type": "image",
+      "required": false,
+      "binding": {
+        "node": "6",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "image",
+      "label": "Anchor still",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Extra words",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "11",
+        "field": "prompt"
+      }
+    },
+    {
+      "id": "frame",
+      "label": "Frame",
+      "type": "integer",
+      "min": 0,
+      "max": 100000,
+      "step": 1,
+      "default": 0,
+      "binding": {
+        "node": "3",
+        "field": "batch_index"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "replace-anchor-still",
+      "requirements": [
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Install a ComfyUI version providing LoadVideo."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Install a ComfyUI version providing GetVideoComponents."
+        },
+        {
+          "id": "node:ImageFromBatch",
+          "kind": "node",
+          "name": "ImageFromBatch",
+          "instructions": "Install a ComfyUI version providing ImageFromBatch."
+        },
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install a ComfyUI version providing LoadImage."
+        },
+        {
+          "id": "node:ImageScaleToTotalPixels",
+          "kind": "node",
+          "name": "ImageScaleToTotalPixels",
+          "instructions": "Install a ComfyUI version providing ImageScaleToTotalPixels."
+        },
+        {
+          "id": "node:ResizeImageMaskNode",
+          "kind": "node",
+          "name": "ResizeImageMaskNode",
+          "instructions": "Install a ComfyUI version providing ResizeImageMaskNode."
+        },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Install a ComfyUI version providing UNETLoader."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install a ComfyUI version providing CLIPLoader with the flux2 type."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install a ComfyUI version providing VAELoader."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install a ComfyUI version providing VAEDecode."
+        },
+        {
+          "id": "node:SaveImage",
+          "kind": "node",
+          "name": "SaveImage",
+          "instructions": "Install a ComfyUI version providing SaveImage."
+        },
+        {
+          "id": "model:flux2-vae",
+          "kind": "model",
+          "name": "flux2-vae.safetensors",
+          "location": "vae",
+          "version": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+          "source": "https://huggingface.co/Comfy-Org/flux2-klein-4B/blob/main/vae/flux2-vae.safetensors",
+          "instructions": "Install the Flux 2 VAE file and verify its SHA-256; review the repository license before use."
+        },
+        {
+          "id": "node:TextEncodeFibo2",
+          "kind": "node",
+          "name": "TextEncodeFibo2",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "model:fibo2-edit-turbo-int8",
+          "kind": "model",
+          "name": "fibo2_edit_turbo_int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "bytes": 8410000000,
+          "source": "https://huggingface.co/Comfy-Org/Fibo-2.0",
+          "instructions": "Install fibo2_edit_turbo_int8_convrot.safetensors into ComfyUI models/diffusion_models."
+        },
+        {
+          "id": "model:qwen3vl-4b-int8",
+          "kind": "model",
+          "name": "qwen3vl_4b_int8_convrot.safetensors",
+          "location": "text_encoders",
+          "bytes": 4858560000,
+          "source": "https://huggingface.co/Comfy-Org/Fibo-2.0",
+          "instructions": "Install qwen3vl_4b_int8_convrot.safetensors into ComfyUI models/text_encoders."
+        }
+      ],
+      "evidence": [
+        "The graph is the reviewed Flux 2 Klein edit shape (native-workflows/flux2-klein-edit) with the clip frame read as a reference latent and two character pictures chained after it as extra reference latents; the output is resized back to the frame's own size.",
+        "Real run on the local ComfyUI 0.37.0 worker (RTX 4090, 24 GB) on the user's clip: three fresh stills took 8.2 s, 8.2 s and 12.4 s at 1206x904 after the 4B model was loaded; an unchanged graph is served from ComfyUI's cache in about 1 s. The still keeps the orange wall, microphone and light; both people were replaced with their pictures' full outfits and accessories (badges, cap, strap, watch). Identity fidelity on other footage, memory use and a run with one picture remain unqualified; see docs/REPLACE-ANCHOR.md.",
+        "2026-10-31: the FLUX 2 Klein reference edit (3 pictures) was replaced by the core nodes of the official Comfy-Org template image_fibo2_edit_turbo_pe.json (Fibo 2.0 Edit Turbo int8, 4 steps); the pictures keep their order on TextEncodeFibo2's image sockets and every other node is unchanged. User decision: no FLUX 2 or Qwen for editing."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Comfy-Org workflow_templates: MIT. Integration license follows this repository; full dependency audit pending.",
+    "weights": [
+      {
+        "name": "Fibo 2.0 Edit Turbo int8 and Qwen3-VL 4B encoder",
+        "license": "Fibo 2.0 weights: CC BY-NC 4.0 (non-commercial use only; local use accepted by the user 2026-10-31).",
+        "source": "https://huggingface.co/Comfy-Org/Fibo-2.0"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B",
+      "observedAt": "2026-10-27",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

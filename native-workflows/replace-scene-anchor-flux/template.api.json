@@ -1,0 +1,187 @@
+{
+  "3": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "4",
+        0
+      ],
+      "batch_index": 0,
+      "length": 1
+    },
+    "_meta": {
+      "title": "Chosen frame"
+    }
+  },
+  "4": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "SOURCE_STILL_REQUIRED.png"
+    },
+    "_meta": {
+      "title": "Still instead of the clip"
+    }
+  },
+  "5": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "CHARACTER_REQUIRED.png"
+    },
+    "_meta": {
+      "title": "First person's picture"
+    }
+  },
+  "6": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "SECOND_CHARACTER_REQUIRED.png"
+    },
+    "_meta": {
+      "title": "Second person's picture"
+    }
+  },
+  "7": {
+    "class_type": "ImageScaleToTotalPixels",
+    "inputs": {
+      "image": [
+        "3",
+        0
+      ],
+      "upscale_method": "area",
+      "megapixels": 1,
+      "resolution_steps": 32
+    },
+    "_meta": {
+      "title": "Frame at one megapixel"
+    }
+  },
+  "11": {
+    "class_type": "TextEncodeFibo2",
+    "inputs": {
+      "prompt": "",
+      "negative_prompt": "",
+      "width": 0,
+      "height": 0,
+      "batch_size": 1,
+      "clip": [
+        "71",
+        0
+      ],
+      "vae": [
+        "72",
+        0
+      ],
+      "images.image_1": [
+        "7",
+        0
+      ],
+      "images.image_2": [
+        "5",
+        0
+      ],
+      "images.image_3": [
+        "6",
+        0
+      ]
+    }
+  },
+  "25": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 20261019,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "70",
+        0
+      ],
+      "positive": [
+        "11",
+        0
+      ],
+      "negative": [
+        "11",
+        1
+      ],
+      "latent_image": [
+        "11",
+        2
+      ]
+    }
+  },
+  "26": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "25",
+        0
+      ],
+      "vae": [
+        "72",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Decode"
+    }
+  },
+  "27": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "input": [
+        "26",
+        0
+      ],
+      "resize_type": "match size",
+      "resize_type.match": [
+        "3",
+        0
+      ],
+      "resize_type.crop": "disabled",
+      "scale_method": "lanczos"
+    },
+    "_meta": {
+      "title": "Back to the frame's size"
+    }
+  },
+  "28": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "27",
+        0
+      ],
+      "filename_prefix": "ras/scene-anchor-flux"
+    },
+    "_meta": {
+      "title": "Still"
+    }
+  },
+  "70": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "fibo2_edit_turbo_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "71": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+      "type": "fibo2",
+      "device": "default"
+    }
+  },
+  "72": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "_meta": {
+      "title": "VAE"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+# <ComfyUI models subfolder> <url>
+# Official Comfy-Org files, taken from ComfyUI's own "video_wan_animate2_distilled" template. About 16.7 GB new.
+# The text encoder is shared with the Wan 2.2 providers and is skipped when it is already installed.
+# The template names the VAE Wan2_1_VAE_bf16.safetensors (0.24 GB). The provider uses the installed
+# wan_2.1_vae.safetensors instead, so that file is not listed here.
+diffusion_models https://huggingface.co/Comfy-Org/Wan-Animate-2/resolve/main/diffusion_models/wan_animate_2_distill_int8_convrot.safetensors
+clip_vision https://huggingface.co/Comfy-Org/Wan-Animate-2/resolve/main/clip_vision/clip_vision_h.safetensors
+text_encoders https://huggingface.co/Comfy-Org/Wan-Animate-2/resolve/main/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors

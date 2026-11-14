@@ -1,0 +1,38 @@
+{
+  "1": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "comfyfield-source.mp4"
+    }
+  },
+  "2": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "comfyfield-character.png"
+    }
+  },
+  "3": {
+    "class_type": "ByteDance2ReferenceNodeV2",
+    "inputs": {
+      "model": "Seedance 2.0",
+      "model.prompt": "Change the person in <Video 1> into the character in <Picture 1>. Keep the movement, the camera, the light and the background.",
+      "model.resolution": "720p",
+      "model.ratio": "adaptive",
+      "model.duration": 7,
+      "model.generate_audio": false,
+      "model.reference_images.image_1": ["2", 0],
+      "model.reference_videos.video_1": ["1", 0],
+      "seed": 1,
+      "watermark": false
+    }
+  },
+  "4": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": ["3", 0],
+      "filename_prefix": "ComfyField/cloud-seedance2-reference",
+      "format": "auto",
+      "format.codec": "auto"
+    }
+  }
+}

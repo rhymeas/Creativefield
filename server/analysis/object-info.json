@@ -1,0 +1,2299 @@
+{
+ "LoadImage": {
+  "input": {
+   "required": {
+    "image": [
+     [
+      "angle-source.png",
+      "cf-man-front.jpg",
+      "cf-man.jpg",
+      "cf-qa-5c51e448-a693-4dca-833c-93113a287f42.png",
+      "cf-qa-8d583ca8-b925-4c7c-af60-6e4564aa63dc.png",
+      "cf-qa-b5337dec-60bb-41cc-8b0c-680d713f1393.png",
+      "comfyfield-02663f74-c7cc-49f5-880c-1fec77a03782-11d2d3eb-1ed3-4876-8c8a-7cc9513b3f25.png",
+      "comfyfield-026f826b-33ed-4c88-892d-feab27a03b01-68bd5234-dc62-4de8-b0a4-d165068631ec.png",
+      "comfyfield-027fd447-2054-4ba6-9894-3936d8ff362e-68825bab-dffc-4ab3-af3e-38d34cad288e.png",
+      "comfyfield-03583d6e-8aad-40b7-91e4-a32dd9d4e1a0-2a976d83-b2ae-4a55-87d9-91771d6c9fc5.png",
+      "comfyfield-0490a2cd-1415-4213-b723-a273ba61dfa7-ccffd471-8958-43c2-b28c-d7454917ab3d.png",
+      "comfyfield-04e39d78-128f-485b-9dd5-079c18c2aa5f-ccffd471-8958-43c2-b28c-d7454917ab3d.png",
+      "comfyfield-050a203a-5ce0-4226-b1ef-8fff9308fe83-68825bab-dffc-4ab3-af3e-38d34cad288e.png",
+      "comfyfield-05ad2471-08eb-4ccf-ab86-b2e875aa4596-125b0b43-c7d6-4f02-a972-0a9c1c4152be.png",
+      "comfyfield-062356fb-6d7f-45b2-8303-20d5631f221c-ccffd471-8958-43c2-b28c-d7454917ab3d.png",
+      "comfyfield-070dc95e-ac2e-4aa3-b191-8e16474d5a15-9f5fb601-9214-4ab9-8021-7a77dfc61eb2.png",
+      "comfyfield-07160279-d697-4b5f-a5d6-435e1cfbde40-cea2f1e1-d8ac-409a-ab05-7ce6f999e575.png",
+      "comfyfield-07b2fcf6-67b0-408b-ac6b-138135f68649-645f9e7b-c621-493b-978b-227ff4376f2d.png",
+      "comfyfield-08cabe19-8cac-4530-8db0-f57060d865b4-5d02fdc2-8aee-4d06-b005-097f355312e0.png",
+      "comfyfield-08cabe19-8cac-4530-8db0-f57060d865b4-d3405d9f-e6b5-4d30-95a8-ad5c53a336fd.png",
+      "comfyfield-0a38ee31-656f-4a7d-9d48-5ca53a56532c-8bfb38c3-eefc-442c-924e-60059a777bd5.png",
+      "comfyfield-0a823473-fc8d-4925-9231-945c280590ed-18453306-6f3b-43b2-86ab-2252ee5c6dc5.jpg",
+      "comfyfield-0ab4ed13-e0c9-4a3a-ad32-961eb8de9425-f5384160-b3d1-49f5-8977-3fcceb88ed0c.png",
+      "comfyfield-0ad5fb21-dbbb-497d-88ef-33109bb7a588-e635f6a1-2940-4dff-a618-58972b076273.jpg",
+      "comfyfield-0b04a736-de47-4372-b864-488039a09a4e-66d6e4b9-9f1f-43f6-b913-0abca7f41213.png",
+      "comfyfield-0da4635a-0322-40b4-94dd-639e66ef7221-e45fd881-0496-476a-b66d-4a4164bf2619.png",
+      "comfyfield-0da4635a-0322-40b4-94dd-639e66ef7221-e57033ac-afb3-4bf0-a652-5f56d6904208.png",
+      "comfyfield-0f32188a-29b1-4040-b344-e5c7a19b3b05-f4c83fa4-bcbd-4891-9a8f-a9cca5dc74c3.png",
+      "comfyfield-0fe99ad6-a259-40e2-8611-de07d9751d21-c52c58f8-0eaf-48cb-a3f2-2cab96541e06.png",
+      "comfyfield-10507528-0c4d-49e1-8f71-605d94fbcd1d-f40c8666-7c83-4fbe-be5f-ec807bd347d8.png",
+      "comfyfield-1085f9a5-ba0e-4e41-86d2-5c7d69d310ae-1b33dc93-2316-49f4-b8f9-75b16d39536e.jpg",
+      "comfyfield-10b229c5-0ce3-4ff3-b036-f58be4ed21e5-5c51e448-a693-4dca-833c-93113a287f42.png",
+      "comfyfield-11578bf4-2f7a-4d23-b7fc-91f7dd9a5ed7-151304c2-d3a8-4ee1-9337-f517848bef0b.png",
+      "comfyfield-1239b6da-447c-4910-a92a-ed2db9b93994-6359c6e4-2cfd-483d-8291-c3002a4a7238.png",
+      "comfyfield-1372cef8-4441-4c88-b30d-2022312516cf-4f22da1f-d210-4606-9165-57bc0efdb294.png",
+      "comfyfield-179d8215-f432-4517-96fd-75e01eaa8688-d3405d9f-e6b5-4d30-95a8-ad5c53a336fd.png",
+      "comfyfield-1be0dcd8-eca6-4127-8291-c877e33c77d7-5df07000-cff5-4d86-92b7-c235e2d27163.png",
+      "comfyfield-1cb981e6-434c-4155-a52c-d6fa7c6193e6-78586a9a-dddb-4684-be02-e728a455bc9e.png",
+      "comfyfield-1d37ada2-ff1e-4191-a112-74690f723a8d-792d4444-3f71-4bf3-816f-eee777e6bc82.png",
+      "comfyfield-1d37ada2-ff1e-4191-a112-74690f723a8d-c42b6129-f29e-451a-9161-45fa20e76c47.png",
+      "comfyfield-1edf66fb-d181-47ce-a01c-4ceaeb7d1060-68825bab-dffc-4ab3-af3e-38d34cad288e.png",
+      "comfyfield-205c630d-ccf0-48b1-a8b6-e1fa0337bd6f-645f9e7b-c621-493b-978b-227ff4376f2d.png",
+      "comfyfield-21e4f9d7-02f6-4b27-b85f-514d7e505480-6ffeebaa-a173-4516-8991-66c5e4760916.png",
+      "comfyfield-2260a0dc-4d50-488f-8340-39a7d95b4119-de01807f-87e5-4f59-a316-73ca16c3addf.png",
+      "comfyfield-22996e6c-8db0-4b1a-8da7-6836fd9a3cf7-05e75d90-021a-4cf3-8884-70f3d39042e3.png",
+      "comfyfield-24265551-5760-463f-9bcb-e01baaa3984e-8ec66149-e1ce-4ffc-94af-350e77c6c8cc.png",
+      "comfyfield-25ba67cb-f020-4b5d-89ec-e6444b79c2be-cf57aaa4-9239-4a4b-a422-7b2874aa5bf9.png",
+      "comfyfield-262ba1e3-c766-4b23-a34e-4f5bb90d6dc9-723bb7c4-b81a-4ec7-8a94-15ba1fb79d2c.png",
+      "comfyfield-262ba1e3-c766-4b23-a34e-4f5bb90d6dc9-e7bcab1b-64f3-46c8-9063-4189bb014279.png",
+      "comfyfield-266c4f20-2131-47de-833c-94665c5d465f-e273c962-2dd3-444d-986b-f6e01a8030e0.png",
+      "comfyfield-298f834e-66e0-4be9-8907-f56611d9b70c-e8fd8f9d-bd25-4388-937b-cc8b04eb34ab.png",
+      "comfyfield-29fa96ca-a43c-4b87-84e0-1721f1c95b33-dbf1f5f5-9803-448e-8e08-125403a79d44.png",
+      "comfyfield-2a87f74b-b8f0-47dc-ad0e-2cc0a5a0a0dc-2fa79887-11b6-4695-b65a-6ead54eee356.png",
+      "comfyfield-2a87f74b-b8f0-47dc-ad0e-2cc0a5a0a0dc-7440e3db-e6bd-4586-a2f6-a39a25aaf7b9.png",
+      "comfyfield-2aeeff93-f95e-4360-923e-7e13480a1b0b-9daf075b-41a7-4e4a-9f1b-f5e8970c24c3.png",
+      "comfyfield-2d473840-6f8d-404a-bba6-fb04dfe45683-809011cf-ad0a-4087-9402-4f69ff231e94.png",
+      "comfyfield-2d473840-6f8d-404a-bba6-fb04dfe45683-8923b25e-32fb-4dc3-b1ba-d636b98eb1e7.png",
+      "comfyfield-2d8f0f91-272f-4e40-b2f2-aab51f1f2209-4917d4dd-8c0c-402a-8db3-989d677a8619.png",
+      "comfyfield-30066cee-93b3-458a-a671-85260c33123e-6334434c-c23f-461e-a38d-a71d25dc4fd5.png",
+      "comfyfield-30066cee-93b3-458a-a671-85260c33123e-ede6e76a-c269-44ae-b5d4-c2517c0834cc.png",
+      "comfyfield-325fb6b1-662c-402b-bb7b-6b648a199436-9daf075b-41a7-4e4a-9f1b-f5e8970c24c3.png",
+      "comfyfield-34a53736-d0db-42e3-853a-5f306479687a-0c570f7f-c242-4368-a6af-3106ff245581.png",
+      "comfyfield-359cee3e-ec8a-4cb7-b321-1c234526c0fb-361b04e7-60c9-400d-a106-89c0a79c2099.jpg",
+      "comfyfield-361b0a74-ac70-49f2-932c-a29b60a98914-18453306-6f3b-43b2-86ab-2252ee5c6dc5.jpg",
+      "comfyfield-3637fe2c-bbee-4bb6-a274-ef2693e1443f-7ac9a4a8-c07d-4c33-bb67-620af229a352.png",
+      "comfyfield-3637fe2c-bbee-4bb6-a274-ef2693e1443f-b3ab6baa-096d-4180-a406-30bfb1fdef5e.png",
+      "comfyfield-37416580-885e-4691-be2b-fe6a59d613aa-37241a96-5232-4999-9fcf-403bc3ccfa0e.png",
+      "comfyfield-37416580-885e-4691-be2b-fe6a59d613aa-ccb66ae5-5449-4ce7-900a-bf736a075257.png",
+      "comfyfield-3795615e-fa38-4e4e-b8f3-ef5e86ff22e9-b5337dec-60bb-41cc-8b0c-680d713f1393.png",
+      "comfyfield-389f5d60-dfda-4835-becf-ad2b85e2f73e-f458211f-595f-4bf0-b083-23bace7fa1e2.png",
+      "comfyfield-3a184abb-3c7e-4532-b9f0-2c74d7ccc188-4060a2b8-7428-4cf1-a7c5-6f036ffb979a.png",
+      "comfyfield-3a85ad54-bc21-44b4-91ec-0a0107038d62-3bae5888-e6e5-4d90-890a-17b03b29dda4.png",
+      "comfyfield-3eb4bcf2-0531-4360-a12f-58edc7bd7347-1b33dc93-2316-49f4-b8f9-75b16d39536e.jpg",
+      "comfyfield-3f6ef4f0-3135-421a-927b-b83d4f4b0052-18453306-6f3b-43b2-86ab-2252ee5c6dc5.jpg",
+      "comfyfield-3fff60e2-a9f0-4efc-bced-c958dfb240d0-20cd38af-1b55-4dce-96ec-73112ea3bbbd.webp",
+      "comfyfield-40995c03-6c3e-4e70-b66c-0b3905f31c22-dc219d7e-a875-48a7-aeec-567c3598e33c.png",
+      "comfyfield-41515b3f-2b2f-4cd3-a839-6584dd825157-d3405d9f-e6b5-4d30-95a8-ad5c53a336fd.png",
+      "comfyfield-417d88b3-c13d-43ad-a125-67817f1ce964-0f8c721d-fc18-453e-a32b-25fa39f34106.png",
+      "comfyfield-417d88b3-c13d-43ad-a125-67817f1ce964-3bf54852-670c-4239-a982-53b7c61c3fe1.png",
+      "comfyfield-427259ec-6aff-4ca5-962a-e70179e18f57-9daf075b-41a7-4e4a-9f1b-f5e8970c24c3.png",
+      "comfyfield-4311256c-8a2b-4180-9875-d4cba04adfde-d3405d9f-e6b5-4d30-95a8-ad5c53a336fd.png",
+      "comfyfield-43cf348d-4de4-4f3f-9505-4ab5486342ce-6e75154c-4f5f-455c-9348-94ca38bf3bca.png",
+      "comfyfield-447b386b-6cd4-4b84-9105-b25b60189e5d-55281175-88b3-4bd9-b7b9-0d98556db5d3.png",
+      "comfyfield-447b386b-6cd4-4b84-9105-b25b60189e5d-8923b25e-32fb-4dc3-b1ba-d636b98eb1e7.png",
+      "comfyfield-44bde019-54b1-4c3a-af84-c80f2423ba22-8bfb38c3-eefc-442c-924e-60059a777bd5.png",
+      "comfyfield-4501840d-68f7-4029-a14c-b7eefb48af97-3fa1f3d6-f9d0-4b71-ba61-95b0555da348.jpg",
+      "comfyfield-45125fd0-ada3-4b13-b37d-0d39aa080c76-01a77fff-b152-4b76-93b8-cbd2f551f6a1.png",
+      "comfyfield-45487945-7a71-4fff-92f7-ec0b66f2ac08-20cd38af-1b55-4dce-96ec-73112ea3bbbd.webp",
+      "comfyfield-45b5ca0e-39ee-45e9-b655-65271bd77985-20cd38af-1b55-4dce-96ec-73112ea3bbbd.webp",
+      "comfyfield-45b5ca0e-39ee-45e9-b655-65271bd77985-c8b8a155-cb8c-4dfe-b604-9381adeeaff4.jpg",
+      "comfyfield-46d4c42d-b645-4397-be35-8e9ae00772f2-740e14e9-88c3-4e5a-9857-14f994cb1fe5.png",
+      "comfyfield-46d4c42d-b645-4397-be35-8e9ae00772f2-b40a17b6-294b-4b4e-9831-d2d8109f8e29.png",
+      "comfyfield-46d6c60b-7c82-41d9-813d-1967b369dc66-56c84c1c-8223-4036-a15f-53000aa4f2ec.png",
+      "comfyfield-47947c71-618f-4247-9d35-0a881d175707-0ef9e2c9-d29b-479a-9fca-79b771fa5671.png",
+      "comfyfield-47d2dbe9-ada9-4e1f-8ca2-1bb44be92c1c-4527fb6a-327f-482d-a920-39c7ac809fc0.png",
+      "comfyfield-47d2dbe9-ada9-4e1f-8ca2-1bb44be92c1c-ef923316-abe5-4f90-a198-89cc5fa0500e.png",
+      "comfyfield-48207a35-7184-4f8a-8be7-f867beffdec0-83898f71-b921-48d5-bfba-f47f436477a5.png",
+      "comfyfield-48207a35-7184-4f8a-8be7-f867beffdec0-a1fa89f9-a905-4354-9b39-5fda97d1b473.png",
+      "comfyfield-495acc3a-fb37-4de8-8609-fea8dc987b55-56c84c1c-8223-4036-a15f-53000aa4f2ec.png",
+      "comfyfield-49de1e37-fce1-4c7f-8d12-69d7c28818f6-4060a2b8-7428-4cf1-a7c5-6f036ffb979a.png",
+      "comfyfield-4a26d830-43a3-4646-83f8-3e8e9ff06b65-353ff565-6c6d-456a-9057-ca8aec7829fb.png",
+      "comfyfield-4a26d830-43a3-4646-83f8-3e8e9ff06b65-4060a2b8-7428-4cf1-a7c5-6f036ffb979a.png",
+      "comfyfield-4a26d830-43a3-4646-83f8-3e8e9ff06b65-77bbfd76-553b-4b74-8744-774ab0e989c3.png",
+      "comfyfield-4a26d830-43a3-4646-83f8-3e8e9ff06b65-d3405d9f-e6b5-4d30-95a8-ad5c53a336fd.png",
+      "comfyfield-4bb7e2e5-6a3f-4d1e-9b81-fcd7bf6f98ec-dcf5ecc6-caf8-45a6-b7ec-74d33019bd77.png",
+      "comfyfield-4bcb91e8-d3d3-4316-9652-3c7235338bbd-edaea873-9119-49fc-b9b8-628e7fcb887a.png",
+      "comfyfield-4bcb91e8-d3d3-4316-9652-3c7235338bbd-fe257664-dfb4-4f7d-ae35-34a45ecbe9e4.png",
+      "comfyfield-4c708958-4c5c-4502-ab6f-c2bb5517c6b0-e934edef-82c9-4fdd-881d-7ede5a920920.png",
+      "comfyfield-4d4e8cb6-9b00-4c66-bd47-62a7114f90db-1d1fff1c-3b1b-479a-96de-4ed5b1386ba6.png",
+      "comfyfield-4d4e8cb6-9b00-4c66-bd47-62a7114f90db-e6a57f50-3717-4f7f-bf2b-832b156f00d2.png",
+      "comfyfield-4dac30ec-ff06-488a-b6c5-63ae1bfe608b-a7b68dc3-ce3b-4ee0-b310-d193bdab6d7c.png",
+      "comfyfield-4db594be-7980-4d2f-a5da-e9b26391c9b3-ede08258-e417-406e-9f99-f5e6279c5ad7.png",
+      "comfyfield-4ecb0ccd-6264-4fc7-afb1-72df2262dc20-d3405d9f-e6b5-4d30-95a8-ad5c53a336fd.png",
+      "comfyfield-4ecb0ccd-6264-4fc7-afb1-72df2262dc20-fadda0a2-009a-448f-bf7a-8c519579f91c.png",
+      "comfyfield-509b4d9d-fe6d-496b-b46d-1fcdea197061-b65ac51d-2d83-4b9f-b96b-b151760eff55.png",
+      "comfyfield-509b4d9d-fe6d-496b-b46d-1fcdea197061-d3405d9f-e6b5-4d30-95a8-ad5c53a336fd.png",
+      "comfyfield-50a956cc-6b94-462d-b72f-9683cdc56730-68825bab-dffc-4ab3-af3e-38d34cad288e.png",
+      "comfyfield-53a2a5af-840a-480e-9794-19ce969904bb-016e4e0d-483c-4769-b6ba-77a13f8e7b12.png",
+      "comfyfield-53a2a5af-840a-480e-9794-19ce969904bb-ac95d6a4-15b4-4864-bf36-8c1ab754549e.png",
+      "comfyfield-53b66f92-aa42-4d6e-b4be-bcf991b237fe-12731e95-c09c-4df2-8dde-24940cc09d90.png",
+      "comfyfield-53b66f92-aa42-4d6e-b4be-bcf991b237fe-74f476a0-7156-4b32-91cf-03f04d2f097c.png",
+      "comfyfield-544205bd-7d92-48f7-be64-7bd198b389d4-405b633b-ef7c-4771-9369-6d4c6d84cda4.png",
+      "comfyfield-558f66d9-e872-497d-a0fd-ec947d34a09c-781ecc8c-b61f-4795-8176-2eb39127d243.png",
+      "comfyfield-55a0f18c-ac12-4ef3-9bf3-3acda4141830-bbf1c0f0-2a6b-47d9-b535-5b01c7a4f745.png",
+      "comfyfield-575bc65c-6670-4546-82bb-2a18c2bcdc7a-7a1d69ae-f221-48cc-a13f-47fd03a3589d.jpg",
+      "comfyfield-595dbcb9-45fe-47b4-8551-24c5645cfa67-9f9d2611-f5ad-4143-9609-79de6977e494.png",
+      "comfyfield-595dbcb9-45fe-47b4-8551-24c5645cfa67-e1119be1-fcb4-4391-8540-c37b21eb9e4f.png",
+      "comfyfield-59794af7-4e7c-455a-a9bd-9cb68f7a91ca-d3405d9f-e6b5-4d30-95a8-ad5c53a336fd.png",
+      "comfyfield-5b588d39-7541-4821-85b1-fa5635f42eab-0a43e9e7-c4f2-4331-80ea-b220b83ef038.png",
+      "comfyfield-5b827454-ccb0-4ea9-a39b-7c6b3c66f904-1dd18804-60ce-4863-a479-439e6930d5c9.png",
+      "comfyfield-5c2d73b9-148c-4ef7-bcac-59613d497d87-d5a19623-786b-4305-a9ec-bce5944e15db.png",
+      "comfyfield-5cb8c0ce-08d6-4447-bde6-7efd91ee293e-dbf1f5f5-9803-448e-8e08-125403a79d44.png",
+      "comfyfield-5cba0253-6371-4004-893c-1c82bfd732a6-43c0921b-cfe0-4db2-b26b-97ab908effbf.png",
+      "comfyfield-5cba0253-6371-4004-893c-1c82bfd732a6-80528452-0569-49db-8f31-d985671e4f5b.png",
+      "comfyfield-5da1e167-2f2d-42d2-9b79-4326abf338a9-9daf075b-41a7-4e4a-9f1b-f5e8970c24c3.png",
+      "comfyfield-5ea05c11-ba63-43dd-ae31-1be42be748da-3d366f73-3dbb-4893-b89f-91fcb131ac9c.png",
+      "comfyfield-5f65a185-21bd-4602-bc30-18f587169204-d3405d9f-e6b5-4d30-95a8-ad5c53a336fd.png",
+      "comfyfield-603a9b34-415e-4b0f-aaea-2a7a32c62dfb-18453306-6f3b-43b2-86ab-2252ee5c6dc5.jpg",
+      "comfyfield-6118b96a-c2c2-4c22-bd7d-8fafc702181d-4a42294d-c080-4434-983b-16a253f59b43.png",
+      "comfyfield-62d8ba28-7275-4e12-94f2-884c4bf1b55f-17d3fef4-2de2-469c-8f64-8013163d9839.jpg",
+      "comfyfield-639d26c8-a3c2-4afa-864c-ce10aaff384b-ccffd471-8958-43c2-b28c-d7454917ab3d.png",
+      "comfyfield-65408d92-1ebf-4999-95b6-d4e81a727a93-6190f56f-9f21-4b3d-92cd-73f65fb6df9a.png",
+      "comfyfield-65dc41ff-659d-4c06-9c92-bb8cffac19ce-3316b9bc-a068-491a-aef2-2c705d98b673.jpg",
+      "comfyfield-669632b7-839b-4a26-b010-ac02728b4a66-f20e8c08-5d8a-445a-a9a3-a31e9155d0b5.png",
+      "comfyfield-678f6e42-ea19-4c03-98d2-30992ca3cc60-6334434c-c23f-461e-a38d-a71d25dc4fd5.png",
+      "comfyfield-678f6e42-ea19-4c03-98d2-30992ca3cc60-ede6e76a-c269-44ae-b5d4-c2517c0834cc.png",
+      "comfyfield-685c859b-8e83-4014-ad47-12d872dd41a1-6aaa4fa5-5572-4b63-9e88-1fc082fdb0bc.png",
+      "comfyfield-6867a2b9-6935-42de-873f-def0fecac9fc-18453306-6f3b-43b2-86ab-2252ee5c6dc5.jpg",
+      "comfyfield-68f50e9e-cb33-417b-a991-b4fe5aa6043b-cf57aaa4-9239-4a4b-a422-7b2874aa5bf9.png",
+      "comfyfield-690fe551-59a9-4f0f-88ff-caf069828169-3666d4e7-33d1-4b15-ab7e-2dfc296e4f23.jpg",
+      "comfyfield-6956d9c2-c9a3-44d5-b605-caf959602c2e-00eba586-5a20-48a8-a8ca-fe82fe8e586a.jpg",
+      "comfyfield-69b49ed3-22f6-4625-9d7a-f5567c2bcc8a-b47e10aa-9c48-433a-a25b-8b0ec7a3f4f3.png",
+      "comfyfield-6a19318a-df38-4cbd-a625-20a62c00a0fc-792d4444-3f71-4bf3-816f-eee777e6bc82.png",
+      "comfyfield-6bde067b-9369-407c-a5ff-7d6171cba58d-01a77fff-b152-4b76-93b8-cbd2f551f6a1.png",
+      "comfyfield-6c8bb9b0-2a79-4cb2-8797-0f20b03e07e2-18453306-6f3b-43b2-86ab-2252ee5c6dc5.jpg",
+      "comfyfield-6ede1bb6-fd10-48ec-b31b-4a953854337c-20cd38af-1b55-4dce-96ec-73112ea3bbbd.webp",
+      "comfyfield-6ede1bb6-fd10-48ec-b31b-4a953854337c-c8b8a155-cb8c-4dfe-b604-9381adeeaff4.jpg",
+      "comfyfield-6f371f35-80bc-4ab7-9fea-a604c511ea38-77a6a62d-358f-4bc4-8d04-168c89d57724.webp",
+      "comfyfield-713f0b6e-3221-4a91-851e-f7fada9c83f3-9daf075b-41a7-4e4a-9f1b-f5e8970c24c3.png",
+      "comfyfield-725b47a9-b2bb-42ff-87c8-3276dd39bc18-ccffd471-8958-43c2-b28c-d7454917ab3d.png",
+      "comfyfield-73e0f094-d971-4d45-b9a8-abe655179c1f-76b2ef79-9d03-4d47-be05-368aa703efd7.png",
+      "comfyfield-73e0f094-d971-4d45-b9a8-abe655179c1f-bf8a4258-1e34-4c59-8394-98b78607f0ad.png",
+      "comfyfield-742c41a9-cb8f-429b-bf4c-eafbd4f74e90-aad7b62f-38f7-443f-bdb0-f591522c9f00.png",
+      "comfyfield-74b13f0b-71af-4088-885e-7d6fe0419139-05b6640e-7ae5-4651-a70d-7e2c379dee3f.png",
+      "comfyfield-74b13f0b-71af-4088-885e-7d6fe0419139-fe8b3e85-fd30-4231-86d4-d9d7b85ed5a2.png",
+      "comfyfield-78143e20-e0b9-4f77-afff-aadd66b01e5e-1b33dc93-2316-49f4-b8f9-75b16d39536e.jpg",
+      "comfyfield-78929047-936f-4388-9837-78af6671a77d-c52c58f8-0eaf-48cb-a3f2-2cab96541e06.png",
+      "comfyfield-7a2c27c3-fabc-4966-8539-aae2c50cc489-3dfeb585-9799-42ba-8751-1a91d3f1ace0.png",
+      "comfyfield-7b8c9f38-33d0-449a-a330-c0afdbc16a3b-4f94c4dc-8a49-4f2c-afed-f18a8b410d14.png",
+      "comfyfield-7dc1e4e4-6ab7-4514-928a-b17ddba6254e-18453306-6f3b-43b2-86ab-2252ee5c6dc5.jpg",
+      "comfyfield-7dc3b5b6-4bea-4228-91e5-5887ac0c0f2b-cf57aaa4-9239-4a4b-a422-7b2874aa5bf9.png",
+      "comfyfield-7de7e702-d206-48e3-891c-a1f551392b10-744ae8b4-afe6-4f75-9bec-831519d15d18.png",
+      "comfyfield-7e028dff-e769-4ef0-be70-c0d75c7431d7-01a77fff-b152-4b76-93b8-cbd2f551f6a1.png",
+      "comfyfield-7f02749e-c4ec-4590-8e28-85fbd24d2ff6-0d09a8f7-e9f3-47ff-831e-fcc2a0ee27e9.png",
+      "comfyfield-837e9762-d895-49d9-a270-d6e2c1d8f0d5-05b47f04-d9e2-4b0e-a25f-5e98b87b66af.png",
+      "comfyfield-837e9762-d895-49d9-a270-d6e2c1d8f0d5-178aed69-f803-433d-8e1f-716084dbcdbf.png",
+      "comfyfield-83bb4c8a-ef1a-4082-836a-a865262d0c79-20cd38af-1b55-4dce-96ec-73112ea3bbbd.webp",
+      "comfyfield-83bb4c8a-ef1a-4082-836a-a865262d0c79-3a67857f-63bb-49ca-b91f-994b042c375b.png",
+      "comfyfield-83bb4c8a-ef1a-4082-836a-a865262d0c79-c8b8a155-cb8c-4dfe-b604-9381adeeaff4.jpg",
+      "comfyfield-847c5c0d-f38d-4eb5-97d2-9aeb963f6e4a-b191fb32-3181-4bdc-ba93-d1d24117f1f4.png",
+      "comfyfield-8914d5de-64b0-47ab-94d9-5c0979679a85-93f6d4f1-dea5-4d53-95a1-c095c20d2b15.webp",
+      "comfyfield-8914d5de-64b0-47ab-94d9-5c0979679a85-fbb80fd6-58c5-4437-b1ef-6ca8f0006ef3.png",
+      "comfyfield-8ab0c463-4f60-4210-aa57-3cd24a52a8a4-5c51e448-a693-4dca-833c-93113a287f42.png",
+      "comfyfield-8b1ffc09-aa54-4302-a4e5-1a44d5da277b-5f234337-cafb-425a-aab2-0fdd10185e02.png",
+      "comfyfield-8b1ffc09-aa54-4302-a4e5-1a44d5da277b-a7ed03f8-26b8-4351-b6aa-221980768b42.png",
+      "comfyfield-8b253b20-dee4-4163-a04b-4f007b9e5eac-21966ea9-bc55-4938-8c2e-8f9e7da7e755.png",
+      "comfyfield-8b253b20-dee4-4163-a04b-4f007b9e5eac-610b3627-623f-4d36-81f8-dd07d5b1ae9b.png",
+      "comfyfield-8bcd568e-fa1c-4f96-8f52-22510e48a147-8b919bd1-1c9c-4cd8-9c5a-e3122afcbc28.png",
+      "comfyfield-8bcd568e-fa1c-4f96-8f52-22510e48a147-f4c83fa4-bcbd-4891-9a8f-a9cca5dc74c3.png",
+      "comfyfield-8bcfd502-eddb-4418-9b52-431afade1056-18453306-6f3b-43b2-86ab-2252ee5c6dc5.jpg",
+      "comfyfield-8ca2eeea-7d37-4106-9cbb-5beee4c1ead0-f5fe8890-d4a3-44a6-85db-faed51f2d5aa.png",
+      "comfyfield-8efa5e1e-dcd1-4e34-bab0-f2aa61649cf9-620903b9-4789-43a9-929c-c4ba778b8531.png",
+      "comfyfield-8fac0c9c-718e-4efd-a96b-60527cc412a4-b3e6e951-da86-41ca-883d-34e2233ad4e4.png",
+      "comfyfield-8fac0c9c-718e-4efd-a96b-60527cc412a4-d8953dca-65a9-4383-a870-d1eb5130d1f9.png",
+      "comfyfield-905117a2-7e68-407e-a6a2-29b5549aa059-327da61c-cc7c-4a51-b9c7-a7b7e420a205.png",
+      "comfyfield-90fa2e95-6116-425e-af2c-4cc0a66fcf3f-9a9b0132-24f6-43bc-8184-62bc9f05e4dc.png",
+      "comfyfield-90fe69d4-55e4-411d-bd0f-f413785b9d29-7376f6e3-d37b-42d0-859e-e7b2d71374de.png",
+      "comfyfield-913fc30f-4e4d-4787-bcc5-884aaa1e9c3a-08759742-a023-4e10-bc5b-e7e420dec0fd.png",
+      "comfyfield-91494b19-535e-4c67-8340-4465f6d207d7-e55bf59a-f4c4-4fc0-a35d-4f07a791ce95.png",
+      "comfyfield-91494b19-535e-4c67-8340-4465f6d207d7-f0da4c6c-b3ed-41eb-be46-2f1244ab6a00.png",
+      "comfyfield-9265ae88-20de-4440-a388-da97ff3e16fd-c52c58f8-0eaf-48cb-a3f2-2cab96541e06.png",
+      "comfyfield-92ef6bb8-3ec9-420f-854a-917fcc62e5b4-c7dd2859-614c-4942-ad5e-8ecf4fc476c1.png",
+      "comfyfield-9449534b-0103-427e-b21c-aea3c9bc1e15-17aca71a-efd5-454d-89df-1fa54a547a79.png",
+      "comfyfield-94a5ebca-6b32-4484-90d8-91ce6b7b6653-27ce5c20-dd17-49c1-a243-9410f9b661e3.png",
+      "comfyfield-94a5ebca-6b32-4484-90d8-91ce6b7b6653-6190f56f-9f21-4b3d-92cd-73f65fb6df9a.png",
+      "comfyfield-94c75287-b9e5-4fd7-b9d5-2be57efb85b5-016e4e0d-483c-4769-b6ba-77a13f8e7b12.png",
+      "comfyfield-94c75287-b9e5-4fd7-b9d5-2be57efb85b5-ac95d6a4-15b4-4864-bf36-8c1ab754549e.png",
+      "comfyfield-95c25612-c377-4992-8b0d-9a4b54980b9b-08759742-a023-4e10-bc5b-e7e420dec0fd.png",
+      "comfyfield-96abbdbb-6bec-4a11-8011-56ecdcfd7146-0da8452e-8d99-4118-9501-4ea1b8d7eaa0.png",
+      "comfyfield-96abbdbb-6bec-4a11-8011-56ecdcfd7146-140c6f65-4075-4463-ab12-8c528d74917a.png",
+      "comfyfield-96e7d0a3-6f85-4b6a-8489-e97ebc76e5f2-b60c275e-25ab-452e-ac28-263715d9aac5.png",
+      "comfyfield-970f2a40-7294-4c24-a01f-45f2c2e66311-dd0232d9-a7be-4158-97a8-e95d7fdf8411.png",
+      "comfyfield-971e23fb-9f80-466e-8856-f7d789e8e3da-8d583ca8-b925-4c7c-af60-6e4564aa63dc.png",
+      "comfyfield-975c9ac7-6de5-485f-8286-2a83bf295115-45f6d0bf-1259-4340-948e-0181e8b7417d.png",
+      "comfyfield-978feca7-0d33-4e15-b1c0-888d5a557f29-4917d4dd-8c0c-402a-8db3-989d677a8619.png",
+      "comfyfield-97ac261d-620f-4d1e-b79f-f1f51acdb87e-1dd18804-60ce-4863-a479-439e6930d5c9.png",
+      "comfyfield-97d92ad3-31ad-432c-a640-a15ebb6ff73d-8bfb38c3-eefc-442c-924e-60059a777bd5.png",
+      "comfyfield-9a4268db-b8d9-4d3e-a8b6-78f62e77bb8c-cb81bbd6-aec9-44df-9370-37d699f1d83a.png",
+      "comfyfield-9a77d396-6456-4e48-9d0a-9a3a9fde8d8f-6f3f22ef-385e-4a60-a3c8-019e13fd522c.png",
+      "comfyfield-9ba0e10e-1e15-4635-ba4f-d292b87d7cdf-6359c6e4-2cfd-483d-8291-c3002a4a7238.png",
+      "comfyfield-9c4f9b87-993f-4d34-8b10-06f0fe1bbac4-1b33dc93-2316-49f4-b8f9-75b16d39536e.jpg",
+      "comfyfield-9cf74555-fc20-4a87-b3c4-07faf6e90220-769cd87a-efbf-4895-9e65-0ad3eab8e53e.png",
+      "comfyfield-9d1c1fdb-34b2-4799-b2a8-31a3f1b65e75-125b0b43-c7d6-4f02-a972-0a9c1c4152be.png",
+      "comfyfield-9d4d63cb-276b-413d-a0c7-a0b0f1bba109-18453306-6f3b-43b2-86ab-2252ee5c6dc5.jpg",
+      "comfyfield-a1525208-25b7-480f-86e8-689340d47539-83898f71-b921-48d5-bfba-f47f436477a5.png",
+      "comfyfield-a1525208-25b7-480f-86e8-689340d47539-a1fa89f9-a905-4354-9b39-5fda97d1b473.png",
+      "comfyfield-a2f9122c-0b0a-4e26-9b85-67776366d1ed-9daf075b-41a7-4e4a-9f1b-f5e8970c24c3.png",
+      "comfyfield-a3d9504e-ac97-4305-8954-fd563b6935a6-45a13074-2397-476c-865a-fe1b8b4607d6.png",
+      "comfyfield-a3ef9088-c3fc-45f9-b688-f6d5a1828f92-ccffd471-8958-43c2-b28c-d7454917ab3d.png",
+      "comfyfield-a4959088-e773-40fb-8486-a7a03226d348-18453306-6f3b-43b2-86ab-2252ee5c6dc5.jpg",
+      "comfyfield-a5cff08a-43b6-445f-86b6-59c7c09f4c22-01a77fff-b152-4b76-93b8-cbd2f551f6a1.png",
+      "comfyfield-a61c2417-88cf-4d8c-a060-aa70821b9617-0da8452e-8d99-4118-9501-4ea1b8d7eaa0.png",
+      "comfyfield-a61c2417-88cf-4d8c-a060-aa70821b9617-140c6f65-4075-4463-ab12-8c528d74917a.png",
+      "comfyfield-a7514e96-f55f-4445-b9ab-862b2e4e6d13-057bce4f-a375-4cdd-bc49-37e3277862f6.png",
+      "comfyfield-a7856dca-97a6-4c76-8a5d-32dd3cde100d-6334434c-c23f-461e-a38d-a71d25dc4fd5.png",
+      "comfyfield-a7856dca-97a6-4c76-8a5d-32dd3cde100d-ede6e76a-c269-44ae-b5d4-c2517c0834cc.png",
+      "comfyfield-a7ac7860-0658-42c1-af47-db9beb5a1ae1-0c50cb3d-8f68-4ada-858f-8cf98bb9bef2.png",
+      "comfyfield-a89ff32a-8f0c-4f9a-91a6-46af4f3ea9ff-01a77fff-b152-4b76-93b8-cbd2f551f6a1.png",
+      "comfyfield-a95e0360-a738-4642-9142-efc471a5287d-4917d4dd-8c0c-402a-8db3-989d677a8619.png",
+      "comfyfield-aa8c806d-1841-4aa5-b15e-46b680b42491-57ec5499-c4bc-45f7-931a-5c1e5c5d7793.png",
+      "comfyfield-aa8c806d-1841-4aa5-b15e-46b680b42491-846d6240-b22f-4fa4-8a1f-b3ccb0a71f90.png",
+      "comfyfield-ab8afba1-aa9d-4186-865b-d389ea5e8ad1-dbf1f5f5-9803-448e-8e08-125403a79d44.png",
+      "comfyfield-aba75211-d705-4be4-86f5-e6ade5b7f8dd-80528452-0569-49db-8f31-d985671e4f5b.png",
+      "comfyfield-aba75211-d705-4be4-86f5-e6ade5b7f8dd-f53502b5-0d1b-4796-98cf-a1f6c6459231.png",
+      "comfyfield-abad51e1-3913-4cc5-bb74-fb35e7125b9f-2d19e544-eb98-4b64-9dc1-79a8f613ae1a.png",
+      "comfyfield-acef7c33-38ac-41aa-9ce2-d77ab1826326-2a0e07c3-7c80-45be-8396-9c5f858d00af.png",
+      "comfyfield-acef7c33-38ac-41aa-9ce2-d77ab1826326-8923b25e-32fb-4dc3-b1ba-d636b98eb1e7.png",
+      "comfyfield-ad970d9e-8374-4367-b882-2b03c2e94195-94b07ba7-e89a-4dfe-83ee-81cb1ddd925b.jpg",
+      "comfyfield-ad970d9e-8374-4367-b882-2b03c2e94195-c82259b9-287a-4711-a447-821bc48c2d4c.jpg",
+      "comfyfield-ae741db3-bc26-488f-b6b0-c97f7ded70e2-17d3fef4-2de2-469c-8f64-8013163d9839.jpg",
+      "comfyfield-aeb8514a-78d8-4b36-99f3-43d72a0b4cd9-43c0921b-cfe0-4db2-b26b-97ab908effbf.png",
+      "comfyfield-aeb8514a-78d8-4b36-99f3-43d72a0b4cd9-80528452-0569-49db-8f31-d985671e4f5b.png",
+      "comfyfield-aefaa40c-3af1-49f3-99ff-1d3518a6e8c7-b3b6a4fc-1892-4ec6-967b-b6ca9db9125d.png",
+      "comfyfield-af2b70c8-711a-4b5d-82e6-f7ffa027ac8c-67de410b-adf4-440a-a010-a628d3b7150d.png",
+      "comfyfield-af30ca84-6a05-4022-825d-440af6c2e6a9-2916fb18-1a5b-49ec-8e67-2f2a59d58824.png",
+      "comfyfield-af30ca84-6a05-4022-825d-440af6c2e6a9-6daf14e6-8d4e-4500-b54b-4068cc5ef798.png",
+      "comfyfield-af7a017b-6318-421c-8a5c-93e5ee9db2cd-4060a2b8-7428-4cf1-a7c5-6f036ffb979a.png",
+      "comfyfield-angle-qa-9745c446-f46a-4ad6-9c38-386ff83a413e.png",
+      "comfyfield-b002b913-3e68-4310-80c6-d3b7f1296a41-b5337dec-60bb-41cc-8b0c-680d713f1393.png",
+      "comfyfield-b01960ec-7a6d-41e3-aa47-b54584bbb339-4527fb6a-327f-482d-a920-39c7ac809fc0.png",
+      "comfyfield-b03b95b9-970e-46c4-833c-fee8d5b9211e-21966ea9-bc55-4938-8c2e-8f9e7da7e755.png",
+      "comfyfield-b03b95b9-970e-46c4-833c-fee8d5b9211e-610b3627-623f-4d36-81f8-dd07d5b1ae9b.png",
+      "comfyfield-b04bdc23-1d5f-46aa-a6c5-31a11e978c47-cf0f8463-f1a7-4181-8be5-af24f8c3caeb.png",
+      "comfyfield-b2c0434d-0071-4eb4-bd67-0ac3ba7b79be-62ada595-322b-4093-bdbf-6935d3c32dd3.png",
+      "comfyfield-b3790c4f-2470-456e-9e02-a7642a2e78f8-f757bb4a-6640-454c-afb6-17aed398bdd5.png",
+      "comfyfield-b3b9cf4a-e5c7-4b7f-a927-6bba40552401-e2036ee7-41bd-4fbd-b91a-4c9d40d3eec7.png",
+      "comfyfield-b3b9cf4a-e5c7-4b7f-a927-6bba40552401-fc73ee36-b38c-4dfe-9c83-82d88b2151d3.png",
+      "comfyfield-b44a4173-22af-44f0-8a8c-23df91fc6e56-1b33dc93-2316-49f4-b8f9-75b16d39536e.jpg",
+      "comfyfield-b59a7ad8-d64a-4b69-bb70-d97c2309dc69-242b44db-3363-4ed7-b5cb-c6de0051854d.png",
+      "comfyfield-b59a7ad8-d64a-4b69-bb70-d97c2309dc69-f4de1c6c-9ed6-4619-a892-25582c0168fc.png",
+      "comfyfield-b73ce7ee-9dbb-480b-a814-ffe7b1eb164e-b3e6e951-da86-41ca-883d-34e2233ad4e4.png",
+      "comfyfield-b73ce7ee-9dbb-480b-a814-ffe7b1eb164e-d8953dca-65a9-4383-a870-d1eb5130d1f9.png",
+      "comfyfield-b776a718-4780-4c92-9b3c-e6a727b932a0-48dde660-b8ca-45dc-8943-3d7a3131649e.png",
+      "comfyfield-b8203866-2d15-44bc-85e8-130111bf5fa6-dbe9e8c9-7ad2-492e-8960-c9ad0221fc61.png",
+      "comfyfield-b8203866-2d15-44bc-85e8-130111bf5fa6-f80d024b-8cdb-4e0e-a242-783518ad98ad.png",
+      "comfyfield-b86e6507-318f-4f6a-b427-73d202be098b-7b6b521b-a521-417b-bb86-be723d59f6a8.png",
+      "comfyfield-b894a82e-00c7-4c16-b30e-d76b3132d3eb-12220d0f-2c57-420b-a196-4a73355ed101.png",
+      "comfyfield-b894a82e-00c7-4c16-b30e-d76b3132d3eb-f3970f33-a59b-4086-a549-4981808a4268.png",
+      "comfyfield-b8cae8db-6f10-476d-82a4-cc00617c2d0f-580ea487-fdbf-44c6-95da-a4f1d28cf6e0.png",
+      "comfyfield-b9805617-309d-46a0-808c-56b128c38efb-730aeea7-dae3-4c5d-8303-1d06da8134a6.png",
+      "comfyfield-b9805617-309d-46a0-808c-56b128c38efb-e94eca66-f0ec-4867-af5b-ea4c84e5333f.png",
+      "comfyfield-b9c97aed-bb9d-40ee-92e3-c6ba85e06ded-481b654d-a757-4252-a8f3-40576e187351.png",
+      "comfyfield-b9c97aed-bb9d-40ee-92e3-c6ba85e06ded-f4c83fa4-bcbd-4891-9a8f-a9cca5dc74c3.png",
+      "comfyfield-bd01a7f9-63b7-4324-8b9e-abcef6cb6a45-c8b8a155-cb8c-4dfe-b604-9381adeeaff4.jpg",
+      "comfyfield-bd0ab68e-a9fd-45b0-8a15-2acf7bab5eb4-17d3fef4-2de2-469c-8f64-8013163d9839.jpg",
+      "comfyfield-be8f6ab0-33e5-49a6-af22-92087ccb157e-a3391282-6ebd-4f50-b4eb-13372b641af5.png",
+      "comfyfield-be8f6ab0-33e5-49a6-af22-92087ccb157e-e6cdcfc5-316a-4ebc-aad2-caf4488fd0bd.png",
+      "comfyfield-bf6ddb5b-1eea-4448-b520-0bc670b9df7c-c69fb6ef-87f4-4cfb-a659-aa49a2736d8c.png",
+      "comfyfield-bf8d30d7-11eb-4d30-b4f6-005491808f81-193914fa-1693-485a-9ccc-cfe19e1ad858.jpg",
+      "comfyfield-bfeee66d-66da-4f08-bf14-95da3b98e7ca-353ff565-6c6d-456a-9057-ca8aec7829fb.png",
+      "comfyfield-bfeee66d-66da-4f08-bf14-95da3b98e7ca-4060a2b8-7428-4cf1-a7c5-6f036ffb979a.png",
+      "comfyfield-bfeee66d-66da-4f08-bf14-95da3b98e7ca-7cae2921-f718-4d4d-9aa6-cdafb01ff1c1.png",
+      "comfyfield-bfeee66d-66da-4f08-bf14-95da3b98e7ca-d3405d9f-e6b5-4d30-95a8-ad5c53a336fd.png",
+      "comfyfield-c2d6bb80-78c9-46fe-b902-f2bb0b2c0dbe-f2d6e928-a8a0-82da-94fe-4a257381ef6d.png",
+      "comfyfield-c3081625-422f-4bdd-bb24-f347efc14453-ccef32e4-b3a0-426f-bbed-1b8b78f946cb.png",
+      "comfyfield-c34ffe60-d35b-4996-97d4-5a7da092a8ca-08759742-a023-4e10-bc5b-e7e420dec0fd.png",
+      "comfyfield-c36afa23-c457-4d5d-8028-f04cf6f1e4c7-d3405d9f-e6b5-4d30-95a8-ad5c53a336fd.png",
+      "comfyfield-c38ce85d-fb51-49f5-933c-8dc18aa6fd94-2a3d4cce-ef23-4551-af88-a191d8ef37ca.png",
+      "comfyfield-c38ce85d-fb51-49f5-933c-8dc18aa6fd94-e5785e2c-fad3-4045-ae25-0569234c8a0d.png",
+      "comfyfield-c452203b-fe52-4a09-b2e9-d9689a466f75-c449d295-71d8-4388-a634-61960b4103be.png",
+      "comfyfield-c452203b-fe52-4a09-b2e9-d9689a466f75-f40c8666-7c83-4fbe-be5f-ec807bd347d8.png",
+      "comfyfield-c4f95051-a2a6-4102-af3d-c03e844cdf12-20cd38af-1b55-4dce-96ec-73112ea3bbbd.webp",
+      "comfyfield-c4f95051-a2a6-4102-af3d-c03e844cdf12-c8b8a155-cb8c-4dfe-b604-9381adeeaff4.jpg",
+      "comfyfield-c7be68eb-12fd-4dc1-9da5-b6e8a0f244e0-59b790d5-3132-4158-9641-fd318ba0ef61.png",
+      "comfyfield-c92a4516-ea9b-4c26-b75c-b60770b98d1e-42cbcc40-2b4e-42e2-8b66-1a03bcf6c107.webp",
+      "comfyfield-c9d1d590-84c4-49a4-b75a-6c04869eb055-9daf075b-41a7-4e4a-9f1b-f5e8970c24c3.png",
+      "comfyfield-c9d233cc-64fe-4d5f-866b-0035b2a6b732-0a28ef4e-b4d4-4797-a77d-d59321271800.png",
+      "comfyfield-c9d233cc-64fe-4d5f-866b-0035b2a6b732-1d614813-8150-400a-a026-43beb084a073.png",
+      "comfyfield-c9d233cc-64fe-4d5f-866b-0035b2a6b732-73d922df-d8b7-4f91-a63d-001642a64c76.png",
+      "comfyfield-c9d233cc-64fe-4d5f-866b-0035b2a6b732-a9416278-af76-42b7-9c56-41d2a8de95dd.png",
+      "comfyfield-c9d233cc-64fe-4d5f-866b-0035b2a6b732-e5d25b6f-b057-4b4e-88a5-de207264f93f.png",
+      "comfyfield-c9d233cc-64fe-4d5f-866b-0035b2a6b732-f2f21653-c4f7-4d4b-8663-12ab7841042d.png",
+      "comfyfield-ca6fe374-1894-4297-bc15-bf8c61bb0a4e-ccffd471-8958-43c2-b28c-d7454917ab3d.png",
+      "comfyfield-caba61cd-b673-46fb-80eb-660414eb882b-b5337dec-60bb-41cc-8b0c-680d713f1393.png",
+      "comfyfield-cac229bc-63ba-40e3-b094-03f209aff2d3-2916fb18-1a5b-49ec-8e67-2f2a59d58824.png",
+      "comfyfield-camera-qualification.png",
+      "comfyfield-cb431e2f-227b-4254-a65c-aecd3091cd39-20cd38af-1b55-4dce-96ec-73112ea3bbbd.webp",
+      "comfyfield-cd80eed3-1fa8-497c-a982-0421166cd74e-ccffd471-8958-43c2-b28c-d7454917ab3d.png",
+      "comfyfield-cda4af26-698e-420b-8bfb-3dfe49eff27d-8923b25e-32fb-4dc3-b1ba-d636b98eb1e7.png",
+      "comfyfield-cda4af26-698e-420b-8bfb-3dfe49eff27d-f092315b-410d-4a9d-b51a-26ef42954237.png",
+      "comfyfield-ceed1af9-22c8-4aff-8244-2dfea8a3d3b3-e5f41894-ecaf-4c63-82b0-49c68f9de73e.png",
+      "comfyfield-cf6f0fae-1e6e-4074-af3a-774180630798-18453306-6f3b-43b2-86ab-2252ee5c6dc5.jpg",
+      "comfyfield-compare-pic-a.webp",
+      "comfyfield-compare-pic-b.jpg",
+      "comfyfield-d05b4f50-17d6-4fce-9460-924e9397117a-af369ae4-4b39-4925-8113-288ebb0859a3.webp",
+      "comfyfield-d0f3f122-dd1e-44ce-91d9-2a373a65e3d6-9daf075b-41a7-4e4a-9f1b-f5e8970c24c3.png",
+      "comfyfield-d11d06e5-ce73-4a9b-90a2-749148d160a3-41e44a1a-4635-4760-9cf3-0da04d939dff.png",
+      "comfyfield-d3329115-0071-415f-8636-c9f2582834e8-05b6640e-7ae5-4651-a70d-7e2c379dee3f.png",
+      "comfyfield-d3329115-0071-415f-8636-c9f2582834e8-434b9198-ab45-4c6d-bc63-04298b1db7d5.png",
+      "comfyfield-d3f28b99-7736-4419-a11a-5a7dd56ab212-d51e1de1-95f8-4d67-84b5-4173c83fbf6c.png",
+      "comfyfield-d40a58ca-ee0e-4666-ae02-14e9aea126c3-6334434c-c23f-461e-a38d-a71d25dc4fd5.png",
+      "comfyfield-d40a58ca-ee0e-4666-ae02-14e9aea126c3-ede6e76a-c269-44ae-b5d4-c2517c0834cc.png",
+      "comfyfield-d4ae931e-3ce9-4b77-95e6-3920c9ef3366-d3405d9f-e6b5-4d30-95a8-ad5c53a336fd.png",
+      "comfyfield-d5eca8aa-b00a-4e6f-8ec5-443c6f72dc88-d51e1de1-95f8-4d67-84b5-4173c83fbf6c.png",
+      "comfyfield-d70f6035-b72b-4a6e-a5fc-25f549406bc9-6670eb59-94e0-4d67-87d7-232bc6c662b9.png",
+      "comfyfield-d757ddc9-efb2-42bd-a7ea-752621446acd-12220d0f-2c57-420b-a196-4a73355ed101.png",
+      "comfyfield-d757ddc9-efb2-42bd-a7ea-752621446acd-8bcdfe7f-aa78-876d-87bb-fa58eeb6cdd8.png",
+      "comfyfield-d8353fe7-928d-406f-9c8c-7393e07216be-6e3d95a4-cdcb-4994-af34-8f440152a2c7.png",
+      "comfyfield-d8353fe7-928d-406f-9c8c-7393e07216be-a0e0571c-eb8f-43c0-b7f0-80b79bcc5228.png",
+      "comfyfield-d875c35a-b520-4bbc-ace5-36c7e7dbe2dd-99425d6f-26dd-48ea-8794-f8897c5f393b.png",
+      "comfyfield-d8a37023-056e-48b8-955a-2915f17609c8-c8b8a155-cb8c-4dfe-b604-9381adeeaff4.jpg",
+      "comfyfield-d8b105c4-6507-4b0f-bdf5-1f88690ba889-98f4b87f-3b50-4149-ac29-e7911cad5dd7.jpg",
+      "comfyfield-d9bfc8b2-15b7-434c-b4aa-2909ed539876-12220d0f-2c57-420b-a196-4a73355ed101.png",
+      "comfyfield-d9bfc8b2-15b7-434c-b4aa-2909ed539876-b42eb910-8e86-4eff-aad1-b666cad45cc3.png",
+      "comfyfield-da159e0e-feec-4b44-8dd0-6900d66a33b0-93f6d4f1-dea5-4d53-95a1-c095c20d2b15.webp",
+      "comfyfield-da159e0e-feec-4b44-8dd0-6900d66a33b0-fbb80fd6-58c5-4437-b1ef-6ca8f0006ef3.png",
+      "comfyfield-db9188ee-22a1-49ce-95dc-9ceb45567e5c-248374e2-ac31-48f1-b0b2-d0a9a5b20d75.png",
+      "comfyfield-db9188ee-22a1-49ce-95dc-9ceb45567e5c-5ee29c95-6337-4b75-bfb6-b44465a5650b.png",
+      "comfyfield-def4340a-895d-42a4-b0b4-01c917cef26e-f5fe8890-d4a3-44a6-85db-faed51f2d5aa.png",
+      "comfyfield-ds01-left.webp",
+      "comfyfield-ds01-right.jpg",
+      "comfyfield-dsid-a.webp",
+      "comfyfield-dsid-b.jpg",
+      "comfyfield-dsid-both.png",
+      "comfyfield-e1637670-33a7-44a7-bd8c-eea7a60dcd7c-20cd38af-1b55-4dce-96ec-73112ea3bbbd.webp",
+      "comfyfield-e2f24cf2-a39e-4e3e-9fd8-8cf00a3f0465-ccffd471-8958-43c2-b28c-d7454917ab3d.png",
+      "comfyfield-e3401d00-dc42-430c-bf17-6ae15f130a35-853059c0-f5c4-4054-8021-ad3afa24a670.png",
+      "comfyfield-e498bf28-a30a-4e03-89d5-10d461dae4f0-56c84c1c-8223-4036-a15f-53000aa4f2ec.png",
+      "comfyfield-e53663c2-b060-4751-aaf9-4954503c1319-2a3d4cce-ef23-4551-af88-a191d8ef37ca.png",
+      "comfyfield-e61475c5-22af-4368-b330-00e78100012b-449ee407-8a49-4221-b2a8-10591c5b5b4e.png",
+      "comfyfield-e61475c5-22af-4368-b330-00e78100012b-aba714f1-ba4f-4238-b0aa-60ec32102443.png",
+      "comfyfield-e7fd94b9-5be6-40e8-8319-b34df3ff6a8b-1ba310e8-16f5-4db0-bd04-a26d5b9fb0dc.png",
+      "comfyfield-e7fd94b9-5be6-40e8-8319-b34df3ff6a8b-e02006d0-4900-4a3b-8648-4d436f9aa746.png",
+      "comfyfield-e946b20b-1fba-4837-8823-36fff1256900-8d583ca8-b925-4c7c-af60-6e4564aa63dc.png",
+      "comfyfield-e9cdc40d-3ec6-4e28-bba0-268dff929249-449ee407-8a49-4221-b2a8-10591c5b5b4e.png",
+      "comfyfield-e9cdc40d-3ec6-4e28-bba0-268dff929249-aba714f1-ba4f-4238-b0aa-60ec32102443.png",
+      "comfyfield-e9e693e2-2f8d-46e5-8181-ba924416a95b-6784959f-5f3e-4f50-989f-845b132f505d.png",
+      "comfyfield-e9e693e2-2f8d-46e5-8181-ba924416a95b-cb492679-08a9-4eba-a04b-121731382d15.png",
+      "comfyfield-eabad316-2968-4146-9126-a5588f32d7b7-56c84c1c-8223-4036-a15f-53000aa4f2ec.png",
+      "comfyfield-eb718832-8a39-4a24-b410-ff2ab6d87e02-1b33dc93-2316-49f4-b8f9-75b16d39536e.jpg",
+      "comfyfield-ebaf5f29-2044-42e6-88b2-ed33affb6997-0f8c721d-fc18-453e-a32b-25fa39f34106.png",
+      "comfyfield-ebaf5f29-2044-42e6-88b2-ed33affb6997-3bf54852-670c-4239-a982-53b7c61c3fe1.png",
+      "comfyfield-eea3ccb4-13e1-4b2a-8348-ed583062a0f9-d3ac3de3-2d92-449b-89dd-88f52fd7ad6a.png",
+      "comfyfield-eedf8671-4b0e-4792-8f83-577b19355eec-556bcbfa-b22d-40d5-9821-39cdf29775b4.png",
+      "comfyfield-eedf8671-4b0e-4792-8f83-577b19355eec-792d4444-3f71-4bf3-816f-eee777e6bc82.png",
+      "comfyfield-ef08d48e-ab99-4210-88a4-c586953e9340-3f5dd5f6-8c43-4b9d-9b6e-1312f7b40ac3.png",
+      "comfyfield-ef4e99ba-2146-4464-ad43-bad05d307c55-6f3f22ef-385e-4a60-a3c8-019e13fd522c.png",
+      "comfyfield-ef968ba0-8319-4fdb-90bd-bcc6ec124f9f-8d583ca8-b925-4c7c-af60-6e4564aa63dc.png",
+      "comfyfield-f08f74c0-672a-42b4-aeb4-8d629d96205e-e3df619a-e968-418e-8d59-8d636c8cc265.jpg",
+      "comfyfield-f08f74c0-672a-42b4-aeb4-8d629d96205e-e6d11972-0b5b-4003-9698-aee56b43b747.webp",
+      "comfyfield-f13af13b-7055-4c98-9628-298993227987-de01807f-87e5-4f59-a316-73ca16c3addf.png",
+      "comfyfield-f215f461-0e39-4456-a487-8258b3e60480-56c84c1c-8223-4036-a15f-53000aa4f2ec.png",
+      "comfyfield-f2cdfab6-5a7c-4c8c-b62e-9a766dc0fa34-2a3d4cce-ef23-4551-af88-a191d8ef37ca.png",
+      "comfyfield-f2cdfab6-5a7c-4c8c-b62e-9a766dc0fa34-e5785e2c-fad3-4045-ae25-0569234c8a0d.png",
+      "comfyfield-f2d71b92-5df8-48fe-81f6-80766d3c81bd-eba71124-ab4b-4c7c-bc84-51ef0e3aa1ac.png",
+      "comfyfield-f2d71b92-5df8-48fe-81f6-80766d3c81bd-fcaa7dcc-4c4f-47c6-9cb2-5ba62997dfd6.png",
+      "comfyfield-f2f5b11a-258b-40fc-9ca5-5b4122f5c398-ccffd471-8958-43c2-b28c-d7454917ab3d.png",
+      "comfyfield-f418a23f-f94f-457a-90ca-3a118a63b922-83898f71-b921-48d5-bfba-f47f436477a5.png",
+      "comfyfield-f41e8f86-d30e-4dc4-ac3d-db79f097e2b2-1d34441a-8be0-401a-b18b-ae5a39ff91d4.png",
+      "comfyfield-f58f9188-29e8-4c55-b044-8667d198b873-fb5158b8-d0a2-4fe0-9c8f-b68367e4de98.png",
+      "comfyfield-f5d4aa49-a6e6-47ff-a2d3-2467468d8a4a-c6d029d6-0bad-4d26-b39f-e7e1db8a1078.png",
+      "comfyfield-f5d4aa49-a6e6-47ff-a2d3-2467468d8a4a-d3405d9f-e6b5-4d30-95a8-ad5c53a336fd.png",
+      "comfyfield-f6feda22-79dc-4d97-8fb2-2430261d340a-0f292385-127c-4dc2-ba21-7eee026dfd6d.png",
+      "comfyfield-f6feda22-79dc-4d97-8fb2-2430261d340a-ae92461b-b2e8-4e30-b24f-0af7bbfe9ba7.png",
+      "comfyfield-f77c35b5-1b0a-4a4b-8e76-94433933e815-01a77fff-b152-4b76-93b8-cbd2f551f6a1.png",
+      "comfyfield-f8e59d5f-b610-4ee0-af3f-9b0bbb143bca-b5337dec-60bb-41cc-8b0c-680d713f1393.png",
+      "comfyfield-fa333b74-efe3-490e-b100-d4466d801be0-e635f6a1-2940-4dff-a618-58972b076273.jpg",
+      "comfyfield-fa641664-7c40-4d55-abde-c32b1b170272-98f4b87f-3b50-4149-ac29-e7911cad5dd7.jpg",
+      "comfyfield-fabb6265-4827-4786-80d6-ac993f73c84d-18453306-6f3b-43b2-86ab-2252ee5c6dc5.jpg",
+      "comfyfield-fb06c955-dcaa-4dfe-a5bc-958b4fc58e83-67de410b-adf4-440a-a010-a628d3b7150d.png",
+      "comfyfield-fb0ebf89-b8a6-4f82-9122-509d8b91109f-a1aa79ae-36de-491f-b87c-5187d9f010c4.png",
+      "comfyfield-fb0ebf89-b8a6-4f82-9122-509d8b91109f-fc73ee36-b38c-4dfe-9c83-82d88b2151d3.png",
+      "comfyfield-fb73fef0-ba78-4b80-83e9-41022af2f685-f4c83fa4-bcbd-4891-9a8f-a9cca5dc74c3.png",
+      "comfyfield-fc7c1704-5771-4e12-9516-b0f4dc9849ab-9b02be8c-3f12-44ee-b45d-158a1e4e8a44.png",
+      "comfyfield-fccfd581-b703-4ce6-a0cd-feff99e2dbd3-5942fc99-605f-43fd-968c-fe6256fba9e5.png",
+      "comfyfield-fcdb240f-ffdf-4360-921f-615bc359f631-e635f6a1-2940-4dff-a618-58972b076273.jpg",
+      "comfyfield-fd75a9d0-350f-41ee-974f-a6f4be0276fa-18453306-6f3b-43b2-86ab-2252ee5c6dc5.jpg",
+      "comfyfield-fd85a7f2-7b51-429f-ba17-7ea7a21d3dbf-dbf1f5f5-9803-448e-8e08-125403a79d44.png",
+      "comfyfield-fe740e7e-8023-4cc2-abfb-98834b707c41-38ee79f2-79a9-4713-b3f6-5a9bf0bb100c.png",
+      "comfyfield-flux-edit-source.png",
+      "comfyfield-flux-final.png",
+      "comfyfield-lipsync-closeup.png",
+      "comfyfield-lipsync-portrait.png",
+      "comfyfield-look-8ce6b796198c6437.webp",
+      "comfyfield-look-b7b47234d84d6699.jpg",
+      "comfyfield-look-probe.jpg",
+      "comfyfield-look-probe.webp",
+      "comfyfield-motion-qual.png",
+      "comfyfield-oneframe-a.webp",
+      "comfyfield-oneframe-b.jpg",
+      "comfyfield-ras-S-G0-frame.png",
+      "comfyfield-ras-S-G0-pic1.webp",
+      "comfyfield-ras-S-G0-pic2.jpg",
+      "comfyfield-ras-S-G1-pic1.webp",
+      "comfyfield-ras-S-G1-pic2.jpg",
+      "comfyfield-ras-S-G2-pic1.png",
+      "comfyfield-ras-S-G3-pic1.png",
+      "comfyfield-ras-S-G4-pic1.jpg",
+      "comfyfield-ras-S-G5-frame.png",
+      "comfyfield-ras-S-G5-pic1.webp",
+      "comfyfield-ras-S-G5-pic2.jpg",
+      "comfyfield-ras-S-G7-pic1.webp",
+      "comfyfield-ras-S-G7-pic2.jpg",
+      "comfyfield-ras-S-G8-pic1.png",
+      "comfyfield-ras-anchor.png",
+      "comfyfield-ras-frame.png",
+      "comfyfield-ras-mask-S-G0-src.png",
+      "comfyfield-ras-mask-S-G0-still.png",
+      "comfyfield-ras-mask-S-G1-src.png",
+      "comfyfield-ras-mask-S-G1-still.png",
+      "comfyfield-ras-mask-S-G2-src.png",
+      "comfyfield-ras-mask-S-G2-still.png",
+      "comfyfield-ras-mask-S-G3-src.png",
+      "comfyfield-ras-mask-S-G3-still.png",
+      "comfyfield-ras-mask-S-G4-src.png",
+      "comfyfield-ras-mask-S-G4-still.png",
+      "comfyfield-ras-mask-S-G5-src.png",
+      "comfyfield-ras-mask-S-G5-still.png",
+      "comfyfield-ras-p1.png",
+      "comfyfield-ras-p2.jpg",
+      "comfyfield-ras-probe-person.png",
+      "comfyfield-ras-sweep-frame.png",
+      "comfyfield-ras-sweep-pic1.webp",
+      "comfyfield-ras-sweep-pic2.jpg",
+      "comfyfield-sam3-probe.png",
+      "comfyfield-scout-mask-7d23575c-19e9-430a-9351-5857d8830851.png",
+      "comfyfield-scout-source-7d23575c-19e9-430a-9351-5857d8830851.png",
+      "comfyfield-sd21-mask.png",
+      "comfyfield-sd21-source.png",
+      "comfyfield-test2.png",
+      "comfyfield-test3.png",
+      "comfyfield-tiny.png",
+      "comfyfield-two-a.webp",
+      "comfyfield-two-b.jpg",
+      "compare-pic-a.webp",
+      "dsid-portrait.jpg",
+      "dsid-prepared-portrait.png",
+      "dsid-prepared-sheet.png",
+      "dsid-sheet.webp",
+      "example.png",
+      "frame0.png",
+      "fromstill-anchor.png",
+      "h3d-fixture.png",
+      "identity-ref-2.png",
+      "identity-ref-3.png",
+      "identity-ref-4.png",
+      "identity-sheet-2.png",
+      "image - 2026-09-18T151227.848.png",
+      "img2-src.png",
+      "jutsu-anchor-preserve.png",
+      "jutsu-frame0.png",
+      "jutsu-mask-left.png",
+      "jutsu-picture-a.webp",
+      "qwen-edit-reference.png",
+      "qwen-edit-source.png",
+      "ras-S-G1-pic1.webp",
+      "ras-S-G1-pic2.jpg",
+      "ras-flux.png",
+      "ras-frame-clean.png",
+      "ras-frame-final.png",
+      "ras-frame.png",
+      "ras-icons.png",
+      "ras-mask.png",
+      "ras-p1.png",
+      "ras-p1.webp",
+      "ras-p2.jpg",
+      "render-test.png",
+      "scene-source-2.png",
+      "scene-source.png",
+      "somni_ref_1790015986099_1.png",
+      "somni_ref_1790015986099_2.png",
+      "somni_ref_1790016080150_1.png",
+      "somni_ref_1790016373947_1.png",
+      "somni_ref_1790016376164_1.png",
+      "somni_ref_1790016876575_1.png",
+      "somni_ref_1790016876575_2.png",
+      "somni_ref_1790016970002_1.png",
+      "somni_ref_1790016970002_2.png",
+      "somni_ref_1790017200456_1.png",
+      "somni_ref_1790017200456_2.png",
+      "somni_ref_1790017309100_1.png",
+      "somni_ref_1790017309100_2.png",
+      "somni_ref_1790017929424_1.png",
+      "somni_ref_1790017930418_1.png",
+      "somni_ref_1790019190394_1.png",
+      "somni_ref_1790019192316_1.png",
+      "somni_ref_1790019814950_1.png",
+      "somni_ref_1790020263952_1.png",
+      "somni_ref_1790021209795_1.png",
+      "somni_ref_1790021479182_1.png",
+      "somni_ref_1790381592904_1.png",
+      "studio-mvbg3dqn-be5111-render-test.png",
+      "studio-mvbg3r4g-1d7d0d-render-test.png",
+      "studio-mvbg5d5y-9da1b4-render-test.png",
+      "studio-mvbg6hhv-510485-render-test.png",
+      "studio-mvbh3ach-ab378e-render-test.png",
+      "studio-mvbh4nvb-97e9f4-render-test.png",
+      "studio-mvbhdl4g-09adc2-dusk.png",
+      "studio-mvbhdl4r-153ba4-night.png",
+      "studio-mvbhoa3n-3f0ded-image_29_.jpg",
+      "studio-mvbi54gq-9ab653-render-test.png",
+      "studio-mvbi6926-eba508-render-test.png",
+      "studio-mvbif5rl-78b621-render-test.png",
+      "studio-mvbihhoo-e88be2-render-test.png",
+      "studio-mvbilvuk-7e554f-motion-character.png",
+      "studio-mvbiqlng-ce755f-astronaut.png",
+      "studio-mvbj3voi-fec9f9-image_29_.jpg",
+      "studio-mvbufnft-7ef788-astronaut.png",
+      "studio-mvbukij5-dbfe9a-astronaut.png",
+      "studio-mvbuvcwr-46ddde-astronaut.png",
+      "studio-mvc0ui1u-4bc026-image_29_.jpg",
+      "studio-mvc0vj29-580f9c-image_29_.jpg",
+      "test-character.png",
+      "trellis-fixture.png"
+     ],
+     {
+      "image_upload": true
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "image"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "IMAGE",
+   "MASK"
+  ],
+  "output_is_list": [
+   false,
+   false
+  ],
+  "output_name": [
+   "IMAGE",
+   "MASK"
+  ],
+  "name": "LoadImage",
+  "display_name": "Load Image",
+  "description": "",
+  "python_module": "nodes",
+  "category": "image",
+  "output_node": false,
+  "has_intermediate_output": false,
+  "search_aliases": [
+   "load image",
+   "open image",
+   "import image",
+   "image input",
+   "upload image",
+   "read image",
+   "image loader"
+  ],
+  "essentials_category": "Basics"
+ },
+ "LoadVideo": {
+  "input": {
+   "required": {
+    "file": [
+     "COMBO",
+     {
+      "multiselect": false,
+      "options": [
+       "cf-trim-audio-check.mp4",
+       "cf-two-talking.mp4",
+       "comfyfield-045dfccb-29e4-4b54-8670-df7b1cb61398-17c4ed68-865a-4f83-82ca-10d50f4a4f58.mp4",
+       "comfyfield-045dfccb-29e4-4b54-8670-df7b1cb61398-2b3502a7-8025-4911-b592-45ee6a1883aa.mp4",
+       "comfyfield-0490a2cd-1415-4213-b723-a273ba61dfa7-e7a7e40d-d652-49d9-ab6d-db6ee387f6e3.mp4",
+       "comfyfield-04e39d78-128f-485b-9dd5-079c18c2aa5f-e7a7e40d-d652-49d9-ab6d-db6ee387f6e3.mp4",
+       "comfyfield-05881da9-daf8-444e-ae18-e1d6eb7090dd-c6bef283-f1b9-4161-ad89-6b95bfa01b33.mp4",
+       "comfyfield-06002fc4-49c4-4c8c-8717-2f4fdab10b33-68f0b651-0315-4989-b5ae-bae0581e0da3.mp4",
+       "comfyfield-062356fb-6d7f-45b2-8303-20d5631f221c-e7a7e40d-d652-49d9-ab6d-db6ee387f6e3.mp4",
+       "comfyfield-070dc95e-ac2e-4aa3-b191-8e16474d5a15-motion.mp4",
+       "comfyfield-08d2c493-44d8-4408-8081-f67179bad50d-0bb1418d-c66d-4a61-a6b2-c37e4b6c2c20.mp4",
+       "comfyfield-08d2c493-44d8-4408-8081-f67179bad50d-50cb005a-d803-4d61-9d7e-7a67206f919c.mp4",
+       "comfyfield-0ad5fb21-dbbb-497d-88ef-33109bb7a588-1445f1cb-3bd4-4df0-bd65-20cbbe5af652.mp4",
+       "comfyfield-0b04a736-de47-4372-b864-488039a09a4e-66258eb5-9dae-4ade-b283-b1f3e14888c4.mp4",
+       "comfyfield-0de71834-885d-4b74-b73a-82299026b55f-008af671-e5a3-4653-9ea6-f57dccd6b4de.mp4",
+       "comfyfield-0fab6dae-2ddb-4aac-82ab-07fd13e77964-7a08ad84-7b96-42a2-a3e5-a9dc6627ff9e.mp4",
+       "comfyfield-10387082-7514-4eca-a5ec-130dd7c02069-a00e64d7-0b6c-413f-8b26-10e984a0c61b.mp4",
+       "comfyfield-1085f9a5-ba0e-4e41-86d2-5c7d69d310ae-e7a7e40d-d652-49d9-ab6d-db6ee387f6e3.mp4",
+       "comfyfield-10c45fdb-967b-4519-9113-e732c017c893-3010dfa4-a17e-4462-be8a-e58a24178d7e.mp4",
+       "comfyfield-14002275-9a37-4e33-9bcf-1f57fce9b715-97b1ca58-b4a2-4897-8bfa-6a3f242c464f.mp4",
+       "comfyfield-14002275-9a37-4e33-9bcf-1f57fce9b715-a0be98b1-1a90-47f8-97ca-f92ad62fd1f3.mp4",
+       "comfyfield-1681e71c-fcda-47bf-b345-09aa05bf3a67-6bdab127-1bb3-448f-94c2-3cb2710f27ee.mp4",
+       "comfyfield-1681e71c-fcda-47bf-b345-09aa05bf3a67-db43829c-bf82-4bb6-90fa-0bb2866226fc.mp4",
+       "comfyfield-179d8215-f432-4517-96fd-75e01eaa8688-motion.mp4",
+       "comfyfield-1e65f6b7-ce06-4f57-ab9e-c8d9ddfeb0b9-057ef003-8ec1-40a6-98b6-eb32d2aa43c8.mp4",
+       "comfyfield-1f82a6e5-37da-4d85-9123-a4756a252214-056514e4-28fd-4254-93f3-1c591a232e38.mp4",
+       "comfyfield-1f82a6e5-37da-4d85-9123-a4756a252214-d5dc8e36-6283-45be-890e-11a5dee717e1.mp4",
+       "comfyfield-21e4f9d7-02f6-4b27-b85f-514d7e505480-0a5e3e95-8f1f-44dc-ad99-8124459d37a2.mp4",
+       "comfyfield-21e4f9d7-02f6-4b27-b85f-514d7e505480-9cae2411-a842-4271-83b6-c0110c3573e8.mp4",
+       "comfyfield-23df0913-2b1c-4414-8610-b236941f2b39-95f1d488-1fa3-4dbe-a140-bd75365bb036.mp4",
+       "comfyfield-24265551-5760-463f-9bcb-e01baaa3984e-motion.mp4",
+       "comfyfield-266c4f20-2131-47de-833c-94665c5d465f-e7a7e40d-d652-49d9-ab6d-db6ee387f6e3.mp4",
+       "comfyfield-2930d2bc-c396-4ac5-88be-0e59281b2848-3010dfa4-a17e-4462-be8a-e58a24178d7e.mp4",
+       "comfyfield-29fa96ca-a43c-4b87-84e0-1721f1c95b33-1f2f800f-4e9c-49d9-89b8-f8b38063d864.mp4",
+       "comfyfield-2c0dd767-1ad5-4418-9a22-c76843ceff24-21c6b5ca-048c-4d35-935f-0c28db347a86.mp4",
+       "comfyfield-2ea3e620-fa27-4eb0-a40e-48be96808ad1-1272db58-fc0b-48f9-8fa4-63df76dd64f7.mp4",
+       "comfyfield-2ea3e620-fa27-4eb0-a40e-48be96808ad1-cef92833-a862-4c4c-9472-2e1b212b515c.mp4",
+       "comfyfield-2fb46044-fe93-4879-953f-1d066489f936-5d3cbe9b-6692-463e-9e9a-29a6b3a39efc.mp4",
+       "comfyfield-341daed8-c72d-4e11-a902-b1079a1977e5-5d3cbe9b-6692-463e-9e9a-29a6b3a39efc.mp4",
+       "comfyfield-359cee3e-ec8a-4cb7-b321-1c234526c0fb-08a08ca9-4a96-4712-93d5-7ac93c27a2c2.mp4",
+       "comfyfield-361b0a74-ac70-49f2-932c-a29b60a98914-motion.mp4",
+       "comfyfield-37088ab7-22e0-42ee-b10b-23ae882dd746-6fa93c34-a6c2-429e-8276-b3a5753009c3.mp4",
+       "comfyfield-37cfcc53-233b-4f78-836a-7a2c3bff835e-0c786681-b4b1-4676-a371-089563683f58.mp4",
+       "comfyfield-389f5d60-dfda-4835-becf-ad2b85e2f73e-806b049c-d969-408a-a19c-4c5cf600286c.mp4",
+       "comfyfield-38ba7862-14ea-4f6b-92e1-0e624a82e7a5-58048723-ed01-4a96-8063-db1e0cbbe368.mp4",
+       "comfyfield-38ba7862-14ea-4f6b-92e1-0e624a82e7a5-6fa93c34-a6c2-429e-8276-b3a5753009c3.mp4",
+       "comfyfield-3c4d5a25-707a-4bcb-afc7-fcf745518532-6730215d-f6fa-4d8b-9584-4304ce624830.mp4",
+       "comfyfield-3c4d5a25-707a-4bcb-afc7-fcf745518532-d9d8fc19-fd1c-4b19-a1b7-97391af59b0b.mp4",
+       "comfyfield-3e45ccd3-c7a0-414a-93c6-34d24d094e05-1f2f800f-4e9c-49d9-89b8-f8b38063d864.mp4",
+       "comfyfield-3e53a75e-2308-440b-a1dc-ffa5c9ca998e-6c64fd09-47ce-4a8a-aea0-2c7a1f2c1d24.mp4",
+       "comfyfield-3eb4bcf2-0531-4360-a12f-58edc7bd7347-23b1f46a-83c3-4402-8944-7faa3fd67364.mp4",
+       "comfyfield-3edf73b6-4a5b-4692-a19f-fc63ac69fd35-284db465-0ee0-43b3-bb48-37b355dd650d.mp4",
+       "comfyfield-40995c03-6c3e-4e70-b66c-0b3905f31c22-motion.mp4",
+       "comfyfield-4104e5a9-12e8-4256-adb7-d66e8e5aa46f-9e8d6fa5-651f-43e2-b9d3-7ff5744c043b.mp4",
+       "comfyfield-4129a787-a1d2-464e-bf56-51bd20a8be76-009b515c-fd2e-47f5-9a51-3d8b240dda93.mp4",
+       "comfyfield-4129a787-a1d2-464e-bf56-51bd20a8be76-9a0c2fdb-4b9c-430e-abd9-ffae3fdfcbd4.mp4",
+       "comfyfield-41515b3f-2b2f-4cd3-a839-6584dd825157-motion.mp4",
+       "comfyfield-41f966e1-3ad8-4c71-8261-9694b7f5c7dd-0a5e3e95-8f1f-44dc-ad99-8124459d37a2.mp4",
+       "comfyfield-42e7f3cb-3823-4aa2-9950-f2ecf28ed4d9-65a8761e-7779-48f6-b289-3e0d8a2e56c0.mp4",
+       "comfyfield-45125fd0-ada3-4b13-b37d-0d39aa080c76-6730215d-f6fa-4d8b-9584-4304ce624830.mp4",
+       "comfyfield-45125fd0-ada3-4b13-b37d-0d39aa080c76-d9d8fc19-fd1c-4b19-a1b7-97391af59b0b.mp4",
+       "comfyfield-45487945-7a71-4fff-92f7-ec0b66f2ac08-4f21de9b-8698-4600-a001-5d69020cc721.mp4",
+       "comfyfield-45b5ca0e-39ee-45e9-b655-65271bd77985-f74d1afc-7248-4566-9377-de7d2f1e90c3.mp4",
+       "comfyfield-46d6c60b-7c82-41d9-813d-1967b369dc66-f74d1afc-7248-4566-9377-de7d2f1e90c3.mp4",
+       "comfyfield-495acc3a-fb37-4de8-8609-fea8dc987b55-f74d1afc-7248-4566-9377-de7d2f1e90c3.mp4",
+       "comfyfield-49975001-6b2c-42a8-9735-312b0deec125-9736835b-b8ee-4115-b524-538e169ea49e.mp4",
+       "comfyfield-4af7c9b3-7b6e-4e53-8a10-c0b18b62325f-0a5e3e95-8f1f-44dc-ad99-8124459d37a2.mp4",
+       "comfyfield-4af7c9b3-7b6e-4e53-8a10-c0b18b62325f-8662efd0-f29a-4372-9a38-49f6cdfa37bb.mp4",
+       "comfyfield-4d9ed98a-c594-4edc-a0d6-790e03e699d5-cd5c9eeb-bb4a-4143-a8d5-27795a1a1f60.mp4",
+       "comfyfield-508d3d17-1cde-4d30-909f-540fde5c0fbf-9e504fb0-fd51-4483-8e41-c33603e550c6.mp4",
+       "comfyfield-53322e43-0a00-4e05-92fa-78b287e1388b-d4fb7747-dd35-4088-99bf-d9f374bb4efc.mp4",
+       "comfyfield-53322e43-0a00-4e05-92fa-78b287e1388b-e4c5374a-64d9-4ddd-8ab6-6fe4aa937ec0.mp4",
+       "comfyfield-542b0745-c5d3-4eff-be35-3bd387bb993f-7a0635e0-60db-4b9b-b811-30a96a37b63a.mp4",
+       "comfyfield-542b0745-c5d3-4eff-be35-3bd387bb993f-c2fbea68-0877-432d-9460-ddd8280acd06.mp4",
+       "comfyfield-544205bd-7d92-48f7-be64-7bd198b389d4-f5ecf6e7-737a-4cb6-bc9f-e5fd63485d50.mp4",
+       "comfyfield-54c45ec0-e117-4c92-bdd1-dc0be0a98f8d-847ed313-b58f-4ef0-b03f-cfbd797d4ce9.mp4",
+       "comfyfield-56a06931-4b3f-47b2-a020-a76faee2fe90-5fcc9bf8-b4d6-4730-9e19-55149df72b4c.mp4",
+       "comfyfield-57edc5bd-14e4-4b35-992a-7efa8edaf27c-6fa93c34-a6c2-429e-8276-b3a5753009c3.mp4",
+       "comfyfield-57edc5bd-14e4-4b35-992a-7efa8edaf27c-db7ebf80-ecd2-4621-bbd4-37259e135094.mp4",
+       "comfyfield-580d65da-181b-4ef2-bffd-546ca4622e9b-5cb5807a-54a6-4557-9b5d-79cf47d225c6.mp4",
+       "comfyfield-58457dd5-ada0-4a91-9565-61e27641a169-29925873-d58f-450b-9002-fe2540d52264.mp4",
+       "comfyfield-590a0059-7739-4d69-b27f-b264e58f7959-85af3e0d-989a-4514-87da-57a36bfea554.mp4",
+       "comfyfield-5cb8c0ce-08d6-4447-bde6-7efd91ee293e-1f2f800f-4e9c-49d9-89b8-f8b38063d864.mp4",
+       "comfyfield-5e52f959-a32c-4202-b57e-8e3e552e6b5c-6fa93c34-a6c2-429e-8276-b3a5753009c3.mp4",
+       "comfyfield-5e52f959-a32c-4202-b57e-8e3e552e6b5c-e52d104a-ca5a-424a-addb-af908591fcef.mp4",
+       "comfyfield-5f65a185-21bd-4602-bc30-18f587169204-motion.mp4",
+       "comfyfield-61108fdb-c72e-44c6-bffc-ae412b0260ff-6fa93c34-a6c2-429e-8276-b3a5753009c3.mp4",
+       "comfyfield-61c5b62a-9102-4867-9de3-c11148d492ae-dddb993b-5cca-45cc-a2d3-e18905e13e10.mp4",
+       "comfyfield-62d8ba28-7275-4e12-94f2-884c4bf1b55f-1445f1cb-3bd4-4df0-bd65-20cbbe5af652.mp4",
+       "comfyfield-639d26c8-a3c2-4afa-864c-ce10aaff384b-1f2f800f-4e9c-49d9-89b8-f8b38063d864.mp4",
+       "comfyfield-65c93536-b93c-48e8-b104-9b95c41ef654-5bca6a5f-0a09-4ac8-b813-83a5a3a5aa09.mp4",
+       "comfyfield-6694a4a8-7643-42c6-a0e7-fad50a75d41c-6fa93c34-a6c2-429e-8276-b3a5753009c3.mp4",
+       "comfyfield-6694a4a8-7643-42c6-a0e7-fad50a75d41c-99724c2d-ffe3-45c3-a34b-b641615c0223.mp4",
+       "comfyfield-685c859b-8e83-4014-ad47-12d872dd41a1-motion.mp4",
+       "comfyfield-690fe551-59a9-4f0f-88ff-caf069828169-c40c3846-459c-424a-bd04-9b315b1367ad.mp4",
+       "comfyfield-6956d9c2-c9a3-44d5-b605-caf959602c2e-b979fd6e-5548-461e-a467-22f0e50e3849.mp4",
+       "comfyfield-69632ddc-c99f-4980-99e0-01d8c1327566-c3648408-c471-405c-ba5d-24fd35e12cb3.mp4",
+       "comfyfield-6bac98c9-1525-42e7-89b7-9c9fc309bb2e-68f0b651-0315-4989-b5ae-bae0581e0da3.mp4",
+       "comfyfield-6bde067b-9369-407c-a5ff-7d6171cba58d-6730215d-f6fa-4d8b-9584-4304ce624830.mp4",
+       "comfyfield-6bde067b-9369-407c-a5ff-7d6171cba58d-d9d8fc19-fd1c-4b19-a1b7-97391af59b0b.mp4",
+       "comfyfield-6c95ae63-778f-403e-b77e-05a16801a72a-5b4a3fdd-e0d5-417b-8bc8-d4421d5e12f6.mp4",
+       "comfyfield-6c95ae63-778f-403e-b77e-05a16801a72a-6fa93c34-a6c2-429e-8276-b3a5753009c3.mp4",
+       "comfyfield-6ede1bb6-fd10-48ec-b31b-4a953854337c-806b049c-d969-408a-a19c-4c5cf600286c.mp4",
+       "comfyfield-6f371f35-80bc-4ab7-9fea-a604c511ea38-024f84b2-2e2a-4099-820e-10e87c7e7b49.mp4",
+       "comfyfield-70fd8bce-dd8e-4a80-b88c-71c69a277335-047b5158-d79e-4e39-b441-4568152630b7.mp4",
+       "comfyfield-70fd8bce-dd8e-4a80-b88c-71c69a277335-abbd5de5-0ee3-44e3-82fb-e1ba77aff656.mp4",
+       "comfyfield-71616ea9-2fc5-469c-a7d6-21839bc9b79f-ab9de453-384d-48e9-82f8-20d4dbcf8697.mp4",
+       "comfyfield-71a64ada-ff39-42c4-971b-c95bed25ac1a-7c8f1888-b702-4d78-8759-1a8a40bfa91d.mp4",
+       "comfyfield-737ccaae-ae1e-4957-96d1-d1e7b5841870-motion.mp4",
+       "comfyfield-77c91152-156e-44c0-8c20-50e009ff4cd5-17c4ed68-865a-4f83-82ca-10d50f4a4f58.mp4",
+       "comfyfield-77c91152-156e-44c0-8c20-50e009ff4cd5-2b3502a7-8025-4911-b592-45ee6a1883aa.mp4",
+       "comfyfield-7b01ba1f-15e2-49f2-93b6-245ccbdb1ec3-1f2f800f-4e9c-49d9-89b8-f8b38063d864.mp4",
+       "comfyfield-7ba8b610-a622-475b-af68-c55928de80d6-1707b16c-f42c-47ab-8467-04079e176c18.webm",
+       "comfyfield-7be2f7dc-8b24-43e3-89ac-24200036866e-da3a8a15-cfe6-4da9-abc1-27ddc746513d.mp4",
+       "comfyfield-7d604829-1e95-43f5-a318-ea1163ca5d8f-e3010d9b-d509-47e0-8b57-7e02869e7d91.mp4",
+       "comfyfield-7e028dff-e769-4ef0-be70-c0d75c7431d7-6730215d-f6fa-4d8b-9584-4304ce624830.mp4",
+       "comfyfield-7e028dff-e769-4ef0-be70-c0d75c7431d7-d9d8fc19-fd1c-4b19-a1b7-97391af59b0b.mp4",
+       "comfyfield-80d3375d-f9b4-47f5-a26a-8992c4ab12dc-7977b0ad-0e6c-47be-9019-313adacc00b8.mp4",
+       "comfyfield-83e696bc-2f69-4e92-a0c6-196c0d01c192-40587107-ab97-4183-bc58-763d6f8f94b9.mp4",
+       "comfyfield-83e696bc-2f69-4e92-a0c6-196c0d01c192-deedc040-5338-4bda-a3f4-8431707d0d0f.mp4",
+       "comfyfield-85054a01-36d6-4ee6-80bc-285220477f2f-5d3cbe9b-6692-463e-9e9a-29a6b3a39efc.mp4",
+       "comfyfield-861d0c29-7b1e-4175-a847-5337b3c86deb-966bc889-88c7-4323-a1f7-13226fb59319.mp4",
+       "comfyfield-861d0c29-7b1e-4175-a847-5337b3c86deb-cf5c5c4c-9925-4d9f-a122-cda52c7652e3.mp4",
+       "comfyfield-8914d5de-64b0-47ab-94d9-5c0979679a85-4bc959a3-9878-4a99-ba75-6b4c47fce1e5.mp4",
+       "comfyfield-8ab0c463-4f60-4210-aa57-3cd24a52a8a4-motion.mp4",
+       "comfyfield-8e3c5ba4-e422-41a3-b16a-8febce732ccd-68f0b651-0315-4989-b5ae-bae0581e0da3.mp4",
+       "comfyfield-8e3c5ba4-e422-41a3-b16a-8febce732ccd-bcbc945f-bc3c-42a1-992a-ba133d3bb10b.mp4",
+       "comfyfield-8e3c5ba4-e422-41a3-b16a-8febce732ccd-c725d2a2-156a-426e-b4c2-69b515ba1858.mp4",
+       "comfyfield-8f6b22c9-a5c0-42c3-b039-dc336de00ea1-5fcc9bf8-b4d6-4730-9e19-55149df72b4c.mp4",
+       "comfyfield-905117a2-7e68-407e-a6a2-29b5549aa059-e7a7e40d-d652-49d9-ab6d-db6ee387f6e3.mp4",
+       "comfyfield-934a74f3-427d-4aa4-9cb5-e842d287e876-85af3e0d-989a-4514-87da-57a36bfea554.mp4",
+       "comfyfield-93ee5527-30ce-4533-8f91-ef73e2600b93-83910047-10c1-451a-84d9-71fe96f9c33e.mp4",
+       "comfyfield-94ba2e79-27d8-49a9-a904-d93fac4e65b1-2b3502a7-8025-4911-b592-45ee6a1883aa.mp4",
+       "comfyfield-9624697d-3b60-4864-ad31-d86c9d6c5577-7b7d1f12-6239-447a-a556-a148d6ab95bb.mp4",
+       "comfyfield-96e7d0a3-6f85-4b6a-8489-e97ebc76e5f2-e7a7e40d-d652-49d9-ab6d-db6ee387f6e3.mp4",
+       "comfyfield-975c9ac7-6de5-485f-8286-2a83bf295115-17c4ed68-865a-4f83-82ca-10d50f4a4f58.mp4",
+       "comfyfield-975c9ac7-6de5-485f-8286-2a83bf295115-2b3502a7-8025-4911-b592-45ee6a1883aa.mp4",
+       "comfyfield-9af89a61-88a3-48c2-a1ad-64e559be8f27-25b23570-ec92-49c4-a3ef-e59455e8753f.mp4",
+       "comfyfield-9c4f9b87-993f-4d34-8b10-06f0fe1bbac4-e7a7e40d-d652-49d9-ab6d-db6ee387f6e3.mp4",
+       "comfyfield-9dff3208-830a-44c0-9da6-2948d5586041-86865aca-5284-4971-b685-9fbc0f100ebd.mp4",
+       "comfyfield-a003b783-6e69-4aab-a327-fbecb2ba1939-64485a92-8bc0-4240-a8f0-f5e592863e35.mp4",
+       "comfyfield-a003b783-6e69-4aab-a327-fbecb2ba1939-862fda22-44df-46d1-a0b4-c0396963d899.mp4",
+       "comfyfield-a44a4593-7fdb-4c13-9cfa-858f3f42b1bb-bff383fe-e4f1-4a28-99ac-316a9cb2731d.mp4",
+       "comfyfield-a5cff08a-43b6-445f-86b6-59c7c09f4c22-6730215d-f6fa-4d8b-9584-4304ce624830.mp4",
+       "comfyfield-a5cff08a-43b6-445f-86b6-59c7c09f4c22-d9d8fc19-fd1c-4b19-a1b7-97391af59b0b.mp4",
+       "comfyfield-a6c9d225-b883-442c-b367-975c36fc7293-e2c7380f-b824-4a65-b0ae-e0791f634cf2.mp4",
+       "comfyfield-a8720871-761e-4dd4-aaec-5092f23ba013-4cab4df6-91d7-4ef8-b9fe-9bdae577ec0e.mp4",
+       "comfyfield-a89ff32a-8f0c-4f9a-91a6-46af4f3ea9ff-6730215d-f6fa-4d8b-9584-4304ce624830.mp4",
+       "comfyfield-a89ff32a-8f0c-4f9a-91a6-46af4f3ea9ff-d9d8fc19-fd1c-4b19-a1b7-97391af59b0b.mp4",
+       "comfyfield-aa160371-e6ca-46ac-9d94-5e553648d629-85af3e0d-989a-4514-87da-57a36bfea554.mp4",
+       "comfyfield-ab8afba1-aa9d-4186-865b-d389ea5e8ad1-1f2f800f-4e9c-49d9-89b8-f8b38063d864.mp4",
+       "comfyfield-abad51e1-3913-4cc5-bb74-fb35e7125b9f-motion.mp4",
+       "comfyfield-abf7df4c-760a-4ecb-a225-04cc9380230e-6fa93c34-a6c2-429e-8276-b3a5753009c3.mp4",
+       "comfyfield-abf7df4c-760a-4ecb-a225-04cc9380230e-e52d104a-ca5a-424a-addb-af908591fcef.mp4",
+       "comfyfield-acb3947f-7f2c-4358-ae5e-440303d33002-58f0e5c6-ecf7-4fbd-bfcb-844f8365439a.mp4",
+       "comfyfield-ae741db3-bc26-488f-b6b0-c97f7ded70e2-1445f1cb-3bd4-4df0-bd65-20cbbe5af652.mp4",
+       "comfyfield-aef19233-3c4a-410c-a164-fd00653b0802-2f326f19-e0b4-46dc-ad43-c2a7585f1bb6.mp4",
+       "comfyfield-afb7a22a-aa65-4a8f-b926-7eed9665e2f6-d9d8fc19-fd1c-4b19-a1b7-97391af59b0b.mp4",
+       "comfyfield-b36a71fb-3ed0-4923-ad32-4e92a2a2e433-6fa93c34-a6c2-429e-8276-b3a5753009c3.mp4",
+       "comfyfield-b44a4173-22af-44f0-8a8c-23df91fc6e56-e7a7e40d-d652-49d9-ab6d-db6ee387f6e3.mp4",
+       "comfyfield-b68228ce-5cdb-48e2-93da-5161349800f8-1fe716f9-9bcb-4323-9288-733e5aa59a9c.mp4",
+       "comfyfield-b759ce4f-9895-4368-bb13-af08e969d6b6-d6f3f586-bd09-4621-a8da-f7746a716915.mp4",
+       "comfyfield-b776a718-4780-4c92-9b3c-e6a727b932a0-motion.mp4",
+       "comfyfield-b7c302da-8b4c-4891-a0e6-8e9ad581f14e-motion.mp4",
+       "comfyfield-b99f751b-77b0-441e-be62-b51bb323821c-0e030afb-3c04-4a96-a97b-73b9e16dd0da.mp4",
+       "comfyfield-background-mask-qa.mp4",
+       "comfyfield-bd01a7f9-63b7-4324-8b9e-abcef6cb6a45-53c1e976-174d-4c25-8d5b-b0a73a2af910.mp4",
+       "comfyfield-bd0ab68e-a9fd-45b0-8a15-2acf7bab5eb4-1445f1cb-3bd4-4df0-bd65-20cbbe5af652.mp4",
+       "comfyfield-bec33423-914b-40af-8449-2128c2737f12-9922d37b-8c52-4b48-be5c-2073f09ae2e8.mp4",
+       "comfyfield-bf6ddb5b-1eea-4448-b520-0bc670b9df7c-e7a7e40d-d652-49d9-ab6d-db6ee387f6e3.mp4",
+       "comfyfield-c167220e-578e-4cc8-9e97-df7defdcbdee-4478cff1-d0c0-4078-a0bb-e48d595cb4ff.mp4",
+       "comfyfield-c4f95051-a2a6-4102-af3d-c03e844cdf12-806b049c-d969-408a-a19c-4c5cf600286c.mp4",
+       "comfyfield-c72958ee-eb33-4476-b85a-dde5cc178485-450f698c-9f2b-4e52-8cf4-015aa793bb4f.mp4",
+       "comfyfield-c7b8c144-50db-46cd-b63c-814cb7d37c8e-6730215d-f6fa-4d8b-9584-4304ce624830.mp4",
+       "comfyfield-c7b8c144-50db-46cd-b63c-814cb7d37c8e-d9d8fc19-fd1c-4b19-a1b7-97391af59b0b.mp4",
+       "comfyfield-c7e28218-97a6-44b2-bebb-0589f275cb58-ea6771c3-a0b1-41b8-8e2e-a493db671ea5.mp4",
+       "comfyfield-c974bbd8-25e4-4cee-82a9-2cb2498d9509-motion.mp4",
+       "comfyfield-caba61cd-b673-46fb-80eb-660414eb882b-motion.mp4",
+       "comfyfield-cb23eb99-d1bf-44e5-a611-50e608bf428b-82ab29d2-3604-430e-8a7d-1ebbbea88b37.mp4",
+       "comfyfield-cb431e2f-227b-4254-a65c-aecd3091cd39-4f21de9b-8698-4600-a001-5d69020cc721.mp4",
+       "comfyfield-cb8e8ddf-2a19-4c88-bfd2-0108bb686880-9eb2c2a2-a0a1-4089-b285-7b80b7097f16.mp4",
+       "comfyfield-cd400fe2-689c-4f94-bb55-b170a7f91c55-58f0e5c6-ecf7-4fbd-bfcb-844f8365439a.mp4",
+       "comfyfield-cd400fe2-689c-4f94-bb55-b170a7f91c55-d1793f38-f6e3-49ab-be3b-b97fad422459.mp4",
+       "comfyfield-cd80eed3-1fa8-497c-a982-0421166cd74e-motion.mp4",
+       "comfyfield-compare-scail-0-a-157.mp4",
+       "comfyfield-compare-source.mp4",
+       "comfyfield-d05b4f50-17d6-4fce-9460-924e9397117a-811fcfbd-6a60-40c5-ac38-f3dd12311d8a.mp4",
+       "comfyfield-d570e3ab-9cd0-4d27-bcb8-204f66f74456-86dda691-13c8-4368-95d5-c86971e7b954.mp4",
+       "comfyfield-d570e3ab-9cd0-4d27-bcb8-204f66f74456-95952c40-1754-44b5-8813-15b9b764fca8.mp4",
+       "comfyfield-d8a37023-056e-48b8-955a-2915f17609c8-c5194459-7c40-443d-a229-0555bbc52658.mp4",
+       "comfyfield-d8d26ace-bf02-4849-a2a6-6da7ae354e4e-0eed9f0d-b435-42ab-a30c-eca1d17e2b16.mp4",
+       "comfyfield-d8d26ace-bf02-4849-a2a6-6da7ae354e4e-a86657c4-2cde-4f3f-915d-2a10d5a48cc3.mp4",
+       "comfyfield-da159e0e-feec-4b44-8dd0-6900d66a33b0-4bc959a3-9878-4a99-ba75-6b4c47fce1e5.mp4",
+       "comfyfield-da3ecc9b-47ea-4342-bb0e-ad50264d8555-2d9bece0-81d4-4285-b2f9-278c2ecf5f2f.mp4",
+       "comfyfield-da7620b8-1d75-471c-9510-cf734743f38e-a8d845fb-3818-4608-8a3c-fae8966fb502.mp4",
+       "comfyfield-dcddc379-fa9a-4135-aed5-27ced7665df5-890aee9f-cace-4f93-8f9f-93f5849a8625.mp4",
+       "comfyfield-dea71ffe-c525-4017-ac1d-450f719d1261-6fa93c34-a6c2-429e-8276-b3a5753009c3.mp4",
+       "comfyfield-depth-map.mp4",
+       "comfyfield-depth-source.mp4",
+       "comfyfield-ds01-clip.mp4",
+       "comfyfield-dsid-source.mp4",
+       "comfyfield-dual-edit-background.mp4",
+       "comfyfield-dual-edit-object.mp4",
+       "comfyfield-e1637670-33a7-44a7-bd8c-eea7a60dcd7c-f74d1afc-7248-4566-9377-de7d2f1e90c3.mp4",
+       "comfyfield-e3de01e8-2601-4e26-8ec7-c678882fdad3-057ef003-8ec1-40a6-98b6-eb32d2aa43c8.mp4",
+       "comfyfield-e498bf28-a30a-4e03-89d5-10d461dae4f0-f74d1afc-7248-4566-9377-de7d2f1e90c3.mp4",
+       "comfyfield-e614ac0a-7dd4-4515-86dd-4ec5e621f416-6fa93c34-a6c2-429e-8276-b3a5753009c3.mp4",
+       "comfyfield-e88378ce-77b9-41c8-b618-b79083e53092-1a061a95-3c2d-453f-9b04-46a2e4a94ce6.mp4",
+       "comfyfield-eabad316-2968-4146-9126-a5588f32d7b7-f74d1afc-7248-4566-9377-de7d2f1e90c3.mp4",
+       "comfyfield-eb718832-8a39-4a24-b410-ff2ab6d87e02-e7a7e40d-d652-49d9-ab6d-db6ee387f6e3.mp4",
+       "comfyfield-ed7827d9-1838-4fec-a52c-3c70fa8bba1a-0eed9f0d-b435-42ab-a30c-eca1d17e2b16.mp4",
+       "comfyfield-eea3ccb4-13e1-4b2a-8348-ed583062a0f9-e7a7e40d-d652-49d9-ab6d-db6ee387f6e3.mp4",
+       "comfyfield-effect-depth-f94a1de4-fed7-4a4b-9d63-2d2c208a8bf4.mp4",
+       "comfyfield-effect-source-03d62c38-7bb6-4580-9b35-78f082cb250b.mp4",
+       "comfyfield-effect-source-f94a1de4-fed7-4a4b-9d63-2d2c208a8bf4.mp4",
+       "comfyfield-esrgan-qual.mp4",
+       "comfyfield-f08f74c0-672a-42b4-aeb4-8d629d96205e-4bc959a3-9878-4a99-ba75-6b4c47fce1e5.mp4",
+       "comfyfield-f215f461-0e39-4456-a487-8258b3e60480-f74d1afc-7248-4566-9377-de7d2f1e90c3.mp4",
+       "comfyfield-f23e7432-71aa-4c32-bb42-72b048cd5bed-0a5e3e95-8f1f-44dc-ad99-8124459d37a2.mp4",
+       "comfyfield-f257d255-f1e1-425c-9c77-8ed93c4cd13d-1f2f800f-4e9c-49d9-89b8-f8b38063d864.mp4",
+       "comfyfield-f277c846-6c67-4428-bf1c-876bd6d1fc90-66258eb5-9dae-4ade-b283-b1f3e14888c4.mp4",
+       "comfyfield-f2a8c53a-3d1c-4269-b2be-1e7679866e35-cef92833-a862-4c4c-9472-2e1b212b515c.mp4",
+       "comfyfield-f77c35b5-1b0a-4a4b-8e76-94433933e815-6730215d-f6fa-4d8b-9584-4304ce624830.mp4",
+       "comfyfield-f77c35b5-1b0a-4a4b-8e76-94433933e815-d9d8fc19-fd1c-4b19-a1b7-97391af59b0b.mp4",
+       "comfyfield-f92cb458-9688-4ae9-8d25-de65000139bc-77f23ff2-85ba-441f-82a4-e604b5178a8b.mp4",
+       "comfyfield-fa333b74-efe3-490e-b100-d4466d801be0-1445f1cb-3bd4-4df0-bd65-20cbbe5af652.mp4",
+       "comfyfield-fa4f09c6-d793-4dd8-9815-93d16b274904-motion.mp4",
+       "comfyfield-fb73fef0-ba78-4b80-83e9-41022af2f685-motion.mp4",
+       "comfyfield-fcdb240f-ffdf-4360-921f-615bc359f631-1445f1cb-3bd4-4df0-bd65-20cbbe5af652.mp4",
+       "comfyfield-fd85a7f2-7b51-429f-ba17-7ea7a21d3dbf-1f2f800f-4e9c-49d9-89b8-f8b38063d864.mp4",
+       "comfyfield-film-source.mp4",
+       "comfyfield-fps-prepare-1793052961716.mp4",
+       "comfyfield-identity-fix-step1.mp4",
+       "comfyfield-motion-qual.mp4",
+       "comfyfield-oneframe-source.mp4",
+       "comfyfield-overlay-mask-000-1793077327366.mp4",
+       "comfyfield-overlay-mask-000-1793077825876.mp4",
+       "comfyfield-overlay-mask-000-1793078005837.mp4",
+       "comfyfield-overlay-mask-000-1793078179595.mp4",
+       "comfyfield-overlay-mask-000-1793078512060.mp4",
+       "comfyfield-overlay-mask-000-1793078843084.mp4",
+       "comfyfield-overlay-mask-000-1793079726757.mp4",
+       "comfyfield-overlay-mask-000-1793084107643-1.mp4",
+       "comfyfield-overlay-mask-000-1793084107643-2.mp4",
+       "comfyfield-overlay-mask-000-1793085100780-1.mp4",
+       "comfyfield-overlay-mask-000-1793085100780-2.mp4",
+       "comfyfield-overlay-mask-000-1793118088611-1.mp4",
+       "comfyfield-overlay-mask-000-1793118088611-2.mp4",
+       "comfyfield-overlay-mask-000-1793425987393-1.mp4",
+       "comfyfield-overlay-mask-000-1793425987393-2.mp4",
+       "comfyfield-overlay-mask-001-1793077906476.mp4",
+       "comfyfield-overlay-mask-001-1793078081669.mp4",
+       "comfyfield-overlay-mask-001-1793078255512.mp4",
+       "comfyfield-overlay-mask-001-1793078589783.mp4",
+       "comfyfield-overlay-mask-001-1793078920928.mp4",
+       "comfyfield-overlay-mask-001-1793079806195.mp4",
+       "comfyfield-overlay-mask-001-1793084325214-1.mp4",
+       "comfyfield-overlay-mask-001-1793084325214-2.mp4",
+       "comfyfield-overlay-mask-001-1793085319227-1.mp4",
+       "comfyfield-overlay-mask-001-1793118394591-1.mp4",
+       "comfyfield-overlay-mask-002-1793078337258.mp4",
+       "comfyfield-overlay-mask-002-1793078673489.mp4",
+       "comfyfield-overlay-mask-002-1793079005268.mp4",
+       "comfyfield-overlay-mask-002-1793079886782.mp4",
+       "comfyfield-overlay-mask-002-1793084538249-1.mp4",
+       "comfyfield-overlay-mask-002-1793085423451-1.mp4",
+       "comfyfield-overlay-mask-002-1793118496194-1.mp4",
+       "comfyfield-overlay-mask-003-1793078413082.mp4",
+       "comfyfield-overlay-mask-003-1793078749636.mp4",
+       "comfyfield-overlay-mask-003-1793079082565.mp4",
+       "comfyfield-overlay-mask-003-1793079961944.mp4",
+       "comfyfield-overlay-mask-003-1793084642499-1.mp4",
+       "comfyfield-overlay-mask-003-1793084642499-2.mp4",
+       "comfyfield-overlay-mask-003-1793085533642-1.mp4",
+       "comfyfield-overlay-mask-003-1793085533642-2.mp4",
+       "comfyfield-overlay-mask-003-1793118617839-1.mp4",
+       "comfyfield-overlay-mask-003-1793118617839-2.mp4",
+       "comfyfield-overlay-source-000-1793077327366.mp4",
+       "comfyfield-overlay-source-000-1793077825876.mp4",
+       "comfyfield-overlay-source-000-1793078005837.mp4",
+       "comfyfield-overlay-source-000-1793078179595.mp4",
+       "comfyfield-overlay-source-000-1793078512060.mp4",
+       "comfyfield-overlay-source-000-1793078843084.mp4",
+       "comfyfield-overlay-source-000-1793079726757.mp4",
+       "comfyfield-overlay-source-000-1793084107643-1.mp4",
+       "comfyfield-overlay-source-000-1793084107643-2.mp4",
+       "comfyfield-overlay-source-000-1793085100780-1.mp4",
+       "comfyfield-overlay-source-000-1793085100780-2.mp4",
+       "comfyfield-overlay-source-000-1793118088611-1.mp4",
+       "comfyfield-overlay-source-000-1793118088611-2.mp4",
+       "comfyfield-overlay-source-000-1793425987393-1.mp4",
+       "comfyfield-overlay-source-000-1793425987393-2.mp4",
+       "comfyfield-overlay-source-001-1793077906476.mp4",
+       "comfyfield-overlay-source-001-1793078081669.mp4",
+       "comfyfield-overlay-source-001-1793078255512.mp4",
+       "comfyfield-overlay-source-001-1793078589783.mp4",
+       "comfyfield-overlay-source-001-1793078920928.mp4",
+       "comfyfield-overlay-source-001-1793079806195.mp4",
+       "comfyfield-overlay-source-001-1793084325214-1.mp4",
+       "comfyfield-overlay-source-001-1793084325214-2.mp4",
+       "comfyfield-overlay-source-001-1793085319227-1.mp4",
+       "comfyfield-overlay-source-001-1793118394591-1.mp4",
+       "comfyfield-overlay-source-002-1793078337258.mp4",
+       "comfyfield-overlay-source-002-1793078673489.mp4",
+       "comfyfield-overlay-source-002-1793079005268.mp4",
+       "comfyfield-overlay-source-002-1793079886782.mp4",
+       "comfyfield-overlay-source-002-1793084538249-1.mp4",
+       "comfyfield-overlay-source-002-1793085423451-1.mp4",
+       "comfyfield-overlay-source-002-1793118496194-1.mp4",
+       "comfyfield-overlay-source-003-1793078413082.mp4",
+       "comfyfield-overlay-source-003-1793078749636.mp4",
+       "comfyfield-overlay-source-003-1793079082565.mp4",
+       "comfyfield-overlay-source-003-1793079961944.mp4",
+       "comfyfield-overlay-source-003-1793084642499-1.mp4",
+       "comfyfield-overlay-source-003-1793084642499-2.mp4",
+       "comfyfield-overlay-source-003-1793085533642-1.mp4",
+       "comfyfield-overlay-source-003-1793085533642-2.mp4",
+       "comfyfield-overlay-source-003-1793118617839-1.mp4",
+       "comfyfield-overlay-source-003-1793118617839-2.mp4",
+       "comfyfield-qualification-200e4221-c111-4d88-a7d7-4e0b2d19e9bc.mp4",
+       "comfyfield-qualification-48d00483-9eb1-4e13-b4da-a69466e4a7ae.mp4",
+       "comfyfield-qualification-810242d9-4e04-4d22-a864-0444f6bafdc1.mp4",
+       "comfyfield-qualification-ed44f176-d7dc-45f7-b0e5-4c20b9930212.mp4",
+       "comfyfield-ras-S-G1-clip.mp4",
+       "comfyfield-ras-S-G2-clip.mp4",
+       "comfyfield-ras-S-G3-clip.mp4",
+       "comfyfield-ras-S-G4-clip.mp4",
+       "comfyfield-ras-S-G7-clip.mp4",
+       "comfyfield-ras-S-G8-clip.mp4",
+       "comfyfield-ras-clean-plate.mp4",
+       "comfyfield-restyle-subject.mp4",
+       "comfyfield-smoke-1792391526580.mp4",
+       "comfyfield-smoke-1793296902840.mp4",
+       "comfyfield-test-motion.mp4",
+       "comfyfield-two-character.mp4",
+       "comfyfield-vace-qual.mp4",
+       "compare-source-clean.mp4",
+       "fromstill-clean-plate.mp4",
+       "jutsu-source.mp4",
+       "mask.mp4",
+       "ovl-mask.mp4",
+       "ovl-source.mp4",
+       "ras-S-G1-clip.mp4",
+       "source.mp4",
+       "studio-enhance-probe.mp4",
+       "studio-mvbhuc8t-c70eef-clip-67ca843e.mp4",
+       "studio-mvbilvuq-725eb7-motion-drive.mp4",
+       "studio-mvbiqlnp-8c61a8-dance.mp4",
+       "studio-mvbj3vp0-2a1320-dance.mp4",
+       "studio-mvbufng3-6f6293-dance.mp4",
+       "studio-mvbukijd-7d3abc-dance.mp4",
+       "studio-mvbuvcwy-ae118b-dance.mp4"
+      ],
+      "video_upload": true
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "file"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "VIDEO"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "VIDEO"
+  ],
+  "output_tooltips": [
+   null
+  ],
+  "output_matchtypes": null,
+  "name": "LoadVideo",
+  "display_name": "Load Video",
+  "description": "",
+  "python_module": "comfy_extras.nodes_video",
+  "category": "video",
+  "output_node": false,
+  "deprecated": false,
+  "experimental": false,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": [
+   "import video",
+   "open video",
+   "video file"
+  ],
+  "essentials_category": "Basics",
+  "has_intermediate_output": true
+ },
+ "MoGePointMapToMesh": {
+  "input": {
+   "required": {
+    "moge_geometry": [
+     "MOGE_GEOMETRY",
+     {}
+    ],
+    "batch_index": [
+     "INT",
+     {
+      "tooltip": "Which image of a batched MoGe geometry to mesh. Per-image vertex counts differ, so batches can't be stacked into a single MESH.",
+      "default": 0,
+      "min": 0,
+      "max": 4096
+     }
+    ],
+    "decimation": [
+     "INT",
+     {
+      "tooltip": "Vertex stride; 1 = full resolution.",
+      "default": 1,
+      "min": 1,
+      "max": 8
+     }
+    ],
+    "discontinuity_threshold": [
+     "FLOAT",
+     {
+      "tooltip": "Drop pixels whose 3x3 depth span exceeds this fraction. 0 = off.",
+      "default": 0.04,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+     }
+    ],
+    "texture": [
+     "BOOLEAN",
+     {
+      "tooltip": "Carry the source image through as the baseColor texture.",
+      "default": true
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "moge_geometry",
+    "batch_index",
+    "decimation",
+    "discontinuity_threshold",
+    "texture"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "MESH"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "MESH"
+  ],
+  "output_tooltips": [
+   null
+  ],
+  "output_matchtypes": null,
+  "name": "MoGePointMapToMesh",
+  "display_name": "Convert MoGe Point Map to Mesh",
+  "description": "Convert a MoGe point map into a 3D mesh.",
+  "python_module": "comfy_extras.nodes_moge",
+  "category": "image/geometry estimation",
+  "output_node": false,
+  "deprecated": false,
+  "experimental": false,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": [
+   "moge",
+   "mesh",
+   "geometry",
+   "point map"
+  ],
+  "essentials_category": null,
+  "has_intermediate_output": false
+ },
+ "MoGeInference": {
+  "input": {
+   "required": {
+    "moge_model": [
+     "MOGE_MODEL",
+     {}
+    ],
+    "image": [
+     "IMAGE",
+     {}
+    ],
+    "resolution_level": [
+     "INT",
+     {
+      "tooltip": "0 = fastest, 9 = most detail.",
+      "default": 9,
+      "min": 0,
+      "max": 9
+     }
+    ],
+    "fov_x_degrees": [
+     "FLOAT",
+     {
+      "tooltip": "Horizontal field of view of the source camera. Sets the focal length used to unproject the depth map into 3D. 0 = auto-recover from the predicted points.",
+      "advanced": true,
+      "default": 0,
+      "min": 0,
+      "max": 170,
+      "step": 0.1
+     }
+    ],
+    "batch_size": [
+     "INT",
+     {
+      "tooltip": "Images per inference call. Lower if you OOM on a long video / image set.",
+      "default": 4,
+      "min": 1,
+      "max": 64
+     }
+    ],
+    "force_projection": [
+     "BOOLEAN",
+     {
+      "advanced": true,
+      "default": true
+     }
+    ],
+    "apply_mask": [
+     "BOOLEAN",
+     {
+      "tooltip": "Set masked-out (sky / invalid) pixels to inf in points and depth so meshing culls them. Disable to keep the raw predicted geometry everywhere; the mask is still returned separately.",
+      "advanced": true,
+      "default": true
+     }
+    ],
+    "refine_steps": [
+     "INT",
+     {
+      "tooltip": "MoGe-3 only: sparse volumetric refinement passes over the predicted depth. More passes sharpen fine detail and edges at a roughly linear cost. 0 disables refinement. Ignored by MoGe-1 / MoGe-2.",
+      "advanced": true,
+      "default": 3,
+      "min": 0,
+      "max": 8
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "moge_model",
+    "image",
+    "resolution_level",
+    "fov_x_degrees",
+    "batch_size",
+    "force_projection",
+    "apply_mask",
+    "refine_steps"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "MOGE_GEOMETRY"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "moge_geometry"
+  ],
+  "output_tooltips": [
+   null
+  ],
+  "output_matchtypes": null,
+  "name": "MoGeInference",
+  "display_name": "Run MoGe Inference",
+  "description": "Run MoGe on a single image to estimate depth and geometry.",
+  "python_module": "comfy_extras.nodes_moge",
+  "category": "image/geometry estimation",
+  "output_node": false,
+  "deprecated": false,
+  "experimental": false,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": [
+   "moge",
+   "depth",
+   "geometry",
+   "depth estimation",
+   "geometry estimation"
+  ],
+  "essentials_category": null,
+  "has_intermediate_output": false
+ },
+ "LoadMoGeModel": {
+  "input": {
+   "required": {
+    "model_name": [
+     "COMBO",
+     {
+      "multiselect": false,
+      "options": [
+       "moge_2_vitl_normal_fp16.safetensors"
+      ]
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "model_name"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "MOGE_MODEL"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "MOGE_MODEL"
+  ],
+  "output_tooltips": [
+   null
+  ],
+  "output_matchtypes": null,
+  "name": "LoadMoGeModel",
+  "display_name": "Load MoGe Model",
+  "description": "",
+  "python_module": "comfy_extras.nodes_moge",
+  "category": "model/loaders",
+  "output_node": false,
+  "deprecated": false,
+  "experimental": false,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": null,
+  "essentials_category": null,
+  "has_intermediate_output": false
+ },
+ "MoGeRender": {
+  "input": {
+   "required": {
+    "moge_geometry": [
+     "MOGE_GEOMETRY",
+     {}
+    ],
+    "output": [
+     "COMBO",
+     {
+      "tooltip": "DirectX vs OpenGL controls the normal-map green-channel convention. DirectX: green = -Y down (Unreal). OpenGL: green = +Y up (Blender, Substance, Unity, glTF).",
+      "default": "depth",
+      "multiselect": false,
+      "options": [
+       "depth",
+       "depth_colored",
+       "normal_opengl",
+       "normal_directx",
+       "mask"
+      ]
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "moge_geometry",
+    "output"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "IMAGE"
+  ],
+  "output_tooltips": [
+   null
+  ],
+  "output_matchtypes": null,
+  "name": "MoGeRender",
+  "display_name": "Render MoGe Geometry",
+  "description": "Render a depth map or normal map from geometry data",
+  "python_module": "comfy_extras.nodes_moge",
+  "category": "image/geometry estimation",
+  "output_node": false,
+  "deprecated": false,
+  "experimental": false,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": [
+   "moge",
+   "render",
+   "geometry",
+   "depth",
+   "normal"
+  ],
+  "essentials_category": null,
+  "has_intermediate_output": false
+ },
+ "MoGeGeometryToFOV": {
+  "input": {
+   "required": {
+    "moge_geometry": [
+     "MOGE_GEOMETRY",
+     {}
+    ],
+    "axis": [
+     "COMBO",
+     {
+      "tooltip": "'vertical' (fov_y), 'horizontal' (fov_x), or 'diagonal'.",
+      "default": "vertical",
+      "multiselect": false,
+      "options": [
+       "vertical",
+       "horizontal",
+       "diagonal"
+      ]
+     }
+    ],
+    "unit": [
+     "COMBO",
+     {
+      "tooltip": "Output unit for the FOV.",
+      "default": "degrees",
+      "multiselect": false,
+      "options": [
+       "degrees",
+       "radians"
+      ]
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "moge_geometry",
+    "axis",
+    "unit"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "FLOAT",
+   "FLOAT"
+  ],
+  "output_is_list": [
+   false,
+   false
+  ],
+  "output_name": [
+   "fov",
+   "focal_pixels"
+  ],
+  "output_tooltips": [
+   null,
+   null
+  ],
+  "output_matchtypes": null,
+  "name": "MoGeGeometryToFOV",
+  "display_name": "Get FoV from MoGe Geometry",
+  "description": "Derive the field of view and focal length from MoGe intrinsics.",
+  "python_module": "comfy_extras.nodes_moge",
+  "category": "image/geometry estimation",
+  "output_node": false,
+  "deprecated": false,
+  "experimental": false,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": [
+   "moge",
+   "fov",
+   "geometry",
+   "intrinsics",
+   "field of view"
+  ],
+  "essentials_category": null,
+  "has_intermediate_output": false
+ },
+ "MoGePanoramaInference": {
+  "input": {
+   "required": {
+    "moge_model": [
+     "MOGE_MODEL",
+     {}
+    ],
+    "image": [
+     "IMAGE",
+     {
+      "tooltip": "Equirectangular panorama (any aspect)."
+     }
+    ],
+    "resolution_level": [
+     "INT",
+     {
+      "tooltip": "Per-view detail (0 = fastest, 9 = most detailed).",
+      "default": 9,
+      "min": 0,
+      "max": 9
+     }
+    ],
+    "split_resolution": [
+     "INT",
+     {
+      "tooltip": "Resolution of each perspective split.",
+      "default": 512,
+      "min": 256,
+      "max": 1024
+     }
+    ],
+    "merge_resolution": [
+     "INT",
+     {
+      "tooltip": "Long-side resolution of the merged equirect distance map.",
+      "default": 1920,
+      "min": 256,
+      "max": 8192
+     }
+    ],
+    "batch_size": [
+     "INT",
+     {
+      "tooltip": "Views per inference batch (12 splits total).",
+      "default": 4,
+      "min": 1,
+      "max": 12
+     }
+    ],
+    "refine_steps": [
+     "INT",
+     {
+      "tooltip": "MoGe-3 only: sparse volumetric refinement passes over the predicted depth. More passes sharpen fine detail and edges at a roughly linear cost. 0 disables refinement. Ignored by MoGe-1 / MoGe-2.",
+      "advanced": true,
+      "default": 3,
+      "min": 0,
+      "max": 8
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "moge_model",
+    "image",
+    "resolution_level",
+    "split_resolution",
+    "merge_resolution",
+    "batch_size",
+    "refine_steps"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "MOGE_GEOMETRY"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "moge_geometry"
+  ],
+  "output_tooltips": [
+   null
+  ],
+  "output_matchtypes": null,
+  "name": "MoGePanoramaInference",
+  "display_name": "Run MoGe Panorama Inference",
+  "description": "Run MoGe on an equirectangular panorama by splitting it into 12 perspective views, running inference on each, and merging the results into a single depth map.",
+  "python_module": "comfy_extras.nodes_moge",
+  "category": "image/geometry estimation",
+  "output_node": false,
+  "deprecated": false,
+  "experimental": false,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": [
+   "moge",
+   "panorama",
+   "depth",
+   "geometry",
+   "depth estimation",
+   "geometry estimation"
+  ],
+  "essentials_category": null,
+  "has_intermediate_output": false
+ },
+ "ComfyMathExpression": {
+  "input": {
+   "required": {
+    "expression": [
+     "STRING",
+     {
+      "default": "a + b",
+      "multiline": true
+     }
+    ],
+    "values": [
+     "COMFY_AUTOGROW_V3",
+     {
+      "template": {
+       "input": {
+        "required": {
+         "value": [
+          "FLOAT,INT,BOOLEAN",
+          {}
+         ]
+        }
+       },
+       "names": [
+        "a",
+        "b",
+        "c",
+        "d",
+        "e",
+        "f",
+        "g",
+        "h",
+        "i",
+        "j",
+        "k",
+        "l",
+        "m",
+        "n",
+        "o",
+        "p",
+        "q",
+        "r",
+        "s",
+        "t",
+        "u",
+        "v",
+        "w",
+        "x",
+        "y",
+        "z"
+       ],
+       "min": 1
+      }
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "expression",
+    "values"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "FLOAT",
+   "INT",
+   "BOOLEAN"
+  ],
+  "output_is_list": [
+   false,
+   false,
+   false
+  ],
+  "output_name": [
+   "FLOAT",
+   "INT",
+   "BOOL"
+  ],
+  "output_tooltips": [
+   null,
+   null,
+   null
+  ],
+  "output_matchtypes": null,
+  "name": "ComfyMathExpression",
+  "display_name": "Math Expression",
+  "description": "",
+  "python_module": "comfy_extras.nodes_math",
+  "category": "utilities",
+  "output_node": false,
+  "deprecated": false,
+  "experimental": false,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": [
+   "math",
+   "expression",
+   "formula",
+   "calculate",
+   "calculator",
+   "eval"
+  ],
+  "essentials_category": null,
+  "has_intermediate_output": false
+ },
+ "GetImageSize": {
+  "input": {
+   "required": {
+    "image": [
+     "IMAGE",
+     {}
+    ]
+   },
+   "hidden": {
+    "unique_id": [
+     "UNIQUE_ID"
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "image"
+   ],
+   "hidden": [
+    "unique_id"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "INT",
+   "INT",
+   "INT"
+  ],
+  "output_is_list": [
+   false,
+   false,
+   false
+  ],
+  "output_name": [
+   "width",
+   "height",
+   "batch_size"
+  ],
+  "output_tooltips": [
+   null,
+   null,
+   null
+  ],
+  "output_matchtypes": null,
+  "name": "GetImageSize",
+  "display_name": "Get Image Size",
+  "description": "Returns the width, height, and batch size of the image.",
+  "python_module": "comfy_extras.nodes_images",
+  "category": "image",
+  "output_node": false,
+  "deprecated": false,
+  "experimental": false,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": [
+   "dimensions",
+   "resolution",
+   "image info"
+  ],
+  "essentials_category": null,
+  "has_intermediate_output": false
+ },
+ "ImageScaleToMaxDimension": {
+  "input": {
+   "required": {
+    "image": [
+     "IMAGE",
+     {}
+    ],
+    "upscale_method": [
+     "COMBO",
+     {
+      "multiselect": false,
+      "options": [
+       "area",
+       "lanczos",
+       "bilinear",
+       "nearest-exact",
+       "bilinear",
+       "bicubic"
+      ]
+     }
+    ],
+    "largest_size": [
+     "INT",
+     {
+      "default": 512,
+      "min": 0,
+      "max": 16384,
+      "step": 1
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "image",
+    "upscale_method",
+    "largest_size"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "IMAGE"
+  ],
+  "output_tooltips": [
+   null
+  ],
+  "output_matchtypes": null,
+  "name": "ImageScaleToMaxDimension",
+  "display_name": "Scale Image to Max Dimension",
+  "description": "",
+  "python_module": "comfy_extras.nodes_images",
+  "category": "image/upscaling",
+  "output_node": false,
+  "deprecated": false,
+  "experimental": false,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": null,
+  "essentials_category": null,
+  "has_intermediate_output": false
+ },
+ "ComfySwitchNode": {
+  "input": {
+   "required": {
+    "switch": [
+     "BOOLEAN",
+     {}
+    ]
+   },
+   "optional": {
+    "on_false": [
+     "COMFY_MATCHTYPE_V3",
+     {
+      "lazy": true,
+      "template": {
+       "template_id": "switch",
+       "allowed_types": "*"
+      }
+     }
+    ],
+    "on_true": [
+     "COMFY_MATCHTYPE_V3",
+     {
+      "lazy": true,
+      "template": {
+       "template_id": "switch",
+       "allowed_types": "*"
+      }
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "switch"
+   ],
+   "optional": [
+    "on_false",
+    "on_true"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "COMFY_MATCHTYPE_V3"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "output"
+  ],
+  "output_tooltips": [
+   null
+  ],
+  "output_matchtypes": [
+   "switch"
+  ],
+  "name": "ComfySwitchNode",
+  "display_name": "If/Else Switch",
+  "description": "",
+  "python_module": "comfy_extras.nodes_logic",
+  "category": "utilities/logic",
+  "output_node": false,
+  "deprecated": false,
+  "experimental": true,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": [
+   "if",
+   "then",
+   "switch",
+   "conditional",
+   "branch"
+  ],
+  "essentials_category": null,
+  "has_intermediate_output": false
+ },
+ "CLIPTextEncode": {
+  "input": {
+   "required": {
+    "text": [
+     "STRING",
+     {
+      "multiline": true,
+      "dynamicPrompts": true,
+      "tooltip": "The text to be encoded."
+     }
+    ],
+    "clip": [
+     "CLIP",
+     {
+      "tooltip": "The CLIP model used for encoding the text."
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "text",
+    "clip"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "CONDITIONING"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "CONDITIONING"
+  ],
+  "name": "CLIPTextEncode",
+  "display_name": "CLIP Text Encode (Prompt)",
+  "description": "Encodes a text prompt using a CLIP model into an embedding that can be used to guide the diffusion model towards generating specific images.",
+  "python_module": "nodes",
+  "category": "model/conditioning",
+  "output_node": false,
+  "has_intermediate_output": false,
+  "output_tooltips": [
+   "A conditioning containing the embedded text used to guide the diffusion model."
+  ],
+  "search_aliases": [
+   "text",
+   "prompt",
+   "text prompt",
+   "positive prompt",
+   "negative prompt",
+   "encode text",
+   "text encoder",
+   "encode prompt"
+  ]
+ },
+ "SAM3_Detect": {
+  "input": {
+   "required": {
+    "model": [
+     "MODEL",
+     {
+      "display_name": "model"
+     }
+    ],
+    "image": [
+     "IMAGE",
+     {
+      "display_name": "image"
+     }
+    ],
+    "threshold": [
+     "FLOAT",
+     {
+      "display_name": "threshold",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+     }
+    ],
+    "refine_iterations": [
+     "INT",
+     {
+      "display_name": "refine_iterations",
+      "tooltip": "SAM decoder refinement passes (0=use raw detector masks)",
+      "default": 2,
+      "min": 0,
+      "max": 5
+     }
+    ],
+    "individual_masks": [
+     "BOOLEAN",
+     {
+      "display_name": "individual_masks",
+      "tooltip": "Output per-object masks instead of union",
+      "default": false
+     }
+    ]
+   },
+   "optional": {
+    "conditioning": [
+     "CONDITIONING",
+     {
+      "display_name": "conditioning",
+      "tooltip": "Text conditioning from CLIPTextEncode"
+     }
+    ],
+    "bboxes": [
+     "BOUNDING_BOX",
+     {
+      "display_name": "bboxes",
+      "tooltip": "Bounding boxes to segment within",
+      "default": {
+       "x": 0,
+       "y": 0,
+       "width": 512,
+       "height": 512
+      },
+      "socketless": true,
+      "forceInput": true
+     }
+    ],
+    "positive_coords": [
+     "STRING",
+     {
+      "display_name": "positive_coords",
+      "tooltip": "Positive point prompts as JSON [{\"x\": int, \"y\": int}, ...] (pixel coords)",
+      "forceInput": true,
+      "multiline": false
+     }
+    ],
+    "negative_coords": [
+     "STRING",
+     {
+      "display_name": "negative_coords",
+      "tooltip": "Negative point prompts as JSON [{\"x\": int, \"y\": int}, ...] (pixel coords)",
+      "forceInput": true,
+      "multiline": false
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "model",
+    "image",
+    "threshold",
+    "refine_iterations",
+    "individual_masks"
+   ],
+   "optional": [
+    "conditioning",
+    "bboxes",
+    "positive_coords",
+    "negative_coords"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "MASK",
+   "BOUNDING_BOX"
+  ],
+  "output_is_list": [
+   false,
+   false
+  ],
+  "output_name": [
+   "masks",
+   "bboxes"
+  ],
+  "output_tooltips": [
+   null,
+   null
+  ],
+  "output_matchtypes": null,
+  "name": "SAM3_Detect",
+  "display_name": "SAM3 Detect",
+  "description": "",
+  "python_module": "comfy_extras.nodes_sam3",
+  "category": "image/detection",
+  "output_node": false,
+  "deprecated": false,
+  "experimental": false,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": [
+   "sam3",
+   "segment anything",
+   "open vocabulary",
+   "text detection",
+   "segment"
+  ],
+  "essentials_category": null,
+  "has_intermediate_output": false
+ },
+ "CheckpointLoaderSimple": {
+  "input": {
+   "required": {
+    "ckpt_name": [
+     [
+      "512-inpainting-ema.safetensors",
+      "hunyuan_3d_v2.1.safetensors",
+      "sam3.1_multiplex_fp16.safetensors",
+      "sdpose_wholebody_fp16.safetensors"
+     ],
+     {
+      "tooltip": "The name of the checkpoint (model) to load."
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "ckpt_name"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "MODEL",
+   "CLIP",
+   "VAE"
+  ],
+  "output_is_list": [
+   false,
+   false,
+   false
+  ],
+  "output_name": [
+   "MODEL",
+   "CLIP",
+   "VAE"
+  ],
+  "name": "CheckpointLoaderSimple",
+  "display_name": "Load Checkpoint",
+  "description": "Loads a diffusion model checkpoint, diffusion models are used to denoise latents.",
+  "python_module": "nodes",
+  "category": "model/loaders",
+  "output_node": false,
+  "has_intermediate_output": false,
+  "output_tooltips": [
+   "The model used for denoising latents.",
+   "The CLIP model used for encoding text prompts.",
+   "The VAE model used for encoding and decoding images to and from latent space."
+  ],
+  "search_aliases": [
+   "load model",
+   "checkpoint",
+   "model loader",
+   "load checkpoint",
+   "ckpt",
+   "model"
+  ]
+ },
+ "GetVideoComponents": {
+  "input": {
+   "required": {
+    "video": [
+     "VIDEO",
+     {
+      "tooltip": "The video to extract components from."
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "video"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "IMAGE",
+   "AUDIO",
+   "FLOAT",
+   "COMBO",
+   "COMBO"
+  ],
+  "output_is_list": [
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "output_name": [
+   "images",
+   "audio",
+   "fps",
+   "bit_depth",
+   "color_space"
+  ],
+  "output_tooltips": [
+   null,
+   null,
+   null,
+   null,
+   null
+  ],
+  "output_matchtypes": null,
+  "name": "GetVideoComponents",
+  "display_name": "Get Video Components",
+  "description": "Extracts video frames, audio, frame rate, bit depth, and color space.",
+  "python_module": "comfy_extras.nodes_video",
+  "category": "video",
+  "output_node": false,
+  "deprecated": false,
+  "experimental": false,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": [
+   "extract frames",
+   "split video",
+   "video to images",
+   "demux"
+  ],
+  "essentials_category": null,
+  "has_intermediate_output": false
+ },
+ "SaveGLB": {
+  "input": {
+   "required": {
+    "mesh": [
+     "MESH,FILE_3D_GLB,FILE_3D_GLTF,FILE_3D_OBJ,FILE_3D_FBX,FILE_3D_STL,FILE_3D_USDZ,FILE_3D_PLY,FILE_3D_SPLAT,FILE_3D_SPZ,FILE_3D_KSPLAT,FILE_3D_SPLAT_ANY,FILE_3D_POINT_CLOUD_ANY,FILE_3D",
+     {
+      "tooltip": "Mesh or 3D file to save"
+     }
+    ],
+    "filename_prefix": [
+     "STRING",
+     {
+      "default": "3d/ComfyUI",
+      "multiline": false
+     }
+    ]
+   },
+   "hidden": {
+    "prompt": [
+     "PROMPT"
+    ],
+    "extra_pnginfo": [
+     "EXTRA_PNGINFO"
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "mesh",
+    "filename_prefix"
+   ],
+   "hidden": [
+    "prompt",
+    "extra_pnginfo"
+   ]
+  },
+  "is_input_list": false,
+  "output": [],
+  "output_is_list": [],
+  "output_name": [],
+  "output_tooltips": [],
+  "output_matchtypes": null,
+  "name": "SaveGLB",
+  "display_name": "Save 3D Model",
+  "description": "",
+  "python_module": "comfy_extras.nodes_save_3d",
+  "category": "3d",
+  "output_node": true,
+  "deprecated": false,
+  "experimental": false,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": [
+   "export 3d model",
+   "save mesh"
+  ],
+  "essentials_category": "Basics",
+  "has_intermediate_output": false
+ },
+ "SaveImage": {
+  "input": {
+   "required": {
+    "images": [
+     "IMAGE",
+     {
+      "tooltip": "The images to save."
+     }
+    ],
+    "filename_prefix": [
+     "STRING",
+     {
+      "default": "ComfyUI",
+      "tooltip": "The prefix for the file to save. This may include formatting information such as %date:yyyy-MM-dd% or %Empty Latent Image.width% to include values from nodes."
+     }
+    ]
+   },
+   "hidden": {
+    "prompt": "PROMPT",
+    "extra_pnginfo": "EXTRA_PNGINFO"
+   }
+  },
+  "input_order": {
+   "required": [
+    "images",
+    "filename_prefix"
+   ],
+   "hidden": [
+    "prompt",
+    "extra_pnginfo"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "images"
+  ],
+  "name": "SaveImage",
+  "display_name": "Save Image",
+  "description": "Saves the input images to your ComfyUI output directory.",
+  "python_module": "nodes",
+  "category": "image",
+  "output_node": true,
+  "has_intermediate_output": false,
+  "search_aliases": [
+   "save",
+   "save image",
+   "export image",
+   "output image",
+   "write image",
+   "download"
+  ],
+  "essentials_category": "Basics"
+ },
+ "MaskToImage": {
+  "input": {
+   "required": {
+    "mask": [
+     "MASK",
+     {}
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "mask"
+   ]
+  },
+  "is_input_list": false,
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "IMAGE"
+  ],
+  "output_tooltips": [
+   null
+  ],
+  "output_matchtypes": null,
+  "name": "MaskToImage",
+  "display_name": "Convert Mask to Image",
+  "description": "",
+  "python_module": "comfy_extras.nodes_mask",
+  "category": "image/mask",
+  "output_node": false,
+  "deprecated": false,
+  "experimental": false,
+  "dev_only": false,
+  "api_node": false,
+  "price_badge": null,
+  "search_aliases": [
+   "convert mask"
+  ],
+  "essentials_category": null,
+  "has_intermediate_output": false
+ }
+}

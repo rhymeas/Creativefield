@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 2,
+  "id": "wan21-vace-masked-edit",
+  "version": "0.3.0",
+  "title": "Wan 2.1 VACE 1.3B masked edit",
+  "category": "replacement",
+  "description": "Qualified manual-mask video editing for ordinary camera footage: the server normalizes source and mask into an aligned 16 FPS VACE envelope (up to 81 frames) and publishes 16 FPS output. No tracking, reference identity or extension.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Source video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "4",
+        "field": "file"
+      }
+    },
+    {
+      "id": "edit_mask",
+      "label": "Aligned edit mask",
+      "type": "mask",
+      "representation": "video",
+      "required": true,
+      "binding": {
+        "node": "6",
+        "field": "file"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Edited video",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Replacement prompt",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "10",
+        "field": "text"
+      }
+    },
+    {
+      "id": "negative",
+      "label": "Negative prompt",
+      "type": "string",
+      "default": "blurry, distorted, unstable",
+      "binding": {
+        "node": "11",
+        "field": "text"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 543,
+      "binding": {
+        "node": "17",
+        "field": "seed"
+      }
+    },
+    {
+      "id": "strength",
+      "label": "VACE conditioning strength",
+      "type": "number",
+      "min": 0,
+      "max": 2,
+      "default": 1,
+      "binding": {
+        "node": "15",
+        "field": "strength"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "wan21-vace-masked-edit",
+      "requirements": [
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Install a ComfyUI version providing UNETLoader."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install a ComfyUI version providing CLIPLoader."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install a ComfyUI version providing VAELoader."
+        },
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Install a ComfyUI version providing LoadVideo."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Install a ComfyUI version providing GetVideoComponents."
+        },
+        {
+          "id": "node:ImageToMask",
+          "kind": "node",
+          "name": "ImageToMask",
+          "instructions": "Install a ComfyUI version providing ImageToMask."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Install a ComfyUI version providing GetImageSize."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Install a ComfyUI version providing CLIPTextEncode."
+        },
+        {
+          "id": "node:InvertMask",
+          "kind": "node",
+          "name": "InvertMask",
+          "instructions": "Install a ComfyUI version providing InvertMask."
+        },
+        {
+          "id": "node:MaskToImage",
+          "kind": "node",
+          "name": "MaskToImage",
+          "instructions": "Install a ComfyUI version providing MaskToImage."
+        },
+        {
+          "id": "node:ImageCompositeMasked",
+          "kind": "node",
+          "name": "ImageCompositeMasked",
+          "instructions": "Install a ComfyUI version providing ImageCompositeMasked."
+        },
+        {
+          "id": "node:WanVaceToVideo",
+          "kind": "node",
+          "name": "WanVaceToVideo",
+          "instructions": "Install a ComfyUI version providing WanVaceToVideo."
+        },
+        {
+          "id": "node:ModelSamplingSD3",
+          "kind": "node",
+          "name": "ModelSamplingSD3",
+          "instructions": "Install a ComfyUI version providing ModelSamplingSD3."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Install a ComfyUI version providing KSampler."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install a ComfyUI version providing VAEDecode."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Install a ComfyUI version providing CreateVideo."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install a ComfyUI version providing SaveVideo."
+        },
+        {
+          "id": "model:vace13b",
+          "kind": "model",
+          "name": "wan2.1_vace_1.3B_fp16.safetensors",
+          "location": "diffusion_models",
+          "version": "123acf1cc74bccbb9bfff8ac1ee72edc08c2341d",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the pinned Wan 2.1 VACE 1.3B FP16 diffusion model (4.31 GB). Qualification uses an RTX 4090; minimum VRAM is not measured."
+        },
+        {
+          "id": "model:umt5",
+          "kind": "model",
+          "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the UMT5 XXL FP8 scaled text encoder."
+        },
+        {
+          "id": "model:vae",
+          "kind": "model",
+          "name": "wan_2.1_vae.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the Wan 2.1 VAE."
+        }
+      ],
+      "evidence": [
+        "End-to-end qualification on RTX 4090 / ComfyUI 0.37.0: validated 512x320 17-frame source and mask, durable submission, local generation, output validation, artifact import and browser playback. Scope is manual aligned-mask editing only; broader quality and offline operation are not qualified."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0; see upstream LICENSE. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "Wan2.1-VACE-1.3B",
+        "license": "Apache-2.0 (upstream LICENSE.txt); full dependency license audit pending",
+        "source": "https://huggingface.co/Wan-AI/Wan2.1-VACE-1.3B/blob/main/LICENSE.txt"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://docs.comfy.org/tutorials/video/wan/vace",
+      "observedAt": "2026-10-16",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://comfy.org/workflows/video_wan_vace_inpainting-a1bb55d904c9/",
+      "observedAt": "2026-10-16",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [
+    "VID-05",
+    "EDT-01",
+    "EDT-02",
+    "EDT-03"
+  ],
+  "audioPolicies": [
+    "mute"
+  ],
+  "mediaContract": {
+    "kind": "aligned_video_mask_v1",
+    "sourceInput": "source_video",
+    "maskInput": "edit_mask"
+  }
+}
+

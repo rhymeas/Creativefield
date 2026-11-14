@@ -1,0 +1,35 @@
+{
+  "1": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "comfyfield-source.mp4"
+    }
+  },
+  "2": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "comfyfield-character.png"
+    }
+  },
+  "3": {
+    "class_type": "KlingOmniProEditVideoNode",
+    "inputs": {
+      "model_name": "kling-v3-omni",
+      "prompt": "Change the person in the video into the character in the reference picture. Keep their movement, the camera, the light and the background.",
+      "video": ["1", 0],
+      "keep_original_sound": false,
+      "reference_images": ["2", 0],
+      "resolution": "1080p",
+      "seed": 1
+    }
+  },
+  "4": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": ["3", 0],
+      "filename_prefix": "ComfyField/cloud-kling-omni-edit",
+      "format": "auto",
+      "format.codec": "auto"
+    }
+  }
+}

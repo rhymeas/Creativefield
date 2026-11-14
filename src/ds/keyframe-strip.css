@@ -1,0 +1,91 @@
+/* KeyframeStrip: picture cards over a mini timeline, joined by stems. Tokens only; geometry in KeyframeStrip.tsx. */
+.ds-kstrip { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); min-width: 0; user-select: none; }
+.ds-kstrip__cards { position: relative; min-width: 0; aspect-ratio: 100 / 22.75; }
+.ds-kstrip__card { position: absolute; top: 0; bottom: 0; border-radius: var(--radius-sm); transition: left var(--dur-med) var(--ease), opacity var(--dur-fast) var(--ease); }
+.ds-kstrip[data-dragging] .ds-kstrip__card { transition: opacity var(--dur-fast) var(--ease); }
+.ds-kstrip__card[draggable="true"] { cursor: grab; }
+.ds-kstrip__card[draggable="true"]:active { cursor: grabbing; }
+.ds-kstrip__card[data-moving="true"] { opacity: .4; }
+
+/* The card's picture is an UploadSlot; here it fills the card and keeps only what fits a thumbnail. */
+.ds-kstrip__card .ds-upload { position: absolute; inset: 0; box-sizing: border-box; min-width: 0; min-height: 0; aspect-ratio: auto; padding: 0; border: 1.5px solid var(--line-strong); border-radius: inherit; background: var(--surface-control); overflow: visible; transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease); }
+.ds-kstrip .ds-kstrip__card .ds-upload:not(.ds-upload--filled) { min-height: 0; border-style: dashed; border-color: var(--line-hover); }
+.ds-kstrip__card .ds-upload:not(.ds-upload--filled) > div { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.ds-kstrip__card .ds-upload:not(.ds-upload--filled)::before,
+.ds-kstrip__card .ds-upload:not(.ds-upload--filled)::after { content: ""; position: absolute; left: 50%; top: 50%; width: 16px; height: 1.5px; border-radius: 1px; background: var(--text-tertiary); transform: translate(-50%, -50%); pointer-events: none; }
+.ds-kstrip__card .ds-upload:not(.ds-upload--filled)::after { transform: translate(-50%, -50%) rotate(90deg); }
+.ds-kstrip__card .ds-upload img { width: 100%; height: 100%; max-height: none; object-fit: cover; border-radius: calc(var(--radius-sm) - 2px); -webkit-user-drag: none; }
+.ds-kstrip__card[data-lit="true"] .ds-upload, .ds-kstrip__card .ds-upload:hover { border-color: var(--accent-ring); }
+.ds-kstrip__card .ds-upload[data-drag="true"], .ds-kstrip__card[data-target="true"] .ds-upload { border-color: var(--accent); box-shadow: var(--accent-glow); }
+.ds-kstrip__card .ds-upload__tools { display: none; }
+.ds-kstrip__card .ds-upload__remove, .ds-kstrip__card .ds-kstrip__remove { position: absolute; top: -7px; right: -7px; z-index: 3; width: 18px; height: 18px; min-width: 18px; min-height: 18px; border-radius: var(--radius-full); border: 1px solid var(--line-strong); background: var(--surface-control-hover); color: var(--text-secondary); }
+.ds-kstrip__card :is(.ds-upload__remove, .ds-kstrip__remove):hover { color: var(--text-primary); }
+.ds-kstrip__card :is(.ds-upload__remove, .ds-kstrip__remove) svg { width: 10px; height: 10px; }
+.ds-kstrip__remove { opacity: 0; pointer-events: none; }
+.ds-kstrip__card:is(:hover, :focus-within) .ds-kstrip__remove { opacity: 1; pointer-events: auto; }
+/* A card is too small for a paste chip; Ctrl+V and drops still fill it. */
+.ds-kstrip__card .ds-upload__paste { display: none; }
+.ds-kstrip__time { position: absolute; z-index: 3; top: var(--space-1); left: var(--space-1); padding: 1px var(--space-1); border-radius: var(--radius-xs); background: var(--surface-overlay); color: var(--text-primary); font-size: var(--text-2xs); line-height: var(--lh-2xs); font-variant-numeric: tabular-nums; pointer-events: none; }
+.ds-kstrip__mention { position: absolute; z-index: 3; right: var(--space-1); bottom: var(--space-1); padding: 1px var(--space-1); border: 1px solid var(--accent-ring); border-radius: var(--radius-xs); background: var(--surface-overlay); color: var(--accent); font: inherit; font-size: var(--text-3xs); line-height: var(--lh-3xs); white-space: nowrap; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity var(--dur-fast) var(--ease); }
+.ds-kstrip__card:is(:hover, :focus-within) .ds-kstrip__mention { opacity: 1; pointer-events: auto; }
+
+/* Rail: stems, timeline, anchors, ticks. --kstrip-track is the track's distance below the cards. */
+.ds-kstrip__rail { position: relative; height: calc(var(--kstrip-track) + 18px); }
+.ds-kstrip__stems { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; }
+.ds-kstrip__stem { fill: none; stroke: var(--text-muted); stroke-width: 1.5; transition: stroke var(--dur-fast) var(--ease); }
+.ds-kstrip__notch { fill: var(--text-muted); transition: fill var(--dur-fast) var(--ease); }
+.ds-kstrip__stems [data-lit="true"] .ds-kstrip__stem { stroke: var(--accent); }
+.ds-kstrip__stems [data-lit="true"] .ds-kstrip__notch { fill: var(--accent); }
+.ds-kstrip__track { position: absolute; top: calc(var(--kstrip-track) - 1px); height: 2px; border-radius: var(--radius-full); background: var(--line-soft); }
+.ds-kstrip__used { height: 100%; border-radius: inherit; background: var(--line-hover); }
+.ds-kstrip__band { position: absolute; top: calc(var(--kstrip-track) - 2px); height: 4px; border-radius: var(--radius-full); background: var(--accent); box-shadow: 0 0 10px var(--accent-ring); pointer-events: none; }
+.ds-kstrip__ticks { position: absolute; top: calc(var(--kstrip-track) + 8px); height: 8px; pointer-events: none; }
+.ds-kstrip__ticks i { position: absolute; top: 0; width: 1.5px; height: 4px; border-radius: 1px; background: var(--line-strong); transform: translateX(-50%); }
+.ds-kstrip__ticks i[data-major="true"] { height: 8px; background: var(--line-hover); }
+.ds-kstrip__anchor { position: absolute; top: var(--kstrip-track); z-index: 2; width: 12px; height: 12px; margin: -6px 0 0 -6px; padding: 0; border: 0; border-radius: var(--radius-full); background: var(--text-secondary); cursor: grab; touch-action: none; transition: transform var(--dur-fast) var(--ease-spring), background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease); }
+.ds-kstrip__anchor::before { content: ""; position: absolute; inset: -8px; border-radius: inherit; }
+.ds-kstrip__anchor[data-fixed="true"] { background: var(--text-muted); cursor: default; }
+.ds-kstrip__anchor:disabled { cursor: default; }
+.ds-kstrip__anchor[data-lit="true"]:not(:disabled) { background: var(--accent); transform: scale(1.25); box-shadow: 0 0 0 4px var(--accent-soft); }
+.ds-kstrip[data-dragging] .ds-kstrip__anchor { cursor: grabbing; }
+.ds-kstrip__anchor:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.ds-kstrip__insert { position: absolute; top: var(--kstrip-track); z-index: 3; width: 20px; height: 20px; margin: -10px 0 0 -10px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--radius-full); background: var(--button-primary-bg); color: var(--accent); box-shadow: var(--accent-glow); cursor: pointer; opacity: 0; pointer-events: none; transform: scale(.6); transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease-spring), left var(--dur-fast) var(--ease); }
+.ds-kstrip__insert[data-show="true"], .ds-kstrip__insert:focus-visible { opacity: 1; pointer-events: auto; transform: scale(1); }
+.ds-kstrip__insert:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.ds-kstrip__bubble { position: absolute; top: calc(var(--kstrip-track) - 40px); z-index: 4; padding: var(--pad-chip); border: 1px solid var(--line-strong); border-radius: var(--radius-xs); background: var(--surface-control); color: var(--text-primary); font-size: var(--text-xs); line-height: var(--lh-xs); font-variant-numeric: tabular-nums; white-space: nowrap; transform: translateX(-50%); box-shadow: var(--shadow-lift); pointer-events: none; }
+.ds-kstrip__duration { display: grid; grid-template-columns: auto minmax(0, 1fr) 5em auto auto; align-items: center; gap: var(--space-2); color: var(--text-secondary); font-size: var(--text-sm); line-height: var(--lh-sm); }
+.ds-kstrip__duration input:not([type="range"]) { font-variant-numeric: tabular-nums; }
+
+/* KeyframeSegment */
+.ds-kseg { border-radius: var(--radius-sm); background: var(--surface-control); overflow: hidden; }
+.ds-kseg + .ds-kseg { margin-top: var(--space-2); }
+.ds-kseg__head { width: 100%; min-width: 0; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3); border: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: var(--text-sm); line-height: var(--lh-sm); text-align: left; cursor: pointer; transition: background var(--dur-fast) var(--ease); }
+.ds-kseg__head:hover { background: var(--surface-control-hover); }
+.ds-kseg__head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ds-kseg__head svg { flex: none; margin-left: auto; color: var(--text-secondary); transition: transform var(--dur-fast) var(--ease); }
+.ds-kseg[data-open="true"] .ds-kseg__head svg { transform: rotate(180deg); }
+.ds-kseg__time { flex: none; padding: 1px var(--space-2); border-radius: var(--radius-xs); background: var(--surface-input); color: var(--text-secondary); font-size: var(--text-2xs); line-height: var(--lh-2xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ds-kseg__title { flex: none; font-weight: var(--weight-medium); }
+.ds-kseg__summary { flex: 1 1 auto; min-width: 0; contain: inline-size; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text-tertiary); }
+.ds-kseg__body .ds-prompt { min-height: 0; border: 0; border-radius: 0; background: transparent; }
+.ds-kseg__body .ds-prompt__head { position: absolute; top: 0; right: var(--space-2); z-index: 2; padding: 0; }
+.ds-kseg__body .ds-prompt__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.ds-kseg__body .ds-prompt textarea, .ds-kseg__body .ds-prompt__highlight { padding: 0 var(--space-3) var(--space-3); }
+
+/* KeyframeOptions */
+.ds-kopts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+.ds-kopts > * { box-sizing: border-box; min-width: 0; height: var(--control-h); border-radius: var(--radius-sm); background: var(--surface-control); }
+.ds-kopts .ds-inline--select { width: 100%; }
+.ds-kopts .ds-inline__select { height: 100%; justify-content: flex-start; padding: 0 var(--space-6) 0 var(--space-3); border: 0; background: transparent; font-size: var(--text-sm); text-align: left; }
+.ds-kopts .ds-inline__select:hover:not(:disabled) { background: var(--surface-control-hover); }
+.ds-kopts .ds-inline__select:disabled { color: var(--text-secondary); cursor: default; }
+.ds-kopts .ds-inline__chev { right: var(--space-3); }
+.ds-kopts__silent { display: flex; align-items: center; justify-content: center; color: var(--text-secondary); }
+.ds-kopts__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+/* PanelCrumb */
+.ds-crumb { display: flex; align-items: center; gap: var(--space-2); min-height: var(--control-h); color: var(--text-secondary); font-size: var(--text-md); line-height: var(--lh-md); }
+.ds-crumb strong { color: var(--text-primary); font-weight: var(--weight-medium); }
+.ds-crumb__back { display: flex; align-items: center; color: var(--text-secondary); transition: color var(--dur-fast) var(--ease); }
+.ds-crumb__back:hover { color: var(--text-primary); }
+.ds-crumb__end { margin-left: auto; display: flex; }

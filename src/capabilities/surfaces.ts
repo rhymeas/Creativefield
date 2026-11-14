@@ -1,0 +1,140 @@
+import type { CapabilityManifestV2 } from "./types";
+
+/** The part of the product a workflow belongs to. */
+export type CapabilitySurface =
+  | "image"
+  | "video-create"
+  | "video-edit"
+  | "video-enhance"
+  | "video-effect"
+  | "motion"
+  | "audio"
+  | "replacement"
+  | "identity"
+  | "studios"
+  | "canvas"
+  | "other";
+
+const videoOutput = (manifest: CapabilityManifestV2) => manifest.outputs.some(output => output.type === "video");
+const imageOutput = (manifest: CapabilityManifestV2) => manifest.outputs.some(output => output.type === "image");
+const audioOutput = (manifest: CapabilityManifestV2) => manifest.outputs.some(output => output.type === "audio");
+
+/**
+ * Classifies a workflow by what it does for the user, not by the folder it
+ * happens to live in. Menus and pickers use this so image workflows never
+ * appear in the video chooser and video workflows stay out of the image
+ * chooser.
+ */
+export function capabilitySurface(manifest: CapabilityManifestV2): CapabilitySurface {
+  if (manifest.category === "motion") return "motion";
+  if (manifest.imageInputContract?.kind === "aligned_still_image_mask_v1") return "canvas";
+  if (manifest.mediaContract?.kind === "aligned_video_mask_v1") return "video-edit";
+  if (videoOutput(manifest)) {
+    if (manifest.category === "enhance") return "video-enhance";
+    if (manifest.category === "finishing") return "video-effect";
+    return "video-create";
+  }
+  if (imageOutput(manifest) && !videoOutput(manifest)) return "image";
+  if (audioOutput(manifest) || manifest.category === "audio") return "audio";
+  if (manifest.category === "enhance") return "video-enhance";
+  if (manifest.category === "finishing") return "video-effect";
+  if (["t2v", "i2v", "flf2v", "video"].includes(manifest.category)) return "video-create";
+  if (manifest.category === "replacement") return "replacement";
+  if (manifest.category === "identity") return "identity";
+  if (manifest.category === "studios") return "studios";
+  if (manifest.category === "canvas") return "canvas";
+  return "other";
+}
+
+export const surfaceOrder: CapabilitySurface[] = [
+  "image", "video-create", "video-edit", "video-enhance", "video-effect", "motion",
+  "audio", "replacement", "identity", "studios", "canvas", "other"
+];
+
+const labels: Record<CapabilitySurface, string> = {
+  image: "Image generation",
+  "video-create": "Video generation",
+  "video-edit": "Video editing",
+  "video-enhance": "Video enhancement",
+  "video-effect": "Video effects",
+  motion: "Motion control",
+  audio: "Audio",
+  replacement: "Replacement",
+  identity: "Identity",
+  studios: "Studios",
+  canvas: "Canvas",
+  other: "Other workflows"
+};
+
+export const surfaceLabel = (surface: CapabilitySurface) => labels[surface];
+
+const purposes: Record<CapabilitySurface, string> = {
+  image: "Turns your prompt or reference images into a still image.",
+  "video-create": "Turns a prompt, a start image or two end frames into a new video.",
+  "video-edit": "Changes only the masked area of a video and keeps the rest.",
+  "video-enhance": "Makes an existing video sharper or larger.",
+  "video-effect": "Restyles an existing video with a guided effect.",
+  motion: "Copies the movement of a driving video onto a character image.",
+  audio: "Works with voice, music or the audio track of a video.",
+  replacement: "Replaces a person, object or background while keeping the rest.",
+  identity: "Reuses a character or product identity through reference images.",
+  studios: "Runs a guided multi-step production flow.",
+  canvas: "Arranges shots, layers and edits on a working canvas.",
+  other: "A workflow that does not fit the main output types yet."
+};
+
+export const surfacePurpose = (surface: CapabilitySurface) => purposes[surface];
+
+/** What the workflow does, in the user's words: the dominant title in a model picker. */
+export function capabilityFunction(manifest: CapabilityManifestV2): string {
+  const surface = capabilitySurface(manifest);
+  if (surface === "image") {
+    if (/guided edit/i.test(manifest.title)) return "Guided edit";
+    if (/with references?/i.test(manifest.title)) return "Image with references";
+    if (/edit/i.test(manifest.title)) return "Image edit";
+    if (manifest.inputs.some(port => port.type === "image" && port.required)) return "Image with references";
+    return "Text to image";
+  }
+  if (surface === "video-create") {
+    if (manifest.category === "flf2v" || manifest.inputs.some(port => port.id === "end_image")) return "First and last frame";
+    if (manifest.inputs.some(port => port.type === "image" && port.required)) return "Image to video";
+    return "Text to video";
+  }
+  if (surface === "video-edit") return "Video edit";
+  if (surface === "video-enhance") return /upscal/i.test(manifest.title) ? "Upscale" : "Enhance";
+  if (surface === "video-effect") return "Video effect";
+  if (surface === "motion") return "Motion transfer";
+  if (surface === "audio") return "Audio";
+  if (surface === "replacement") return "Replace";
+  if (surface === "identity") return "Character";
+  if (surface === "canvas") return "Image edit";
+  if (surface === "studios") return "Studio";
+  return surfaceLabel(surface);
+}
+
+/** Short sentence shown in menus and catalogue rows instead of raw manifest text. */
+export const capabilityPurpose = (manifest: CapabilityManifestV2) => {
+  if (/interpolat/i.test(manifest.title)) return "Adds in-between frames so motion looks smoother.";
+  if (/upscal|esrgan/i.test(manifest.title)) return "Makes an existing video or image sharper and larger.";
+  if (/segment|mask/i.test(manifest.title) && capabilitySurface(manifest) === "image") return "Finds and isolates an object or region in an image.";
+  if (/remove background/i.test(manifest.title)) return "Cuts the subject out and leaves a transparent background.";
+  if (/hide faces/i.test(manifest.title)) return "Covers faces in a picture with a pixel mosaic.";
+  if (/match colors/i.test(manifest.title)) return "Gives a picture the color mood of a second picture.";
+  if (/trim clip/i.test(manifest.title)) return "Cuts a clip down to the part you want.";
+  if (/join two clips/i.test(manifest.title)) return "Puts one clip after another.";
+  if (/zoom and pan/i.test(manifest.title)) return "Turns a photo into a clip with a slow zoom and pan.";
+  if (/remove video background/i.test(manifest.title)) return "Cuts the subject out of every frame of a clip.";
+  if (/3d scene/i.test(manifest.title)) return "Turns one photo into a 3D scene you can look around in.";
+  return surfacePurpose(capabilitySurface(manifest));
+};
+
+export const isImageWorkflow = (manifest: CapabilityManifestV2) => capabilitySurface(manifest) === "image";
+
+/** Video generation, editing, enhancement, effects and motion all produce video. */
+export const isVideoWorkflow = (manifest: CapabilityManifestV2) => {
+  const surface = capabilitySurface(manifest);
+  return surface === "video-create" || surface === "video-edit" || surface === "video-enhance" || surface === "video-effect" || surface === "motion";
+};
+
+/** Workflows that belong in the normal Create Video picker. */
+export const isCreateVideoWorkflow = (manifest: CapabilityManifestV2) => capabilitySurface(manifest) === "video-create" && !manifest.inputs.some(port=>port.type==="video"&&port.required);

@@ -1,0 +1,830 @@
+{
+  "30": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "asian_model_in_white_clothes.png"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  },
+  "155": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "girl_eats_apple.mp4"
+    },
+    "_meta": {
+      "title": "LoadVideo"
+    }
+  },
+  "330": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    },
+    "_meta": {
+      "title": "LoadImage second character"
+    }
+  },
+  "331": {
+    "class_type": "SAM3_VideoTrack",
+    "inputs": {
+      "images": [
+        "330",
+        0
+      ],
+      "model": [
+        "213:193",
+        0
+      ],
+      "detection_threshold": 0.5,
+      "max_objects": 4,
+      "detect_interval": 1,
+      "conditioning": [
+        "213:212",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SAM3 track the second character"
+    }
+  },
+  "332": {
+    "class_type": "SAM3_TrackToMask",
+    "inputs": {
+      "track_data": [
+        "331",
+        0
+      ],
+      "object_indices": "0"
+    },
+    "_meta": {
+      "title": "Second character mask"
+    }
+  },
+  "337": {
+    "class_type": "EmptyImage",
+    "inputs": {
+      "width": [
+        "213:163",
+        0
+      ],
+      "height": [
+        "213:163",
+        1
+      ],
+      "batch_size": 1,
+      "color": 0
+    },
+    "_meta": {
+      "title": "Black at the frame size"
+    }
+  },
+  "340": {
+    "class_type": "ImageCompositeMasked",
+    "inputs": {
+      "destination": [
+        "337",
+        0
+      ],
+      "source": [
+        "346",
+        0
+      ],
+      "x": 0,
+      "y": 0,
+      "resize_source": false
+    },
+    "_meta": {
+      "title": "First character in the left half"
+    }
+  },
+  "341": {
+    "class_type": "ImageCompositeMasked",
+    "inputs": {
+      "destination": [
+        "340",
+        0
+      ],
+      "source": [
+        "347",
+        0
+      ],
+      "x": [
+        "348",
+        1
+      ],
+      "y": 0,
+      "resize_source": false
+    },
+    "_meta": {
+      "title": "Both characters in one frame"
+    }
+  },
+  "345": {
+    "class_type": "SAM3_VideoTrack",
+    "inputs": {
+      "images": [
+        "341",
+        0
+      ],
+      "model": [
+        "213:193",
+        0
+      ],
+      "detection_threshold": 0.5,
+      "max_objects": 4,
+      "detect_interval": 1,
+      "conditioning": [
+        "213:212",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SAM3 track both people in the one frame"
+    }
+  },
+  "346": {
+    "class_type": "ImageCropToMask",
+    "inputs": {
+      "images": [
+        "30",
+        0
+      ],
+      "masks": [
+        "213:224",
+        0
+      ],
+      "width": [
+        "348",
+        1
+      ],
+      "height": [
+        "213:163",
+        1
+      ],
+      "pad_factor": 1.1,
+      "grow_mask": 0,
+      "background": "#000000"
+    },
+    "_meta": {
+      "title": "First character for its half of the frame"
+    }
+  },
+  "347": {
+    "class_type": "ImageCropToMask",
+    "inputs": {
+      "images": [
+        "330",
+        0
+      ],
+      "masks": [
+        "332",
+        0
+      ],
+      "width": [
+        "348",
+        1
+      ],
+      "height": [
+        "213:163",
+        1
+      ],
+      "pad_factor": 1.1,
+      "grow_mask": 0,
+      "background": "#000000"
+    },
+    "_meta": {
+      "title": "Second character for its half of the frame"
+    }
+  },
+  "348": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a / 2",
+      "values.a": [
+        "213:163",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Half the frame's width"
+    }
+  },
+  "349": {
+    "class_type": "SAM3_TrackToMask",
+    "inputs": {
+      "track_data": [
+        "345",
+        0
+      ],
+      "object_indices": "0,1"
+    },
+    "_meta": {
+      "title": "Both people in the one frame"
+    }
+  },
+  "350": {
+    "class_type": "ImageCropToMask",
+    "inputs": {
+      "images": [
+        "341",
+        0
+      ],
+      "masks": [
+        "349",
+        0
+      ],
+      "width": [
+        "213:163",
+        0
+      ],
+      "height": [
+        "213:163",
+        1
+      ],
+      "pad_factor": 1.1,
+      "grow_mask": 0,
+      "background": "#000000"
+    },
+    "_meta": {
+      "title": "Both characters in one frame, at the video's shape"
+    }
+  },
+  "352": {
+    "class_type": "SCAIL2ColoredMask",
+    "inputs": {
+      "driving_track_data": [
+        "213:196",
+        0
+      ],
+      "object_indices": "0,1",
+      "sort_by": "left_to_right",
+      "replacement_mode": [
+        "213:203",
+        0
+      ],
+      "ref_track_data": [
+        "345",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Both identities in their own colour"
+    }
+  },
+  "353": {
+    "class_type": "ImageCropToMask",
+    "inputs": {
+      "images": [
+        "352",
+        1
+      ],
+      "masks": [
+        "349",
+        0
+      ],
+      "width": [
+        "213:163",
+        0
+      ],
+      "height": [
+        "213:163",
+        1
+      ],
+      "pad_factor": 1.1,
+      "grow_mask": 0,
+      "background": "#000000"
+    },
+    "_meta": {
+      "title": "Match reference colours to the final image crop"
+    }
+  },
+  "213:11": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": [
+        "213:318",
+        0
+      ],
+      "lora_name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+      "strength_model": 0.8
+    },
+    "_meta": {
+      "title": "LoraLoaderModelOnly"
+    }
+  },
+  "213:7": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    },
+    "_meta": {
+      "title": "VAELoader"
+    }
+  },
+  "213:156": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "input": [
+        "213:900",
+        0
+      ],
+      "resize_type": "scale to multiple",
+      "resize_type.multiple": 32,
+      "scale_method": "area"
+    },
+    "_meta": {
+      "title": "ResizeImageMaskNode"
+    }
+  },
+  "213:157": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "155",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "GetVideoComponents"
+    }
+  },
+  "213:163": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "213:177",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "GetImageSize"
+    }
+  },
+  "213:9": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "CLIPLoader"
+    }
+  },
+  "213:75": {
+    "class_type": "CLIPVisionLoader",
+    "inputs": {
+      "clip_name": "clip_vision_h.safetensors"
+    },
+    "_meta": {
+      "title": "CLIPVisionLoader"
+    }
+  },
+  "213:154": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.1_14B_SCAIL_2_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "UNETLoader"
+    }
+  },
+  "213:95": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "model": [
+        "213:11",
+        0
+      ],
+      "shift": 5
+    },
+    "_meta": {
+      "title": "ModelSamplingSD3"
+    }
+  },
+  "213:27": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "213:18": {
+    "class_type": "BasicScheduler",
+    "inputs": {
+      "model": [
+        "213:11",
+        0
+      ],
+      "scheduler": "simple",
+      "steps": [
+        "213:168",
+        0
+      ],
+      "denoise": 1
+    },
+    "_meta": {
+      "title": "BasicScheduler"
+    }
+  },
+  "213:19": {
+    "class_type": "SamplerCustom",
+    "inputs": {
+      "model": [
+        "213:95",
+        0
+      ],
+      "add_noise": true,
+      "noise_seed": 1,
+      "cfg": [
+        "213:167",
+        0
+      ],
+      "positive": [
+        "213:114",
+        0
+      ],
+      "negative": [
+        "213:114",
+        1
+      ],
+      "sampler": [
+        "213:27",
+        0
+      ],
+      "sigmas": [
+        "213:18",
+        0
+      ],
+      "latent_image": [
+        "213:114",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "SamplerCustom"
+    }
+  },
+  "213:168": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 6
+    },
+    "_meta": {
+      "title": "Int (Steps)"
+    }
+  },
+  "213:167": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 1
+    },
+    "_meta": {
+      "title": "Float (CFG)"
+    }
+  },
+  "213:177": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "213:156",
+        0
+      ],
+      "batch_index": 0,
+      "length": 5
+    },
+    "_meta": {
+      "title": "ImageFromBatch"
+    }
+  },
+  "213:191": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "person",
+      "clip": [
+        "213:193",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "CLIPTextEncode"
+    }
+  },
+  "213:193": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+    },
+    "_meta": {
+      "title": "CheckpointLoaderSimple"
+    }
+  },
+  "213:196": {
+    "class_type": "SAM3_VideoTrack",
+    "inputs": {
+      "images": [
+        "213:156",
+        0
+      ],
+      "model": [
+        "213:193",
+        0
+      ],
+      "detection_threshold": 0.5,
+      "max_objects": 4,
+      "detect_interval": 1,
+      "conditioning": [
+        "213:191",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SAM3_VideoTrack"
+    }
+  },
+  "213:197": {
+    "class_type": "SCAIL2ColoredMask",
+    "inputs": {
+      "driving_track_data": [
+        "213:196",
+        0
+      ],
+      "object_indices": "0,1",
+      "sort_by": "left_to_right",
+      "replacement_mode": [
+        "213:203",
+        0
+      ],
+      "ref_track_data": [
+        "213:198",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SCAIL2ColoredMask"
+    }
+  },
+  "213:198": {
+    "class_type": "SAM3_VideoTrack",
+    "inputs": {
+      "images": [
+        "30",
+        0
+      ],
+      "model": [
+        "213:193",
+        0
+      ],
+      "detection_threshold": 0.5,
+      "max_objects": 4,
+      "detect_interval": 1,
+      "conditioning": [
+        "213:212",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SAM3_VideoTrack"
+    }
+  },
+  "213:203": {
+    "class_type": "PrimitiveBoolean",
+    "inputs": {
+      "value": true
+    },
+    "_meta": {
+      "title": "Boolean （Replace Mode）"
+    }
+  },
+  "213:6": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "213:19",
+        1
+      ],
+      "vae": [
+        "213:7",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAEDecode"
+    }
+  },
+  "213:76": {
+    "class_type": "CLIPVisionEncode",
+    "inputs": {
+      "clip_vision": [
+        "213:75",
+        0
+      ],
+      "image": [
+        "350",
+        0
+      ],
+      "crop": "none"
+    },
+    "_meta": {
+      "title": "CLIPVisionEncode"
+    }
+  },
+  "213:4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": [
+        "213:9",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIPTextEncode"
+    }
+  },
+  "213:3": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": [
+        "213:9",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIPTextEncode"
+    }
+  },
+  "213:114": {
+    "class_type": "WanSCAILToVideo",
+    "inputs": {
+      "positive": [
+        "213:3",
+        0
+      ],
+      "negative": [
+        "213:4",
+        0
+      ],
+      "vae": [
+        "213:7",
+        0
+      ],
+      "width": [
+        "213:163",
+        0
+      ],
+      "height": [
+        "213:163",
+        1
+      ],
+      "length": 5,
+      "batch_size": 1,
+      "pose_strength": 1,
+      "pose_start": 0,
+      "pose_end": 1,
+      "video_frame_offset": 0,
+      "previous_frame_count": 5,
+      "pose_video": [
+        "213:156",
+        0
+      ],
+      "pose_video_mask": [
+        "213:197",
+        0
+      ],
+      "replacement_mode": [
+        "213:203",
+        0
+      ],
+      "reference_image": [
+        "350",
+        0
+      ],
+      "reference_image_mask": [
+        "353",
+        0
+      ],
+      "clip_vision_output": [
+        "213:76",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "WanSCAILToVideo"
+    }
+  },
+  "213:212": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "human",
+      "clip": [
+        "213:193",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "CLIPTextEncode"
+    }
+  },
+  "213:318": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": [
+        "213:154",
+        0
+      ],
+      "lora_name": "wan2.1_SCAIL_2_DPO_lora_bf16.safetensors",
+      "strength_model": 1
+    },
+    "_meta": {
+      "title": "LoraLoaderModelOnly"
+    }
+  },
+  "213:900": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "input": [
+        "probe:source:213:157",
+        0
+      ],
+      "resize_type": "scale total pixels",
+      "resize_type.megapixels": 0.46,
+      "scale_method": "area"
+    },
+    "_meta": {
+      "title": "About 896x512 worth of pixels"
+    }
+  },
+  "213:224": {
+    "class_type": "SAM3_TrackToMask",
+    "inputs": {
+      "track_data": [
+        "213:198",
+        0
+      ],
+      "object_indices": "0"
+    },
+    "_meta": {
+      "title": "The character in the picture"
+    }
+  },
+  "probe:source:213:157": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "213:157",
+        0
+      ],
+      "batch_index": 0,
+      "length": 5
+    }
+  },
+  "probe:frame:1": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "213:6",
+        0
+      ],
+      "batch_index": 1,
+      "length": 1
+    }
+  },
+  "probe:save:1": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "probe:frame:1",
+        0
+      ],
+      "filename_prefix": "ras/video-probe-frame-1"
+    }
+  },
+  "probe:frame:4": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "213:6",
+        0
+      ],
+      "batch_index": 4,
+      "length": 1
+    }
+  },
+  "probe:save:4": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "probe:frame:4",
+        0
+      ],
+      "filename_prefix": "ras/video-probe-frame-4"
+    }
+  }
+}

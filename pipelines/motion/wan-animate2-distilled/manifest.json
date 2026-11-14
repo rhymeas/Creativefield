@@ -1,0 +1,43 @@
+{
+  "id": "wan-animate2-distilled",
+  "family": "wan-animate2",
+  "label": "Wan Animate 2 distilled (motion control)",
+  "display": {
+    "title": "Wan Animate 2",
+    "subtitle": "Motion control · 14B distilled · 480p",
+    "short": "Wan Animate 2",
+    "resolution": "480p"
+  },
+  "execution": { "route": "native-comfy" },
+  "modes": ["motion_control"],
+  "inputs": {
+    "prompt":        { "node": "605",     "field": "value" },
+    "motion_prompt": { "node": "604",     "field": "value" },
+    "negative":      { "node": "261:4",   "field": "text" },
+    "start_image":   { "node": "189",     "field": "image" },
+    "motion_video":  { "node": "240",     "field": "file" },
+    "width":         { "node": "261:243", "field": "resize_type.width" },
+    "height":        { "node": "261:243", "field": "resize_type.height" },
+    "seed":          { "node": "261:19",  "field": "noise_seed" }
+  },
+  "outputs": {
+    "video": { "node": "246" }
+  },
+  "limits": {
+    "minDurationSec": 0,
+    "maxDurationSec": 0,
+    "fps": 24,
+    "resolutions": {
+      "portrait":  { "width": 480, "height": 848 },
+      "landscape": { "width": 848, "height": 480 }
+    }
+  },
+  "requires": {
+    "models": [
+      { "folder": "diffusion_models", "file": "wan_animate_2_distill_int8_convrot.safetensors" },
+      { "folder": "text_encoders", "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors" },
+      { "folder": "clip_vision", "file": "clip_vision_h.safetensors" },
+      { "folder": "vae", "file": "wan_2.1_vae.safetensors" }
+    ]
+  }
+}

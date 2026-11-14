@@ -1,0 +1,383 @@
+{
+  "schemaVersion": 2,
+  "id": "flux2-klein-edit",
+  "version": "2.0.0",
+  "title": "FLUX 3 Klein image edit",
+  "category": "image",
+  "description": "Local single-image edit with the installed FLUX 3 Klein FP8 model. The source image is scaled to roughly one megapixel and used as a reference latent while the prompt describes the change. The exact graph has produced a verified 1024x1024 PNG on the qualified local ComfyUI 0.37.0 worker.",
+  "inputs": [
+    {
+      "id": "source_image",
+      "label": "Source image",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "133",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image",
+      "label": "Reference image 1",
+      "type": "image",
+      "required": false,
+      "binding": {
+        "node": "cf-ref-1",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image_2",
+      "label": "Reference image 2",
+      "type": "image",
+      "required": false,
+      "binding": {
+        "node": "cf-ref-2",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image_3",
+      "label": "Reference image 3",
+      "type": "image",
+      "required": false,
+      "binding": {
+        "node": "cf-ref-3",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "image",
+      "label": "Edited image",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Edit prompt",
+      "type": "string",
+      "default": "Change the background to a snowy mountain at dusk, keep the foreground unchanged",
+      "binding": {
+        "node": "28",
+        "field": "value"
+      }
+    },
+    {
+      "id": "megapixels",
+      "label": "Size",
+      "type": "select",
+      "options": [
+        1,
+        2,
+        4
+      ],
+      "default": 1,
+      "sizeChoice": true,
+      "binding": {
+        "node": "145:138",
+        "field": "megapixels"
+      },
+      "alsoBindings": [
+        {
+          "node": "145:141",
+          "field": "megapixels"
+        }
+      ]
+    },
+    {
+      "id": "steps",
+      "label": "Steps",
+      "type": "integer",
+      "min": 4,
+      "max": 50,
+      "default": 16,
+      "binding": {
+        "node": "128:107",
+        "field": "steps"
+      },
+      "alsoBindings": [
+        {
+          "node": "128:130",
+          "field": "value"
+        }
+      ]
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 20261031,
+      "binding": {
+        "node": "128:107",
+        "field": "seed"
+      },
+      "alsoBindings": [
+        {
+          "node": "127:111",
+          "field": "sampling_mode.seed"
+        }
+      ]
+    },
+    {
+      "id": "improve_prompt",
+      "label": "Improve my prompt",
+      "type": "boolean",
+      "default": true,
+      "binding": {
+        "node": "127:116",
+        "field": "switch"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "flux2-klein-edit",
+      "requirements": [
+        {
+          "id": "node:SaveImage",
+          "kind": "node",
+          "name": "SaveImage",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:CreateBoundingBoxes",
+          "kind": "node",
+          "name": "CreateBoundingBoxes",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:PrimitiveStringMultiline",
+          "kind": "node",
+          "name": "PrimitiveStringMultiline",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:PreviewAny",
+          "kind": "node",
+          "name": "PreviewAny",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:ComfySwitchNode",
+          "kind": "node",
+          "name": "ComfySwitchNode",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:ImageScaleToTotalPixels",
+          "kind": "node",
+          "name": "ImageScaleToTotalPixels",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:ResolutionSelector",
+          "kind": "node",
+          "name": "ResolutionSelector",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:Flux3LayoutPrompt",
+          "kind": "node",
+          "name": "Flux3LayoutPrompt",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:StringTrim",
+          "kind": "node",
+          "name": "StringTrim",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:StringContains",
+          "kind": "node",
+          "name": "StringContains",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:StringConcatenate",
+          "kind": "node",
+          "name": "StringConcatenate",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:TextGenerate",
+          "kind": "node",
+          "name": "TextGenerate",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:StringFormat",
+          "kind": "node",
+          "name": "StringFormat",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:BatchImagesNode",
+          "kind": "node",
+          "name": "BatchImagesNode",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:PrimitiveFloat",
+          "kind": "node",
+          "name": "PrimitiveFloat",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:ComfyMathExpression",
+          "kind": "node",
+          "name": "ComfyMathExpression",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:ModelSamplingFlux",
+          "kind": "node",
+          "name": "ModelSamplingFlux",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:ReferenceMultiLatent",
+          "kind": "node",
+          "name": "ReferenceMultiLatent",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:RepeatLatentBatch",
+          "kind": "node",
+          "name": "RepeatLatentBatch",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "node:EmptyFlux2LatentImage",
+          "kind": "node",
+          "name": "EmptyFlux2LatentImage",
+          "instructions": "Use ComfyUI 0.43 or newer (FLUX 3 nodes)."
+        },
+        {
+          "id": "model:flux3-klein-int8",
+          "kind": "model",
+          "name": "flux3-image-klein-int8-convrot.safetensors",
+          "location": "diffusion_models",
+          "bytes": 5827870000,
+          "source": "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy",
+          "instructions": "Install flux3-image-klein-int8-convrot.safetensors into ComfyUI models/diffusion_models (accept the FLUX 3 Klein terms on Hugging Face first)."
+        },
+        {
+          "id": "model:qwen3vl-4b-int8",
+          "kind": "model",
+          "name": "qwen3vl_4b_int8_convrot.safetensors",
+          "location": "text_encoders",
+          "bytes": 4858560000,
+          "source": "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy",
+          "instructions": "Install qwen3vl_4b_int8_convrot.safetensors into ComfyUI models/text_encoders (accept the FLUX 3 Klein terms on Hugging Face first)."
+        },
+        {
+          "id": "model:flux3-upsampler-w4a8",
+          "kind": "model",
+          "name": "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+          "location": "text_encoders",
+          "bytes": 6720000000,
+          "source": "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy",
+          "instructions": "Install qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors into ComfyUI models/text_encoders (accept the FLUX 3 Klein terms on Hugging Face first)."
+        },
+        {
+          "id": "model:flux2-vae",
+          "kind": "model",
+          "name": "flux2-vae.safetensors",
+          "location": "vae",
+          "bytes": 336000000,
+          "source": "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy",
+          "instructions": "Install flux2-vae.safetensors into ComfyUI models/vae (accept the FLUX 3 Klein terms on Hugging Face first)."
+        }
+      ],
+      "evidence": [
+        "2026-10-31: official https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/blob/main/workflows/flux3_klein_int8_i2i.json, converted to API format by the ComfyUI 0.43.0 frontend (app.graphToPrompt). Changes: output prefix, default size 1 megapixel. Replaces the FLUX 2 Klein 4B graph (user decision 2026-10-31: one image model). App runs on the H3 ComfyUI: text to image, edit, angles high-left, relight golden-hour each succeeded in about 30 s."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Workflow: official FLUX 3 Klein ComfyUI workflow by Black Forest Labs. ComfyUI core: GPL-3.0.",
+    "weights": [
+      {
+        "name": "FLUX 3 Klein int8, Qwen3-VL 4B encoder, Qwen 3.5 9B prompt upsampler, FLUX 2 VAE",
+        "license": "FLUX 3 Klein license (gated, conditional commercial use); read it before distribution or commercial use.",
+        "source": "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/blob/main/workflows/flux3_klein_int8_i2i.json",
+      "observedAt": "2026-10-31",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

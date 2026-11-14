@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 2,
+  "id": "recavsr-video-upscale",
+  "version": "0.1.0",
+  "title": "Upscale video, fast 2K (ReCaVSR)",
+  "category": "enhance",
+  "description": "One-step streaming super-resolution on Wan 2.2: keeps the face and the action of the clip and adds detail fast. Use 2x for a 2K finish; 4x is the model's trained setting but needs four times the output area. Sound and frame rate stay the same.",
+  "finishStep": {"step": "upscale", "option": "fast", "rank": 1, "order": 20, "label": "ReCaVSR 2x", "controls": {"scale": 2}},
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Your video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "1",
+        "field": "file"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Upscaled video",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "scale",
+      "label": "Enlarge by",
+      "type": "select",
+      "options": [1.5, 2, 3, 4],
+      "default": 2,
+      "binding": {
+        "node": "4",
+        "field": "scale"
+      }
+    },
+    {
+      "id": "color_fix",
+      "label": "Colour",
+      "type": "select",
+      "options": ["none", "adain", "wavelet"],
+      "default": "none",
+      "binding": {
+        "node": "4",
+        "field": "color_fix"
+      }
+    },
+    {
+      "id": "decoder",
+      "label": "Decoder",
+      "type": "select",
+      "options": ["flashdecoder", "vae"],
+      "default": "flashdecoder",
+      "binding": {
+        "node": "4",
+        "field": "decoder"
+      }
+    },
+    {
+      "id": "kernels",
+      "label": "Kernels",
+      "type": "select",
+      "options": ["fast", "exact"],
+      "default": "fast",
+      "binding": {
+        "node": "4",
+        "field": "kernels"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 42,
+      "binding": {
+        "node": "4",
+        "field": "seed"
+      }
+    }
+  ],
+  "upscaleFinish": {
+    "sourceInput": "source_video",
+    "scaleControl": "scale"
+  },
+  "modelFiles": [
+    "recavsr/transformer_int8_convrot.safetensors",
+    "recavsr/flashdecoder.safetensors",
+    "recavsr/prompt.safetensors"
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "recavsr-video-upscale",
+      "requirements": [
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Use ComfyUI 0.44 or newer."
+        },
+        {
+          "id": "node:ReCaVSRLoader",
+          "kind": "node",
+          "name": "ReCaVSRLoader",
+          "instructions": "Install ComfyUI-ReCaVSR (PedroMarinhoDev) and its int8 weights in ComfyUI models/recavsr."
+        },
+        {
+          "id": "node:ReCaVSRUpscale",
+          "kind": "node",
+          "name": "ReCaVSRUpscale",
+          "instructions": "Install ComfyUI-ReCaVSR (PedroMarinhoDev) and its int8 weights in ComfyUI models/recavsr."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Use ComfyUI 0.44 or newer."
+        }
+      ],
+      "evidence": [
+        "2026-11-13: installed ComfyUI-ReCaVSR at commit 831769467c89b35ee47926189ac8189be63883d1 on both video workers; int8 transformer SHA-256 70f77ac6..., prompt and FlashDecoder in models/recavsr. Test 288x512 -> 1152x2048 in 50.6 s cold / 20.2 s warm, min free VRAM 9.3 GB; 1280x768 2x -> 2560x1536 in 48.7 s, min free 5.5 GB. This template is the pack's unchanged example API graph; only the output prefix is set."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Workflow: ComfyUI-ReCaVSR example workflow (GPL-3.0). ComfyUI core: GPL-3.0.",
+    "weights": [
+      {
+        "name": "ReCaVSR int8 ConvRot, prompt and FlashDecoder",
+        "license": "Weights from kopper/ReCaVSR state no licence; the int8 conversion follows their terms.",
+        "source": "https://huggingface.co/PedroMarinhoDev/ReCaVSR-ComfyUI"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/PedroMarinhoDev/ComfyUI-ReCaVSR",
+      "observedAt": "2026-11-13",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": ["preserve", "mute"]
+}

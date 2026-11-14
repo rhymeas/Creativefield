@@ -1,0 +1,5 @@
+/* Character studio layout only. Visual rules remain in src/ds. */
+.cf-character-studio { display:flex; flex-direction:column; gap:var(--gap-block); min-width:0; }
+
+.cf-character-cards { display: grid; gap: var(--gap-inline); }
+.cf-character-cards .ds-castcard { width: 100%; }

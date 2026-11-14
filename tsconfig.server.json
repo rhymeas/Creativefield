@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "node"
+    ],
+    "noEmit": true
+  },
+  "include": [
+    "server",
+    "src/capabilities",
+    "src/workflow",
+    "src/film-studio/analysis-contract.ts",
+    "src/film-studio/shot-status.ts",
+    "src/film-studio/geometry.ts",
+    "src/film-studio/score-build.ts",
+    "src/film-studio/geometry-synthesis.ts"
+  ]
+}

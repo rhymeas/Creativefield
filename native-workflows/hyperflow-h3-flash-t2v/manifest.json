@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 2,
+  "id": "hyperflow-h3-flash-t2v",
+  "version": "0.1.0",
+  "title": "HyperFlow H3 Flash text to video",
+  "category": "t2v",
+  "description": "Turn a few words into a video with sound. Describe the scene and movement, then let HyperFlow H3 Flash create your take locally on your computer.",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Video",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Prompt",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "5",
+        "field": "prompt"
+      }
+    },
+    {
+      "id": "width",
+      "label": "Width",
+      "type": "integer",
+      "min": 256,
+      "max": 1344,
+      "default": 1024,
+      "binding": {
+        "node": "5",
+        "field": "width"
+      }
+    },
+    {
+      "id": "height",
+      "label": "Height",
+      "type": "integer",
+      "min": 256,
+      "max": 1344,
+      "default": 576,
+      "binding": {
+        "node": "5",
+        "field": "height"
+      }
+    },
+    {
+      "id": "length",
+      "label": "Length (seconds)",
+      "type": "number",
+      "min": 1,
+      "max": 15,
+      "step": 1,
+      "default": 5,
+      "binding": {
+        "node": "5",
+        "field": "length"
+      }
+    },
+    {
+      "id": "steps",
+      "label": "Steps",
+      "type": "select",
+      "options": [
+        4,
+        6,
+        8
+      ],
+      "default": 6,
+      "binding": {
+        "node": "6",
+        "field": "steps"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 20261031,
+      "binding": {
+        "node": "8",
+        "field": "noise_seed"
+      }
+    },
+    {
+      "id": "quality",
+      "label": "Finish",
+      "type": "select",
+      "options": [
+        "normal",
+        "upscale"
+      ],
+      "default": "normal",
+      "binding": {
+        "node": "ui:quality",
+        "field": "value"
+      }
+    }
+  ],
+  "presets": [],
+  "timing": {
+    "fps": 24,
+    "minSeconds": 1,
+    "maxSeconds": 15,
+    "sourceTimed": false,
+    "frameMapping": "hyperflow_seconds_17n5"
+  },
+  "resolutions": {
+    "portrait": {
+      "width": 576,
+      "height": 1024
+    },
+    "landscape": {
+      "width": 1024,
+      "height": 576
+    },
+    "square": {
+      "width": 768,
+      "height": 768
+    },
+    "portrait-standard": {
+      "width": 768,
+      "height": 1024
+    },
+    "landscape-standard": {
+      "width": 1024,
+      "height": 768
+    }
+  },
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "hyperflow-h3-flash-t2v",
+      "requirements": [
+        {
+          "id": "node:HyperFlowGGUFLoader",
+          "kind": "node",
+          "name": "HyperFlowGGUFLoader",
+          "instructions": "Install the reviewed HyperFlow H3 Flash loader on the local worker."
+        },
+        {
+          "id": "node:HyperFlowSigmas",
+          "kind": "node",
+          "name": "HyperFlowSigmas",
+          "instructions": "Install the reviewed HyperFlow sampler schedule."
+        },
+        {
+          "id": "model:hyperflow-fl2va",
+          "kind": "model",
+          "name": "minimax_h3_fl2va_hyperflow_flash_14b-Q4_K_M.gguf",
+          "location": "unet_gguf",
+          "instructions": "Add the HyperFlow H3 Flash FL2VA Q4 model to the worker's GGUF model list."
+        },
+        {
+          "id": "model:encoder",
+          "kind": "model",
+          "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+          "location": "text_encoders",
+          "instructions": "Add the MiniMax H3 text encoder."
+        },
+        {
+          "id": "model:video-vae",
+          "kind": "model",
+          "name": "minimax_h3_video_vae_fp16.safetensors",
+          "location": "vae",
+          "instructions": "Add the MiniMax H3 video VAE."
+        },
+        {
+          "id": "model:audio-vae",
+          "kind": "model",
+          "name": "minimax_h3_audio_vae_fp32.safetensors",
+          "location": "vae",
+          "instructions": "Add the MiniMax H3 audio VAE."
+        }
+      ],
+      "evidence": [
+        "Official HyperFlow text-to-video API template. Local CreativeField API acceptance: six steps, 768 × 768, muted output; generated content visually inspected. Audio generation and other sizes remain unqualified."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI HyperFlow Flash custom nodes: GPL-3.0.",
+    "weights": [
+      {
+        "name": "HyperFlow H3 Flash and MiniMax H3 components",
+        "license": "Check model licenses before use.",
+        "source": "https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/Video-Rebirth/ComfyUI-HyperFlow-Flash/blob/main/example_workflows/api/hyperflow_t2v_api.json",
+      "observedAt": "2026-11-07",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "mute",
+    "replace"
+  ]
+}

@@ -1,0 +1,277 @@
+{
+  "schemaVersion": 2,
+  "id": "fibo2-edit",
+  "version": "0.1.0",
+  "title": "Fibo 2.0 image edit",
+  "category": "image",
+  "description": "Change a picture by saying what to change; everything else stays. Fibo 2.0 Edit Turbo ranks first among open image editors. Add up to three reference pictures for the look of the change. Runs on this computer in 4 steps.",
+  "inputs": [
+    {
+      "id": "source_image",
+      "label": "Image to edit",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "10",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image",
+      "label": "Reference image (optional)",
+      "type": "image",
+      "required": false,
+      "omitWhenMissing": true,
+      "binding": {
+        "node": "30",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image_2",
+      "label": "Second reference (optional)",
+      "type": "image",
+      "required": false,
+      "omitWhenMissing": true,
+      "binding": {
+        "node": "31",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image_3",
+      "label": "Third reference (optional)",
+      "type": "image",
+      "required": false,
+      "omitWhenMissing": true,
+      "binding": {
+        "node": "32",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "image",
+      "label": "Edited image",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "megapixels",
+      "label": "Size",
+      "type": "select",
+      "options": [1, 2, 4],
+      "default": 1,
+      "sizeChoice": true,
+      "binding": {"node":"4","field":"width"}
+    },
+    {
+      "id": "prompt",
+      "label": "Prompt",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "13",
+        "field": "value"
+      }
+    },
+    {
+      "id": "improve_prompt",
+      "label": "Improve my prompt",
+      "type": "boolean",
+      "default": true,
+      "binding": {
+        "node": "15",
+        "field": "switch"
+      }
+    },
+    {
+      "id": "steps",
+      "label": "Steps",
+      "type": "integer",
+      "min": 2,
+      "max": 12,
+      "default": 4,
+      "binding": {
+        "node": "5",
+        "field": "steps"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 1234,
+      "binding": {
+        "node": "5",
+        "field": "seed"
+      },
+      "alsoBindings": [
+        {
+          "node": "14",
+          "field": "sampling_mode.seed"
+        }
+      ]
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "fibo2-edit",
+      "requirements": [
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:TextEncodeFibo2",
+          "kind": "node",
+          "name": "TextEncodeFibo2",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:SaveImage",
+          "kind": "node",
+          "name": "SaveImage",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:PrimitiveStringMultiline",
+          "kind": "node",
+          "name": "PrimitiveStringMultiline",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:TextGenerate",
+          "kind": "node",
+          "name": "TextGenerate",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:ComfySwitchNode",
+          "kind": "node",
+          "name": "ComfySwitchNode",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:PreviewAny",
+          "kind": "node",
+          "name": "PreviewAny",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "node:BatchImagesNode",
+          "kind": "node",
+          "name": "BatchImagesNode",
+          "instructions": "Use ComfyUI 0.43 or newer (Fibo 2.0 nodes)."
+        },
+        {
+          "id": "model:fibo2-edit-turbo-int8",
+          "kind": "model",
+          "name": "fibo2_edit_turbo_int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "bytes": 8410000000,
+          "source": "https://huggingface.co/Comfy-Org/Fibo-2.0",
+          "instructions": "Install fibo2_edit_turbo_int8_convrot.safetensors into ComfyUI models/diffusion_models."
+        },
+        {
+          "id": "model:qwen3vl-4b-int8",
+          "kind": "model",
+          "name": "qwen3vl_4b_int8_convrot.safetensors",
+          "location": "text_encoders",
+          "bytes": 4858560000,
+          "source": "https://huggingface.co/Comfy-Org/Fibo-2.0",
+          "instructions": "Install qwen3vl_4b_int8_convrot.safetensors into ComfyUI models/text_encoders."
+        },
+        {
+          "id": "model:qwen3vl-8b-int8",
+          "kind": "model",
+          "name": "qwen3vl_8b_int8_convrot.safetensors",
+          "location": "text_encoders",
+          "bytes": 9400000000,
+          "source": "https://huggingface.co/Comfy-Org",
+          "instructions": "Install qwen3vl_8b_int8_convrot.safetensors into ComfyUI models/text_encoders."
+        },
+        {
+          "id": "model:flux2-vae",
+          "kind": "model",
+          "name": "flux2-vae.safetensors",
+          "location": "vae",
+          "bytes": 336000000,
+          "source": "https://huggingface.co/Comfy-Org/Fibo-2.0",
+          "instructions": "Install flux2-vae.safetensors into ComfyUI models/vae."
+        }
+      ],
+      "evidence": [
+        "2026-10-31: official https://github.com/Comfy-Org/workflow_templates/blob/main/templates/image_fibo2_edit_turbo_pe.json, converted to API format by the ComfyUI 0.43.0 frontend (app.graphToPrompt). Changes: the editor-only ImageCompare node is dropped, the text encoder is the int8 file of the same model (the template names bf16), the example prompt is emptied, and three LoadImage nodes feed TextEncodeFibo2's own autogrow image sockets (images.image_2..4) for optional references; each is removed when not given."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Workflow: Comfy-Org workflow_templates (MIT), image_fibo2_edit_turbo_pe.json. ComfyUI core: GPL-3.0.",
+    "weights": [
+      {
+        "name": "Fibo 2.0 Edit Turbo int8, Qwen3-VL 4B and 8B encoders, FLUX 2 VAE",
+        "license": "Fibo 2.0 weights: CC BY-NC 4.0 (non-commercial use only; user accepted for local, non-commercial use on 2026-10-31).",
+        "source": "https://huggingface.co/Comfy-Org/Fibo-2.0"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/Comfy-Org/workflow_templates/blob/main/templates/image_fibo2_edit_turbo_pe.json",
+      "observedAt": "2026-10-31",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

@@ -1,0 +1,290 @@
+{
+  "schemaVersion": 2,
+  "id": "vace-reference-restyle",
+  "version": "0.3.0",
+  "title": "Wan 2.1 VACE reference restyle",
+  "category": "finishing",
+  "description": "Local reference-guided video restyle. The source clip keeps its edges and timing through Canny control, and a style reference image conditions the look through VACE reference conditioning. Reference fidelity and temporal consistency are not yet qualified by a real run.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Source video",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "4",
+        "field": "file"
+      }
+    },
+    {
+      "id": "style_reference",
+      "label": "Style reference",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "16",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Restyled video",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "fpsPrepare": { "kind": "source_16fps_v1", "sourceInput": "source_video" },
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "What to keep or change",
+      "type": "string",
+      "default": "",
+      "binding": {
+        "node": "8",
+        "field": "text"
+      }
+    },
+    {
+      "id": "negative",
+      "label": "Negative prompt",
+      "type": "string",
+      "default": "blurry, distorted, unstable",
+      "binding": {
+        "node": "9",
+        "field": "text"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 543,
+      "binding": {
+        "node": "12",
+        "field": "seed"
+      }
+    },
+    {
+      "id": "strength",
+      "label": "VACE conditioning strength",
+      "type": "number",
+      "min": 0,
+      "max": 2,
+      "default": 1,
+      "binding": {
+        "node": "10",
+        "field": "strength"
+      }
+    },
+    {
+      "id": "canny_low_threshold",
+      "label": "Canny low threshold",
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "default": 0.4,
+      "binding": {
+        "node": "6",
+        "field": "low_threshold"
+      }
+    },
+    {
+      "id": "canny_high_threshold",
+      "label": "Canny high threshold",
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "default": 0.8,
+      "binding": {
+        "node": "6",
+        "field": "high_threshold"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "vace-reference-restyle",
+      "requirements": [
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Install a ComfyUI version providing UNETLoader."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Install a ComfyUI version providing CLIPLoader."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Install a ComfyUI version providing VAELoader."
+        },
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Install a ComfyUI version providing LoadVideo."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Install a ComfyUI version providing GetVideoComponents."
+        },
+        {
+          "id": "node:ImageFromBatch",
+          "kind": "node",
+          "name": "ImageFromBatch",
+          "instructions": "Install a ComfyUI version providing ImageFromBatch."
+        },
+        {
+          "id": "node:ResizeImageMaskNode",
+          "kind": "node",
+          "name": "ResizeImageMaskNode",
+          "instructions": "Install a ComfyUI version providing ResizeImageMaskNode."
+        },
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install a ComfyUI version providing LoadImage."
+        },
+        {
+          "id": "node:Canny",
+          "kind": "node",
+          "name": "Canny",
+          "instructions": "Install a ComfyUI version providing the core Canny node."
+        },
+        {
+          "id": "node:GetImageSize",
+          "kind": "node",
+          "name": "GetImageSize",
+          "instructions": "Install a ComfyUI version providing GetImageSize."
+        },
+        {
+          "id": "node:CLIPTextEncode",
+          "kind": "node",
+          "name": "CLIPTextEncode",
+          "instructions": "Install a ComfyUI version providing CLIPTextEncode."
+        },
+        {
+          "id": "node:WanVaceToVideo",
+          "kind": "node",
+          "name": "WanVaceToVideo",
+          "instructions": "Install a ComfyUI version providing WanVaceToVideo."
+        },
+        {
+          "id": "node:ModelSamplingSD3",
+          "kind": "node",
+          "name": "ModelSamplingSD3",
+          "instructions": "Install a ComfyUI version providing ModelSamplingSD3."
+        },
+        {
+          "id": "node:KSampler",
+          "kind": "node",
+          "name": "KSampler",
+          "instructions": "Install a ComfyUI version providing KSampler."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Install a ComfyUI version providing VAEDecode."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Install a ComfyUI version providing CreateVideo."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Install a ComfyUI version providing SaveVideo."
+        },
+        {
+          "id": "model:vace13b",
+          "kind": "model",
+          "name": "wan2.1_vace_1.3B_fp16.safetensors",
+          "location": "diffusion_models",
+          "version": "123acf1cc74bccbb9bfff8ac1ee72edc08c2341d",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the pinned Wan 2.1 VACE 1.3B FP16 diffusion model (4.31 GB). Minimum VRAM for this candidate is not measured."
+        },
+        {
+          "id": "model:umt5",
+          "kind": "model",
+          "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the UMT5 XXL FP8 scaled text encoder."
+        },
+        {
+          "id": "model:vae",
+          "kind": "model",
+          "name": "wan_2.1_vae.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the Wan 2.1 VAE."
+        }
+      ],
+      "evidence": [
+        "Implementation added 2026-10-24. The graph reuses the reviewed WanVaceToVideo reference_image input. A real executed run is required before reference fidelity is claimed.",
+        "Head-trim update 0.2.0 (2026-10-24): VACE reference conditioning emitted the style image as decoded frame 0 and a blend at frame 1, and the clip was 53 frames for a 49-frame source. The graph now drops two frames with ImageFromBatch and takes the source length; run 5cb8c0ce-08d6-4447-bde6-7efd91ee293e returns 49 frames starting on the generated scene.",
+        "Size-fit update 0.3.0 (2026-10-25): the source frames now take the same Wan VACE fit as the Canny looks before Canny and before the width, height and length inputs — the first 81 frames, about 0.4 megapixels, sides divisible by 16. A clip that is larger, longer or not 16-divisible no longer reaches VACE unguarded. The two-frame head trim and the source fps are unchanged. The run on this graph is recorded below.",
+        "Graph execution qualification 2026-10-24: run 5cb8c0ce-08d6-4447-bde6-7efd91ee293e on graph version 0.2.0 (the reference graph with the head-trim fix) produced a 1,501,944-byte H.264 MP4, 704x1280, 24 FPS, 49 frames, 2.04 s, SHA-256 c92f65c086c8f3cf097c570269ed339eb0226ec8cd069735cdacb3782ee9c3ac. This output-structure hash proves graph execution and output structure for 0.2.0 only. Version 0.3.0 adds the Wan VACE size fit before Canny and before the width, height and length inputs; its own run is recorded below.",
+        "Reference run 0.3.0 (2026-10-26): run ab8afba1-aa9d-4186-865b-d389ea5e8ad1 on the cleared driving fixture (704x1280, 24 fps, 49 frames) with the watercolour style reference, seed 42, strength 1, finished in 92 s. Output c4db1a1a-f201-4817-b7b4-448a46869796 is 480x864, 24 fps, 49 frames, 2.04 s, 676,883 bytes, H.264 yuv420p, SHA-256 116a5b8d0802b87273d3bb388ba500f0f70849085dcf7738dba5fe69af85f836. The fit works: 704x1280 is past the 0.4 megapixel target, so the clip is fitted down, and the graph still returns the source frame count starting on the generated scene. The cost is visible in the same run: 0.2.0 returned 704x1280 for this clip, and the film shimmers — frame-to-frame luma change measures 2.5 against 1.4 at 0.2.0 (96x54 gray frames, mean absolute difference), biggest single step 9.6 luma levels against 3.5, so paint texture and page tone pop between frames. Style, pose and framing hold; face and wardrobe drift."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0; see upstream LICENSE. Workflow template files: MIT (Comfy-Org/workflow_templates). Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "Wan2.1-VACE-1.3B",
+        "license": "Apache-2.0 (upstream LICENSE.txt); full dependency license audit pending",
+        "source": "https://huggingface.co/Wan-AI/Wan2.1-VACE-1.3B/blob/main/LICENSE.txt"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://docs.comfy.org/tutorials/video/wan/vace",
+      "observedAt": "2026-10-24",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://huggingface.co/Wan-AI/Wan2.1-VACE-1.3B",
+      "observedAt": "2026-10-24",
+      "kind": "research"
+    }
+  ],
+  "tickets": [
+    "FIN-03"
+  ],
+  "audioPolicies": [
+    "mute"
+  ]
+}

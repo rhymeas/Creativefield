@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "vace-depth-restyle",
+  "version": "0.1.0",
+  "title": "VACE preprocessed-depth restyle",
+  "capability": {
+    "id": "vace-depth-restyle",
+    "version": "0.1.0",
+    "routeId": "local"
+  },
+  "qualification": "graph-execution",
+  "inputs": [
+    { "id": "source_video", "role": "source", "type": "video", "required": true },
+    { "id": "depth_video", "role": "preprocessed_depth_control", "type": "video", "required": true }
+  ],
+  "outputs": [
+    { "id": "video", "role": "result", "type": "video", "required": true }
+  ],
+  "controls": [
+    { "id": "prompt", "role": "prompt", "enabled": true },
+    { "id": "negative", "role": "negative_prompt", "enabled": true },
+    { "id": "seed", "role": "seed", "enabled": true },
+    { "id": "strength", "role": "conditioning_strength", "enabled": true }
+  ],
+  "sources": [
+    {
+      "url": "https://github.com/Comfy-Org/workflow_templates/blob/9afccb38bb9173575411189a75f4fc6cc8acd06c/templates/video_wan_vace_14B_v2v.json",
+      "observedAt": "2026-10-17",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://docs.comfy.org/tutorials/video/wan/vace",
+      "observedAt": "2026-10-17",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://huggingface.co/Wan-AI/Wan2.1-VACE-14B",
+      "observedAt": "2026-10-17",
+      "kind": "research"
+    }
+  ],
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0; see upstream LICENSE. Workflow template files: MIT (Comfy-Org/workflow_templates). Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "Wan2.1-VACE-1.3B",
+        "license": "Apache-2.0 (upstream LICENSE.txt); full dependency license audit pending",
+        "source": "https://huggingface.co/Wan-AI/Wan2.1-VACE-1.3B/blob/main/LICENSE.txt"
+      }
+    ]
+  },
+  "limitations": [
+    "Local graph execution and strict media-alignment admission are implemented; effect quality, semantic depth adherence, preservation quality, temporal consistency, hardware requirement, and platform compatibility remain unqualified.",
+    "The workflow consumes an already preprocessed, frame-aligned depth video and does not derive depth from the source video.",
+    "Admission verifies stored hashes, grayscale depth encoding, dimensions, decoded frame count, and every 16 FPS timestamp. It cannot prove that each depth frame semantically corresponds to its source frame; the caller must supply a correctly preprocessed depth sequence.",
+    "Output frame rate and geometry follow the decoded source video; no FPS, duration, timeline, or segment control exists in this recipe.",
+    "Mute only: source audio is not carried into the output.",
+    "VACE dependency and weight license audit is incomplete; see docs/EFFECTS-FINISHING.md."
+  ]
+}

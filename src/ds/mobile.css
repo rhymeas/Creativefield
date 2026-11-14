@@ -1,0 +1,207 @@
+/*
+ * Phone layout (rule 27). One breakpoint, 760 px, the same as PHONE_QUERY in gestures.ts.
+ * Above it nothing here applies except hiding the phone-only parts. Below it the shell becomes:
+ * a slim top bar (logo, job queue, account), the page in one column with 16 px gutters, the panel's
+ * main action pinned above a bottom tab bar, and every menu and dialog as a bottom sheet.
+ * Layout and spacing only come from tokens; colours and type stay those of the desktop components.
+ */
+
+/* Phone-only parts are absent on desktop. */
+.ds-bottomnav, .ds-sheet__grab, .ds-sheet__scrim { display: none; }
+.ds-topbar__sheets { display: contents; }
+
+@media (max-width: 760px) {
+  :root {
+    --ui-scale: 1;                                   /* touch targets at full size */
+    --pad-page-x: 16px;
+    --pad-page-y: 16px;
+    --pad-page: 16px;
+    --gap-section: 20px;
+    --panel-w: 100%;
+    --bottomnav-h: calc(60px + env(safe-area-inset-bottom, 0px));
+    --frame-w: 100%;
+    --bar-inset: 16px;
+  }
+  html, body, #root { min-width: 0; }
+  body { overflow-x: hidden; }
+
+  /* ── Top bar: logo left, job queue and account right; sections move to the bottom ── */
+  .ds-topbar { height: calc(52px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) var(--pad-page-x) 0; gap: var(--space-2); }
+  .ds-topbar__brand { margin-right: auto; height: 30px; }
+  .ds-topbar__end { margin-left: 0; }
+  .ds-topbar__sheets { display: block; position: static; }
+  .ds-topbar__nav { position: fixed; z-index: 45; width: 0; height: 0; overflow: visible; visibility: hidden; }
+
+  /* ── Bottom tab bar ── */
+  .ds-bottomnav {
+    display: flex; position: fixed; z-index: 40; left: 0; right: 0; bottom: 0;
+    height: var(--bottomnav-h); padding: 0 var(--space-2) env(safe-area-inset-bottom, 0px);
+    background: color-mix(in srgb, var(--surface-page) 92%, transparent);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--line-hairline);
+  }
+  .ds-bottomnav__tab {
+    position: relative; flex: 1; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    color: var(--text-tab-inactive); font-size: var(--text-2xs); line-height: var(--lh-2xs); font-weight: var(--weight-medium);
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  }
+  .ds-bottomnav__tab:active { transform: scale(.94); }
+  .ds-bottomnav__tab:is([aria-current="page"], [data-open]) { color: var(--accent); }
+  .ds-bottomnav__icon { display: grid; place-items: center; width: 44px; height: 28px; border-radius: var(--radius-full); transition: background var(--dur-med) var(--ease); }
+  .ds-bottomnav__tab:is([aria-current="page"], [data-open]) .ds-bottomnav__icon { background: var(--accent-soft); }
+  .ds-bottomnav__label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ds-bottomnav__dot { display: none; }
+
+  /* ── Sheets: menus, the More list and dialogs rise from the bottom ── */
+  .ds-sheet__scrim { display: block; position: fixed; inset: 0; z-index: 44; background: var(--surface-overlay); animation: ds-fade var(--dur-med) var(--ease); }
+  .ds-sheet__grab { display: block; flex: none; width: 40px; height: 4px; margin: var(--space-2) auto var(--space-1); border-radius: var(--radius-full); background: var(--line-strong); }
+  .ds-mega, .ds-navdrop, .ds-moresheet {
+    position: fixed !important; z-index: 45; visibility: visible;
+    left: 0 !important; right: 0 !important; top: auto !important; bottom: 0 !important;
+    width: auto !important; max-width: none !important; max-height: 82dvh; overflow-y: auto; overscroll-behavior: contain;
+    display: flex; flex-direction: column; gap: var(--space-1);
+    padding: 0 var(--pad-page-x) calc(var(--space-4) + env(safe-area-inset-bottom, 0px)) !important;
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0 !important;
+    background: var(--surface-panel); border: 1px solid var(--line-hairline); border-bottom: 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, .45);
+    animation: ds-sheet-in var(--dur-med) var(--ease);
+  }
+  .ds-mega { display: flex !important; flex-direction: column !important; }
+  .ds-mega__col { width: 100%; }
+  /* Function menu as a sheet: each row slides sideways, tiles keep their size. */
+  .ds-fnmenu__tiles { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .ds-fnmenu__tiles::-webkit-scrollbar { display: none; }
+  .ds-fnmenu__tile { flex: none; width: 46%; scroll-snap-align: start; }
+  .ds-fnmenu__marks { display: none; }
+  .ds-fnmenu__row { width: 100%; }
+  .ds-mega__list { grid-template-columns: minmax(0, 1fr) !important; }
+  .ds-moresheet__title { padding: var(--space-3) var(--space-3) var(--space-1); color: var(--text-meta); font-size: var(--text-2xs); }
+  .ds-moresheet .ds-menu__item, .ds-navdrop .ds-menu__item { min-height: 48px; }
+  .ds-moresheet__next { margin-left: auto; color: var(--text-meta); }
+  .ds-moresheet__more { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-3) var(--space-3) 0; border-top: 1px solid var(--line-hairline); margin-top: var(--space-2); }
+
+  .ds-dialog__scrim { align-items: flex-end !important; justify-content: stretch !important; padding: 0 !important; }
+  .ds-dialog, .ds-dialog--wide {
+    width: 100% !important; max-width: none !important; max-height: 92dvh !important;
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    animation: ds-sheet-in var(--dur-med) var(--ease);
+  }
+  .ds-dialog__head { padding-top: 0; }
+  .ds-dialog__foot { flex-wrap: wrap; }
+
+  /* ── Pages: one column, nothing under the bottom bar ── */
+  .cf-team { padding-bottom: var(--bottomnav-h); }
+  .cf-team > .cf-team__body { padding: 0; gap: 0; }
+  /* The work area is the page itself: no card frame around it, one 16 px gutter. */
+  .ds-canvas { border: 0; border-radius: 0; overflow: visible; }
+  .ds-canvas__body { overflow: visible; padding: var(--space-3) var(--pad-page-x) var(--pad-page-y); }
+  .ds-canvas__body .ds-page { padding-inline: 0; }
+  .ds-split { flex-direction: column; align-items: stretch; }
+  .ds-split > * { width: 100%; max-width: none; }
+  .ds-modetabs { justify-content: flex-start; gap: var(--space-5); overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
+  .ds-modetabs::-webkit-scrollbar { display: none; }
+  .ds-modetabs > * { flex: none; scroll-snap-align: start; }
+  .ds-wsbar__tabs { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .ds-wsbar__tabs::-webkit-scrollbar { display: none; }
+  .ds-wsbar__tab { flex: none; }
+
+  /* Grids: two columns at most; the size slider has nothing to choose on a phone, so it is not shown. */
+  .ds-grid[class*="ds-density-cols-"]:not(.ds-density-cols-1) { --cols: 2; }
+  .ds-density { display: none; }
+  /* A hero stacks: words first, its moving picture under them at full width. */
+  .ds-hero { flex-direction: column; align-items: stretch; }
+  .ds-hero__media { width: 100%; }
+  .ds-search { min-width: 0; width: 100%; }
+
+  /* The tool panel keeps its desktop form at full width; its main action stays in reach above the tab bar. */
+  .ds-panel { width: 100%; max-height: none; align-self: stretch; }
+  .ds-panel__footer {
+    position: sticky !important; bottom: 0; z-index: 5;
+    padding-bottom: var(--space-3);
+    background: var(--surface-panel) !important; /* solid, also on a panel with a background reel */
+    box-shadow: 0 -12px 16px -4px var(--surface-panel);
+  }
+
+  /* ── Full view: the media takes the whole screen; Recreate and the tools stay pinned at the bottom; the details
+        rise as a sheet from the bottom when the small info button asks for them; swipe the media down to close ── */
+  .ds-viewer, .ds-viewer:has(.ds-viewer__info) {
+    flex-direction: column !important; align-items: stretch !important; justify-content: flex-start !important;
+    display: flex !important; height: 100dvh; inset: 0; padding: 0 !important; overflow: hidden; overscroll-behavior: contain; background: var(--surface-page);
+  }
+  .ds-viewer__frame, .ds-viewer:has(.ds-viewer__info) .ds-viewer__frame { flex: 1 1 auto !important; min-height: 0; height: auto !important; max-height: none !important; display: grid; place-items: center; padding-top: env(safe-area-inset-top, 0px); touch-action: pan-x pinch-zoom; will-change: transform; }
+  .ds-viewer__frame :is(img, video), .ds-viewer:has(.ds-viewer__info) .ds-viewer__frame :is(img, video) { max-width: 100% !important; max-height: 100% !important; width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
+  .ds-viewer__actions { position: absolute; z-index: 3; top: calc(var(--space-3) + env(safe-area-inset-top, 0px)); right: var(--space-3); left: auto; }
+  .ds-viewer__detailstoggle { display: inline-grid; }
+  .ds-viewer:has(.ds-viewer__info) .ds-viewer__panel, .ds-viewer__panel {
+    position: relative; z-index: 2; width: 100% !important; flex: none !important; height: auto !important; min-height: 0 !important; max-height: none !important; overflow: visible; margin-top: auto;
+    padding: var(--space-3) var(--pad-page-x) calc(var(--space-3) + env(safe-area-inset-bottom, 0px)) !important;
+    background: var(--surface-panel); border-top: 1px solid var(--line-hairline);
+  }
+  .ds-viewer__panel .ds-viewer__tools { display: flex; align-items: center; gap: var(--space-2); }
+  .ds-viewer__panel .ds-viewer__info { display: none; }
+  .ds-viewer__panel[data-details-open] .ds-viewer__info {
+    display: block; max-height: 60dvh; overflow-y: auto; overscroll-behavior: contain; margin-bottom: var(--space-3);
+    animation: ds-sheet-in var(--dur-med) var(--ease);
+  }
+  .ds-viewer:has(.ds-viewer__frame[style*="--pull"]) { background: color-mix(in srgb, var(--surface-overlay) 60%, transparent); }
+
+  /* ── Hero: on a phone its picture is the stage. The clip fills the block edge to edge, drifts slowly, and the
+        words rise over it from the bottom; the aurora glows sit behind the clip's edges. ── */
+  .ds-hero:not(.ds-hero--stage):has(> .ds-hero__media) {
+    position: relative; isolation: isolate; overflow: hidden;
+    min-height: min(56dvh, 460px); justify-content: flex-end;
+    margin: calc(-1 * var(--space-3)) calc(-1 * var(--pad-page-x)) var(--space-2);
+    padding: var(--space-8) var(--pad-page-x) var(--space-5);
+  }
+  .ds-hero:not(.ds-hero--stage) > .ds-hero__media { position: absolute; inset: 0; z-index: -1; width: auto; aspect-ratio: auto; }
+  .ds-hero:not(.ds-hero--stage) > .ds-hero__media .ds-hero__frame { border-radius: 0; background: var(--surface-page); }
+  .ds-hero:not(.ds-hero--stage) > .ds-hero__media .ds-hero__frame :is(video, img) {
+    width: 100%; height: 100%; object-fit: cover;
+    animation: ds-hero-kenburns 16s var(--ease) infinite alternate;
+  }
+  .ds-hero:not(.ds-hero--stage) > .ds-hero__media::after {
+    content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background:
+      linear-gradient(to top, var(--surface-page) 4%, color-mix(in srgb, var(--surface-page) 72%, transparent) 38%, color-mix(in srgb, var(--surface-page) 10%, transparent) 70%, color-mix(in srgb, var(--surface-page) 55%, transparent) 100%);
+  }
+  .ds-hero:not(.ds-hero--stage) > .ds-hero__media .ds-hero__glow { z-index: 3; width: 70%; opacity: 0.3; mix-blend-mode: screen; }
+  .ds-hero:not(.ds-hero--stage) .ds-hero__title { font-size: clamp(2.4rem, 11vw, 3.2rem); line-height: 0.98; text-shadow: 0 2px 24px color-mix(in srgb, var(--surface-page) 80%, transparent); }
+  .ds-hero:not(.ds-hero--stage) > .ds-hero__copy { margin-top: auto; }
+  .ds-hero:not(.ds-hero--stage) .ds-hero__text { color: var(--text-primary); opacity: 0.82; }
+  /* The tool pages' stage hero keeps its reel; it only loses the desktop's large padding. */
+  .ds-hero--stage { min-height: 300px; padding: var(--space-6) var(--pad-page-x) var(--space-5); justify-content: flex-end; }
+  .ds-hero--stage .ds-hero__title { font-size: clamp(2.2rem, 10vw, 3rem); }
+  .ds-hero__aside { width: 100%; margin-left: 0; }
+
+  /* ── Feed: a tight two-column mosaic, tiles keep their own shape, captions stay one small line ── */
+  .ds-mosaic__grid { column-gap: var(--space-2); }
+  .ds-mosaic__inner { padding-bottom: var(--space-2); }
+  .ds-resultgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+  .ds-resultgrid[data-masonry] { columns: 2; column-gap: var(--space-2); }
+  .ds-resultgrid[data-masonry] > * { margin-bottom: var(--space-2); }
+  .ds-resulttile__caption { max-width: calc(100% - 2 * var(--space-2)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* The /#ds showcase shows desktop specimens: each one scrolls sideways inside its section, the page never does. */
+  .ds-showcase-section { position: relative; overflow-x: auto; overscroll-behavior-x: contain; }
+  .ds-showcase-section .ds-bottomnav { position: relative; }
+
+  /* ── Welcome: a sheet like every dialog; 16 px gutters, two picks a row, the note above the action ── */
+  :root .ds-welcome { width: 100%; max-height: 92dvh; border-radius: var(--radius-2xl) var(--radius-2xl) 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); animation: ds-sheet-in var(--dur-med) var(--ease); }
+  :root .ds-welcome__stage { min-height: 240px; padding: var(--space-4) var(--pad-page-x); }
+  :root .ds-welcome__logo { top: var(--space-4); left: var(--pad-page-x); height: 48px; }
+  :root .ds-welcome__close { top: var(--space-4); right: var(--pad-page-x); width: 40px; }
+  :root .ds-welcome__picks { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: var(--space-2) var(--pad-page-x) var(--space-4); }
+  :root .ds-welcome__foot { flex-wrap: wrap; gap: var(--space-3); padding: var(--space-3) var(--pad-page-x) var(--space-4); }
+  :root .ds-welcome__note { flex: 1 1 100%; }
+  :root .ds-welcome__foot > :last-child { margin-left: auto; }
+}
+
+@keyframes ds-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+
+@media (max-width: 760px) and (prefers-reduced-motion: reduce) {
+  .ds-mega, .ds-navdrop, .ds-moresheet, .ds-dialog, .ds-welcome, .ds-sheet__scrim { animation: none; }
+  .ds-bottomnav__tab, .ds-bottomnav__icon { transition: none; }
+}

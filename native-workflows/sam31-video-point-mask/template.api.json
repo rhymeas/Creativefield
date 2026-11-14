@@ -1,0 +1,116 @@
+{
+  "1": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "SOURCE_REQUIRED.mp4"
+    }
+  },
+  "2": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "1",
+        0
+      ]
+    }
+  },
+  "3": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+    }
+  },
+  "4": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "2",
+        0
+      ],
+      "batch_index": 0,
+      "length": 1
+    }
+  },
+  "5": {
+    "class_type": "SAM3_VideoTrack",
+    "inputs": {
+      "images": [
+        "2",
+        0
+      ],
+      "model": [
+        "3",
+        0
+      ],
+      "detection_threshold": 0.35,
+      "max_objects": 1,
+      "detect_interval": 1,
+      "initial_mask": [
+        "10",
+        0
+      ]
+    }
+  },
+  "6": {
+    "class_type": "SAM3_TrackToMask",
+    "inputs": {
+      "track_data": [
+        "5",
+        0
+      ],
+      "object_indices": ""
+    }
+  },
+  "7": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": [
+        "6",
+        0
+      ]
+    }
+  },
+  "8": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "7",
+        0
+      ],
+      "fps": [
+        "2",
+        2
+      ]
+    }
+  },
+  "9": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "8",
+        0
+      ],
+      "filename_prefix": "ComfyField/sam31-point-mask",
+      "format": "auto",
+      "codec": "auto"
+    }
+  },
+  "10": {
+    "class_type": "SAM3_Detect",
+    "inputs": {
+      "model": [
+        "3",
+        0
+      ],
+      "image": [
+        "4",
+        0
+      ],
+      "positive_coords": "[]",
+      "negative_coords": "[]",
+      "threshold": 0.5,
+      "refine_iterations": 2,
+      "individual_masks": false
+    }
+  }
+}

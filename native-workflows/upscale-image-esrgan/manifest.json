@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 2,
+  "id": "upscale-image-esrgan",
+  "version": "0.1.0",
+  "title": "Upscale picture",
+  "category": "image",
+  "description": "Make a picture up to four times larger with Real-ESRGAN x4plus. The loader names the installed .pth file; the graph is otherwise unchanged.",
+  "inputs": [
+    {
+      "id": "source_image",
+      "label": "Picture",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "1",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "image",
+      "label": "Larger picture",
+      "type": "image",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "scale_by",
+      "label": "Size (1 = full 4x)",
+      "type": "number",
+      "min": 0.25,
+      "max": 1,
+      "step": 0.25,
+      "default": 0.5,
+      "binding": {
+        "node": "4",
+        "field": "scale_by"
+      }
+    }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "upscale-image-esrgan",
+      "requirements": [
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Install a ComfyUI version providing LoadImage."
+        },
+        {
+          "id": "node:UpscaleModelLoader",
+          "kind": "node",
+          "name": "UpscaleModelLoader",
+          "instructions": "Install a ComfyUI version providing UpscaleModelLoader."
+        },
+        {
+          "id": "node:ImageUpscaleWithModel",
+          "kind": "node",
+          "name": "ImageUpscaleWithModel",
+          "instructions": "Install a ComfyUI version providing ImageUpscaleWithModel."
+        },
+        {
+          "id": "node:ImageScaleBy",
+          "kind": "node",
+          "name": "ImageScaleBy",
+          "instructions": "Install a ComfyUI version providing ImageScaleBy."
+        },
+        {
+          "id": "node:SaveImage",
+          "kind": "node",
+          "name": "SaveImage",
+          "instructions": "Install a ComfyUI version providing SaveImage."
+        },
+        {
+          "id": "model:realesrgan-x4plus",
+          "kind": "model",
+          "name": "RealESRGAN_x4plus.pth",
+          "location": "upscale_models",
+          "version": "sha256:4fa0d38905f75ac06eb49a7951b426670021be3018265fd191d2125df9d682f1",
+          "source": "https://github.com/xinntao/Real-ESRGAN/releases/tag/v0.1.0",
+          "instructions": "Install RealESRGAN_x4plus.pth into ComfyUI models/upscale_models and verify its SHA-256 (67,040,989 bytes)."
+        }
+      ],
+      "evidence": [
+        "2026-10-30: imported unchanged from workingprototype/Fuobe workflows/comfyui/upscale-image-esrgan.json (MIT, commit c307034); only SaveImage/SaveGLB output prefixes and the upscale model file name were set. Graph checked against ComfyUI 0.37.0 node definitions; no run recorded yet.",
+        "2026-10-30: run 558f66d9-e872-497d-a0fd-ec947d34a09c through the app API on the Local ComfyUI worker (ComfyUI 0.37.0 started with --cpu, so no GPU was used), workflow hash a2e2dfe2f5b8, 18 s. Input: the same mug photo at 256 px wide, Size 0.5. Result: 512x768, the expected 2x; looked at next to the source, it is sharp with no artefacts. One image only. Receipt: scripts/utility-packs-e2e.mjs."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Graph from workingprototype/Fuobe (MIT, commit c307034) built on ComfyUI core nodes: GPL-3.0. Integration license follows this repository.",
+    "weights": [
+      {
+        "name": "Real-ESRGAN x4plus",
+        "license": "BSD-3-Clause as declared by xinntao/Real-ESRGAN; verify the exact release terms before redistribution.",
+        "source": "https://github.com/xinntao/Real-ESRGAN"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/upscale-image-esrgan.json",
+      "observedAt": "2026-10-30",
+      "kind": "implementation"
+    }
+  ],
+  "credit": {
+    "name": "Fuobe",
+    "url": "https://github.com/workingprototype/Fuobe/blob/c307034fd37d94cd506fd6d69ba9a4b15e41b91d/workflows/comfyui/upscale-image-esrgan.json",
+    "license": "MIT",
+    "what": "The workflow behind this app"
+  },
+  "tickets": [],
+  "audioPolicies": [
+    "mute"
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 2,
+  "id": "replace-from-still",
+  "version": "0.1.0",
+  "title": "Replace character from the approved still",
+  "category": "replacement",
+  "description": "The video step after the still is approved: the approved still is the first frame, the clip's own skeleton is the motion, and each person is painted back over the clean clip through their own mask so the wall, the microphone and the light stay the source's pixels. One window of 81 frames (3.4 s at 24 fps). Meant for a clip already made clean and for a still the user has approved.",
+  "inputs": [
+    { "id": "source_video", "label": "Clean clip", "type": "video", "required": true, "binding": { "node": "1", "field": "file" } },
+    { "id": "anchor_image", "label": "Approved still", "type": "image", "required": true, "binding": { "node": "anchor", "field": "image" } }
+  ],
+  "outputs": [
+    { "id": "video", "label": "Video", "type": "video", "required": true }
+  ],
+  "controls": [
+    { "id": "prompt", "label": "Describe the scene", "type": "string", "default": "", "binding": { "node": "605", "field": "value" } },
+    { "id": "pose_prompt", "label": "Describe the movement", "type": "string", "default": "", "binding": { "node": "604", "field": "value" } }
+  ],
+  "presets": [],
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "replace-from-still",
+      "requirements": [
+        { "id": "node:LoadVideo", "kind": "node", "name": "LoadVideo", "instructions": "Install a ComfyUI version providing LoadVideo." },
+        { "id": "node:GetVideoComponents", "kind": "node", "name": "GetVideoComponents", "instructions": "Install a ComfyUI version providing GetVideoComponents." },
+        { "id": "node:LoadImage", "kind": "node", "name": "LoadImage", "instructions": "Install a ComfyUI version providing LoadImage." },
+        { "id": "node:SAM3_VideoTrack", "kind": "node", "name": "SAM3_VideoTrack", "instructions": "Update ComfyUI to a version with native SAM 3 nodes." },
+        { "id": "node:SAM3_TrackToMask", "kind": "node", "name": "SAM3_TrackToMask", "instructions": "Update ComfyUI to a version with native SAM 3 nodes." },
+        { "id": "node:EmptyImage", "kind": "node", "name": "EmptyImage", "instructions": "Install a ComfyUI version providing the core EmptyImage node." },
+        { "id": "node:ImageCompositeMasked", "kind": "node", "name": "ImageCompositeMasked", "instructions": "Install a ComfyUI version providing the core ImageCompositeMasked node." },
+        { "id": "node:SDPoseKeypointExtractor", "kind": "node", "name": "SDPoseKeypointExtractor", "instructions": "Install a ComfyUI version that ships the SDPose nodes." },
+        { "id": "node:SDPoseDrawKeypoints", "kind": "node", "name": "SDPoseDrawKeypoints", "instructions": "Install a ComfyUI version that ships the SDPose nodes." },
+        { "id": "node:ResizeImageMaskNode", "kind": "node", "name": "ResizeImageMaskNode", "instructions": "Install a ComfyUI version providing ResizeImageMaskNode." },
+        { "id": "node:WanAnimate2ToVideo", "kind": "node", "name": "WanAnimate2ToVideo", "instructions": "Update ComfyUI to a version with native Wan Animate 2 nodes." },
+        { "id": "node:CreateVideo", "kind": "node", "name": "CreateVideo", "instructions": "Install a ComfyUI version providing CreateVideo." },
+        { "id": "node:SaveVideo", "kind": "node", "name": "SaveVideo", "instructions": "Install a ComfyUI version providing SaveVideo." },
+        {
+          "id": "model:wan-animate2",
+          "kind": "model",
+          "name": "wan_animate_2_distill_int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged",
+          "instructions": "Install the Wan Animate 2 distilled int8 model."
+        },
+        {
+          "id": "model:sdpose",
+          "kind": "model",
+          "name": "sdpose_wholebody_fp16.safetensors",
+          "location": "checkpoints",
+          "source": "https://huggingface.co/Comfy-Org/SDPose",
+          "instructions": "Install the SDPose whole-body checkpoint."
+        },
+        {
+          "id": "model:sam31",
+          "kind": "model",
+          "name": "sam3.1_multiplex_fp16.safetensors",
+          "location": "checkpoints",
+          "source": "https://huggingface.co/Comfy-Org/sam3.1",
+          "instructions": "Install SAM 3.1 (SAM License)."
+        },
+        {
+          "id": "model:wan-vae",
+          "kind": "model",
+          "name": "wan_2.1_vae.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the Wan 2.1 VAE."
+        },
+        {
+          "id": "model:umt5",
+          "kind": "model",
+          "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the UMT5 XXL text encoder used by Wan."
+        },
+        {
+          "id": "model:clip-vision-h",
+          "kind": "model",
+          "name": "clip_vision_h.safetensors",
+          "location": "clip_vision",
+          "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+          "instructions": "Install the CLIP vision model Wan Animate reads the reference frame with."
+        }
+      ],
+      "evidence": [
+        "2026-10-27 (0.1.0): the graph is the reviewed local-jutsu one-window shape (native-workflows/local-jutsu-replace) with the Klein anchor pass removed: the approved still is the reference image and the clip's SDPose skeleton is the motion. One real render of that shape ran on the user's clip and still: 81 frames, 1206x904, 24 fps, 437 s at 23.1 GB, and the composite keeps the wall, the microphone and the light. That render exposed two defects: SDPose draws one person, so the second person stays on the still's pose, and the left person's head is missing from the render. The shipped graph therefore poses each person separately through their own SAM 3 mask; that change is wired and has NOT been run, because the local ComfyUI's HTTP server stopped answering after the first render and never came back. The two-person pose pass is not qualified: it is wired, not run. Honest checks, frames and the experiment log: docs/REPLACE-ANCHOR.md, docs/REPLACE-ANCHOR-EXPERIMENTS.md and docs/evidence/replace-from-still/."
+      ]
+    }
+  ],
+  "coverage": { "local": "implemented", "hosted": "missing" },
+  "licenses": {
+    "software": "ComfyUI core: GPL-3.0. Integration license follows this repository; full dependency audit pending.",
+    "weights": [
+      { "name": "Wan 2.2 Animate 2 distilled", "license": "Apache-2.0", "source": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged" },
+      { "name": "SDPose whole body", "license": "Apache-2.0", "source": "https://huggingface.co/Comfy-Org/SDPose" },
+      { "name": "SAM 3.1", "license": "SAM License (Meta)", "source": "https://huggingface.co/facebook/sam3" },
+      { "name": "Wan 2.1 VAE, UMT5 XXL and CLIP vision H", "license": "Apache-2.0", "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged" }
+    ]
+  },
+  "sources": [
+    { "url": "https://comfy.org/workflows/", "observedAt": "2026-10-27", "kind": "implementation" }
+  ],
+  "tickets": [],
+  "audioPolicies": ["mute"]
+}

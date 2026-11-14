@@ -1,0 +1,450 @@
+{
+  "schemaVersion": 2,
+  "id": "previs-to-video",
+  "version": "0.4.0",
+  "title": "Grey-block to video",
+  "category": "video",
+  "description": "Turn a grey-block or previs clip into a finished shot: the camera and motion stay, the grey shapes become your character, vehicle and place. Runs MiniMax H3 on this computer.",
+  "inputs": [
+    {
+      "id": "source_video",
+      "label": "Grey-block clip (24 fps)",
+      "type": "video",
+      "required": true,
+      "binding": {
+        "node": "10",
+        "field": "file"
+      }
+    },
+    {
+      "id": "character_image",
+      "label": "Picture 1: main person",
+      "type": "image",
+      "required": true,
+      "binding": {
+        "node": "20",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image",
+      "label": "Picture 2: person, prop or place (optional)",
+      "type": "image",
+      "required": false,
+      "omitWhenMissing": true,
+      "binding": {
+        "node": "21",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image_2",
+      "label": "Picture 3: person, prop or place (optional)",
+      "type": "image",
+      "required": false,
+      "omitWhenMissing": true,
+      "binding": {
+        "node": "22",
+        "field": "image"
+      }
+    },
+    {
+      "id": "reference_image_3",
+      "label": "Picture 4: person, prop or place (optional)",
+      "type": "image",
+      "required": false,
+      "omitWhenMissing": true,
+      "binding": {
+        "node": "23",
+        "field": "image"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "video",
+      "label": "Clip",
+      "type": "video",
+      "required": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "prompt",
+      "label": "Direction",
+      "type": "string",
+      "default": "subject_definitions:\n<Video 1> is the source video for the target video edit: a grey-block previsualisation clip whose untextured grey shapes stand for the people, props and places of the shot, and whose camera path, lens, framing and timing define the shot.\n<Subject 1> is the main character, the person in <Picture 1>, with the same face, hair, body and clothes; in <Video 1> this person is the main grey figure.\n<Subject 2> is the further person, prop or location shown in <Picture 2>, <Picture 3> and <Picture 4>, as each image shows.\nsummary:\n[video editing + reference generation] The target video is an edited version of <Video 1>: one continuous live-action shot with the camera and blocking of <Video 1>, in which the grey shapes become <Subject 1> and <Subject 2>.\nretention_analysis:\n<Video 1> (camera, blocking and timing of [Shot 1]): partially_preserved - the camera path, lens, framing, timing, the position, size and screen side of every figure and object and each movement are kept exactly; every grey untextured surface is replaced with real people, materials, light and detail.\n<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, body and clothes of the person in <Picture 1> are retained.\n<Subject 2> (appears in [Shot 1]): partially_preserved - each further picture's person, prop or place is retained as its image shows it.\ndetailed_description:\nLive-action, cinematic, photoreal, with natural light, real textures, believable shadows and reflections and slight film grain. [Shot 1] Keep the camera of <Video 1> exactly: its move, lens and angle. There are no cuts, no reframing and no other camera motion. Every grey figure becomes a real person at the same place, size and screen side: the main grey figure becomes <Subject 1>; further grey figures become the people in the other pictures. The grey surroundings become a real place built where <Video 1> has its walls, floor and open space. Faces, wardrobe and props stay consistent for the whole shot.\noverall_soundscape:\nNatural sound of the scene: footsteps, room tone and ambience that fit the action.\nnon_diegetic_music:\nN/A",
+      "binding": {
+        "node": "2136",
+        "field": "prompt"
+      }
+    },
+    {
+      "id": "aspect_ratio",
+      "label": "Shape",
+      "type": "select",
+      "options": [
+        "16:9 (Widescreen)",
+        "9:16 (Portrait Widescreen)",
+        "1:1 (Square)",
+        "21:9 (Ultrawide)"
+      ],
+      "default": "16:9 (Widescreen)",
+      "binding": {
+        "node": "2115",
+        "field": "aspect_ratio"
+      }
+    },
+    {
+      "id": "megapixels",
+      "label": "Size (0.9 = 720p)",
+      "type": "select",
+      "options": [
+        0.4,
+        0.9,
+        1.5
+      ],
+      "default": 0.9,
+      "binding": {
+        "node": "2115",
+        "field": "megapixels"
+      }
+    },
+    {
+      "id": "length",
+      "label": "Length (seconds)",
+      "type": "number",
+      "min": 2,
+      "max": 15,
+      "step": 1,
+      "default": 5,
+      "binding": {
+        "node": "2132",
+        "field": "value"
+      }
+    },
+    {
+      "id": "turbo",
+      "label": "Fast (4 steps; off = quality, 20 steps)",
+      "type": "boolean",
+      "default": true,
+      "binding": {
+        "node": "50",
+        "field": "value"
+      }
+    },
+    {
+      "id": "sharpen",
+      "label": "Sharpen 2x (same take, twice the size; use with 480p)",
+      "type": "boolean",
+      "default": false,
+      "binding": {
+        "node": "67",
+        "field": "value"
+      }
+    },
+    {
+      "id": "use_original_audio",
+      "label": "Use original audio",
+      "type": "boolean",
+      "default": false,
+      "binding": {
+        "node": "source-audio-enabled",
+        "field": "value"
+      }
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "integer",
+      "min": 0,
+      "max": 2147483647,
+      "default": 20261031,
+      "binding": {
+        "node": "2129",
+        "field": "noise_seed"
+      }
+    }
+  ],
+  "presets": [],
+  "timing": {
+    "fps": 24,
+    "minSeconds": 2,
+    "maxSeconds": 15,
+    "sourceTimed": false,
+    "frameMapping": "h3_seconds_17n5"
+  },
+  "routes": [
+    {
+      "id": "local",
+      "execution": "local_comfy",
+      "provider": "comfy-local",
+      "upstreamProviders": [],
+      "implementation": "implemented",
+      "workflowId": "previs-to-video",
+      "requirements": [
+        {
+          "id": "node:LoadVideo",
+          "kind": "node",
+          "name": "LoadVideo",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:GetVideoComponents",
+          "kind": "node",
+          "name": "GetVideoComponents",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:LoadImage",
+          "kind": "node",
+          "name": "LoadImage",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:LoraLoaderModelOnly",
+          "kind": "node",
+          "name": "LoraLoaderModelOnly",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:CreateVideo",
+          "kind": "node",
+          "name": "CreateVideo",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:SaveVideo",
+          "kind": "node",
+          "name": "SaveVideo",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:ResolutionSelector",
+          "kind": "node",
+          "name": "ResolutionSelector",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:VAELoader",
+          "kind": "node",
+          "name": "VAELoader",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:VAEDecodeAudio",
+          "kind": "node",
+          "name": "VAEDecodeAudio",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:EmptyAudio",
+          "kind": "node",
+          "name": "EmptyAudio",
+          "instructions": "Use ComfyUI with the core audio nodes."
+        },
+        {
+          "id": "node:AudioConcat",
+          "kind": "node",
+          "name": "AudioConcat",
+          "instructions": "Use ComfyUI with the core audio nodes."
+        },
+        {
+          "id": "node:TrimAudioDuration",
+          "kind": "node",
+          "name": "TrimAudioDuration",
+          "instructions": "Use ComfyUI with the core audio nodes."
+        },
+        {
+          "id": "node:VAEDecode",
+          "kind": "node",
+          "name": "VAEDecode",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:KSamplerSelect",
+          "kind": "node",
+          "name": "KSamplerSelect",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:BasicScheduler",
+          "kind": "node",
+          "name": "BasicScheduler",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:SamplerCustomAdvanced",
+          "kind": "node",
+          "name": "SamplerCustomAdvanced",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:BasicGuider",
+          "kind": "node",
+          "name": "BasicGuider",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:UNETLoader",
+          "kind": "node",
+          "name": "UNETLoader",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:CLIPLoader",
+          "kind": "node",
+          "name": "CLIPLoader",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:RandomNoise",
+          "kind": "node",
+          "name": "RandomNoise",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:ComfyMathExpression",
+          "kind": "node",
+          "name": "ComfyMathExpression",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:PrimitiveFloat",
+          "kind": "node",
+          "name": "PrimitiveFloat",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "node:MiniMaxH3ReferenceToVideo",
+          "kind": "node",
+          "name": "MiniMaxH3ReferenceToVideo",
+          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+        },
+        {
+          "id": "model:h3-ref2va",
+          "kind": "model",
+          "name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install minimax_h3_ref2va_pruned_int8_convrot.safetensors into ComfyUI models/diffusion_models."
+        },
+        {
+          "id": "model:h3-text",
+          "kind": "model",
+          "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+          "location": "text_encoders",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors into ComfyUI models/text_encoders."
+        },
+        {
+          "id": "model:h3-video-vae",
+          "kind": "model",
+          "name": "minimax_h3_video_vae_fp16.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install minimax_h3_video_vae_fp16.safetensors into ComfyUI models/vae."
+        },
+        {
+          "id": "model:h3-audio-vae",
+          "kind": "model",
+          "name": "minimax_h3_audio_vae_fp32.safetensors",
+          "location": "vae",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install minimax_h3_audio_vae_fp32.safetensors into ComfyUI models/vae."
+        },
+        {
+          "id": "model:h3-ref2v-turbo4",
+          "kind": "model",
+          "name": "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors",
+          "location": "loras",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+          "instructions": "Install minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors into ComfyUI models/loras."
+        },
+        {
+          "id": "node:PrimitiveBoolean",
+          "kind": "node",
+          "name": "PrimitiveBoolean",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:PrimitiveInt",
+          "kind": "node",
+          "name": "PrimitiveInt",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:ComfySwitchNode",
+          "kind": "node",
+          "name": "ComfySwitchNode",
+          "instructions": "ComfyUI core node."
+        },
+        {
+          "id": "node:LatentUpscaleModelLoader",
+          "kind": "node",
+          "name": "LatentUpscaleModelLoader",
+          "instructions": "ComfyUI core node (MiniMax H3 latent upscaler needs ComfyUI after 2026-10-28, PR 17412)."
+        },
+        {
+          "id": "node:MiniMaxH3LatentUpscaleWithModel",
+          "kind": "node",
+          "name": "MiniMaxH3LatentUpscaleWithModel",
+          "instructions": "ComfyUI core node (MiniMax H3 latent upscaler needs ComfyUI after 2026-10-28, PR 17412)."
+        },
+        {
+          "id": "node:ManualSigmas",
+          "kind": "node",
+          "name": "ManualSigmas",
+          "instructions": "ComfyUI core node (MiniMax H3 latent upscaler needs ComfyUI after 2026-10-28, PR 17412)."
+        },
+        {
+          "id": "model:h3-latent-upscaler",
+          "kind": "model",
+          "name": "minimax_h3_latent_upscaler_3d_conv_v1_fp16.safetensors",
+          "location": "latent_upscale_models",
+          "bytes": 690592672,
+          "source": "https://huggingface.co/LBH-123-AI/Minimax_h3_latent_Upscaler",
+          "instructions": "Install minimax_h3_latent_upscaler_3d_conv_v1_fp16.safetensors into ComfyUI models/latent_upscale_models."
+        }
+      ],
+      "evidence": [
+        "2026-10-31: H3 reference-to-video core of the Comfy hub workflow https://comfy.org/hub/workflows/minimax-h3-video-restyling-58a3f7167dba/ (API graph decoded from the page). Removed: Gemini Nano Banana key art, OpenRouter prompt writers, OpenAI image, ElevenLabs voice, IfElse, VHS nodes. Added: core LoadVideo/GetVideoComponents, three LoadImage references on the node's ref_images sockets (2 optional), the official ref2v 4-step turbo LoRA (as in the official multiframe template, steps 20 -> 4), CreateVideo/SaveVideo, and a fixed structured prompt in the six-section format the hub's prompt writer produces.",
+        "2026-10-31: Fast/Quality switch added the way the official H3 templates switch turbo: PrimitiveBoolean -> ComfySwitchNode for the model (turbo LoRA or base) and the steps (4 or 20).",
+        "2026-10-31: Sharpen 2x added after the LBH-123-AI example workflow (latent upscale, then 3 refine steps from sigma 0.9035 with the turbo model), using the native MiniMaxH3LatentUpscaleWithModel node; a ComfySwitchNode picks the draft or the sharpened latent, so the refine branch only runs when switched on.",
+        "2026-11-02: Added a fourth optional image input to the existing H3 reference node. Graph compilation is tested; multi-person replacement, identity matching and scene preservation are not qualified by a render.",
+        "2026-11-02: Optional source audio uses ComfyUI core EmptyAudio, AudioConcat and TrimAudioDuration at generated frame count / 24 fps. It pads short or absent source audio with silence. Node contracts and graph compilation were checked, but no end-to-end source-audio render has been verified. Generated audio remains the default."
+      ]
+    }
+  ],
+  "coverage": {
+    "local": "implemented",
+    "hosted": "planned"
+  },
+  "licenses": {
+    "software": "Workflow: Comfy hub 'Minimax H3 Video Restyling' by Comfy Org, local core only. ComfyUI core: GPL-3.0.",
+    "weights": [
+      {
+        "name": "MiniMax H3 Ref2VA int8, Qwen3-VL 32B encoder, H3 VAEs, ref2v turbo LoRA",
+        "license": "MiniMax H3 model license as published with the weights, not reviewed here.",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "name": "MiniMax H3 latent upscaler v1",
+        "license": "Apache-2.0",
+        "source": "https://huggingface.co/LBH-123-AI/Minimax_h3_latent_Upscaler"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://comfy.org/hub/workflows/minimax-h3-video-restyling-58a3f7167dba/",
+      "observedAt": "2026-10-31",
+      "kind": "implementation"
+    }
+  ],
+  "tickets": [],
+  "audioPolicies": [
+    "mute",
+    "replace"
+  ]
+}

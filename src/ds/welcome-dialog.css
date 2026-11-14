@@ -1,0 +1,85 @@
+/* ── WelcomeDialog ─────────────────────────────────────────────
+   The first-visit greeting. It borrows the stage hero's reel, aurora and rising words (.ds-hero__*), so the
+   welcome and the start screen read as one place. The logo is the only brand-yellow element. */
+.ds-welcome__scrim { backdrop-filter: blur(10px) saturate(1.1); }
+.ds-welcome {
+  position: relative;
+  width: min(calc(820px * var(--ui-scale)), 100%); max-height: calc(100dvh - 2 * var(--pad-page));
+  display: flex; flex-direction: column; overflow: hidden auto;
+  border-radius: var(--radius-2xl); background: var(--surface-panel);
+  box-shadow: var(--shadow-pop); outline: 0;
+  animation: ds-pop var(--dur-med) var(--ease-spring);
+}
+
+.ds-welcome__stage {
+  position: relative; isolation: isolate; overflow: hidden; flex: none;
+  min-height: calc(300px * var(--ui-scale));
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: var(--space-3);
+  padding: var(--space-8);
+  background: var(--surface-page);
+}
+.ds-welcome__stage > :is(.ds-welcome__title, .ds-welcome__text) { position: relative; z-index: 1; }
+/* The loop stays visible on the right and sinks into the panel at the bottom, where the words sit. */
+.ds-welcome__veil {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(100deg, color-mix(in srgb, var(--surface-page) 92%, transparent) 8%, color-mix(in srgb, var(--surface-page) 55%, transparent) 48%, color-mix(in srgb, var(--surface-page) 10%, transparent) 92%),
+    linear-gradient(to top, var(--surface-panel) 2%, transparent 58%);
+}
+
+.ds-welcome__logo {
+  position: absolute; z-index: 1; top: var(--space-8); left: var(--space-8);
+  height: calc(64px * var(--ui-scale)); width: auto; display: block;
+  filter: drop-shadow(0 0 28px var(--brand-soft));
+  animation: ds-welcome-logo 900ms var(--ease) both;
+}
+.ds-welcome__title {
+  margin: 0; max-width: calc(560px * var(--ui-scale));
+  font-size: var(--display-lg); line-height: var(--lh-display-lg); font-weight: var(--weight-bold);
+  letter-spacing: -0.03em; color: var(--text-primary);
+  text-shadow: 0 2px 24px color-mix(in srgb, var(--surface-page) 80%, transparent);
+}
+.ds-welcome__text {
+  margin: 0; max-width: calc(500px * var(--ui-scale));
+  font-size: var(--text-md); line-height: var(--lh-md); color: var(--text-primary); opacity: 0.78;
+  animation: ds-welcome-rise 700ms var(--ease) 620ms both;
+}
+
+.ds-welcome__close {
+  position: absolute; z-index: 1; top: var(--space-5); right: var(--space-5);
+  display: grid; place-items: center;
+  width: calc(32px * var(--ui-scale)); aspect-ratio: 1; border-radius: var(--radius-full);
+  background: var(--surface-glass); border: 1px solid var(--line-hairline); color: var(--text-secondary);
+  backdrop-filter: blur(12px);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.ds-welcome__close:hover { background: var(--surface-hover); color: var(--text-primary); }
+.ds-welcome__close:active { transform: scale(0.97); }
+.ds-welcome__close:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--accent-ring); }
+
+.ds-welcome__picks {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(calc(150px * var(--ui-scale)), 1fr)); gap: var(--space-3);
+  padding: var(--space-2) var(--space-8) var(--space-6);
+}
+.ds-welcome__picks > * { animation: ds-welcome-rise 600ms var(--ease) both; }
+.ds-welcome__picks > :nth-child(1) { animation-delay: 700ms; }
+.ds-welcome__picks > :nth-child(2) { animation-delay: 780ms; }
+.ds-welcome__picks > :nth-child(3) { animation-delay: 860ms; }
+.ds-welcome__picks > :nth-child(4) { animation-delay: 940ms; }
+
+.ds-welcome__foot {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  padding: var(--space-4) var(--space-8) var(--space-5);
+  border-top: 1px solid var(--line-hairline);
+}
+.ds-welcome__note { min-width: 0; font-size: var(--text-xs); line-height: var(--lh-xs); color: var(--text-secondary); }
+
+@keyframes ds-welcome-logo { from { opacity: 0; transform: translateY(-6px) scale(0.94); filter: blur(6px); } to { opacity: 1; transform: none; } }
+@keyframes ds-welcome-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-welcome, .ds-welcome__logo, .ds-welcome__text, .ds-welcome__picks > * { animation: none; }
+}
+.ds-welcome__clip { display: grid; width: 100%; height: 100%; }
+.ds-welcome__clip img, .ds-welcome__clip video { grid-area: 1 / 1; width: 100%; height: 100%; object-fit: cover; }
+@media (prefers-reduced-motion: reduce) { .ds-welcome__clip video { display: none; } }

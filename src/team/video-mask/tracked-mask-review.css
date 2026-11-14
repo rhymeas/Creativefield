@@ -1,0 +1,6 @@
+/* Feature composition only; tint, contour, extent and controls use the existing DS. */
+.cf-tracked-review__stage { position:relative; width:100%; isolation:isolate; overflow:hidden; }
+.cf-tracked-review__stage > canvas:first-child { display:block; width:100%; height:auto; }
+.cf-mask-coverage { display:flex; width:100%; gap:0; }
+.cf-mask-coverage > .ds-btn { flex:1; min-width:0; padding-inline:0; }
+.cf-mask-correction > canvas { touch-action:none; cursor:crosshair; }

@@ -1,0 +1,27 @@
+{
+  "1": { "class_type": "LoadVideo", "inputs": { "file": "SOURCE_REQUIRED.mp4" } },
+  "2": { "class_type": "GetVideoComponents", "inputs": { "video": ["1", 0] } },
+  "4": {
+    "class_type": "DownloadAndLoadSAM2Model",
+    "inputs": {
+      "model": "sam2.1_hiera_tiny.safetensors",
+      "segmentor": "video",
+      "device": "cuda",
+      "precision": "fp16"
+    }
+  },
+  "5": {
+    "class_type": "Sam2Segmentation",
+    "inputs": {
+      "sam2_model": ["4", 0],
+      "image": ["2", 0],
+      "keep_model_loaded": false,
+      "coordinates_positive": "[]",
+      "coordinates_negative": "[]",
+      "individual_objects": false
+    }
+  },
+  "6": { "class_type": "MaskToImage", "inputs": { "mask": ["5", 0] } },
+  "7": { "class_type": "CreateVideo", "inputs": { "images": ["6", 0], "fps": ["2", 2] } },
+  "8": { "class_type": "SaveVideo", "inputs": { "video": ["7", 0], "filename_prefix": "ComfyField/sam21-mask", "format": "auto", "codec": "auto" } }
+}
