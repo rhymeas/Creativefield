@@ -105,6 +105,9 @@ export const APPROVED_LOCAL_CLASSES = new Set([
   "MiniMaxH3ImageToVideo", "VAEEncodeTiled", "VAEDecodeTiled", "SeedVR2Preprocess", "SeedVR2PostProcessing", "SeedVR2Conditioning", "SeedVR2TemporalChunk", "SeedVR2TemporalMerge",
   // Native ComfyUI P-H3 image conditioning and the model-only LoRA loader.
   "PH3ImageConditioning", "LoraLoaderBypassModelOnly",
+  // nicolab28/ComfyUI-ClipProj (MIT), read in full at commit c01ba8f on 2026-11-21: torch and ComfyUI only, no network or
+  // subprocess; pins or streams the small Qwen3-VL encoder and projects it to the MiniMax H3 32B conditioning space.
+  "ClipProjLoader",
   // D3voz/openjutsu object swap (h3-object-swap). Partial review 2026-10-31: comfyui-h3-oneclick-swap, PromptBuilder, KJNodes, VHS read;
   // ComfyUI-MiniMaxH3-Context-Loop (108k lines, exec patches, optional cloud LLM code unused by this graph) not fully read; the user accepted that on 2026-10-31.
   "ImageScaleToMaxDimension", "TextGenerate", "VHS_LoadVideo", "H3ObjectSwapPlan", "MiniMaxH3GenerationProfile", "MiniMaxH3ChainPlanModern",
