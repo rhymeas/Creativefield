@@ -35,6 +35,28 @@ const matches = (id:string, actual:string|undefined, wanted:string) => id === "7
 export const FINISH_LONG_SIDE = 1472;
 /** The image-to-video finishing scale: the tested 1.44x, or more for small drafts so they still finish at 1472 px. */
 export const finishScale = (width:number, height:number) => Math.max(1.44, FINISH_LONG_SIDE / Math.max(width, height));
+/** "HD upscale" of image to video finishes at 2K: 2048 px on the long side (576x1024 -> 1152x2048, 480x832 -> 1184x2048). */
+export const HD_LONG_SIDE = 2048;
+export const hdFinishScale = (width:number, height:number) => HD_LONG_SIDE / Math.max(width, height);
+/** Output size of a finish, on the 32 px grid the latent upscaler needs. */
+export const finishSize = (width:number, height:number, scale:number) => ({width:32*Math.round(width*scale/32), height:32*Math.round(height*scale/32)});
+
+/** Tile layout for the one-step refine (DenoMiniMaxH3TiledSampler). Refine time grows faster than tile area, and every
+ * overlap is computed twice, so the frame is cut into the fewest tiles of at most 1184 px across and 1088 px along the
+ * long side, overlapping 128 px. Measured on the 4090 (IDEA-2466): 864x1472 in 2 tiles 12.2 s instead of 3 tiles 16.5 s,
+ * 1184x2048 in 2 tiles 28 s instead of 10 tiles 66 s; no visible seam; peak memory unchanged (about 9.4 GiB). */
+const TILE_OVERLAP = 128;
+const axisTile = (length:number, max:number) => {
+  if (length <= max) return length;
+  const count = Math.ceil((length - TILE_OVERLAP) / (max - TILE_OVERLAP));
+  return 32 * Math.ceil((length + (count - 1) * TILE_OVERLAP) / count / 32);
+};
+export function finishTiles(width:number, height:number) {
+  const portrait = height >= width;
+  const tile_width = axisTile(width, portrait ? 1184 : 1088), tile_height = axisTile(height, portrait ? 1088 : 1184);
+  // The node wants an overlap below the tile size even when one tile covers the axis.
+  return {tile_width, tile_height, overlap_x:Math.min(TILE_OVERLAP, tile_width - 32), overlap_y:Math.min(TILE_OVERLAP, tile_height - 32)};
+}
 
 /** The native two-pass nodes, when the template has them (all four or none). */
 function nativePassIds(template:ApiGraph):string[] {
@@ -108,12 +130,12 @@ export function buildHyperflowQuality(template:ApiGraph, request:HyperflowReques
     }
   }
   if (request.quality !== "normal") {
-    // The tested ~1.44x finishing scale, and at least FINISH_LONG_SIDE on the long side: the small 480x832 / 832x480
-    // drafts finish at 864x1472 in about the time a 576x1024 clip takes without upscale (IDEA-2466, Fast HD).
-    const scale = finishScale(request.width, request.height);
-    graph["finish:up"].inputs.width = 32 * Math.round(request.width * scale / 32);
-    graph["finish:up"].inputs.height = 32 * Math.round(request.height * scale / 32);
-    graph[request.quality === "upscale" ? "finish:tiled" : "guide:tiled"].inputs.seed = request.seed;
+    // Upscale: the tested ~1.44x finishing scale, and at least FINISH_LONG_SIDE on the long side, so the small 480x832 /
+    // 832x480 drafts finish at 864x1472 in about the time a 576x1024 clip takes without upscale (Fast HD).
+    // HD upscale: 2K, 2048 px on the long side, about 25 s more than Fast HD on the 4090 (IDEA-2466).
+    const size = finishSize(request.width, request.height, request.quality === "hd-upscale" ? hdFinishScale(request.width, request.height) : finishScale(request.width, request.height));
+    Object.assign(graph["finish:up"].inputs, size);
+    Object.assign(graph[request.quality === "upscale" ? "finish:tiled" : "guide:tiled"].inputs, {seed:request.seed, ...finishTiles(size.width, size.height)});
   }
   return graph;
 }
@@ -135,7 +157,7 @@ export function buildHyperflowFirstLastFinish(template:ApiGraph, quality:"upscal
   const outputWidth=32*Math.round(width*1.44/32),outputHeight=32*Math.round(height*1.44/32);
   Object.assign(graph["finish:up"].inputs,{width:outputWidth,height:outputHeight});
   const tiled=graph[quality==="upscale"?"finish:tiled":"guide:tiled"];
-  tiled.inputs.seed=graph["8"].inputs.noise_seed;
+  Object.assign(tiled.inputs,{seed:graph["8"].inputs.noise_seed,...finishTiles(outputWidth,outputHeight)});
   if(quality==="hd-upscale")graph["high-conditioning"].inputs={...graph["5"].inputs,width:outputWidth,height:outputHeight};
   for(const [id,node] of Object.entries(graph))for(const value of Object.values(node.inputs)){
     if(Array.isArray(value)&&value.length===2&&typeof value[0]==="string"&&typeof value[1]==="number"&&!graph[value[0]])throw new Error(`HyperFlow first/last node ${id} refers to a missing node`);
@@ -160,8 +182,9 @@ export function selectHyperflowTextFinish(template:ApiGraph, quality:HyperflowQu
     // Text has no original HD image to guide the refinement. Use the same
     // Deno pass at a higher output resolution for HD.
     const scale=quality==="hd-upscale"?1.875:1.44;
-    Object.assign(graph["finish:up"].inputs,{width:32*Math.round(width*scale/32),height:32*Math.round(height*scale/32)});
-    graph["finish:tiled"].inputs.seed=graph["8"].inputs.noise_seed;
+    const size=finishSize(width,height,scale);
+    Object.assign(graph["finish:up"].inputs,size);
+    Object.assign(graph["finish:tiled"].inputs,{seed:graph["8"].inputs.noise_seed,...finishTiles(size.width,size.height)});
   }
   for(const [id,node] of Object.entries(graph))for(const value of Object.values(node.inputs)){
     if(Array.isArray(value)&&value.length===2&&typeof value[0]==="string"&&typeof value[1]==="number"&&!graph[value[0]])throw new Error(`HyperFlow text node ${id} refers to a missing node`);
