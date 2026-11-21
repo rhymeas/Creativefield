@@ -73,6 +73,9 @@ import {isObjectSwapWorkflow,isOpenJutsuSingleSwap} from "../src/capabilities/ta
 import {hyperflowStillReference} from "./hyperflow-reference";
 import {usesH3AudioPolish,withPolishedH3Audio,withSourceAudio,withUpscaledH3Audio} from "./h3-audio-polish";
 import {withTonedStill} from "./still-tone";
+import {squareReference} from "./square-reference";
+/** Input roles whose wide or tall pictures go on a square canvas before upload (manifest `squareReference`). */
+const squareReferenceRoles=(manifest:{inputs:Array<{id:string;squareReference?:boolean}>})=>new Set(manifest.inputs.filter(port=>port.squareReference).map(port=>port.id));
 import {type FaceCropPlan,withStitchedFace} from "./face-crop";
 import {VIDEO_REFRAME_ID} from "../src/capabilities/video-reframe";
 import {finishRoleOf} from "../src/capabilities/roles";
@@ -555,7 +558,7 @@ export class ExecutionService {
     try{return await inspectCharacterReference(worker,image,{signal:AbortSignal.any([controller.signal,AbortSignal.timeout(240000)])});}
     finally{clearInterval(timer);}
   }
-  private async uploadInputs(run:any,worker:any,assets:any[],motion?:{role:string;storageKey:string;filename:string},addSilentAudio=false,padAudioTail=false,workflowId=""):Promise<Record<string,string>>{
+  private async uploadInputs(run:any,worker:any,assets:any[],motion?:{role:string;storageKey:string;filename:string},addSilentAudio=false,padAudioTail=false,workflowId="",squareRoles:ReadonlySet<string>=new Set()):Promise<Record<string,string>>{
     const inputs:Record<string,string>={};
     for(const asset of assets){
       const isMotion=motion?.role===asset.role;
@@ -578,6 +581,8 @@ export class ExecutionService {
           return this.uploadInput(worker,uploadName,await openAsBlob(file,{type:prepared?"video/x-matroska":asset.content_type}),asset.role);
         },{padTail:padAudioTail});
       }else{
+        const squared=squareRoles.has(asset.role)&&asset.content_type?.startsWith("image/")?await squareReference(await readFile(source)):undefined;
+        if(squared){inputs[asset.role]=await this.uploadInput(worker,filename.replace(/\.[^.]+$/, "-square.png"),new Blob([new Uint8Array(squared)],{type:"image/png"}),asset.role);continue;}
         const still=await hyperflowStillReference(source,workflowId,asset.role,asset.content_type);
         const uploadName=still?filename.replace(/\.[^.]+$/, "-still.png"):filename;
         inputs[asset.role]=Object.values(inputs).includes(uploadName)?uploadName:await this.uploadInput(worker,uploadName,
@@ -688,7 +693,7 @@ export class ExecutionService {
         }
       }
       const sourceFrames=await this.replaceSourceFrames(run,assets,bundle.manifest);
-      const inputs=await this.uploadInputs(run,worker,assets,undefined,(isObjectSwapWorkflow(bundle.manifest.id)||isOpenJutsuAdvanced(bundle.manifest.id)),(isObjectSwapWorkflow(bundle.manifest.id)||isOpenJutsuAdvanced(bundle.manifest.id)),worker.kind!=="cloud"?bundle.manifest.id:"");
+      const inputs=await this.uploadInputs(run,worker,assets,undefined,(isObjectSwapWorkflow(bundle.manifest.id)||isOpenJutsuAdvanced(bundle.manifest.id)),(isObjectSwapWorkflow(bundle.manifest.id)||isOpenJutsuAdvanced(bundle.manifest.id)),worker.kind!=="cloud"?bundle.manifest.id:"",squareReferenceRoles(bundle.manifest));
       const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,await this.compileWorkerGraph(worker,bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
       // A cancellation before prompt submission can complete without touching the worker queue.
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
@@ -745,7 +750,7 @@ export class ExecutionService {
          only accepts the names the server made, and the stored graph keeps those names. */
       const cloud=worker.kind==="cloud";
       const named=Object.fromEntries(assets.map(asset=>[asset.role,`comfyfield-${run.id}-${asset.id}.${extension(asset.content_type)}`]));
-      const inputs=cloud?named:await this.uploadInputs(run,worker,assets,undefined,(isObjectSwapWorkflow(bundle.manifest.id)||isOpenJutsuAdvanced(bundle.manifest.id)),(isObjectSwapWorkflow(bundle.manifest.id)||isOpenJutsuAdvanced(bundle.manifest.id)),bundle.manifest.id);
+      const inputs=cloud?named:await this.uploadInputs(run,worker,assets,undefined,(isObjectSwapWorkflow(bundle.manifest.id)||isOpenJutsuAdvanced(bundle.manifest.id)),(isObjectSwapWorkflow(bundle.manifest.id)||isOpenJutsuAdvanced(bundle.manifest.id)),bundle.manifest.id,squareReferenceRoles(bundle.manifest));
       const graph=await applyStoredRunGraphEdits(this.pool,run.workspace_id,run.id,await this.compileWorkerGraph(worker,bundle,run.invocation,inputs,sourceFrames),bundle.manifest);
       const current=(await this.pool.query("SELECT state FROM runs WHERE workspace_id=$1 AND id=$2",[run.workspace_id,run.id])).rows[0];
       if(current.state==="cancel_requested"){await this.finish(run,"canceled");return;}

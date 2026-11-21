@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "minimax-h3-image-edit",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "title": "MiniMax H3 Image with references",
   "category": "image",
   "description": "Local MiniMax H3-Image (33B, 6 steps, no CFG) from the pruned Q4_K_M GGUF, guided by up to four pictures. Write @Image 1 to @Image 4 in the prompt; they reach the model as <Picture 1> to <Picture 4>, renumbered when a slot is empty. Picture 1 is the main reference or the picture to change. Output keeps Picture 1's proportions by default; choose a format to set them yourself. Size choice is 4, 6, 8, 12 or 20 MP; 12 and 20 MP reference edits are verified through the app. Sampled with native ComfyUI nodes: euler ancestral for the first two steps, then a re-noise (LCM) pass at 0.95, for clean skin, less grain and fewer crushed blacks.9 for cleaner skin, less grain and fewer crushed blacks. The prompt is read by a Qwen3-VL-4B with a learned projection (ClipProj) instead of the 32B encoder: about 4.5 GB instead of 15.7 GB, so the image model keeps its memory.",
@@ -26,7 +26,8 @@
       "binding": {
         "node": "11",
         "field": "image"
-      }
+      },
+      "squareReference": true
     },
     {
       "id": "reference_image_2",
@@ -37,7 +38,8 @@
       "binding": {
         "node": "12",
         "field": "image"
-      }
+      },
+      "squareReference": true
     },
     {
       "id": "reference_image_3",
@@ -48,7 +50,8 @@
       "binding": {
         "node": "13",
         "field": "image"
-      }
+      },
+      "squareReference": true
     }
   ],
   "outputs": [

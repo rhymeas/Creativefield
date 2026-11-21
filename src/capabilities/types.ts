@@ -11,6 +11,8 @@ export type ReadinessState = "ready" | "install_required" | "download_required" 
 export type Implementation = "implemented" | "experimental" | "planned";
 export type Binding = { node: string; field: string; transform?: "seconds_to_wan_frames" | "divide_native_scale" | "seconds_to_loader_frames" };
 export type Port = { id: string; label: string; type: MediaType; required: boolean; binding?: Binding; representation?: "image" | "video"; omitWhenMissing?: boolean;
+  /** A wide or tall reference picture goes on a square canvas before upload (H3 scales every picture to a 1024 px short edge). */
+  squareReference?: boolean;
   /** An optional input that splices nodes into the graph: when it is empty, links to the `relink` nodes go to their
    *  original outputs again and the `remove` nodes (the loader and its splice) are dropped. */
   bypassWhenMissing?: { relink: Record<string, [string, number]>; remove: string[] };

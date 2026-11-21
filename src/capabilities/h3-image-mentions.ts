@@ -121,6 +121,14 @@ export function applyH3HiresFinish(graph:ApiGraph){
     graph["hires:sigmas"] = {class_type: "ManualSigmas", inputs: {sigmas: H3_HIRES_SIGMAS}};
     graph["hires:sampler"] = {class_type: "SamplerLCM", inputs: {s_noise: 0.95, s_noise_end: 0.95, noise_clip_std: 0}};
     graph["hires:refine"] = {class_type: "SamplerCustom", inputs: {...last.inputs, add_noise: true, noise_seed: Number(last.inputs.noise_seed) + 1, sampler: ["hires:sampler", 0], sigmas: ["hires:sigmas", 0], latent_image: ["hires:encode", 0]}};
+    // An edit's draft already holds the change. Its pictures would pull the full-size redraw back towards the source
+    // (a black apron faded back to yellow at 20 MP) and their reference blocks made it take 471 s, so the redraw reads
+    // the prompt alone. With the 4B encoder that is under a second.
+    if (Object.keys(node.inputs).some(field => field.startsWith("images."))) {
+      graph["hires:cond"] = {class_type: "MiniMaxH3ImageConditioning", inputs: {clip: node.inputs.clip, prompt: node.inputs.prompt, width: canvas.width, height: canvas.height}};
+      graph["hires:neg"] = {class_type: "ConditioningZeroOut", inputs: {conditioning: ["hires:cond", 0]}};
+      Object.assign(graph["hires:refine"].inputs, {positive: ["hires:cond", 0], negative: ["hires:neg", 0]});
+    }
     graph[decodeId] = {class_type: "VAEDecodeTiled", inputs: {samples: ["hires:refine", 0], vae, ...H3_HIRES_VAE_TILES}};
   }
 }
