@@ -70,6 +70,61 @@ function megapixelsFromAspect(ratio:number,megapixels:number){
   return {width,height};
 }
 
+/** Above this size H3-Image samples a draft first and finishes it at full size (IDEA-2466, 2026-11-21). */
+export const H3_HIRES_ABOVE_MEGAPIXELS = 12;
+/** The draft size of that finish. */
+export const H3_HIRES_DRAFT_MEGAPIXELS = 8;
+/** Two finishing steps from the official grid: enough to redraw lashes, pores and lettering at full size. */
+export const H3_HIRES_SIGMAS = "0.5327739119529724, 0.23200887441635132, 0";
+const H3_HIRES_VAE_TILES = {tile_size: 1024, overlap: 64, temporal_size: 64, temporal_overlap: 8};
+
+const canvasOf = (graph:ApiGraph, node:ApiGraph[string]) => {
+  const {width, height} = node.inputs;
+  if (typeof width === "number" && typeof height === "number") return {width, height};
+  if (!Array.isArray(width) || !Array.isArray(height) || width[0] !== height[0]) return undefined;
+  const selected = graph[String(width[0])];
+  if (selected?.class_type !== "ResolutionSelector") return undefined;
+  const ratio = /^\s*(\d+(?:\.\d+)?)\s*[:x]\s*(\d+(?:\.\d+)?)/.exec(String(selected.inputs.aspect_ratio ?? ""));
+  const megapixels = Number(selected.inputs.megapixels);
+  if (!ratio || !Number.isFinite(megapixels)) return undefined;
+  return megapixelsFromAspect(Number(ratio[1]) / Number(ratio[2]), megapixels);
+};
+
+/**
+ * Large H3-Image canvases sample an 8 MP draft, enlarge it in pixels (lanczos), encode it again and redraw
+ * the last two steps at full size. Measured on the 4090: 8 -> 16 MP in 70 s, where native 16 MP took over
+ * five minutes; lashes, pores and embroidered lettering stay crisp. Enlarging the latent instead leaves
+ * doubled edges on lettering, so the enlargement is in pixels. Runs after the canvas size is final.
+ */
+export function applyH3HiresFinish(graph:ApiGraph){
+  for (const node of Object.values(graph)) {
+    if (node.class_type !== "MiniMaxH3ImageConditioning") continue;
+    const canvas = canvasOf(graph, node);
+    // Half a megapixel of slack: the 32 px grid rounds a 12 MP square to 3552 x 3552, just above 12 MP.
+    if (!canvas || canvas.width * canvas.height <= (H3_HIRES_ABOVE_MEGAPIXELS + 0.5) * 1024 * 1024) continue;
+    // The decode that saves the picture, the last sampler before it and the VAE it uses.
+    const decodeId = Object.keys(graph).find(key => graph[key].class_type === "VAEDecode" && Array.isArray(graph[key].inputs.samples));
+    if (!decodeId) continue;
+    const finalId = String((graph[decodeId].inputs.samples as unknown[])[0]);
+    const last = graph[finalId];
+    if (last?.class_type !== "SamplerCustom") continue;
+    const draft = megapixelsFromAspect(canvas.width / canvas.height, H3_HIRES_DRAFT_MEGAPIXELS);
+    const selector = Array.isArray(node.inputs.width) ? String(node.inputs.width[0]) : undefined;
+    node.inputs.width = draft.width; node.inputs.height = draft.height;
+    if (selector && !Object.values(graph).some(other => Object.values(other.inputs).some(value => Array.isArray(value) && value[0] === selector))) delete graph[selector];
+    const vae = graph[decodeId].inputs.vae;
+    graph["hires:decode"] = {class_type: "VAEDecode", inputs: {samples: [finalId, 0], vae}};
+    graph["hires:scale"] = {class_type: "ImageScale", inputs: {image: ["hires:decode", 0], upscale_method: "lanczos", width: canvas.width, height: canvas.height, crop: "disabled"}};
+    // Full-size encode and decode go in 1024 px tiles: at 20 MP the whole-frame VAE overflows the 24 GB
+    // beside the image model and an encode ran for more than nine minutes; tiled it takes 8 s, no seam seen.
+    graph["hires:encode"] = {class_type: "VAEEncodeTiled", inputs: {pixels: ["hires:scale", 0], vae, ...H3_HIRES_VAE_TILES}};
+    graph["hires:sigmas"] = {class_type: "ManualSigmas", inputs: {sigmas: H3_HIRES_SIGMAS}};
+    graph["hires:sampler"] = {class_type: "SamplerLCM", inputs: {s_noise: 0.95, s_noise_end: 0.95, noise_clip_std: 0}};
+    graph["hires:refine"] = {class_type: "SamplerCustom", inputs: {...last.inputs, add_noise: true, noise_seed: Number(last.inputs.noise_seed) + 1, sampler: ["hires:sampler", 0], sigmas: ["hires:sigmas", 0], latent_image: ["hires:encode", 0]}};
+    graph[decodeId] = {class_type: "VAEDecodeTiled", inputs: {samples: ["hires:refine", 0], vae, ...H3_HIRES_VAE_TILES}};
+  }
+}
+
 /**
  * Above 16 megapixels the core ResolutionSelector refuses the value. Compute the same canvas
  * (binary megapixels, 32 px grid) from the chosen format and megapixels and write width and

@@ -4,7 +4,7 @@ import { assertCloudGraphPolicy, assertLocalGraphPolicy, assertRoutePolicy, loca
 import {buildHyperflowFirstLastFinish, buildHyperflowQuality, selectHyperflowTextFinish, type HyperflowQuality} from "./hyperflow-quality";
 import {h3Frames} from "./timing";
 import {omitMissingReferences} from "./optional-image-references";
-import {applyH3PictureMentions,applyH3LargeCanvas,applyH3SourceSize} from "./h3-image-mentions";
+import {applyH3PictureMentions,applyH3LargeCanvas,applyH3SourceSize,applyH3HiresFinish} from "./h3-image-mentions";
 import {applyFluxEditCanvas} from "./flux-edit-size";
 import {applyEditCanvas} from "./edit-size";
 import {applyH3VideoPrompt} from "./h3-video-prompt";
@@ -100,6 +100,7 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
   applyH3PictureMentions(graph, manifest.inputs, invocation.inputs);
   applyH3LargeCanvas(graph);
   applyH3SourceSize(graph, values, manifest.controls, invocation.sourceSize);
+  applyH3HiresFinish(graph);
   if (manifest.id === "flux2-klein-edit") {
     const refs = ["reference_image", "reference_image_2", "reference_image_3"].map((port,i) => ({file:invocation.inputs[port],id:`cf-ref-${i+1}`})).filter(ref=>!!ref.file);
     // Slots in the UI can have gaps; the model receives the attached images
