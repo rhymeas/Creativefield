@@ -208,7 +208,8 @@ function CommandBarDemo(){
     mode={{value:mode,onChange:setMode,items:[{id:"auto",label:"Auto",icon:<Sparkles size={16}/>},{id:"image",label:"Image",icon:<Image size={16}/>},{id:"video",label:"Video",icon:<Video size={16}/>}]}}
     chips={<Pill quiet aria-label="Add a reference image" title="Add a reference image"><Plus size={14}/></Pill>}
     submitLabel="Generate image" submitText="Generate" submitDisabled={!text.trim()}
-    onSubmit={()=>{setBusy(true);setTimeout(()=>setBusy(false),1600);}}/>;
+    onSubmit={()=>{setBusy(true);setTimeout(()=>setBusy(false),1600);}}
+    drop={{label:"Drop a picture as reference",onFiles:()=>{},onAsset:()=>{}}}/>;
 }
 
 function AdvancedSettingsDemo(){
@@ -678,6 +679,7 @@ export default function Showcase() {
             <Thumb label="portrait-front.png" info={<><span>portrait-front.png</span><Meta>Shared image</Meta></>} selected onSelect={() => {}} />
             <Thumb label="profile-reference.png" onSelect={() => {}} />
             <Thumb label="read-only.png" />
+            <Thumb label="Reference 1 · insert @Image 1" badge={<Badge>1</Badge>} numbered mini onActivate={() => {}} />
           </ThumbGrid>
         </div>
       </Section>

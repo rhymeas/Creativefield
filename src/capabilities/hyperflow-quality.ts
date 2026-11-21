@@ -30,7 +30,9 @@ const expected: Record<string,string> = {
 const SAMPLER_CLASSES = new Set(["KSamplerSelect", "H3ImageSampler"]);
 const PASS_CLASSES = new Set(["SamplerCustomAdvanced", "SamplerCustom"]);
 const NATIVE_PASS: Record<string,string> = {"7s":"SplitSigmas", "7n":"ConditioningZeroOut", "7l":"SamplerLCM", "10a":"SamplerCustomAdvanced"};
-const matches = (id:string, actual:string|undefined, wanted:string) => id === "7" ? !!actual && SAMPLER_CLASSES.has(actual) : id === "10" ? !!actual && PASS_CLASSES.has(actual) : actual === wanted;
+/** Node 2 reads the prompt: the 32B encoder (CLIPLoader) or, since 2026-11-21, Qwen3-VL-4B with a ClipProj projection. */
+const ENCODER_CLASSES = new Set(["CLIPLoader", "ClipProjLoader"]);
+const matches = (id:string, actual:string|undefined, wanted:string) => id === "7" ? !!actual && SAMPLER_CLASSES.has(actual) : id === "10" ? !!actual && PASS_CLASSES.has(actual) : id === "2" && wanted === "CLIPLoader" ? !!actual && ENCODER_CLASSES.has(actual) : actual === wanted;
 /** Upscale finishes reach at least this many pixels on the long side. */
 export const FINISH_LONG_SIDE = 1472;
 /** The image-to-video finishing scale: the tested 1.44x, or more for small drafts so they still finish at 1472 px. */

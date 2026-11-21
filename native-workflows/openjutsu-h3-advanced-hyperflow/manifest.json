@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "openjutsu-h3-advanced-hyperflow",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "title": "OpenJutsu multiple characters (HyperFlow H3 Flash)",
   "category": "replacement",
   "role": {
@@ -459,12 +459,22 @@
           "instructions": "Install ComfyUI 0.41.2+ and the Openjutsu node packs: comfyui-h3-oneclick-swap, MiniMaxH3 Context Loop, Fantastic PromptBuilder, KJNodes and VideoHelperSuite."
         },
         {
-          "id": "model:h3-text",
+          "id": "model:encoder-4b",
           "kind": "model",
-          "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+          "name": "qwen3vl_4b_int8_convrot.safetensors",
           "location": "text_encoders",
-          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
-          "instructions": "Install qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors in ComfyUI models/text_encoders."
+          "version": "sha256:32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c",
+          "source": "https://huggingface.co/Comfy-Org/Krea-2/blob/main/text_encoders/qwen3vl_4b_int8_convrot.safetensors",
+          "instructions": "Add the Qwen3-VL-4B text encoder (4.9 GB, Apache-2.0). It must be the VL model."
+        },
+        {
+          "id": "model:clipproj-4b",
+          "kind": "model",
+          "name": "mmh3-4b-ClipProj-celeb-mlp.safetensors",
+          "location": "clip_projections",
+          "version": "sha256:275b389991276532d969dbb32f91ce67e170549873e61819cfec52a770660699",
+          "source": "https://huggingface.co/NicoLab28/ClipProj-MiniMax-H3/blob/main/mmh3-4b-ClipProj-celeb-mlp.safetensors",
+          "instructions": "Add the 4B ClipProj projection (304 MB, MIT; the author calls it a research proof of concept)."
         },
         {
           "id": "model:visual-describer",
@@ -516,6 +526,12 @@
           "name": "minimax_h3_ref2va_hyperflow_flash_14b-Q4_K_M.gguf",
           "location": "unet_gguf",
           "instructions": "Add the HyperFlow H3 Flash Ref2VA Q4 model to the worker's GGUF model list."
+        },
+        {
+          "id": "node:ClipProjLoader",
+          "kind": "node",
+          "name": "ClipProjLoader",
+          "instructions": "Install ComfyUI-ClipProj (github.com/nicolab28/ComfyUI-ClipProj, MIT; reviewed at commit c01ba8f, version 0.1.13). No Python packages needed."
         }
       ],
       "evidence": [
@@ -528,7 +544,7 @@
     "hosted": "planned"
   },
   "licenses": {
-    "software": "D3voz/openjutsu workflow MIT; companion node packs have their own licenses.",
+    "software": "D3voz/openjutsu workflow MIT; companion node packs have their own licenses. Text encoder adapter: ComfyUI-ClipProj (MIT).",
     "weights": [
       {
         "name": "MiniMax H3 encoders and VAEs, Qwen3-VL and SAM 3.1",
@@ -539,6 +555,11 @@
         "name": "HyperFlow H3 Flash Ref2VA",
         "license": "See the model publisher's license.",
         "source": "https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash"
+      },
+      {
+        "name": "Qwen3-VL-4B text encoder and ClipProj projection",
+        "license": "Qwen3-VL: Apache-2.0 (Comfy-Org/Krea-2). ClipProj projection: MIT; the author states its legal status is unclear and provides it as-is for research.",
+        "source": "https://huggingface.co/NicoLab28/ClipProj-MiniMax-H3"
       }
     ]
   },
@@ -551,6 +572,11 @@
     {
       "url": "https://github.com/Video-Rebirth/ComfyUI-HyperFlow-Flash",
       "observedAt": "2026-11-08",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://github.com/nicolab28/ComfyUI-ClipProj",
+      "observedAt": "2026-11-21",
       "kind": "implementation"
     }
   ],

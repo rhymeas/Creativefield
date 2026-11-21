@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "h3-object-swap",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "title": "Swap a thing (MiniMax H3)",
   "category": "replacement",
   "description": "Change one thing in a clip into the thing in a picture: a jacket, hair, a car. Name what to change; the rest of the shot, the people and the sound stay. Runs MiniMax H3 on this computer, about 2 minutes for 5 seconds at 480p. About one take in four loses the change for part of the clip: make another take.",
@@ -391,12 +391,22 @@
           "instructions": "Install minimax_h3_ref2va_pruned_int8_convrot.safetensors into ComfyUI models/diffusion_models."
         },
         {
-          "id": "model:h3-text",
+          "id": "model:encoder-4b",
           "kind": "model",
-          "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+          "name": "qwen3vl_4b_int8_convrot.safetensors",
           "location": "text_encoders",
-          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
-          "instructions": "Install qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors into ComfyUI models/text_encoders."
+          "version": "sha256:32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c",
+          "source": "https://huggingface.co/Comfy-Org/Krea-2/blob/main/text_encoders/qwen3vl_4b_int8_convrot.safetensors",
+          "instructions": "Add the Qwen3-VL-4B text encoder (4.9 GB, Apache-2.0). It must be the VL model."
+        },
+        {
+          "id": "model:clipproj-4b",
+          "kind": "model",
+          "name": "mmh3-4b-ClipProj-celeb-mlp.safetensors",
+          "location": "clip_projections",
+          "version": "sha256:275b389991276532d969dbb32f91ce67e170549873e61819cfec52a770660699",
+          "source": "https://huggingface.co/NicoLab28/ClipProj-MiniMax-H3/blob/main/mmh3-4b-ClipProj-celeb-mlp.safetensors",
+          "instructions": "Add the 4B ClipProj projection (304 MB, MIT; the author calls it a research proof of concept)."
         },
         {
           "id": "model:describer",
@@ -437,6 +447,12 @@
           "location": "checkpoints",
           "source": "https://huggingface.co/Comfy-Org/sam3.1",
           "instructions": "Install sam3.1_multiplex_fp16.safetensors into ComfyUI models/checkpoints."
+        },
+        {
+          "id": "node:ClipProjLoader",
+          "kind": "node",
+          "name": "ClipProjLoader",
+          "instructions": "Install ComfyUI-ClipProj (github.com/nicolab28/ComfyUI-ClipProj, MIT; reviewed at commit c01ba8f, version 0.1.13). No Python packages needed."
         }
       ],
       "evidence": [
@@ -449,12 +465,17 @@
     "hosted": "planned"
   },
   "licenses": {
-    "software": "Workflow: D3voz/openjutsu (MIT). Node packs: comfyui-h3-oneclick-swap (MIT), Fantastic PromptBuilder (MIT), ComfyUI-MiniMaxH3-Context-Loop (license file in its repo), KJNodes and VideoHelperSuite (GPL-3.0); installed in the separate H3 ComfyUI, not included. ComfyUI core: GPL-3.0.",
+    "software": "Workflow: D3voz/openjutsu (MIT). Node packs: comfyui-h3-oneclick-swap (MIT), Fantastic PromptBuilder (MIT), ComfyUI-MiniMaxH3-Context-Loop (license file in its repo), KJNodes and VideoHelperSuite (GPL-3.0); installed in the separate H3 ComfyUI, not included. ComfyUI core: GPL-3.0. Text encoder adapter: ComfyUI-ClipProj (MIT).",
     "weights": [
       {
         "name": "MiniMax H3, text encoders, VAEs, DMAD LoRA, SAM 3.1",
         "license": "Each as published with its weights; MiniMax H3 license, DMAD and SAM licenses not reviewed here.",
         "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "name": "Qwen3-VL-4B text encoder and ClipProj projection",
+        "license": "Qwen3-VL: Apache-2.0 (Comfy-Org/Krea-2). ClipProj projection: MIT; the author states its legal status is unclear and provides it as-is for research.",
+        "source": "https://huggingface.co/NicoLab28/ClipProj-MiniMax-H3"
       }
     ]
   },
@@ -462,6 +483,11 @@
     {
       "url": "https://github.com/D3voz/openjutsu/blob/7fe118b/workflows/object.api.json",
       "observedAt": "2026-10-31",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://github.com/nicolab28/ComfyUI-ClipProj",
+      "observedAt": "2026-11-21",
       "kind": "implementation"
     }
   ],

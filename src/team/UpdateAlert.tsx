@@ -1,7 +1,9 @@
 import {useEffect,useState} from "react";
+import {createPortal} from "react-dom";
 import {Download,Sparkles} from "lucide-react";
 import {Button,Dialog,LinkButton,Meta,Notice,Pill,StatusText} from "../ds";
 import {GITHUB_URL,GITHUB_ZIP} from "./Guide";
+import "./update-alert.css";
 
 /** The app's own update check (server/update-check.ts). States: Pad. */
 type Info={current:string;latest?:string;available:boolean;notesUrl?:string;title?:string;canSelfUpdate:boolean;reason?:string};
@@ -19,7 +21,9 @@ export function UpdateAlert({hosted}:{hosted:boolean}){
     load();const timer=setInterval(load,6*60*60*1000);
     return()=>{live=false;clearInterval(timer);};
   },[hosted]);
-  if(hosted||!info?.available)return null;
+  /* The running version, quietly in the bottom right corner on every screen, so a screenshot always says which build it shows. */
+  const version=info&&typeof document!=="undefined"?createPortal(<div className="cf-app-version" aria-label={`CreativeField ${info.current}`}><Meta parts={[`v${info.current}`]}/></div>,document.body):null;
+  if(hosted||!info?.available)return version;
   const update=async()=>{
     setPhase({kind:"updating"});
     try{
@@ -31,6 +35,7 @@ export function UpdateAlert({hosted}:{hosted:boolean}){
   };
   const close=()=>{if(phase.kind!=="updating")setPhase({kind:"closed"});};
   return <>
+    {version}
     <Pill quiet title={`CreativeField ${info.latest} is out`} onClick={()=>setPhase({kind:"open"})}><Sparkles size={14}/>Update</Pill>
     <Dialog open={phase.kind!=="closed"} title={`CreativeField ${info.latest} is out`} onClose={close}
       footer={phase.kind==="restart"?<Button variant="primary" onClick={close}>Got it</Button>:

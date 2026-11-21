@@ -75,3 +75,8 @@
 .cf-modify-send { width: 36px; height: 36px; padding: 0; }
 
 .cf-layer-slot { position: relative; }
+
+
+/* Mini references above FotoField's free input (the same Thumbs as the Modify card). */
+.cf-command-references { display: flex; gap: var(--gap-inline); }
+.cf-command-references > * { width: 44px; }

@@ -899,6 +899,8 @@ button.ds-thumb__art:disabled { opacity: 0.45; cursor: not-allowed; }
 .ds-thumb__badge { position:absolute; top:var(--space-1); left:var(--space-1); z-index:2; pointer-events:none; }
 .ds-thumb--numbered { overflow: visible; }
 .ds-thumb--numbered .ds-thumb__badge { top: calc(var(--space-2) * -1); right: calc(var(--space-2) * -1); left: auto; }
+/* Thumb mini: a small echo of a reference; picture and number only, a radius that fits the size. */
+.ds-thumb--mini .ds-thumb__art { border-radius: var(--radius-sm); }
 .ds-thumb--numbered .ds-thumb__remove { right: auto; left: var(--space-1); }
 .ds-thumb__actions { position:absolute; bottom:var(--space-1); right:var(--space-1); display:flex; gap:var(--space-1); opacity:0; pointer-events:none; }
 .ds-thumb__remove { position:absolute; top:var(--space-1); right:var(--space-1); z-index:2; opacity:0; pointer-events:none; background:var(--surface-control); }
@@ -1939,6 +1941,9 @@ button.ds-castcard__main { cursor: pointer; }
 .ds-droptarget--boxed[data-over] { background: var(--surface-control); }
 .ds-droptarget--wrap[data-over] > :not(.ds-droptarget__label) { opacity: .3; transition: opacity var(--dur-fast) var(--ease); }
 .ds-droptarget--wrap[data-over]::after { content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none; border: 1px dashed var(--accent); border-radius: inherit; background: var(--accent-soft); }
+/* CommandBar with `drop`: the card keeps its own layout and never dims while a run is busy. */
+.ds-commandbar__main.ds-droptarget--wrap { display: flex; padding: 0 0 0 var(--space-2); border-radius: inherit; }
+.ds-commandbar__main.ds-droptarget[data-disabled] { opacity: 1; }
 /* Boxed: one composer box one step lighter than its dock (FotoField Modify): references, words and actions
    sit inside it, the prompt has no box of its own; focus lights the box's outline. */
 .ds-droptarget--boxed { background: var(--surface-control); box-shadow: inset 0 0 0 1px var(--line-soft); transition: box-shadow var(--dur-fast) var(--ease); }

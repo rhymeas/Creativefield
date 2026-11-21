@@ -1782,7 +1782,7 @@ export function Tooltip({content,children,className,focusable=false}:{content:Re
   return <span ref={ref} className={cx("ds-tooltip-anchor",className)} tabIndex={focusable?0:undefined} aria-describedby={position?id:undefined} onMouseEnter={show} onMouseLeave={()=>setPosition(null)} onFocus={show} onBlur={()=>setPosition(null)} onClick={event=>{event.stopPropagation();show();}} onKeyDown={event=>{if(event.key==="Escape")setPosition(null);}}>{children}{position&&createPortal(<div id={id} role="tooltip" className="ds-tooltip" style={position}>{content}</div>,document.body)}</span>;
 }
 
-export function Thumb({ src, label, badge, numbered, info, selected, disabled, onSelect, onActivate, onPreview, onRemove, video, audio, dragData }: {
+export function Thumb({ src, label, badge, numbered, info, selected, disabled, onSelect, onActivate, onPreview, onRemove, video, audio, dragData, mini }: {
   src?: string; label: string; badge?:ReactNode;
   /** A numbered reference (@1, @2): the number badge overhangs the top right corner and Remove moves to the top left. */
   numbered?: boolean;
@@ -1798,9 +1798,11 @@ export function Thumb({ src, label, badge, numbered, info, selected, disabled, o
   audio?:boolean;
   /** Drag the tile onto a media field to reuse it ({ type, value } go on the drag). */
   dragData?: { type: string; value: string };
+  /** A small echo of a reference elsewhere (above the free input): picture and number only, no tile tools. */
+  mini?: boolean;
 }) {
   const preview=useSurfacePreview();
-  const canPreview=!!src&&!audio,openPreview=onPreview??preview.open,selecting=!!onSelect&&!onActivate&&!onPreview;
+  const canPreview=!!src&&!audio&&!mini,openPreview=onPreview??preview.open,selecting=!!onSelect&&!onActivate&&!onPreview;
   const face = (
     <>
       {audio?<Music2 size={18}/>:src ? (video ? <video src={src} muted playsInline preload="metadata" /> : <img src={src} alt="" loading="lazy" />) : <ImageIcon size={18} />}
@@ -1808,7 +1810,7 @@ export function Thumb({ src, label, badge, numbered, info, selected, disabled, o
     </>
   );
   return (
-    <div ref={preview.ref} className={numbered ? "ds-thumb ds-thumb--numbered" : "ds-thumb"} data-selected={selected || undefined}>
+    <div ref={preview.ref} className={cx("ds-thumb", numbered && "ds-thumb--numbered", mini && "ds-thumb--mini")} data-selected={selected || undefined}>
       {onSelect||onActivate ? (
         <button type="button" className="ds-thumb__art" role={selecting?"checkbox":undefined} aria-checked={selecting?!!selected:undefined} aria-current={!selecting&&selected?"true":undefined} aria-label={!selecting&&selected?`${label} (selected)`:label} title={label} disabled={disabled} onClick={onActivate??onPreview??onSelect}
           draggable={!!dragData} onDragStart={dragData ? (e) => { e.dataTransfer.setData(dragData.type, dragData.value); if (src) e.dataTransfer.setData(ASSET_URL_DRAG, src); e.dataTransfer.effectAllowed = "copy"; } : undefined}>
@@ -2854,7 +2856,7 @@ export function CastCard({ name, portrait, meta, stats, selected = false, onActi
   </article>;
 }
 
-export function DropTarget({ label, hint, children, disabled = false, busy, onDrop, onFiles, wrap = false, boxed = false, className }: {
+export function DropTarget({ label, hint, children, disabled = false, busy, onDrop, onFiles, onAsset, wrap = false, boxed = false, className }: {
   label: string;
   hint?: string;
   children?: ReactNode;
@@ -2865,6 +2867,8 @@ export function DropTarget({ label, hint, children, disabled = false, busy, onDr
   onDrop?: (payload: string) => void;
   /** Dropped files (images from the desktop). With `onFiles`, only file drags light the box up. */
   onFiles?: (files: File[]) => void;
+  /** A Library asset dragged in (its id). With `onFiles` as well, file and asset drags both light the box up. */
+  onAsset?: (id: string) => void;
   /** Wrap a box that has its own content (FotoField Modify): no outline of its own; while files hover
    *  it gets a dashed accent border, an accent wash and the label centred over what it holds. */
   wrap?: boolean;
@@ -2873,12 +2877,14 @@ export function DropTarget({ label, hint, children, disabled = false, busy, onDr
   className?: string;
 }) {
   const [over, setOver] = useState(false);
-  const takes = (event: ReactDragEvent<HTMLDivElement>) => !disabled && (!onFiles || event.dataTransfer.types.includes("Files"));
+  const takes = (event: ReactDragEvent<HTMLDivElement>) => !disabled && (!onFiles || event.dataTransfer.types.includes("Files") || (!!onAsset && event.dataTransfer.types.includes(ASSET_DRAG)));
   function drop(event: ReactDragEvent<HTMLDivElement>) {
     event.preventDefault();
     event.stopPropagation();
     setOver(false);
     if (disabled) return;
+    const asset = onAsset ? event.dataTransfer.getData(ASSET_DRAG) : "";
+    if (asset) { onAsset!(asset); return; }
     const files = Array.from(event.dataTransfer.files ?? []);
     if (onFiles && files.length) { onFiles(files); return; }
     const payload = event.dataTransfer.getData("text/plain");
@@ -3660,7 +3666,7 @@ export function MediaViewer({ open, src, name, onClose, actions, onActivate, med
    Enter sends. The text runs the full width; underneath, the options that work here follow as quiet chips, then the
    mode (Auto, Image, Video) as one PillMenu chip, with a normal-sized Generate at the right end whose glitter runs
    left along the text. A hint only shows when something blocks. */
-export function CommandBar<T extends string>({ label, value, onChange, placeholder, onSubmit, submitLabel, submitText, submitDisabled, busy, mode, chips, above, hint, inline }: {
+export function CommandBar<T extends string>({ label, value, onChange, placeholder, onSubmit, submitLabel, submitText, submitDisabled, busy, mode, chips, above, hint, inline, drop }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
@@ -3680,6 +3686,8 @@ export function CommandBar<T extends string>({ label, value, onChange, placehold
   hint?: string;
   /** Sits in the flow instead of floating (the /#ds showcase). */
   inline?: boolean;
+  /** The card takes dropped images (desktop files or Library assets), as `DropTarget wrap` (FotoField references). */
+  drop?: { label: string; disabled?: boolean; onFiles: (files: File[]) => void; onAsset?: (id: string) => void };
 }) {
   const box = useRef<HTMLTextAreaElement>(null), go = useRef<HTMLDivElement>(null);
   const [overflow, setOverflow] = useState(false), [expanded, setExpanded] = useState(false);
@@ -3701,9 +3709,12 @@ export function CommandBar<T extends string>({ label, value, onChange, placehold
   }, [value]);
   const blocked = !!submitDisabled || !!busy;
   const current = mode?.items.find((item) => item.id === mode.value) ?? mode?.items[0];
+  const card = (inner: ReactNode) => drop
+    ? <DropTarget wrap label={drop.label} disabled={drop.disabled} onFiles={drop.onFiles} onAsset={drop.onAsset} className="ds-commandbar__main">{inner}</DropTarget>
+    : <div className="ds-commandbar__main">{inner}</div>;
   return (
     <div className={cx("ds-commandbar", inline && "ds-commandbar--inline")} role="search" aria-label={label}>
-      <div className="ds-commandbar__main">
+      {card(<>
         <textarea
           ref={box}
           className="ds-commandbar__input"
@@ -3726,7 +3737,7 @@ export function CommandBar<T extends string>({ label, value, onChange, placehold
             </div>
           )}
         </div>}
-      </div>
+      </>)}
       {above && <div className="ds-commandbar__above">{above}</div>}
       {hint && <span className="ds-commandbar__hint">{hint}</span>}
       <Dialog open={expanded} title={label} onClose={() => setExpanded(false)} footer={<Button variant="primary" onClick={() => setExpanded(false)}>Done</Button>}>

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "h3-t2v",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "title": "MiniMax H3 text to video",
   "category": "t2v",
   "description": "Describe a shot and get a clip with sound, made by MiniMax H3 on this computer. 5 seconds by default, up to 15.",
@@ -182,10 +182,10 @@
           "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
         },
         {
-          "id": "node:CLIPLoader",
+          "id": "node:ClipProjLoader",
           "kind": "node",
-          "name": "CLIPLoader",
-          "instructions": "Use ComfyUI 0.43 or newer (MiniMax H3 nodes)."
+          "name": "ClipProjLoader",
+          "instructions": "Install ComfyUI-ClipProj (github.com/nicolab28/ComfyUI-ClipProj, MIT; reviewed at commit c01ba8f, version 0.1.13). No Python packages needed."
         },
         {
           "id": "node:RandomNoise",
@@ -250,12 +250,22 @@
           "instructions": "Install minimax_h3_fl2va_pruned_int8_convrot.safetensors into ComfyUI models/diffusion_models."
         },
         {
-          "id": "model:h3-text",
+          "id": "model:encoder-4b",
           "kind": "model",
-          "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+          "name": "qwen3vl_4b_int8_convrot.safetensors",
           "location": "text_encoders",
-          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3",
-          "instructions": "Install qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors into ComfyUI models/text_encoders."
+          "version": "sha256:32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c",
+          "source": "https://huggingface.co/Comfy-Org/Krea-2/blob/main/text_encoders/qwen3vl_4b_int8_convrot.safetensors",
+          "instructions": "Add the Qwen3-VL-4B text encoder (4.9 GB, Apache-2.0). It must be the VL model."
+        },
+        {
+          "id": "model:clipproj-4b",
+          "kind": "model",
+          "name": "mmh3-4b-ClipProj-celeb-mlp.safetensors",
+          "location": "clip_projections",
+          "version": "sha256:275b389991276532d969dbb32f91ce67e170549873e61819cfec52a770660699",
+          "source": "https://huggingface.co/NicoLab28/ClipProj-MiniMax-H3/blob/main/mmh3-4b-ClipProj-celeb-mlp.safetensors",
+          "instructions": "Add the 4B ClipProj projection (304 MB, MIT; the author calls it a research proof of concept)."
         },
         {
           "id": "model:h3-video-vae",
@@ -320,7 +330,7 @@
     "hosted": "planned"
   },
   "licenses": {
-    "software": "Workflow: Comfy-Org workflow_templates (MIT). ComfyUI core: GPL-3.0.",
+    "software": "Workflow: Comfy-Org workflow_templates (MIT). ComfyUI core: GPL-3.0. Text encoder adapter: ComfyUI-ClipProj (MIT).",
     "weights": [
       {
         "name": "MiniMax H3 FL2VA int8, Qwen3-VL 32B encoder, H3 VAEs, FL2V turbo LoRA",
@@ -331,6 +341,11 @@
         "name": "MiniMax H3 latent upscaler v1",
         "license": "Apache-2.0",
         "source": "https://huggingface.co/LBH-123-AI/Minimax_h3_latent_Upscaler"
+      },
+      {
+        "name": "Qwen3-VL-4B text encoder and ClipProj projection",
+        "license": "Qwen3-VL: Apache-2.0 (Comfy-Org/Krea-2). ClipProj projection: MIT; the author states its legal status is unclear and provides it as-is for research.",
+        "source": "https://huggingface.co/NicoLab28/ClipProj-MiniMax-H3"
       }
     ]
   },
@@ -338,6 +353,11 @@
     {
       "url": "https://github.com/Comfy-Org/workflow_templates/blob/main/templates/video_minimax_h3_t2v.json",
       "observedAt": "2026-10-31",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://github.com/nicolab28/ComfyUI-ClipProj",
+      "observedAt": "2026-11-21",
       "kind": "implementation"
     }
   ],

@@ -78,33 +78,6 @@
       ]
     }
   },
-  "source-audio-enabled": {
-    "class_type": "PrimitiveBoolean",
-    "inputs": { "value": false },
-    "_meta": { "title": "Use original audio" }
-  },
-  "source-audio-duration": {
-    "class_type": "ComfyMathExpression",
-    "inputs": { "expression": "a / 24", "values.a": ["2131", 1] },
-    "_meta": { "title": "Generated video duration" }
-  },
-  "source-audio-silence": {
-    "class_type": "EmptyAudio",
-    "inputs": { "duration": ["source-audio-duration", 0], "sample_rate": 48000, "channels": 2 }
-  },
-  "source-audio-pad": {
-    "class_type": "AudioConcat",
-    "inputs": { "audio1": ["11", 1], "audio2": ["source-audio-silence", 0], "direction": "after" }
-  },
-  "source-audio-trim": {
-    "class_type": "TrimAudioDuration",
-    "inputs": { "audio": ["source-audio-pad", 0], "start_index": 0, "duration": ["source-audio-duration", 0] }
-  },
-  "source-audio-choice": {
-    "class_type": "ComfySwitchNode",
-    "inputs": { "switch": ["source-audio-enabled", 0], "on_false": ["2121", 0], "on_true": ["source-audio-trim", 0] },
-    "_meta": { "title": "Generated or original audio" }
-  },
   "41": {
     "class_type": "SaveVideo",
     "inputs": {
@@ -453,14 +426,16 @@
     }
   },
   "2128": {
-    "class_type": "CLIPLoader",
+    "class_type": "ClipProjLoader",
     "inputs": {
-      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
-      "device": "default",
-      "type": "minimax"
+      "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+      "type": "auto",
+      "projection": "mmh3-4b-ClipProj-celeb-mlp.safetensors",
+      "device": "cuda:0",
+      "mode": "streaming"
     },
     "_meta": {
-      "title": "Load CLIP"
+      "title": "Text encoder: Qwen3-VL-4B + ClipProj"
     }
   },
   "2129": {
@@ -546,6 +521,87 @@
     },
     "_meta": {
       "title": "MiniMax H3 Reference to Video"
+    }
+  },
+  "source-audio-enabled": {
+    "class_type": "PrimitiveBoolean",
+    "inputs": {
+      "value": false
+    },
+    "_meta": {
+      "title": "Use original audio"
+    }
+  },
+  "source-audio-duration": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a / 24",
+      "values.a": [
+        "2131",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Generated video duration"
+    }
+  },
+  "source-audio-silence": {
+    "class_type": "EmptyAudio",
+    "inputs": {
+      "duration": [
+        "source-audio-duration",
+        0
+      ],
+      "sample_rate": 48000,
+      "channels": 2
+    }
+  },
+  "source-audio-pad": {
+    "class_type": "AudioConcat",
+    "inputs": {
+      "audio1": [
+        "11",
+        1
+      ],
+      "audio2": [
+        "source-audio-silence",
+        0
+      ],
+      "direction": "after"
+    }
+  },
+  "source-audio-trim": {
+    "class_type": "TrimAudioDuration",
+    "inputs": {
+      "audio": [
+        "source-audio-pad",
+        0
+      ],
+      "start_index": 0,
+      "duration": [
+        "source-audio-duration",
+        0
+      ]
+    }
+  },
+  "source-audio-choice": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": [
+        "source-audio-enabled",
+        0
+      ],
+      "on_false": [
+        "2121",
+        0
+      ],
+      "on_true": [
+        "source-audio-trim",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Generated or original audio"
     }
   }
 }

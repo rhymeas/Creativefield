@@ -10,14 +10,16 @@
     }
   },
   "2": {
+    "class_type": "ClipProjLoader",
     "inputs": {
-      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
-      "type": "minimax",
-      "device": "default"
+      "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+      "type": "auto",
+      "projection": "mmh3-4b-ClipProj-celeb-mlp.safetensors",
+      "device": "cuda:0",
+      "mode": "streaming"
     },
-    "class_type": "CLIPLoader",
     "_meta": {
-      "title": "Cargar CLIP"
+      "title": "Text encoder: Qwen3-VL-4B + ClipProj"
     }
   },
   "4": {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "h3-effects-hyperflow",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "title": "HyperFlow H3 Flash Effects",
   "category": "finishing",
   "description": "Animate a photo with Fire breath, Storm magic and other MiniMax H3 effect presets. Choose a normal or Deno tiled finish.",
@@ -222,11 +222,22 @@
           "instructions": "Add the HyperFlow H3 Flash Ref2VA Q4 model to the worker's GGUF model list."
         },
         {
-          "id": "model:encoder",
+          "id": "model:encoder-4b",
           "kind": "model",
-          "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+          "name": "qwen3vl_4b_int8_convrot.safetensors",
           "location": "text_encoders",
-          "instructions": "Add the MiniMax H3 text encoder."
+          "version": "sha256:32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c",
+          "source": "https://huggingface.co/Comfy-Org/Krea-2/blob/main/text_encoders/qwen3vl_4b_int8_convrot.safetensors",
+          "instructions": "Add the Qwen3-VL-4B text encoder (4.9 GB, Apache-2.0). It must be the VL model."
+        },
+        {
+          "id": "model:clipproj-4b",
+          "kind": "model",
+          "name": "mmh3-4b-ClipProj-celeb-mlp.safetensors",
+          "location": "clip_projections",
+          "version": "sha256:275b389991276532d969dbb32f91ce67e170549873e61819cfec52a770660699",
+          "source": "https://huggingface.co/NicoLab28/ClipProj-MiniMax-H3/blob/main/mmh3-4b-ClipProj-celeb-mlp.safetensors",
+          "instructions": "Add the 4B ClipProj projection (304 MB, MIT; the author calls it a research proof of concept)."
         },
         {
           "id": "model:video-vae",
@@ -304,9 +315,17 @@
           "location": "embeddings",
           "source": "https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/embeddings",
           "instructions": "Install minimaxh3_truman_show.safetensors into ComfyUI models/embeddings."
+        },
+        {
+          "id": "node:ClipProjLoader",
+          "kind": "node",
+          "name": "ClipProjLoader",
+          "instructions": "Install ComfyUI-ClipProj (github.com/nicolab28/ComfyUI-ClipProj, MIT; reviewed at commit c01ba8f, version 0.1.13). No Python packages needed."
         }
       ],
-      "evidence": ["2026-11-08: Fire breath completed in CreativeField Effects with HyperFlow H3 Flash, Deno Upscale and generated audio (832 × 1472, 73 frames at 24 fps)."]
+      "evidence": [
+        "2026-11-08: Fire breath completed in CreativeField Effects with HyperFlow H3 Flash, Deno Upscale and generated audio (832 × 1472, 73 frames at 24 fps)."
+      ]
     }
   ],
   "coverage": {
@@ -314,7 +333,7 @@
     "hosted": "planned"
   },
   "licenses": {
-    "software": "HyperFlow and the individually reviewed Deno sampler require their respective licenses.",
+    "software": "HyperFlow and the individually reviewed Deno sampler require their respective licenses. Text encoder adapter: ComfyUI-ClipProj (MIT).",
     "weights": [
       {
         "name": "HyperFlow H3 Flash and MiniMax H3 components",
@@ -325,6 +344,11 @@
         "name": "MiniMax H3 effect embeddings",
         "license": "MiniMax H3 model license as published with the weights.",
         "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "name": "Qwen3-VL-4B text encoder and ClipProj projection",
+        "license": "Qwen3-VL: Apache-2.0 (Comfy-Org/Krea-2). ClipProj projection: MIT; the author states its legal status is unclear and provides it as-is for research.",
+        "source": "https://huggingface.co/NicoLab28/ClipProj-MiniMax-H3"
       }
     ]
   },
@@ -342,6 +366,11 @@
     {
       "url": "https://huggingface.co/Comfy-Org/MiniMax-H3",
       "observedAt": "2026-10-31",
+      "kind": "implementation"
+    },
+    {
+      "url": "https://github.com/nicolab28/ComfyUI-ClipProj",
+      "observedAt": "2026-11-21",
       "kind": "implementation"
     }
   ],

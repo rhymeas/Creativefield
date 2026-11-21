@@ -628,6 +628,18 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
     catch(error){if(alive.current)toast((error as Error).message);}
     finally{URL.revokeObjectURL(url);if(alive.current)setReferenceBusy(false);}
   }
+  /** A picture dropped on the Modify card or the free input becomes the next free reference (desktop file or Library
+   *  asset); with all three in use it replaces the first, as a drop on the Modify card always did. */
+  const dropReferenceSlot=()=>Math.max(0,[aiReference,...extraReferences].findIndex(asset=>!asset));
+  function dropReferenceFiles(files:File[]){
+    const file=files.find(item=>item.type.startsWith("image/"));if(!file){toast("Drop a picture as reference.");return;}
+    void addReference(file,dropReferenceSlot());
+  }
+  function dropReferenceAsset(id:string){
+    const asset=assets.find(item=>item.id===id);if(!asset||!asset.content_type.startsWith("image/")){toast("Drop a picture as reference.");return;}
+    chooseReference(asset,dropReferenceSlot());
+  }
+  const referenceDrop={label:"Drop a picture as reference",disabled:subjectRelight||!!aiBusy||referenceBusy||!canEdit||!authorized,onFiles:dropReferenceFiles,onAsset:dropReferenceAsset};
 
   async function runAndWait(route: InpaintRoute, inputs: Record<string, string>, extra: Record<string, unknown>,onRun?:(run:Run)=>void,elementInputs:CharacterEditBindings={}): Promise<Run | null> {
     const controls: Record<string, unknown> = Object.fromEntries(route.manifest.controls.map((c) => [c.id, c.default]));
@@ -2684,7 +2696,7 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
                     actions={<Button variant="secondary" disabled={!!aiBusy} onClick={()=>{const mode=aiStop.mode;setAiStop(null);void requestAi(mode);}}>Try again</Button>}>Nothing was added to the picture.</Notice>}
                   {!modifyRouteReady && modifyFix && <Notice priority={40} title="AI Modify is not ready" actions={<Button variant="secondary" disabled={!canEdit||!authorized} onClick={modifyFix.run}>{modifyFix.label}</Button>}>{modifyUnavailableReason} The editor stays available while setup is incomplete.</Notice>}
                   <AnnotationEditor open={!!annotationSrc} src={annotationSrc} initial={annotations} onClose={()=>setAnnotationSrc("")} onApply={boxes=>{setAnnotations(boxes);setEditScope("image");setEditIntent("modify");setAnnotationSrc("");if(openAssetId)sessionStorage.setItem(annotationStorageKey(workspace.id,openAssetId),JSON.stringify(boxes));}}/>
-                  <DropTarget wrap boxed className="cf-modify-card" label="Drop images here" disabled={subjectRelight||!!aiBusy||referenceBusy} onFiles={files=>{const file=files.find(item=>item.type.startsWith("image/"));if(file){const slot=Math.max(0,[aiReference,...extraReferences].findIndex(asset=>!asset));void addReference(file,slot);}}}>
+                  <DropTarget wrap boxed className="cf-modify-card" label="Drop images here" disabled={subjectRelight||!!aiBusy||referenceBusy} onFiles={dropReferenceFiles} onAsset={dropReferenceAsset}>
                     {!subjectRelight&&(edit?.manifest.inputs.some(input=>input.id==="reference_image")||[aiReference,...extraReferences].some(Boolean))&&<div className="cf-modify-refs">
                       {[aiReference,...extraReferences].map((asset,index)=>asset&&<Thumb key={`${index}:${asset.id}`} src={assetUrl(workspace.id,asset.id)} label={`Reference ${index+1} · insert @Image ${index+1}`} badge={<Badge>{index+1}</Badge>} numbered onActivate={()=>mentionReference(index)} onRemove={()=>{if(index===0)setAiReference(null);else setExtraReferences(old=>old.map((value,i)=>i===index-1?null:value));}}/>)}
                     </div>}
@@ -2820,6 +2832,8 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
         submitLabel={subjectRelight?"Relight subject":characterPlacement?"Place character":characterSwap?"Swap person":"Modify"}
         submitDisabled={!!aiBusy || referenceBusy||placingCharacter||!canEdit || !authorized || !aiPrompt.trim()||(subjectRelight&&(!doc.selection||!precision))||!!(characterPlacement&&!doc.selection)||!!(characterSwap&&!doc.selection)}
         onSubmit={() => void requestAi(resolveEditMode(editIntent,aiPrompt,!!doc.selection))}
+        drop={referenceDrop}
+        above={[aiReference,...extraReferences].some(Boolean)&&<div className="cf-command-references">{[aiReference,...extraReferences].map((asset,index)=>asset&&<Thumb key={`${index}:${asset.id}`} src={assetUrl(workspace.id,asset.id)} label={`Reference ${index+1} · insert @Image ${index+1}`} badge={<Badge>{index+1}</Badge>} numbered mini onActivate={()=>mentionReference(index)}/>)}</div>}
       />}
       <Dialog open={precisionSettings} title="Precision settings" onClose={()=>setPrecisionSettings(false)} footer={<Button variant="secondary" onClick={()=>setPrecisionSettings(false)}>Done</Button>}>
         <SliderField label="Context" unit="px" min={0} max={512} step={16} value={precisionContext} onChange={setPrecisionContext}/>

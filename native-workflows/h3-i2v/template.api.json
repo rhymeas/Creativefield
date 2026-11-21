@@ -28,10 +28,6 @@
       "ver": "0.33.0"
     }
   },
-  "cf:fit-first": {
-    "inputs": {"image": ["114", 0], "target_width": ["115", 0], "target_height": ["115", 1], "padding_color": "white", "interpolation": "lanczos"},
-    "class_type": "ResizeAndPadImage"
-  },
   "115": {
     "inputs": {
       "aspect_ratio": "1:1 (Square)",
@@ -71,6 +67,25 @@
       "cnr_id": "comfy-core",
       "ver": "0.33.0"
     }
+  },
+  "cf:fit-first": {
+    "inputs": {
+      "image": [
+        "114",
+        0
+      ],
+      "target_width": [
+        "115",
+        0
+      ],
+      "target_height": [
+        "115",
+        1
+      ],
+      "padding_color": "white",
+      "interpolation": "lanczos"
+    },
+    "class_type": "ResizeAndPadImage"
   },
   "105:11": {
     "inputs": {
@@ -222,16 +237,16 @@
     }
   },
   "105:13": {
+    "class_type": "ClipProjLoader",
     "inputs": {
-      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
-      "type": "minimax",
-      "device": "default"
+      "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+      "type": "auto",
+      "projection": "mmh3-4b-ClipProj-celeb-mlp.safetensors",
+      "device": "cuda:0",
+      "mode": "streaming"
     },
-    "class_type": "CLIPLoader",
     "_meta": {
-      "title": "Load CLIP",
-      "cnr_id": "comfy-core",
-      "ver": "0.33.0"
+      "title": "Text encoder: Qwen3-VL-4B + ClipProj"
     }
   },
   "105:15": {
