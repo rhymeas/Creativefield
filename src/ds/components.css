@@ -153,6 +153,7 @@
 .ds-panel[data-reel] > .ds-reel video { opacity: 0.52; }
 .ds-panel[data-reel]::after { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; border-radius: var(--radius-2xl); background: linear-gradient(to top, var(--surface-panel) 0%, var(--surface-panel) 66%, transparent 100%); }
 .ds-panel__header, .ds-panel__body, .ds-panel__footer { position: relative; z-index: 1; }
+.ds-panel--card { background: var(--surface-panel); border-radius: var(--radius-2xl); padding: var(--pad-panel); }
 .ds-panel[data-reel] .ds-panel__body,
 .ds-panel[data-reel] .ds-panel__footer {
   background: color-mix(in srgb, var(--surface-panel) 82%, transparent);
@@ -1067,6 +1068,9 @@ button.ds-thumb__art:disabled { opacity: 0.45; cursor: not-allowed; }
 .ds-slot__text { margin: 0; font-size: var(--text-xs); line-height: var(--lh-xs); color: var(--text-tertiary); }
 .ds-result__media .ds-slot { border-radius: 0; }
 .ds-sectionhead__title { margin: 0; font-size: var(--text-md); line-height: var(--lh-md); font-weight: var(--weight-medium); color: var(--text-primary); }
+/* The header glyph is one title-size em square, centred on the text line, with the inline gap token before the title. */
+.ds-sectionhead__icon { display: inline-flex; align-items: center; vertical-align: middle; margin-right: var(--gap-inline); }
+.ds-sectionhead__icon svg { width: 1em; height: 1em; }
 .ds-pill--quiet { height: calc(26px * var(--ui-scale)); font-size: var(--text-xs); line-height: var(--lh-xs); font-weight: var(--weight-regular); color: var(--text-secondary); letter-spacing: 0; background: var(--surface-subtle); }
 .ds-pill__prefix { color: var(--text-muted); }
 .ds-pill--quiet:hover .ds-pill__prefix { color: var(--text-tertiary); }
@@ -1542,15 +1546,6 @@ button.ds-thumb__art:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* â”€â”€ Dock panels (editor side column) and side popover â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ds-dock { width: var(--panel-w); flex: none; display: flex; flex-direction: column; min-height: 0; border-radius: var(--radius-2xl); background: var(--surface-tool); --surface-control: var(--surface-tool-control); --surface-control-hover: var(--surface-tool-control-hover); box-shadow: inset 0 0 0 1px var(--line-soft); }
-.ds-dockstack { position: relative; display: flex; flex-direction: column; width: var(--panel-w); max-width: 100%; padding: var(--space-1); gap: var(--gap-block); isolation: isolate; overflow-anchor: none; scrollbar-gutter: stable; }
-.ds-dockstack > .ds-dock { width: 100%; min-width: 0; position: relative; transition: transform var(--dur-med) var(--ease); }
-.ds-dockstack[data-sorting] { cursor: grabbing; user-select: none; }
-.ds-dockstack[data-sorting] > .ds-dock { will-change: transform; }
-.ds-dockstack > .ds-dock[data-moving] { z-index: 2; transition: none; box-shadow: var(--shadow-pop), inset 0 0 0 1px var(--accent); }
-.ds-dockstack__slot { position: absolute; left: var(--space-1); right: var(--space-1); pointer-events: none; border: 1px dashed var(--accent); border-radius: var(--radius-2xl); background: var(--accent-soft); }
-.ds-dockstack .ds-dock__head { cursor: grab; touch-action: none; user-select: none; }
-.ds-dockstack[data-sorting] .ds-dock__head, .ds-dockstack[data-sorting] .ds-dock__grip { cursor: grabbing; }
-@media (prefers-reduced-motion: reduce) { .ds-dockstack > .ds-dock { transition: none; } }
 .ds-dock__head { display: flex; align-items: center; gap: var(--space-1); min-height: calc(44px * var(--ui-scale)); padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1); }
 .ds-dock__grip { flex: none; display: grid; place-items: center; width: calc(28px * var(--ui-scale)); height: calc(28px * var(--ui-scale)); border: 0; padding: 0; background: transparent; color: var(--text-tertiary); cursor: grab; border-radius: var(--radius-sm); touch-action: none; }
 .ds-dock__grip:hover { color: var(--text-primary); background: var(--surface-control); }

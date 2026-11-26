@@ -4,7 +4,7 @@
   "version": "0.4.0",
   "title": "HyperFlow H3 Flash",
   "category": "i2v",
-  "description": "Animate a reference picture with HyperFlow H3 Flash. Choose normal output or a Deno tiled finish.",
+  "description": "Bring a picture to life: add your idea for the movement and let HyperFlow H3 Flash create a video with sound on your computer. Choose a Deno upscale finish when you want a larger result.",
   "inputs": [
     {
       "id": "start_image",
@@ -123,7 +123,8 @@
       "options": [
         "normal",
         "upscale",
-        "hd-upscale"
+        "hd-upscale",
+        "detail"
       ],
       "default": "upscale",
       "binding": {
@@ -208,10 +209,42 @@
       "workflowId": "hyperflow-h3-flash-i2v",
       "requirements": [
         {
-          "id": "node:HyperFlowGGUFLoader",
+          "id": "node:HyperFlowLoader",
           "kind": "node",
-          "name": "HyperFlowGGUFLoader",
-          "instructions": "Install the reviewed HyperFlow H3 Flash loader on the local worker."
+          "name": "HyperFlowLoader",
+          "source": "https://github.com/Video-Rebirth/ComfyUI-HyperFlow-Flash/tree/356649c",
+          "instructions": "Install only the official HyperFlowLoader from Video-Rebirth/ComfyUI-HyperFlow-Flash @ 356649c (GPL-3.0); do not register the pack's HyperFlowGGUFLoader or HyperFlowSigmas, which would replace the reviewed ones."
+        },
+        {
+          "id": "node:CreativeFieldDetailBox",
+          "kind": "node",
+          "name": "CreativeFieldDetailBox",
+          "instructions": "Copy scripts/detail-pass to the worker's custom_nodes as creativefield_detail_pass (CreativeField, torch only)."
+        },
+        {
+          "id": "node:CreativeFieldDetailPaste",
+          "kind": "node",
+          "name": "CreativeFieldDetailPaste",
+          "instructions": "Part of creativefield_detail_pass (scripts/detail-pass)."
+        },
+        {
+          "id": "node:CreativeFieldDetailAtlas",
+          "kind": "node",
+          "name": "CreativeFieldDetailAtlas",
+          "instructions": "Part of creativefield_detail_pass (scripts/detail-pass)."
+        },
+        {
+          "id": "node:CreativeFieldDetailAtlasPaste",
+          "kind": "node",
+          "name": "CreativeFieldDetailAtlasPaste",
+          "instructions": "Part of creativefield_detail_pass (scripts/detail-pass)."
+        },
+        {
+          "id": "node:RH_DLSS5Enhance",
+          "kind": "node",
+          "name": "RH_DLSS5Enhance",
+          "source": "https://github.com/RH-RunningHub/ComfyUI-RH-DLSS5/tree/71ab106",
+          "instructions": "ComfyUI-RH-DLSS5 (MIT) with its native bridge built from native/src; put nvngx_dlssnr.dll (RTX 40 build) and _nvngx.dll in models/dlss5."
         },
         {
           "id": "node:HyperFlowSigmas",
@@ -232,11 +265,13 @@
           "instructions": "Use a ComfyUI version with MiniMax H3 guide support."
         },
         {
-          "id": "model:hyperflow",
+          "id": "model:hyperflow-int8",
           "kind": "model",
-          "name": "minimax_h3_ref2va_hyperflow_flash_14b-Q4_K_M.gguf",
-          "location": "unet_gguf",
-          "instructions": "Add the HyperFlow H3 Flash Ref2VA Q4 model to the worker's GGUF model list."
+          "name": "minimax_h3_ref2va_hyperflow_flash_14b-int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "version": "sha256:38782037e343b49803dec6a912cf66cde54cafcac9e14a34fd4df831a83bcead",
+          "source": "https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash/blob/main/ref2va_int8_convrot_comfyui/minimax_h3_ref2va_hyperflow_flash_14b-int8_convrot.safetensors",
+          "instructions": "Add the official HyperFlow H3 Flash Ref2VA INT8 convrot weights (16.4 GB) and verify the SHA-256. Same quality as Q4 at the 1024 draft and 18-26 s faster per clip (2026-11-22 A/B)."
         },
         {
           "id": "model:encoder-4b",

@@ -25,7 +25,7 @@ export function composerReadyWorker(manifest:CapabilityManifestV2,workers:Worker
 }
 /** The stock worker can be online while the worker that actually runs HyperFlow is stopped. */
 export function composerHyperflowRecoveryWorker(manifest:CapabilityManifestV2,workers:Worker[],presetId?:string):Worker|undefined {
-  const usesHyperflow=manifest.routes.some(route=>route.requirements.some(requirement=>requirement.name==="HyperFlowGGUFLoader"));
+  const usesHyperflow=manifest.routes.some(route=>route.requirements.some(requirement=>requirement.name==="HyperFlowGGUFLoader"||requirement.name==="HyperFlowLoader"));
   if(!usesHyperflow)return;
   return workers.find(worker=>worker.enabled&&worker.can_start&&worker.managed_family==="hyperflow"&&workerReadiness(manifest,worker,undefined,presetId).state==="offline");
 }

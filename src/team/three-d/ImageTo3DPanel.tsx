@@ -8,6 +8,6 @@ export function ImageTo3DPanel({user,workspace,project,manifest,workflows,worker
   return <Page fill><TeamComposer key={`${project.id}:${manifest.id}:${initialAssetId??""}`}
     initialInputs={initialAssetId&&imagePort?{[imagePort.id]:initialAssetId}:undefined}
     manifest={manifest} catalogue={workflows} workflowIds={workflows.map(m=>m.id)} onCapability={onCapability}
-    user={user} workspace={workspace} project={project} workers={workers} call={call}
+    user={user} workspace={workspace} project={project} workers={workers} call={call} layout="make3d"
     canQueue={canEdit} authorized={authorized} onQueued={onQueued}/></Page>;
 }

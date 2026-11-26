@@ -51,7 +51,7 @@ export function assertHyperflowSecondsGraph(manifest: CapabilityManifestV2, grap
   const videos = Object.values(graph).filter(node => node.class_type === "CreateVideo");
   if (!["hyperflow-h3-flash-t2v", "hyperflow-h3-flash-i2v", "hyperflow-h3-flash-flf2v"].includes(manifest.id)
     || manifest.timing?.fps !== 24 || binding.node !== "5" || binding.field !== "length"
-    || graph["1"]?.class_type !== "HyperFlowGGUFLoader" || graph[binding.node]?.class_type !== expected
+    || !["HyperFlowGGUFLoader", "HyperFlowLoader"].includes(graph["1"]?.class_type ?? "") || graph[binding.node]?.class_type !== expected
     || typeof graph[binding.node].inputs.length !== "number" || !videos.length || videos.some(node => node.inputs.fps !== 24)) {
     throw new Error("Invalid HyperFlow timing binding");
   }

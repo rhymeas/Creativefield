@@ -6,9 +6,9 @@ export type JobQueueRun=Pick<Run,"id"|"project_id"|"capability_id"|"state"|"crea
 export type JobQueuePreparation={id:string;project_id:string;state:string;created_at:string;updated_at:string;source_name?:string|null};
 export type JobQueueSnapshot={runs:JobQueueRun[];preparations:JobQueuePreparation[];total:number;progress:Record<string,number>;loading:boolean;error:boolean};
 export const emptyJobQueue:JobQueueSnapshot={runs:[],preparations:[],total:0,progress:{},loading:false,error:false};
-export function jobQueueTitle(capabilityId:string,titles:Record<string,string>){return titles[capabilityId]??(capabilityId==="chatgpt-image-edit"?"ChatGPT image edit":undefined)??(/^sdpose-preview-[1-6]$/.test(capabilityId)?"Detect driving pose":"Creative job");}
+export function jobQueueTitle(capabilityId:string,titles:Record<string,string>){return titles[capabilityId]??(capabilityId==="chatgpt-image-edit"?"ChatGPT image edit":capabilityId==="dreamina-image"?"Dreamina image":undefined)??(/^sdpose-preview-[1-6]$/.test(capabilityId)?"Detect driving pose":"Creative job");}
 /** Where a run really went, in plain words, for run details. */
-export function runLocation(transport:string|undefined|null,cloud:boolean){return transport==="chatgpt"?"ChatGPT":cloud?"Comfy Cloud":transport==="sdk"?"SDK proxy":"Local ComfyUI";}
+export function runLocation(transport:string|undefined|null,cloud:boolean){return transport==="chatgpt"?"ChatGPT":transport==="dreamina"?"Dreamina":cloud?"Comfy Cloud":transport==="sdk"?"SDK proxy":"Local ComfyUI";}
 const snapshotSchema=z.object({
   runs:z.array(z.object({id:z.uuid(),project_id:z.uuid(),capability_id:z.string(),state:z.string().refine(activeRun),created_at:z.string(),updated_at:z.string(),take:z.number().int().nullable().optional(),subject:z.string().max(120).nullable().optional()}).strict()).max(8),
   preparations:z.array(z.object({id:z.uuid(),project_id:z.uuid(),state:z.string(),created_at:z.string(),updated_at:z.string(),source_name:z.string().max(120).nullable().optional()}).strict()).max(8).default([]),

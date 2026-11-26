@@ -43,6 +43,7 @@ Live reference: run `npm run dev` and open `http://localhost:5173/#ds`.
     | Function | Component |
     |---|---|
     | Upload a file | `UploadSlot` (`tile` inside `UploadPair` for two side by side); a menu entry with no slot on screen ("Open image from device") calls `chooseDeviceFiles` |
+    | Images dragged over a media box | `DropStack` overlays the slot while files are dragged over the panel (pointer-events off, the slot keeps the drop); the static state stays the thumbnail |
     | Choose a picture or clip from the project | `MediaPickerDialog`: this device is the first tile of the grid, the project's media follow; `TeamChoice`/`LibraryChoice` (`upload`), FotoField and Keyframes all open it |
     | Many references for one run (people, products, clothes) | `ReferenceTray` (a `Thumb` per reference with `onRemove`); it carries the cap and the add tile |
     | Text input, any length | `PromptField` (`PromptGroup` for related fields) |

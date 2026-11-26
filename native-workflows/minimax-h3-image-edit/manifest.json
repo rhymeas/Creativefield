@@ -4,7 +4,7 @@
   "version": "0.5.0",
   "title": "MiniMax H3 Image with references",
   "category": "image",
-  "description": "Local MiniMax H3-Image (33B, 6 steps, no CFG) from the pruned Q4_K_M GGUF, guided by up to four pictures. Write @Image 1 to @Image 4 in the prompt; they reach the model as <Picture 1> to <Picture 4>, renumbered when a slot is empty. Picture 1 is the main reference or the picture to change. Output keeps Picture 1's proportions by default; choose a format to set them yourself. Size choice is 4, 6, 8, 12 or 20 MP; 12 and 20 MP reference edits are verified through the app. Sampled with native ComfyUI nodes: euler ancestral for the first two steps, then a re-noise (LCM) pass at 0.95, for clean skin, less grain and fewer crushed blacks.9 for cleaner skin, less grain and fewer crushed blacks. The prompt is read by a Qwen3-VL-4B with a learned projection (ClipProj) instead of the 32B encoder: about 4.5 GB instead of 15.7 GB, so the image model keeps its memory.",
+  "description": "Local MiniMax H3-Image (33B, 6 steps, no CFG), official INT8 model with the official Qwen3-VL-32B encoder, guided by up to four pictures. Write @Image 1 to @Image 4 in the prompt; they reach the model as <Picture 1> to <Picture 4>, renumbered when a slot is empty. Picture 1 is the main reference or the picture to change. Output keeps Picture 1's proportions by default; choose a format to set them yourself. Size choice is 4, 6, 8, 12 or 20 MP. Sampled with native ComfyUI nodes: euler ancestral for the first two steps, then a re-noise (LCM) pass at 0.95, for clean skin, less grain and fewer crushed blacks. This pair ranked first in the 2026-11-22 A/B.",
   "stillTone": "open_crushed_shadows",
   "inputs": [
     {
@@ -157,10 +157,10 @@
           "instructions": "Install ComfyUI 0.45.0 or newer, which provides native MiniMax H3-Image conditioning."
         },
         {
-          "id": "node:UnetLoaderGGUF",
+          "id": "node:UNETLoader",
           "kind": "node",
-          "name": "UnetLoaderGGUF",
-          "instructions": "Install the reviewed GGUF loader (gguf_reviewed) on the local worker."
+          "name": "UNETLoader",
+          "instructions": "Core ComfyUI node."
         },
         {
           "id": "node:LoadImage",
@@ -175,10 +175,10 @@
           "instructions": "Install a ComfyUI version providing ResolutionSelector."
         },
         {
-          "id": "node:ClipProjLoader",
+          "id": "node:CLIPLoader",
           "kind": "node",
-          "name": "ClipProjLoader",
-          "instructions": "Install ComfyUI-ClipProj (github.com/nicolab28/ComfyUI-ClipProj, MIT; reviewed at commit c01ba8f, version 0.1.13). No Python packages needed."
+          "name": "CLIPLoader",
+          "instructions": "Core ComfyUI node."
         },
         {
           "id": "node:VAELoader",
@@ -199,22 +199,22 @@
           "instructions": "Install a ComfyUI version providing SaveImageAdvanced."
         },
         {
-          "id": "model:minimax-h3-image-q4km",
+          "id": "model:minimax-h3-image-int8",
           "kind": "model",
-          "name": "MiniMax-H3-Image-Pruned-Q4_K_M.gguf",
-          "location": "unet_gguf",
-          "version": "sha256:be2b96003c01e046c62f534c08caf07748f6e4c6259df3a00cc892a2bb4bc7e7",
-          "source": "https://huggingface.co/Abiray/MiniMax-H3-Image-GGUF/blob/main/MiniMax-H3-Image-Pruned-Q4_K_M.gguf",
-          "instructions": "Install the exact community Q4_K_M GGUF (11.6 GB) and verify its SHA-256. It is an unofficial conversion; review the MiniMax-H3-Image Community License before use."
+          "name": "minimax_h3_image_pruned_int8_convrot.safetensors",
+          "location": "diffusion_models",
+          "version": "sha256:83eb140f1ff95c068f8a6886e6d3f3d0d4ab2e07bb2fe6d2ef992a51146ee622",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3-Image/blob/main/diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors",
+          "instructions": "Install the official INT8 H3-Image model (21 GB) and verify its SHA-256. Review the MiniMax-H3-Image Community License before use."
         },
         {
-          "id": "model:encoder-4b",
+          "id": "model:encoder-32b",
           "kind": "model",
-          "name": "qwen3vl_4b_int8_convrot.safetensors",
+          "name": "qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
           "location": "text_encoders",
-          "version": "sha256:32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c",
-          "source": "https://huggingface.co/Comfy-Org/Krea-2/blob/main/text_encoders/qwen3vl_4b_int8_convrot.safetensors",
-          "instructions": "Add the Qwen3-VL-4B text encoder (4.9 GB, Apache-2.0). It must be the VL model."
+          "version": "sha256:bc2ced0fbea64757fa9acddccfc0b3f4819d1dcf1da6c124d690d368be283923",
+          "source": "https://huggingface.co/Comfy-Org/MiniMax-H3-Image/blob/main/text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+          "instructions": "Install the official 32B H3 text encoder (27 GB, INT8); ComfyUI offloads part of it on a 24 GB card."
         },
         {
           "id": "model:image-vae",
@@ -271,15 +271,6 @@
           "kind": "node",
           "name": "ConditioningZeroOut",
           "instructions": "Install a ComfyUI version providing ConditioningZeroOut."
-        },
-        {
-          "id": "model:clipproj-4b",
-          "kind": "model",
-          "name": "mmh3-4b-ClipProj-celeb-mlp.safetensors",
-          "location": "clip_projections",
-          "version": "sha256:275b389991276532d969dbb32f91ce67e170549873e61819cfec52a770660699",
-          "source": "https://huggingface.co/NicoLab28/ClipProj-MiniMax-H3/blob/main/mmh3-4b-ClipProj-celeb-mlp.safetensors",
-          "instructions": "Add the 4B ClipProj projection (304 MB, MIT; the author calls it a research proof of concept)."
         }
       ],
       "evidence": [

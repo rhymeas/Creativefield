@@ -89,3 +89,11 @@ function withBackgroundWords(saved:string|null):string{
 export function seedBackgroundDraft(store:{getItem:(key:string)=>string|null;setItem:(key:string,value:string)=>void},key:string){
   store.setItem(key,withBackgroundWords(store.getItem(key)));
 }
+
+/** The tools "What to change" offers, in order: only those this computer can run. With the one Swap tool, a person and
+ *  a new look are swaps, so Replace character and Restyle are not offered on their own (DOC-2191). */
+export function changeChoices({replace,swapThing,reframe,unifiedSwap,candidates}:{replace:boolean;swapThing:boolean;reframe:boolean;unifiedSwap:boolean;candidates:Record<TransformMode,unknown[]>}):ChangeChoice[]{
+  return [...(replace&&!unifiedSwap?["person" as const]:[]),
+    ...TRANSFORM_MODES.filter(mode=>mode.id==="swap"?swapThing||candidates.swap.length>0:mode.id==="restyle"&&unifiedSwap?false:candidates[mode.id].length>0).map(mode=>mode.id),
+    ...(reframe?["reframe" as const]:[])];
+}

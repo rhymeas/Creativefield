@@ -159,7 +159,10 @@ const HYPERFLOW_REFRAME_CLASSES = new Set([...HYPERFLOW_CORE_CLASSES, "CreativeF
 // The local positional resolver reads packed SAM masks and role JSON. It uses no filesystem, subprocess or network access.
 const OPENJUTSU_ADVANCED_FLASH_CLASSES = new Set([...OPENJUTSU_ADVANCED_CLASSES, ...HYPERFLOW_CORE_CLASSES, "CreativeFieldOpenJutsuResolveRoles"]);
 const OPENJUTSU_FLASH_CLASSES = new Set([...HYPERFLOW_CORE_CLASSES, "HyperFlowH3CharacterSwapSettings"]);
-const HYPERFLOW_QUALITY_CLASSES = new Set([...HYPERFLOW_CORE_CLASSES, "DenoMiniMaxH3TiledSampler", "MiniMaxH3AddGuide"]);
+// HyperFlowLoader: only the official loader, registered alone from Video-Rebirth/ComfyUI-HyperFlow-Flash @ 356649c, for INT8 weights.
+// CreativeFieldDetailBox/Paste and CreativeFieldDetailAtlas/AtlasPaste: our detail pass pack (scripts/detail-pass), torch only.
+// RH_DLSS5Enhance: ComfyUI-RH-DLSS5 @ 71ab106, MIT, native parts rebuilt from source; NVIDIA runtime files supplied locally.
+const HYPERFLOW_QUALITY_CLASSES = new Set([...HYPERFLOW_CORE_CLASSES, "HyperFlowLoader", "DenoMiniMaxH3TiledSampler", "MiniMaxH3AddGuide", "CreativeFieldDetailBox", "CreativeFieldDetailPaste", "CreativeFieldDetailAtlas", "CreativeFieldDetailAtlasPaste", "RH_DLSS5Enhance"]);
 const HYPERFLOW_WORKFLOWS = new Set([
   "h3-effects-hyperflow",
   "hyperflow-h3-flash-i2v",

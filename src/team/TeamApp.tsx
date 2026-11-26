@@ -1,12 +1,11 @@
-import {Box,CircleHelp,Github,Clapperboard,Footprints,Image as ImageIcon,LayoutGrid,Library as LibraryIcon,LogOut,Maximize2,Move,Palette,Plus,Scissors,Settings,Sparkles,Video} from "lucide-react";
+import {Box,CircleHelp,Github,Clapperboard,Footprints,Image as ImageIcon,LayoutGrid,Library as LibraryIcon,LogOut,Palette,Plus,Settings,Sparkles,Video} from "lucide-react";
 import {annotationStorageKey,imageAnnotationsSchema} from "../image/annotations";
-import {enableBrowserLibrary} from "./browser-library";
 import {StartScreen} from "./StartScreen";
 import {GettingStarted} from "./GettingStarted";
 import {OnboardingGate} from "./OnboardingGate";
 import {Welcome} from "./Welcome";
 import {CloudSignIn,reopenCloudSignIn,type CloudAccountFacts} from "./CloudSignIn";
-import {AccountDialog,finishAccountRedirect} from "./AccountDialog";
+import {AccountDialog} from "./AccountDialog";
 import {CloudRunDialog,CLOUD_PLAN_LINE,type CloudRunDialogKind} from "./CloudRunDialog";
 import {Guide} from "./Guide";
 import {SwapThingPanel} from "./SwapThingPanel";
@@ -17,9 +16,8 @@ import {changeChoiceFromHash,type StartTask} from "./start-tasks";
 import {ProjectCreateDialog,TeamProjects,useProjectSelection} from "./TeamProjects";
 import {useCallback,useEffect,useRef,useState,type ReactNode} from "react";
 import {beginReferenceEdit} from "./reference-return";
-import {usePhone,IconButton,IconLink,type NavItem,Panel,Reveal,ExpandToggle,AmbientReelProvider,MediaEditProvider,type MediaEditSource,type MediaToolSet,ScrollFades,useDensity,Button,EmptyState,Page,ShimmerText,ToastHost,UserMenu,type UserMenuItem,ProblemBar,ProblemHost,Dialog,Meta,Notice,TopBar,WorkspaceBar,LinkButton} from "../ds";
-import {AuthPanel} from "./AuthPanel";
-import {ApiError,storeCloudKey,assetUrl,composerAssets,composerResultAssets,mergeAssets,request,workspacePath,type Asset,type Call,type RequestOptions,type Run,type User,type Workspace,type Project,type Worker,type Catalogue,type CharacterRecord} from "./api";
+import {usePhone,IconButton,IconLink,type NavItem,Panel,Reveal,ExpandToggle,AmbientReelProvider,MediaEditProvider,type MediaEditSource,type MediaToolSet,ScrollFades,useDensity,Button,EmptyState,Page,UserMenu,type UserMenuItem,ProblemBar,Dialog,Meta,Notice,TopBar,WorkspaceBar,LinkButton} from "../ds";
+import {storeCloudKey,assetUrl,composerAssets,composerResultAssets,mergeAssets,workspacePath,type Asset,type Call,type Run,type User,type Workspace,type Project,type Worker,type Catalogue,type CharacterRecord} from "./api";
 import {EnhanceVideo} from "./EnhanceVideo";
 import {TeamComposer} from "./TeamComposer";
 import {VIDEO_REFRAME_HASH,VIDEO_REFRAME_ID} from "../capabilities/video-reframe";
@@ -34,15 +32,14 @@ import {TeamChoice} from "./TeamChoice";
 import {CapabilityCatalogue} from "../ui/CapabilityCatalogue";
 import {bestWorkerReadiness,defaultDraft,draftKey,restoreDraft,refreshWorkerInventory,workerReadiness} from "./state";
 import {plainProblem} from "./problems";
-import {audienceOf,noWorkspaceText,settingsLabel,workspaceFacts} from "./audience";
-import type {CapabilityManifestV2,Readiness} from "../capabilities/types";
+import {audienceOf,settingsLabel,workspaceFacts} from "./audience";
+import type {Readiness} from "../capabilities/types";
 import "./team.css";
 import {isMaskedEdit} from "./masked-state";
 import {WorkflowInfoProvider,WorkflowInfoButton} from "./workflow-info";
 import {BlockWorkspace,filmStudioInstalled} from "./BlockShot";
 import {reelForSection} from "./reels";
-import {capabilityFunction,capabilityPurpose,capabilitySurface,isCreateVideoWorkflow,isImageWorkflow,isVideoWorkflow} from "../capabilities/surfaces";
-import {isSelectedImageModel} from "../capabilities/image-model-selection";
+import {capabilityFunction,capabilityPurpose,capabilitySurface,isCreateVideoWorkflow,isVideoWorkflow} from "../capabilities/surfaces";
 import {identityPhotosetWorkerAllowed} from "../image/identity-photoset";
 import {addCharacterReferences,defaultImageDraft,imageDraftWithReferences,imageRunBody,imageRunDrafts,restoreImageRetakeDraft,type ImageDraft} from "../image/image-state";
 import {isEffectClips,isFlashVideoCreate,isOpenJutsuSingleSwap,routeImageToVideo,routeImageToVideoDraft,routeTask} from "../capabilities/tasks";
@@ -57,12 +54,14 @@ import {beginOperation,finishOperation,invalidateOperation,operationGate} from "
 import type {IntentTarget} from "./intent/router";
 import {nativeWorkflowHash,videoWorkflowMode,type VideoWorkspaceMode} from "./workflow-navigation";
 import {isOpenJutsuAdvanced} from "../capabilities/openjutsu-advanced";
-import {imageTabFor,imageTabTarget,resolveScreen,type AccountAction,type ImageTab,type NavigationInput,type ResolvedScreen,type RunTarget,type VideoMenuId} from "./navigation";
+import {imageTabFor,imageTabTarget,resolveScreen,type AccountAction,type ImageTab,type NavigationInput,type ResolvedScreen,type RunTarget} from "./navigation";
 export {imageTabFor,imageTabTarget,imageTabs} from "./navigation";
 export type {ImageTab,RunTarget} from "./navigation";
 import {sectionFromHash} from "./route-state";
-import {videoHashPart,videoWorkflowHash} from "../ui/studio-route";
+import {videoWorkflowHash} from "../ui/studio-route";
 import {isMotionTransfer,selectTransformManifest} from "./transform-video-state";
+import {CLOUD_REPLACE_MODELS,carryCreateDraft,imageDraftForTab,imageModelsForTab,isCloudWorker,targetWorkers} from "./workspace-drafts";
+import {VIDEO_MENU_ICONS,importedHint,isImageCapability,isImported,menuTitle,sectionOf,videoWorkflowFromHash} from "./workspace-menu";
 import {catalogueTitles} from "./job-queue";
 import {ToolHero,type HeroKind} from "./heroes";
 import {ProductionContent} from "./ProductionWorkspace";
@@ -70,92 +69,8 @@ import logo from "../assets/creativefield-logo-trim.png";
 import {RecreateMediaProvider,RecreateProvider,RescueProvider,type RecreateMedia,type RecreateRun,type RescueRun} from "./recreate";
 import {isOutOfMemory,smallerRun} from "../capabilities/memory-rescue";
 
-/** A worker's kind comes from the server; the shared Worker type does not carry it yet. */
 export {videoWorkflowMode} from "./workflow-navigation";
-const VIDEO_MENU_ICONS:Partial<Record<VideoMenuId,typeof Sparkles>>={
-  create:Video,trim:Scissors,storyboard:Clapperboard,motion:Move,enhance:Maximize2,
-};
-export const isCloudWorker=(worker:Worker)=>(worker as Worker&{kind?:"local"|"cloud"}).kind==="cloud";
-/** A run goes to the chosen target only; this computer stays the default. */
-export function targetWorkers(workers:Worker[],target:RunTarget):Worker[]{
-  return target==="router"||target==="chatgpt"?[]:target==="cloud"?workers.filter(isCloudWorker):workers.filter(worker=>!isCloudWorker(worker));
-}
-
-/** Replace character on Comfy Cloud, in the order the Model row offers them. */
-const CLOUD_REPLACE_MODELS=["scail2-character-replace","cloud-h3-character-swap","cloud-kling-omni-edit","cloud-seedance2-reference"];
-/** The angle workflow this computer really has ready: the camera-angle tool first, then the 45° angle shots. */
-export function angleWorkflow<T extends {id:string}>(ready:T[]):T|undefined{
-  return routeTask("image.angles",ready)?.pack;
-}
-/** The model picker stays within the active Image workspace. */
-export function imageModelsForTab<T extends {id:string}>(models:T[],tab:ImageTab):T[]{
-  return models.filter(model=>imageTabFor(model.id,"image")===tab);
-}
-/** A tab starts from its own earlier draft, so its preset is still there when you come back.
-    A first visit keeps the picture that is already chosen on the other tab. */
-export function imageDraftForTab(manifest:CapabilityManifestV2,remembered:Record<string,ImageDraft>,showing:ImageDraft):ImageDraft{
-  const earlier=remembered[manifest.id];
-  if(earlier)return earlier;
-  const inputs=Object.fromEntries(Object.entries(showing.inputs??{}).filter(([port,asset])=>!!asset&&manifest.inputs.some(input=>input.id===port&&input.type==="image")));
-  return Object.keys(inputs).length?{...defaultImageDraft(manifest),inputs}:defaultImageDraft(manifest);
-}
-
-/** Carry only values accepted by the new workflow; unsupported controls keep their defaults. */
-export function carryCreateDraft(manifest:CapabilityManifestV2,previous:ImageDraft):ImageDraft {
-  const next=defaultImageDraft(manifest);
-  for(const control of manifest.controls){
-    const value=previous.controls[control.id];
-    if(value===undefined || !(control.id in next.controls))continue;
-    if(control.options && !control.options.includes(value as never))continue;
-    if(typeof value==="number" && ((control.min!==undefined&&value<control.min)||(control.max!==undefined&&value>control.max)))continue;
-    if(typeof value!==typeof next.controls[control.id])continue;
-    next.controls[control.id]=value;
-  }
-  const inputs=Object.fromEntries(Object.entries(previous.inputs??{}).filter(([id])=>manifest.inputs.some(port=>port.id===id&&port.type==="image")));
-  const elementInputs=Object.fromEntries(Object.entries(previous.elementInputs??{}).filter(([id])=>manifest.inputs.some(port=>port.id===id&&port.type==="image")));
-  return {...next,...(Object.keys(inputs).length?{inputs}:{}),...(Object.keys(elementInputs).length?{elementInputs}:{})};
-}
-
-export default function TeamApp(){
-  const [user,setUser]=useState<User|null>(null),[workspaces,setWorkspaces]=useState<Workspace[]>([]),[workspaceId,setWorkspaceId]=useState("");
-  const [authRequired,setAuthRequired]=useState(false),[offline,setOffline]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState("");
-  /* A hosted guest whose session changed under this tab (another tab, or the old shared demo) is resynced, never asked for a password. */
-  const guestTab=useRef(false),resync=useRef<()=>Promise<void>>(async()=>{});
-  const call:Call=useCallback(async<T,>(path:string,method?:string,body?:unknown,options?:RequestOptions)=>{
-    try {const value=await request<T>(path,method,body,options);setOffline(false);return value;}
-    catch(e){if(e instanceof ApiError){if(guestTab.current&&(e.status===401||e.status===403))void resync.current().catch(()=>undefined);else if(e.status===401)setAuthRequired(true);if(e.status===0)setOffline(true);}throw e;}
-  },[]);
-  const signIn=useCallback(async()=>{
-    await finishAccountRedirect().catch(e=>setError((e as Error).message));
-    const account=await request<User>("/auth/me"),memberships=await request<Workspace[]>("/workspaces");
-    if(account.guest)await enableBrowserLibrary();
-    guestTab.current=!!account.guest;setUser(account);setWorkspaces(memberships);setWorkspaceId(id=>memberships.some(w=>w.id===id)?id:memberships[0]?.id??"");setAuthRequired(false);setOffline(false);setError("");setLoading(false);
-  },[]);
-  resync.current=signIn;
-  useEffect(()=>{let active=true;void signIn().catch(e=>{if(active){if(!(e instanceof ApiError)||e.status!==401)setError((e as Error).message);setLoading(false);}});return()=>{active=false;};},[signIn]);
-  const signOut=useCallback(async()=>{await call("/auth/logout","POST");/* A hosted account signs out to a fresh guest. */if(guestTab.current){await signIn();return;}setUser(null);setWorkspaces([]);setWorkspaceId("");setAuthRequired(false);},[call,signIn]);
-  const closeReauth=useCallback(()=>{},[]);
-  const workspace=workspaces.find(w=>w.id===workspaceId);
-  if(loading)return <div className="cf-auth"><ShimmerText>CreativeField</ShimmerText></div>;
-  if(!user)return <AuthPanel onSignedIn={signIn} serverError={error||undefined} onRetry={()=>void signIn().catch(e=>setError((e as Error).message))}/>;
-  return <ToastHost><ProblemHost>
-    {workspace?<TeamWorkspace key={`${user.id}:${workspace.id}`} user={user} workspace={workspace} workspaces={workspaces} onWorkspace={setWorkspaceId} call={call} authorized={!authRequired} offline={offline} onSignOut={signOut} onAccount={signIn} onReconnect={()=>void signIn().catch(e=>setError((e as Error).message))}/>:<div className="cf-auth"><EmptyState title="No workspace access" text={noWorkspaceText(audienceOf(user))} action={<Button variant="secondary" onClick={()=>void signOut()}>Sign out</Button>}/></div>}
-    <Dialog open={authRequired&&!user.localSingleUser} title="Sign in to continue" onClose={closeReauth}><Notice inline title="Your session has expired">Your draft is preserved. Signing in below keeps it, and you queue explicitly when ready.</Notice><AuthPanel embedded onSignedIn={signIn}/></Dialog>
-  </ProblemHost></ToastHost>;
-}
-
-const sectionOf=(route:string)=>route==="openjutsu"?"video":route==="influencer"?"characters":route;
-/* `#video/camera` names a workflow; `#video/trim` names a mode, and a mode wins. */
-const videoWorkflowFromHash=(hash:string)=>videoModeFromHash(hash)?undefined:videoHashPart(hash);
-/* Imported workflows are the person's own choice, so they always appear; built-in ones follow the selected models. */
-const isImported=(id:string)=>id.startsWith("imported-");
-/** What an imported workflow does, read from its inputs and result, so the menu can place it in the right row. */
-const importedHint=(m:Catalogue[number])=>{const image=m.inputs.some(p=>p.type==="image"),video=m.inputs.some(p=>p.type==="video"),out=m.outputs[0]?.type;return out==="video"?(video?"video edit":image?"image to video":"text to video"):(image?"image edit":"text to image");};
-/** An imported workflow's menu entry: its own title (never empty), its purpose as the hint. */
-const menuTitle=(m:Catalogue[number])=>m.title.split(" (")[0]||m.id.replace(/^imported-/,"").replace(/-/g," ");
-const isImageCapability=(manifest:Catalogue[number])=>isImageWorkflow(manifest)&&(isSelectedImageModel(manifest.id)||isImported(manifest.id));
-
-function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,offline,onSignOut,onAccount,onReconnect}:{user:User;workspace:Workspace;workspaces:Workspace[];onWorkspace:(id:string)=>void;call:Call;authorized:boolean;offline:boolean;onSignOut:()=>Promise<void>;onAccount:()=>Promise<void>;onReconnect:()=>void}){
+export function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,offline,onSignOut,onAccount,onReconnect}:{user:User;workspace:Workspace;workspaces:Workspace[];onWorkspace:(id:string)=>void;call:Call;authorized:boolean;offline:boolean;onSignOut:()=>Promise<void>;onAccount:()=>Promise<void>;onReconnect:()=>void}){
   /* On a phone the top bar keeps only the job queue and the account; Run on and the rest move into its More sheet. */
   const phone=usePhone();
   const [routeHash,setRouteHash]=useState(location.hash);
@@ -734,13 +649,15 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
         const generated=(asset.metadata?.generatedBy??asset.metadata?.generation) as {producerRunId?:unknown;runId?:unknown}|undefined;
         let runId=generated?.producerRunId??generated?.runId;
         if(typeof runId!=="string"){
-          const runs=await call<Run[]>(workspacePath(workspace.id,`runs?projectId=${encodeURIComponent(project.id)}`));
+          // The library shows every project: look in the asset's own project, not only the selected one.
+          const runs=await call<Run[]>(workspacePath(workspace.id,`runs?projectId=${encodeURIComponent(asset.project_id??project.id)}`));
           runId=runs.find(item=>item.output_ids.includes(known))?.id;
         }
         if(typeof runId!=="string")return undefined;
         const run=await call<Run>(workspacePath(workspace.id,`runs/${encodeURIComponent(runId)}`));
         if(!run.output_ids.includes(known))return undefined;
-        const manifest=catalogue.find(item=>item.id===run.capability_id),model=manifest?.title??run.capability_id;
+        // Native routes (Dreamina) have no catalogue entry; their run detail names the model.
+        const manifest=catalogue.find(item=>item.id===run.capability_id),modelTitle=(run as {modelTitle?:unknown}).modelTitle,model=manifest?.title??(typeof modelTitle==="string"?modelTitle:run.capability_id);
         const controls=run.invocation?.controls??{};
         // The shared fact list (run-facts.ts); the viewer shows the model separately, so it is dropped here.
         const facts=runFacts(run,{model,cloud:!!workers.find(worker=>worker.id===run.worker_id&&isCloudWorker(worker))}).slice(1);
@@ -768,8 +685,11 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     const target=catalogue.find(m=>m.id===run.capability_id);
     /* Opening the setup needs no ready worker: the tool itself says what is missing before it can run. */
     if(!target)return undefined;
-    if(run.project_id!==project.id)return undefined;
+    /* The library shows every project's results: a run from another project switches to that project first. */
+    if(run.project_id!==project.id&&!projects.some(item=>item.id===run.project_id))return undefined;
+    const intoProject=()=>{if(run.project_id!==project.id)setProjectId(run.project_id);};
     if(isImageCapability(target))return ()=>{
+      intoProject();
       const recorded=Object.fromEntries(Object.entries(run.invocation!.controls).filter(([id,value])=>["string","number","boolean"].includes(typeof value)&&target.controls.some(control=>control.id===id))) as ImageDraft["controls"];
       const inputs=Object.fromEntries(Object.entries(run.invocation!.inputs).filter(([id,value])=>typeof value==="string"&&value&&target.inputs.some(port=>port.id===id)));
       const presetId=(run.invocation as typeof run.invocation & {presetId?:string}).presetId;
@@ -782,6 +702,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
       const inputs=Object.fromEntries(Object.entries(invocation.inputs).filter(([port,id])=>typeof id==="string"&&id&&target.inputs.some(item=>item.id===port)));
       const controls=Object.fromEntries(Object.entries(invocation.controls).filter(([id,value])=>["string","number","boolean"].includes(typeof value)&&target.controls.some(control=>control.id===id))) as Record<string,string|number|boolean>;
       try{presetTool(target,inputs,{...controls,...override});}catch(cause){setError((cause as Error).message);return;}
+      intoProject();
       setCapabilityId(target.id);if(place.mode)setVideoMode(place.mode);location.hash=place.hash;
     };
   };
@@ -846,7 +767,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
         call={call} canEdit={canCreate} onChanged={refresh}/>);
     }
     return <CloudRenderStudio key={`${workspace.id}:${project.id}:openjutsu`} feature="openjutsu"
-      workspace={workspace} project={project} user={user} call={call} version={version} canEdit={canCreate}
+      workspace={workspace} project={project} user={user} hosted={hosted} call={call} version={version} canEdit={canCreate}
       onQueued={refresh} onSettings={()=>hosted?setCloudSignIn(true):setSettings("account")}
       onLocal={()=>{setRunOn("local");location.hash=openjutsuCanRunLocal?"openjutsu":"video";}}/>;
   }
@@ -932,7 +853,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
           {...screenAccess} incoming={incoming} project={project} user={user} version={version} onQueued={refresh}/>
       </section>),
     router:inProject(project=>routerScreen&&<section className="cf-team__content"><CloudRenderStudio key={`${workspace.id}:${project.id}:${route}:${videoMode}:${routerImageTab}:${linkedImage??""}:${changeChoiceFromHash(routeHash)}`}
-      {...screenAccess} incoming={incoming} feature={routerScreen.feature} project={project} user={user} version={version} onQueued={refresh}
+      {...screenAccess} incoming={incoming} feature={routerScreen.feature} project={project} user={user} hosted={hosted} version={version} onQueued={refresh}
       onSettings={()=>hosted?setCloudSignIn(true):setSettings("account")} onLocal={()=>setRunOn("local")}
       onFeature={f=>{location.hash=`video/transform/${f==="replace-character"?"person":f==="motion-transfer"?"motion":f==="object-swap"?"swap":f==="video-upscale"?"upscale":f==="video-cutout"?"cutout":"restyle"}`;}}/></section>),
     "3d":inProject(project=>threeD&&<section className="cf-team__content cf-nodes-page">
@@ -960,7 +881,7 @@ function TeamWorkspace({user,workspace,workspaces,onWorkspace,call,authorized,of
     "film-studio":renderBlock,
     workflow:inProject(project=>explicitWorkflow&&page(<TeamComposer key={`${project.id}:${routeHash}`} manifest={explicitWorkflow}
       onCapability={choose} {...composerProps} project={project} workers={runWorkers}/>,"fill")),
-    make:inProject(()=>page(<StartScreen tools={workspaceMenu.tools} onOpen={openStartTask} hosted={workspaceAudience!=="local"}/>)),
+    make:inProject(()=>page(<StartScreen tools={workspaceMenu.tools} onOpen={openStartTask} hosted={hosted}/>)),
     imageedit:renderEdit,
     fotofield:renderEdit,
     characters:inProject(project=>characters&&page(<CharacterWorkspace {...studioAccess} mode={characters.tab} project={project} catalogue={catalogue}

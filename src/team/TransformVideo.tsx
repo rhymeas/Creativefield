@@ -6,7 +6,7 @@ import type {CapabilityManifestV2,Readiness} from "../capabilities/types";
 import {TeamComposer} from "./TeamComposer";
 import {TeamChoice} from "./TeamChoice";
 import {draftKey} from "./state";
-import {backgroundManifest,restylePresentation,seedBackgroundDraft,selectTransformManifest,TRANSFORM_MODES,transformCandidates,type ChangeChoice,type RestyleKind,type TransformMode} from "./transform-video-state";
+import {backgroundManifest,restylePresentation,seedBackgroundDraft,selectTransformManifest,transformCandidates,changeChoices,type ChangeChoice,type RestyleKind,type TransformMode} from "./transform-video-state";
 
 const TOOL_LABELS:Record<ChangeChoice,string>={person:"Replace character",motion:"Motion transfer",swap:"Swap a thing",restyle:"Restyle",reframe:"Reframe"};
 const ICONS:Record<ChangeChoice,ReactNode>={person:<UserRoundPen size={18}/>,motion:<Footprints size={18}/>,swap:<Shapes size={18}/>,restyle:<Palette size={18}/>,reframe:<Maximize2 size={18}/>};
@@ -43,7 +43,7 @@ export function TransformVideo({manifests,statuses,user,workspace,project,worker
   }
   // The intents are a compact choice, not a wall of model cards; the workflow itself is automatic.
   // With the one Swap tool, a person and a new look are swaps: no separate cards (DOC-2191).
-  const cards:{id:ChangeChoice;label:string}[]=[...(replace&&!unifiedSwap?[{id:"person" as const,label:TOOL_LABELS.person}]:[]),...TRANSFORM_MODES.filter(mode=>mode.id==="swap"?!!swapThing||candidates.swap.length>0:mode.id==="restyle"&&unifiedSwap?false:candidates[mode.id].length>0).map(m=>({id:m.id,label:TOOL_LABELS[m.id]})),...(reframe?[{id:"reframe" as const,label:TOOL_LABELS.reframe}]:[])];
+  const cards=changeChoices({replace:!!replace,swapThing:!!swapThing,reframe:!!reframe,unifiedSwap,candidates}).map(id=>({id,label:TOOL_LABELS[id]}));
   /* A retired tool (for example Wan motion transfer after the HyperFlow switch) keeps old links alive by
      moving them to the first tool this computer can actually run. */
   const availableKey=cards.map(card=>card.id).join(",");

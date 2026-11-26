@@ -77,6 +77,15 @@
 .cf-orbit-preview[data-compact] { width:100%; max-width:none; gap:0; }
 .cf-orbit-preview[data-compact] .ds-orbit-preview { max-width:none; cursor:default; }
 .cf-orbit-preview__meta { display:flex; align-items:flex-start; justify-content:space-between; gap:var(--gap-inline); flex-wrap:wrap; }
+/* Standalone viewer: shading at the top left, camera and lens at the bottom left, over the model only (not the captions). */
+.cf-orbit-preview__stage { position:relative; }
+.cf-orbit-preview__tools, .cf-orbit-preview__views { position:absolute; left:var(--gap-inline); z-index:1; display:flex; gap:var(--gap-inline); }
+.cf-orbit-preview__tools { top:var(--gap-inline); }
+.cf-orbit-preview__views { bottom:var(--gap-inline); }
+/* Make 3D drag state: the panel wrapper takes no layout space; the stack covers the slot and never takes the pointer. */
+.cf-make3d-drop { display:contents; }
+.cf-form:has(> .cf-make3d-stack) { position:relative; }
+.cf-make3d-stack { position:absolute; inset:0; display:flex; pointer-events:none; }
 
 /* All tools: the controls stay in the page header; available tools occupy the visual centre. */
 .cf-start { display:flex; flex-direction:column; gap:var(--gap-section); min-height:100%; }

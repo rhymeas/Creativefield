@@ -3,6 +3,7 @@
   "id": "sam3-image-segment",
   "version": "0.2.0",
   "title": "SAM 3.1 image segment",
+  "feedHidden": true,
   "category": "canvas",
   "description": "Local text-prompted segmentation with Meta SAM 3.1 in ComfyUI. Name what to select (face, hair, jacket); the output is a white-on-black mask of the source image's size, used by the image editor as a selection.",
   "inputs": [

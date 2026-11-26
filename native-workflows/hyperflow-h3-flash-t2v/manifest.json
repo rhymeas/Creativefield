@@ -4,7 +4,7 @@
   "version": "0.4.0",
   "title": "HyperFlow H3 Flash text to video",
   "category": "t2v",
-  "description": "Create video and sound from a prompt with HyperFlow H3 Flash.",
+  "description": "Turn a few words into a video with sound. Describe the scene and movement, then let HyperFlow H3 Flash create your take locally on your computer.",
   "inputs": [],
   "outputs": [
     {
@@ -106,6 +106,16 @@
       "default": "normal",
       "binding": {
         "node": "ui:quality",
+        "field": "value"
+      }
+    },
+    {
+      "id": "keep_face",
+      "label": "Keep face (one person through head turns)",
+      "type": "boolean",
+      "default": false,
+      "binding": {
+        "node": "ui:keep_face",
         "field": "value"
       }
     }
@@ -266,16 +276,6 @@
       "url": "https://github.com/Video-Rebirth/ComfyUI-HyperFlow-Flash/blob/main/example_workflows/api/hyperflow_t2v_api.json",
       "observedAt": "2026-11-07",
       "kind": "implementation"
-    },
-    {
-      "id": "keep_face",
-      "label": "Keep face (one person through head turns)",
-      "type": "boolean",
-      "default": false,
-      "binding": {
-        "node": "ui:keep_face",
-        "field": "value"
-      }
     },
     {
       "url": "https://github.com/PedroMarinhoDev/ComfyUI-H3-Image-EasyFix",

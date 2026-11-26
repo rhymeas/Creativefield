@@ -10,9 +10,6 @@
 /* Media keep their own shape inside a tile. */
 .ds-mosaic .ds-hitem .ds-media { aspect-ratio: auto; width: 100%; min-width: 0; min-height: 0; max-height: none; height: auto; }
 .ds-mosaic .ds-media > video, .ds-mosaic .ds-media > img { display: block; width: 100%; height: auto; max-height: none; object-fit: contain; background: var(--surface-page); }
-/* Library pictures: one square frame each, filled edge to edge; no loose letterboxed shapes. */
-.ds-mosaic__grid[data-square] .ds-mosaic__inner .ds-media { aspect-ratio: 1; overflow: hidden; }
-.ds-mosaic__grid[data-square] .ds-media > img, .ds-mosaic__grid[data-square] .ds-media > video { width: 100%; height: 100%; object-fit: cover; }
 /* A tile whose media shape is known (from the run or the file record) holds that shape before the picture
    arrives, so the measured masonry never reflows under the eye while images load. */
 .ds-mosaic .ds-media[data-shaped] > video, .ds-mosaic .ds-media[data-shaped] > img { aspect-ratio: var(--media-shape); }
@@ -23,17 +20,3 @@
 .ds-mosaic__cell[data-current] .ds-media::after { content: ""; position: absolute; top: var(--space-2); left: var(--space-2); z-index: 2; width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--accent); box-shadow: 0 0 8px var(--accent-ring); pointer-events: none; }
 /* A loading tile in the feed fills exactly its box, one column wide, whatever a screen gives it elsewhere. */
 .ds-mosaic .ds-media .ds-resulttile[data-develop] { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; min-height: 0; min-width: 0; }
-/* The video feed packs media-sized rows: one height for every tile, each tile as wide as its own picture.
-   Nothing is cropped and a landscape clip simply reads bigger; the row wraps when it is full. */
-.ds-mosaic__grid[data-justified] { display: flex; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; gap: var(--gap-section); }
-.ds-mosaic__grid[data-justified] .ds-mosaic__cell { flex: 0 0 auto; overflow: hidden; width: calc(var(--mosaic-tile-h, 200px) * var(--tile-aspect, 1.7778)); height: var(--mosaic-tile-h, 200px); }
-.ds-mosaic__grid[data-justified] .ds-mosaic__inner { height: 100%; padding-bottom: 0; overflow: hidden; }
-.ds-mosaic__grid[data-justified] .ds-media { height: 100%; width: 100%; aspect-ratio: auto; }
-.ds-mosaic__grid[data-justified] .ds-media > :is(video, img) { height: 100%; width: 100%; max-width: none; aspect-ratio: auto; object-fit: contain; }
-.ds-mosaic__grid[data-justified] .ds-media[data-shaped] > :is(video, img),
-.ds-mosaic__grid[data-justified] .ds-mosaic__inner[data-shaped] :is(video, img) { height: 100%; width: 100%; aspect-ratio: auto; object-fit: contain; }
-.ds-mosaic__grid[data-justified] .ds-resulttile,
-.ds-mosaic__grid[data-justified] .ds-hitem { height: 100%; min-height: 0; aspect-ratio: auto; }
-/* A working tile is the one that must read: wide while it renders, its preview filling that box. */
-.ds-mosaic__grid[data-justified] .ds-resulttile[data-develop],
-.ds-mosaic__grid[data-justified] .ds-resulttile[data-develop] .ds-resulttile__preview { height: 100%; width: 100%; aspect-ratio: auto; min-height: 0; }

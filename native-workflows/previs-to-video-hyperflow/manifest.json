@@ -18,7 +18,7 @@
     },
     {
       "id": "character_image",
-      "label": "Character",
+      "label": "Picture 1: main person",
       "type": "image",
       "required": true,
       "binding": {
@@ -28,7 +28,7 @@
     },
     {
       "id": "reference_image",
-      "label": "Vehicle or prop (optional)",
+      "label": "Picture 2: person, prop or place (optional)",
       "type": "image",
       "required": false,
       "omitWhenMissing": true,
@@ -39,7 +39,7 @@
     },
     {
       "id": "reference_image_2",
-      "label": "Location (optional)",
+      "label": "Picture 3: person, prop or place (optional)",
       "type": "image",
       "required": false,
       "omitWhenMissing": true,
@@ -50,7 +50,7 @@
     },
     {
       "id": "reference_image_3",
-      "label": "Additional reference (optional)",
+      "label": "Picture 4: person, prop or place (optional)",
       "type": "image",
       "required": false,
       "omitWhenMissing": true,
@@ -73,7 +73,7 @@
       "id": "prompt",
       "label": "Direction",
       "type": "string",
-      "default": "Use the supplied video as previsualisation, not a literal blueprint. The simple shapes and placeholder set represent a possible action and spatial layout, not final objects, materials, architecture, proportions or an instruction to reproduce the set exactly.\nCreate a coherent, photoreal cinematic scene that follows the user's direction and the supplied character and other references. Interpret placeholder figures as characters with believable human scale, body language and purposeful interaction. Build a plausible environment appropriate to the requested story, and adapt or replace placeholder structures and props where needed. Do not invent unrelated furniture or activities.\nUse the source video as a guide to the main action, timing and camera movement where compatible with the requested scene; allow framing, spatial relationships, scale and motion to adapt naturally. Preserve any specific elements or exact movements explicitly requested by the user. Keep characters, wardrobe and important props consistent across the shot.\nMatch lighting, textures, perspective and shadows throughout. Sound should fit the action and the selected audio policy.",
+      "default": "subject_definitions:\n<Video 1> is the source video for the target video edit: a grey-block previsualisation clip whose untextured grey shapes stand for the people, props and places of the shot, and whose camera path, lens, framing and timing define the shot.\n<Subject 1> is the main character, the person in <Picture 1>, with the same face, hair, body and clothes; in <Video 1> this person is the main grey figure.\n<Subject 2> is the further person, prop or location shown in <Picture 2>, <Picture 3> and <Picture 4>, as each image shows.\nsummary:\n[video editing + reference generation] The target video is an edited version of <Video 1>: one continuous live-action shot with the camera and blocking of <Video 1>, in which the grey shapes become <Subject 1> and <Subject 2>.\nretention_analysis:\n<Video 1> (camera, blocking and timing of [Shot 1]): partially_preserved - the camera path, lens, framing, timing, the position, size and screen side of every figure and object and each movement are kept exactly; every grey untextured surface is replaced with real people, materials, light and detail.\n<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, body and clothes of the person in <Picture 1> are retained.\n<Subject 2> (appears in [Shot 1]): partially_preserved - each further picture's person, prop or place is retained as its image shows it.\ndetailed_description:\nLive-action, cinematic, photoreal, with natural light, real textures, believable shadows and reflections and slight film grain. [Shot 1] Keep the camera of <Video 1> exactly: its move, lens and angle. There are no cuts, no reframing and no other camera motion. Every grey figure becomes a real person at the same place, size and screen side: the main grey figure becomes <Subject 1>; further grey figures become the people in the other pictures. The grey surroundings become a real place built where <Video 1> has its walls, floor and open space. Faces, wardrobe and props stay consistent for the whole shot.\noverall_soundscape:\nNatural sound of the scene: footsteps, room tone and ambience that fit the action.\nnon_diegetic_music:\nN/A",
       "binding": {
         "node": "2136",
         "field": "prompt"

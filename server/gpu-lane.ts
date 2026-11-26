@@ -45,15 +45,21 @@ export function laneDecision(workerId: string, localWorkerIds: string[], busyWor
   return { go: true, free };
 }
 
-/** The model family a pack loads: its main diffusion model file (H3, FLUX 3, Fibo, SeedVR2, ...), or its id when it names none.
- *  Packs of one family (h3-t2v and h3-i2v) share weights, so switching between them needs no unload. */
+/** Model files that stay resident in VRAM: diffusion model, text encoder and CLIP projection. */
+const RESIDENT_LOCATIONS = new Set(["diffusion_models", "text_encoders", "clip_projections"]);
+
+/** The loader set a pack needs resident: its diffusion model, text encoder and projection files, or its id when it names none.
+ *  Packs that load the same set (h3-t2v and h3-i2v) share weights, so switching between them needs no unload. A new encoder
+ *  or projection beside the same diffusion model is a different set: the old encoder would otherwise stay in VRAM. */
 export function modelFamily(manifest: { id: string; routes: Array<{ requirements: Array<{ kind: string; name: string; location?: string }> }> }): string {
-  const main = manifest.routes.flatMap((r) => r.requirements).find((r) => r.kind === "model" && r.location === "diffusion_models");
-  return main?.name ?? manifest.id;
+  const files = new Set(manifest.routes.flatMap((r) => r.requirements).filter((r) => r.kind === "model" && r.location && RESIDENT_LOCATIONS.has(r.location)).map((r) => r.name));
+  return files.size ? [...files].sort().join("+") : manifest.id;
 }
 
-/** Whether a ComfyUI should unload before this job: it last ran a different model family. ComfyUI applies /free
- *  between prompts, so a job still running there finishes first. */
+/** Whether a ComfyUI should unload before this job. It does when it last ran a different loader set, and also when
+ *  nothing is known about what it holds (the app restarted, or someone used the worker directly): a resident model of
+ *  another family fills the card and turns 8 s/it into 60-590 s/it. ComfyUI applies /free between prompts, so a job
+ *  still running there finishes first. A repeat of the same set keeps its warm models. */
 export function familyChanged(last: string | undefined, next: string): boolean {
-  return last !== undefined && last !== next;
+  return last !== next;
 }

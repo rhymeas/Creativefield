@@ -36,7 +36,8 @@ function Set-CreativeFieldEmbed {
   $start = '<!-- CreativeField embed -->'; $end = '<!-- /CreativeField embed -->'
   $at = $html.IndexOf($start)
   if ($at -ge 0) { $stop = $html.IndexOf($end, $at); $html = $html.Remove($at, $stop + $end.Length - $at) }
-  $script = Get-Content (Join-Path $repoRoot 'scripts\h3-editor-embed.js') -Raw
+  # The Film Studio additions' UI (Grade, Resolve/Premiere export) follows the embed script in the same block.
+  $script = (Get-Content (Join-Path $repoRoot 'scripts\h3-editor-embed.js') -Raw) + "`n" + (Get-Content (Join-Path $repoRoot 'scripts\h3-editor-grade.js') -Raw)
   $html = $html.Replace('</body>', "$start<script>`n$script</script>$end`n</body>")
   Set-Content -Path $editorHtml -Value $html -NoNewline -Encoding utf8
 }
@@ -48,11 +49,42 @@ function Set-CreativeFieldLinks {
   if ($html.Contains($label)) { Set-Content -Path $editorHtml -Value $html.Replace($label, $link) -NoNewline -Encoding utf8 }
 }
 
+# CreativeField's Film Studio additions (sound fades, grading, NLE export) live in scripts/h3-editor-cf: their own
+# modules beside the editor plus small checked hooks. apply.py is idempotent and stops when upstream text has moved.
+function Set-CreativeFieldAdditions {
+  $python = if ($PythonExe -and (Test-Path $PythonExe)) { $PythonExe } else { 'python' }
+  & $python (Join-Path $repoRoot 'scripts\h3-editor-cf\apply.py') $target
+  if ($LASTEXITCODE -ne 0) { throw 'The CreativeField Film Studio additions could not be applied; see the message above.' }
+}
+
+# Film Studio reference takes render through BExplains RefPacks (MIT; scripts/h3-editor-cf/cf_refpacks.py). Its two
+# node packs are installed beside the editor at pinned commits when missing; without them every clip keeps H3 Take.
+$refPacks = @(
+  @{ Folder = 'BExplains_RefPacks'; Url = 'https://github.com/BExplains/ComfyUI-RefPacks.git'; Commit = '6269de6' },
+  @{ Folder = 'BExplains_H3_RefPacks'; Url = 'https://github.com/BExplains/ComfyUI-MiniMax-H3-RefPacks.git'; Commit = 'a93dc65' }
+)
+function Set-RefPacks {
+  foreach ($pack in $refPacks) {
+    $folder = Join-Path $WorkerRoot (Join-Path 'custom_nodes' $pack.Folder)
+    if (Test-Path (Join-Path $folder '__init__.py')) { continue }
+    $source = Join-Path ([IO.Path]::GetTempPath()) ($pack.Folder + '-src')
+    if (-not (Test-Path (Join-Path $source '.git'))) { git clone --quiet $pack.Url $source }
+    git -C $source fetch --quiet origin
+    git -C $source checkout --quiet $pack.Commit
+    if ($LASTEXITCODE -ne 0) { throw "RefPacks commit $($pack.Commit) not found in $($pack.Url)." }
+    New-Item -ItemType Directory -Force -Path $folder | Out-Null
+    Copy-Item (Join-Path $source '*') $folder -Recurse -Force -Exclude '.git', 'tests', '.github'
+    Write-Host "Installed $($pack.Folder) at $($pack.Commit)."
+  }
+}
+
 if (Test-Path $editorJs) {
   Set-CreativeFieldTheme
   Set-CreativeFieldLinks
   Set-CreativeFieldEmbed
-  Write-Host "H3 Editor is already installed at $target; theme refreshed, nothing else changed."
+  Set-CreativeFieldAdditions
+  Set-RefPacks
+  Write-Host "H3 Editor is already installed at $target; theme and CreativeField additions refreshed."
   exit 0
 }
 
@@ -133,6 +165,8 @@ Write-Host "Project mapping: ?project=cf-<projectId> is created once and reopene
 Write-Host "Same-origin hosting: /h3-editor/<workspaceId>/h3take/editor."
 Set-CreativeFieldLinks
 Set-CreativeFieldEmbed
+Set-CreativeFieldAdditions
+Set-RefPacks
 Write-Host "Theme: scripts/h3-editor-theme.css appended to editor/editor.css."
 
 if ($PythonExe -and (Test-Path $PythonExe)) {

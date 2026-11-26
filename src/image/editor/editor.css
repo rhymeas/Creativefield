@@ -26,6 +26,10 @@
 .cf-editor-side .ds-panel { align-self: stretch; max-height: none; }
 .cf-layer-head { display: flex; align-items: center; gap: var(--gap-block); }
 .cf-editor-canvas[data-tool="brush"], .cf-editor-canvas[data-tool="eraser"] { cursor: none; }
+/* Quick upscale at the top centre of the picture. The wrapper passes the pointer through, so a selection drag that
+   starts on the picture is never swallowed; only the buttons themselves take clicks. */
+.cf-editor-topstack { position: absolute; top: var(--space-4); left: 50%; transform: translateX(-50%); z-index: 6; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); pointer-events: none; }
+.cf-editor-topstack > * { pointer-events: auto; }
 .cf-editor-cropbar {
   position: absolute;
   left: 50%;
@@ -75,7 +79,6 @@
 .cf-modify-send { width: 36px; height: 36px; padding: 0; }
 
 .cf-layer-slot { position: relative; }
-
 
 /* Mini references above FotoField's free input (the same Thumbs as the Modify card). */
 .cf-command-references { display: flex; gap: var(--gap-inline); }

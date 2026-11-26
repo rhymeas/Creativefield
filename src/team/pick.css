@@ -5,5 +5,3 @@
 .cf-pick .ds-meta { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 /* Video tiles play when you point at them, so you see what the clip is before choosing it. */
 .cf-pick video { pointer-events:none; }
-/* Change page: the four tool cards at the top of the panel, compact (2 x 2). */
-.cf-change-cards .ds-preset__art { aspect-ratio: 5 / 2; }

@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 // Test-only config (vite build keeps using vite.config.ts). The global
 // setup boots a throwaway embedded PostgreSQL so integration suites run.
@@ -7,6 +7,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globalSetup: ["./test/global-setup.ts"],
+    // Agent worktrees under .claude/worktrees hold older copies of the tests; they test their own branch, not this one.
+    exclude: [...configDefaults.exclude, ".claude/**"],
     // Integration suites boot the real server and run migrations against
     // the throwaway database; real FFmpeg cases also take 10-60 s while the
     // full suite runs in parallel. The 5 s default is far too small.

@@ -39,8 +39,16 @@ export const scalarControls=z.record(z.string(),z.union([z.string().max(20000),z
 export const consentSchema=z.object({webcam:z.boolean().optional(),voice:z.boolean().optional(),cloudCredits:z.boolean().optional()}).strict();
 /** Enhance video: the finishing steps still to run after this one, in order (see src/capabilities/finish-steps.ts). */
 export const finishStepsSchema=z.array(z.object({capabilityId:z.string().max(120),controls:scalarControls}).strict()).min(1).max(2);
-export const requestSchema=z.object({projectId:z.uuid(),workerId:z.uuid(),idempotencyKey:z.string().min(8).max(128).refine(key=>!key.startsWith("storyboard:")&&!key.startsWith("storyboard-still:")&&!key.startsWith("video-extension:")&&!key.startsWith("pose-preview:"),"Internal execution prefixes are reserved"),capabilityId:z.string().max(120),version:z.string().max(40),routeId:z.string().max(80),inputs:z.record(z.string(),z.uuid()),elementInputs:elementInputsSchema.optional(),controls:scalarControls,presetId:z.string().min(1).max(80).optional(),consent:consentSchema.optional(),audioPolicy:z.enum(["preserve","replace","mix","mute"]),tracking:trackingRequestSchema.optional(),finish:finishStepsSchema.optional()}).strict();
+/** Every idempotency-key prefix the server uses for runs it creates itself; a public request may not take one, or it
+    could stand in for (and so block) that internal run. Add a prefix here when new server code writes such a key. */
+export const INTERNAL_KEY_PREFIXES=["storyboard:","storyboard-still:","video-extension:","pose-preview:","upscale:","finish:","keep-face:","replace-anchor:"] as const;
+export const requestSchema=z.object({projectId:z.uuid(),workerId:z.uuid(),idempotencyKey:z.string().min(8).max(128).refine(key=>!INTERNAL_KEY_PREFIXES.some(prefix=>key.startsWith(prefix)),"Internal execution prefixes are reserved"),capabilityId:z.string().max(120),version:z.string().max(40),routeId:z.string().max(80),inputs:z.record(z.string(),z.uuid()),elementInputs:elementInputsSchema.optional(),controls:scalarControls,presetId:z.string().min(1).max(80).optional(),consent:consentSchema.optional(),audioPolicy:z.enum(["preserve","replace","mix","mute"]),tracking:trackingRequestSchema.optional(),finish:finishStepsSchema.optional()}).strict();
 export type RunRequest=z.infer<typeof requestSchema>;
+/** A run the server queues itself (an Enhance chain step): its key is server-owned and its prefix is reserved for
+    public requests, so the body is validated without the key and the key joins afterwards. */
+export function serverRunRequest(fields:Omit<RunRequest,"idempotencyKey">,key:string):RunRequest{
+  return {...requestSchema.omit({idempotencyKey:true}).parse(fields),idempotencyKey:key};
+}
 export type PreparedRun={projectId:string;workerId:string;revisionId:string;invocation:Invocation;imageArtifactSpecs?:ArtifactSlotSpec[]};
 export type RunSlate={scene:number;shot:number};
 export const publicColumns="id,project_id,worker_id,created_by,capability_id,capability_version,route_id,state,remote_id,transport,error,output_ids,scene,shot,take,created_at,updated_at";

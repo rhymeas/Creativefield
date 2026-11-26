@@ -88,3 +88,9 @@ export function finishDone(packs:readonly string[]|undefined,stepOf:Record<strin
 }
 /** Pack → row for every pack that can be an Enhance step. */
 export const finishStepsOf=(catalogue:readonly FinishManifest[])=>Object.fromEntries(catalogue.flatMap(m=>{const role=finishRoleOf(m);return role?[[m.id,role.task]]:[];}));
+
+/** A draft workflow whose quality control also offers "normal" lets the person choose its finish (the Finish button in
+ *  the panel). A finish pack (the Deno variants) has no "normal": it is the finish. Read from the manifest, not ids. */
+export function offersFinishChoice(manifest:{controls:readonly {id:string;options?:readonly unknown[]}[]}):boolean{
+  return !!manifest.controls.find(control=>control.id==="quality")?.options?.includes("normal");
+}

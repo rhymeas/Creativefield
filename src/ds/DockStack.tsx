@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { dockLayout, type DockItem } from "./dock-layout";
+import "./dock-stack.css";
 
 type Drag = {
   id: string; pointer: number; startY: number; y: number; x: number;

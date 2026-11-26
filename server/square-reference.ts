@@ -4,19 +4,26 @@ import sharp from "sharp";
  *  content needs: a 2172x724 wordmark became 3072x1024 and an 8 MP edit took 109 s instead of 77 s with the same
  *  wordmark on a square (IDEA-2466, 2026-11-21). Above this side ratio a reference goes on a square canvas. */
 export const SQUARE_REFERENCE_RATIO = 1.25;
-/** The longest side a squared reference may have, so the square canvas stays at most 2048 x 2048. */
-export const SQUARE_REFERENCE_MAX_SIDE = 2048;
+/** The longest side of a prepared reference. The node's vision encoder reads references at a 1024 px short edge
+ *  (IMAGE_REF_SHORT_EDGE) and only the reference latents go up to 2048, where they ride through every sampling step:
+ *  two 2048 px square sheet references made an 8 MP edit take 136 s (trailer stress test, 2026-11-21). */
+export const SQUARE_REFERENCE_MAX_SIDE = 1024;
 
-/** The reference centred on a square canvas filled with the mean colour of its own border, so a yellow wordmark
- *  stays a yellow wordmark instead of becoming a yellow card on white. Undefined when it is near square already. */
+/** The reference at most 1024 px on its long side, and when it is wide or tall, centred on a square canvas filled with
+ *  the mean colour of its own border, so a yellow wordmark stays a yellow wordmark instead of becoming a yellow card
+ *  on white. Undefined when the picture is near square and small enough already. */
 export async function squareReference(bytes: Buffer): Promise<Buffer | undefined> {
-  // The long edge is capped first: H3 reads references within a 2048 px short edge anyway, and an uncapped extend of a
-  // very wide picture would build a canvas far larger than the input limit allows (at most 2048 x 2048 here).
-  const image = sharp(await sharp(bytes, {animated: false, limitInputPixels: 64 * 1024 * 1024, failOn: "warning"}).rotate()
+  const input = sharp(bytes, {animated: false, limitInputPixels: 64 * 1024 * 1024, failOn: "warning"});
+  const original = await input.metadata();
+  const image = sharp(await input.rotate()
     .resize({width: SQUARE_REFERENCE_MAX_SIDE, height: SQUARE_REFERENCE_MAX_SIDE, fit: "inside", withoutEnlargement: true}).png().toBuffer());
   const {data, info} = await image.clone().removeAlpha().raw().toBuffer({resolveWithObject: true});
   const {width, height, channels} = info;
-  if (!width || !height || Math.max(width, height) / Math.min(width, height) < SQUARE_REFERENCE_RATIO) return undefined;
+  if (!width || !height) return undefined;
+  if (Math.max(width, height) / Math.min(width, height) < SQUARE_REFERENCE_RATIO) {
+    const shrunk = Math.max(original.width ?? 0, original.height ?? 0) > SQUARE_REFERENCE_MAX_SIDE;
+    return shrunk ? image.png().toBuffer() : undefined;
+  }
   const sum = [0, 0, 0];
   let count = 0;
   const add = (x: number, y: number) => { const i = (y * width + x) * channels; for (let c = 0; c < 3; c++) sum[c] += data[i + c]; count++; };

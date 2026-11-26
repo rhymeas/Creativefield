@@ -70,8 +70,12 @@ function megapixelsFromAspect(ratio:number,megapixels:number){
   return {width,height};
 }
 
-/** Above this size H3-Image samples a draft first and finishes it at full size (IDEA-2466, 2026-11-21). */
-export const H3_HIRES_ABOVE_MEGAPIXELS = 12;
+/**
+ * Above this size H3-Image samples a draft first and finishes it at full size (IDEA-2466, 2026-11-21).
+ * 12 MP goes through the draft too (user go, 2026-11-22): native 12 MP gave crooked eyes and doubled
+ * figures where the 8 MP draft on the same seed (run ce2e13b6) kept the face straight.
+ */
+export const H3_HIRES_ABOVE_MEGAPIXELS = 8;
 /** The draft size of that finish. */
 export const H3_HIRES_DRAFT_MEGAPIXELS = 8;
 /** Two finishing steps from the official grid: enough to redraw lashes, pores and lettering at full size. */
@@ -100,7 +104,7 @@ export function applyH3HiresFinish(graph:ApiGraph){
   for (const node of Object.values(graph)) {
     if (node.class_type !== "MiniMaxH3ImageConditioning") continue;
     const canvas = canvasOf(graph, node);
-    // Half a megapixel of slack: the 32 px grid rounds a 12 MP square to 3552 x 3552, just above 12 MP.
+    // Half a megapixel of slack: the 32 px grid rounds a square slightly above its nominal size (8 MP -> 2912 x 2912).
     if (!canvas || canvas.width * canvas.height <= (H3_HIRES_ABOVE_MEGAPIXELS + 0.5) * 1024 * 1024) continue;
     // The decode that saves the picture, the last sampler before it and the VAE it uses.
     const decodeId = Object.keys(graph).find(key => graph[key].class_type === "VAEDecode" && Array.isArray(graph[key].inputs.samples));

@@ -4,12 +4,14 @@ import {h3Frames} from "./timing";
 /** Variants of the tested HyperFlow reference-to-video graph.
  * The graph is server-owned; this selects one output, it does not accept nodes from a client.
  */
-export type HyperflowQuality = "normal" | "upscale" | "hd-upscale";
+export type HyperflowQuality = "normal" | "upscale" | "hd-upscale" | "detail";
 
 const stages = {
   normal: ["11", "13", "14"],
   upscale: ["finish:up-model", "finish:up", "finish:sigmas", "finish:tiled", "finish:decode", "finish:video", "finish:save"],
   "hd-upscale": ["finish:up-model", "finish:up", "finish:sigmas", "anchor", "guide:tiled", "guide:decode", "guide:video", "guide:save"],
+  // "detail" is the upscale finish plus the face detail pass (addDetailPass).
+  detail: ["finish:up-model", "finish:up", "finish:sigmas", "finish:tiled", "finish:decode", "finish:video", "finish:save"],
 } as const;
 const common = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "12", "20"] as const;
 const expected: Record<string,string> = {
@@ -26,13 +28,18 @@ const expected: Record<string,string> = {
 
 /** Node 7 may be plain Euler or the EasyFix re-noise sampler. The flash create workflows sample natively in two passes
  * (IDEA-2466): node 10a runs euler ancestral on the first two sigmas, node 10 (SamplerCustom) runs SamplerLCM on the
- * rest; 7s splits the sigmas, 7n is the empty negative, 7l the LCM sampler. Every reader of node 10 is unchanged. */
+ * rest; 7s splits the sigmas, 7n is the empty negative, 7l the LCM sampler. Every reader of node 10 is unchanged.
+ * Image to video runs plain euler on both passes over the 8-step schedule instead (2026-11-22, DOC-2495): sharper faces,
+ * no teal flash in the first frames, about 3 s more; 7l stays in its template unused. */
 const SAMPLER_CLASSES = new Set(["KSamplerSelect", "H3ImageSampler"]);
 const PASS_CLASSES = new Set(["SamplerCustomAdvanced", "SamplerCustom"]);
 const NATIVE_PASS: Record<string,string> = {"7s":"SplitSigmas", "7n":"ConditioningZeroOut", "7l":"SamplerLCM", "10a":"SamplerCustomAdvanced"};
 /** Node 2 reads the prompt: the 32B encoder (CLIPLoader) or, since 2026-11-21, Qwen3-VL-4B with a ClipProj projection. */
 const ENCODER_CLASSES = new Set(["CLIPLoader", "ClipProjLoader"]);
-const matches = (id:string, actual:string|undefined, wanted:string) => id === "7" ? !!actual && SAMPLER_CLASSES.has(actual) : id === "10" ? !!actual && PASS_CLASSES.has(actual) : id === "2" && wanted === "CLIPLoader" ? !!actual && ENCODER_CLASSES.has(actual) : actual === wanted;
+/** Node 1 loads the model: the reviewed GGUF loader (Q4) or, for image to video since 2026-11-22, the official
+ * HyperFlowLoader with the INT8 convrot weights (same quality as Q4 at the 1024 draft, 18-26 s faster;). */
+export const HYPERFLOW_LOADER_CLASSES = new Set(["HyperFlowGGUFLoader", "HyperFlowLoader"]);
+const matches = (id:string, actual:string|undefined, wanted:string) => id === "7" ? !!actual && SAMPLER_CLASSES.has(actual) : id === "10" ? !!actual && PASS_CLASSES.has(actual) : id === "2" && wanted === "CLIPLoader" ? !!actual && ENCODER_CLASSES.has(actual) : id === "1" ? !!actual && HYPERFLOW_LOADER_CLASSES.has(actual) : actual === wanted;
 /** Upscale finishes reach at least this many pixels on the long side. */
 export const FINISH_LONG_SIDE = 1472;
 /** The image-to-video finishing scale: the tested 1.44x, or more for small drafts so they still finish at 1472 px. */
@@ -103,7 +110,20 @@ export type HyperflowRequest = {
   width: number;
   height: number;
   seconds: number;
+  /** Hold the start picture's colours (image to video only). */
+  holdColour?: boolean;
 };
+
+/** Daytime clips drift to teal-green within 3-4 s with every sampler and quant we tried; matching every frame's
+ * colour statistics to the start picture (core ColorTransfer, mkl in Lab) holds the grade. Measured 2026-11-22 on two
+ * golden-hour trailer clips (runs 100a72df, f24a7c11): no teal at the end, motion unchanged, about 25 s more per clip.
+ * Off with an end picture, whose colours may differ from the start on purpose. */
+const DECODE_TO_VIDEO: Record<HyperflowQuality,[string,string]> = {normal:["11","13"], upscale:["finish:decode","finish:video"], "hd-upscale":["guide:decode","guide:video"], detail:["finish:decode","finish:video"]};
+function holdStartColour(graph:ApiGraph, quality:HyperflowQuality) {
+  const [decode, video] = DECODE_TO_VIDEO[quality];
+  graph["colour:hold"] = {class_type:"ColorTransfer", inputs:{image_target:[decode,0], image_ref:["20",0], method:"mkl_lab", source_stats:"per_frame", strength:1}};
+  graph[video].inputs.images = ["colour:hold",0];
+}
 
 /** Bind a request to the tested workflow; caller must still enforce worker readiness and node policy. */
 export function buildHyperflowQuality(template:ApiGraph, request:HyperflowRequest):ApiGraph {
@@ -113,7 +133,9 @@ export function buildHyperflowQuality(template:ApiGraph, request:HyperflowReques
   if (!Number.isSafeInteger(request.seed) || request.seed < 0) throw new Error("Invalid seed");
   if (![request.width, request.height].every(n => Number.isInteger(n) && n >= 256 && n <= 2048 && n % 32 === 0)) throw new Error("Invalid video dimensions");
   if (!Number.isFinite(request.seconds) || request.seconds < 1 || request.seconds > 15) throw new Error("Invalid video duration");
-  const graph = selectHyperflowQuality(template, request.quality);
+  const detail = request.quality === "detail";
+  const quality:HyperflowQuality = detail ? "upscale" : request.quality;
+  const graph = selectHyperflowQuality(template, quality);
   graph["20"].inputs.image = request.image;
   Object.assign(graph["5"].inputs, {prompt:request.prompt, width:request.width, height:request.height, length:h3Frames(request.seconds,24)});
   graph["8"].inputs.noise_seed = request.seed;
@@ -123,23 +145,76 @@ export function buildHyperflowQuality(template:ApiGraph, request:HyperflowReques
     graph["combined:first"]=guide("5","5","20",0);
     graph["combined:last"]=guide("combined:first","5","end:load",-1);
     graph["9"].inputs.conditioning=["combined:last",0];
-    if (request.quality !== "normal") {
+    if (quality !== "normal") {
       // Build new anchors at the upscaled latent resolution, not the draft resolution.
       graph["combined:hd-first"]={class_type:"MiniMaxH3AddGuide",inputs:{positive:["5",0],latent:["finish:up",0],vae:["3",0],image:["20",0],frame_idx:0}};
       graph["combined:hd-last"]={class_type:"MiniMaxH3AddGuide",inputs:{positive:["combined:hd-first",0],latent:["finish:up",0],vae:["3",0],image:["end:load",0],frame_idx:-1}};
-      graph[request.quality==="upscale"?"finish:tiled":"guide:tiled"].inputs.positive=["combined:hd-last",0];
-      if(request.quality==="hd-upscale") delete graph.anchor;
+      graph[quality==="upscale"?"finish:tiled":"guide:tiled"].inputs.positive=["combined:hd-last",0];
+      if(quality==="hd-upscale") delete graph.anchor;
     }
   }
-  if (request.quality !== "normal") {
+  if (quality !== "normal") {
     // Upscale: the tested ~1.44x finishing scale, and at least FINISH_LONG_SIDE on the long side, so the small 480x832 /
     // 832x480 drafts finish at 864x1472 in about the time a 576x1024 clip takes without upscale (Fast HD).
     // HD upscale: 2K, 2048 px on the long side, about 25 s more than Fast HD on the 4090 (IDEA-2466).
-    const size = finishSize(request.width, request.height, request.quality === "hd-upscale" ? hdFinishScale(request.width, request.height) : finishScale(request.width, request.height));
+    const size = finishSize(request.width, request.height, quality === "hd-upscale" ? hdFinishScale(request.width, request.height) : finishScale(request.width, request.height));
     Object.assign(graph["finish:up"].inputs, size);
-    Object.assign(graph[request.quality === "upscale" ? "finish:tiled" : "guide:tiled"].inputs, {seed:request.seed, ...finishTiles(size.width, size.height)});
+    Object.assign(graph[quality === "upscale" ? "finish:tiled" : "guide:tiled"].inputs, {seed:request.seed, ...finishTiles(size.width, size.height)});
   }
+  if (request.holdColour && !request.endImage) holdStartColour(graph, quality);
+  if (detail) addDetailPass(graph, request.prompt, request.seed);
   return graph;
+}
+
+/** Detail pass (, atlas). Faces in a group shot and chest logos are too small in the draft to
+ * redraw, so the pass works on them alone:
+ * - SAM3 finds faces, logos and text on every 6th frame at half size.
+ * - The atlas cuts each area into its own piece, enlarges them ~2.5-3x and packs them into ~1.2 MP.
+ * - The start-picture crops are the first frame of that canvas (MiniMaxH3AddGuide), and the canvas is redrawn from
+ *   sigma 0.7 in three steps, so logos take their letters from the start picture (run dbg-g1s7, 2026-11-22: CF and
+ *   Creative Field lettering readable from 0.5 to 4.3 s; the anchor alone at 0.55 did not fix them).
+ * - Paste puts the pieces back with a feathered edge.
+ * - DLSS 5 (neural rendering, 1x) refines skin and material, composited at 60 % over the frame (detail 0.6): at full strength
+ *   the warm yellows turned olive ("muddy", Lab b* 16.2 -> 14.2); 60 % + the colour restore stayed closest to the source
+ *   in saturation and contrast on two clips (user pick B, 2026-11-23; DLSS colour 0, natural style or tone 0.5 stayed olive).
+ * - ColorTransfer keeps 70 % of each frame's colour statistics from before DLSS: raw DLSS drops saturation by 7-11
+ *   (HSV S), 70 % brings it back within +2, 100 % overshoots by +6.
+ * Without anything worth enlarging the atlas passes a small dummy canvas and Paste keeps the frames. */
+function addDetailPass(graph:ApiGraph, prompt:string, seed:number) {
+  const frames = graph["colour:hold"] ? "colour:hold" : "finish:decode";
+  Object.assign(graph, {
+    "detail:every": {class_type:"VHS_SelectEveryNthImage", inputs:{images:[frames,0], select_every_nth:6, skip_first_images:0}},
+    "detail:small": {class_type:"ImageScaleBy", inputs:{image:["detail:every",0], upscale_method:"area", scale_by:0.5}},
+    "detail:sam": {class_type:"CheckpointLoaderSimple", inputs:{ckpt_name:"sam3.1_multiplex_fp16.safetensors"}},
+    ...detailConcepts(),
+    "detail:mask01": {class_type:"MaskComposite", inputs:{destination:["detail:mask0",0], source:["detail:mask1",0], x:0, y:0, operation:"add"}},
+    "detail:mask": {class_type:"MaskComposite", inputs:{destination:["detail:mask01",0], source:["detail:mask2",0], x:0, y:0, operation:"add"}},
+    "detail:box": {class_type:"CreativeFieldDetailAtlas", inputs:{images:[frames,0], mask:["detail:mask",0], reference:["20",0], megapixels:1.2, max_scale:4, margin:0.15, min_pad:12, max_pieces:10, gutter:32, min_scale:1.25, target_scale:2.4}},
+    "detail:all": {class_type:"SolidMask", inputs:{value:1, width:64, height:64}},
+    "detail:latent": {class_type:"MiniMaxH3FantasticVideoEditLatent", inputs:{vae:["3",0], images:["detail:box",0], mask:["detail:all",0], grow:0, keep_audio:false, megapixels:0}},
+    "detail:cond": {class_type:"MiniMaxH3ReferenceToVideo", inputs:{vae:["3",0], clip:["2",0], audio_vae:["4",0], width:["detail:latent",1], height:["detail:latent",2], length:["detail:latent",3], prompt:`${prompt} Sharp, natural faces with clear eyes; crisp logos.`, ref_image_size:"match", "ref_images.ref_image_0":["detail:box",1]}},
+    "detail:negative": {class_type:"ConditioningZeroOut", inputs:{conditioning:["detail:cond",0]}},
+    "detail:anchor": {class_type:"MiniMaxH3AddGuide", inputs:{positive:["detail:cond",0], latent:["detail:latent",0], vae:["3",0], image:["detail:box",1], frame_idx:0}},
+    "detail:sigmas": {class_type:"ManualSigmas", inputs:{sigmas:"0.7, 0.45, 0.2, 0.0"}},
+    "detail:sample": {class_type:"SamplerCustom", inputs:{model:["1",0], add_noise:true, noise_seed:seed, cfg:1, positive:["detail:anchor",0], negative:["detail:negative",0], sampler:["7",0], sigmas:["detail:sigmas",0], latent_image:["detail:latent",0]}},
+    "detail:decode": {class_type:"VAEDecode", inputs:{vae:["3",0], samples:["detail:sample",0]}},
+    "detail:paste": {class_type:"CreativeFieldDetailAtlasPaste", inputs:{images:[frames,0], detail:["detail:decode",0], plan:["detail:box",2], feather:16}},
+    "detail:dlss": {class_type:"RH_DLSS5Enhance", inputs:{image:["detail:paste",0], upscaling_mode:"1x (DLAA / native)", detail:0.6}},
+    "detail:colour": {class_type:"ColorTransfer", inputs:{image_target:["detail:dlss",0], image_ref:["detail:paste",0], method:"mkl_lab", source_stats:"per_frame", strength:0.7}},
+  });
+  graph["finish:video"].inputs.images = ["detail:colour",0];
+}
+
+/** One SAM3 track per concept (face, logo, text), each with its own prompt; the masks are combined in addDetailPass. */
+function detailConcepts():ApiGraph {
+  const concepts = ["face", "logo", "text"];
+  const nodes:ApiGraph = {};
+  concepts.forEach((text, i) => {
+    nodes[`detail:text${i}`] = {class_type:"CLIPTextEncode", inputs:{text, clip:["detail:sam",1]}};
+    nodes[`detail:track${i}`] = {class_type:"SAM3_VideoTrack", inputs:{images:["detail:small",0], model:["detail:sam",0], detection_threshold:0.3, max_objects:0, detect_interval:1, conditioning:[`detail:text${i}`,0]}};
+    nodes[`detail:mask${i}`] = {class_type:"SAM3_TrackToMask", inputs:{track_data:[`detail:track${i}`,0], object_indices:""}};
+  });
+  return nodes;
 }
 
 /** First/last-frame finish, derived from the tested two-reference graph. The HD

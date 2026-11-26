@@ -3,6 +3,7 @@ import type {Pool} from "pg";
 import {z} from "zod";
 import {HttpError,member} from "./auth";
 import {generateText} from "./ai-text";
+import {CINEMATOGRAPHY_LAYER,SHOT_SHEET_FORMAT} from "./cinematography";
 // reference-plan.ts still asks ComfyUI directly; it moves onto the seam next.
 export {comfyGenerate,type Worker} from "./ai-text/local-comfy";
 
@@ -26,7 +27,7 @@ export function extractJsonObject(text:string){
 }
 
 export function planSystem(count:number){
-  return "You are a film shot planner. Return only strict JSON, no markdown. The object must have a shots array with exactly "+count+" entries. Every entry has title, prompt, durationSeconds, shotIntent and cameraIntent. title is a short card title. prompt is a complete visual generation prompt. durationSeconds is 1 to 10. shotIntent and cameraIntent are short production notes.";
+  return "You are a film shot planner. Return only strict JSON, no markdown. The object must have a shots array with exactly "+count+" entries. Every entry has title, prompt, durationSeconds, shotIntent and cameraIntent. title is a short card title. prompt is a complete visual generation prompt for one film keyframe. "+CINEMATOGRAPHY_LAYER+" "+SHOT_SHEET_FORMAT+" durationSeconds is 1 to 10. shotIntent (the narrative intent) and cameraIntent (camera position and lens) are short production notes.";
 }
 
 /** Keep the existing budget for short plans while allowing longer image sequences to finish. */

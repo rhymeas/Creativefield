@@ -85,6 +85,12 @@ Made for the [#OpenSourceHiggsfield](https://comfy.org/open-source-higgsfield/) 
 
 ## Why CreativeField
 
+CreativeField is a welcoming place to turn a small idea into something you can see, hear and share. Start with a few words or a picture, explore a result, then take it further: make a video, adjust an image in FotoField, or try another angle. Your work stays together in the project library, ready when inspiration strikes again.
+
+**Made for a comfortable creative flow.** Choose what you want to do from visual menus, add your ingredients and generate. Hover over a tool to see a preview, compare results, and revisit a take with its settings when you want another version. ComfyUI does the heavy lifting in the background; you can open the nodes when you want more control.
+
+**On an RTX 4090, locally.** CreativeField has been developed and tested on a Windows computer with an RTX 4090 and 64 GB of RAM. In one separate experimental HyperFlow H3 Flash and Deno run, a 3.04-second image-to-video clip took about **3 minutes** to generate and refine to 1088 × 1440. This is one measured result from an experimental setup, not a speed promise for the current app: clip length, resolution, model loading, settings and other work on the computer all affect the wait. The app shows the run's progress and records its time so you can see what your own setup does.
+
 Having a pro-grade palette at your fingertips, and every feature ComfyUI brings with it, does not mean you need a toolbox with all the equipment in it. Most of the time the work comes down to a few core moves: you start from an input and you want a video, a picture, or an edit of a picture. CreativeField is built around exactly those moves.
 
 Along the way we built our own free, open-source, AI-powered alternative to Photoshop. It runs locally, and it works.

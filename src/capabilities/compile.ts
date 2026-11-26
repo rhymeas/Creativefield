@@ -174,12 +174,13 @@ export function compileLocal(bundle: CapabilityBundle, invocation: Invocation,op
     graph = buildHyperflowQuality(graph, {
       quality: String(values.quality ?? "upscale") as HyperflowQuality,
       image: invocation.inputs.start_image,
-      endImage: manifest.id === "hyperflow-h3-flash-i2v" ? invocation.inputs.end_image : undefined,
+      endImage: manifest.inputs.some(port => port.id === "end_image") ? invocation.inputs.end_image : undefined,
       prompt: String(graph["5"].inputs.prompt),
       seed: Number(graph["8"].inputs.noise_seed),
       width: Number(graph["5"].inputs.width),
       height: Number(graph["5"].inputs.height),
       seconds: Number(graph["5"].inputs.length),
+      holdColour: manifest.id === "hyperflow-h3-flash-i2v",
     });
   }
   if(manifest.voiceContract){

@@ -11,6 +11,7 @@ import { MediaPickerDialog, DropTarget, chooseDeviceFiles,
   useMediaEditor,
 } from "../../ds";
 import { assetUrl, workspacePath, type Asset, type AssetPage, type Call, type Project, type Run, type Workspace, type CharacterRecord } from "../../team/api";
+import {QuickUpscaleLaunch} from "./QuickUpscaleLaunch";
 import {characterEditBindings,identityReferenceInstruction,identityReferenceSheetInstruction,type CharacterEditBindings} from "./character-references";
 import {referenceSheetCanvas} from "./reference-sheet";
 import {characterPath} from "../../team/characters/state";
@@ -1066,7 +1067,7 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
         if(engine!==upscale&&steps)detailControls.steps=Math.max(steps.min??1,Math.round(Number(steps.default??16)/2));
         if(engine.manifest.controls.find(control=>control.id==="sampler")?.options?.includes("euler_ancestral"))detailControls.sampler="euler_ancestral";
         if(engine.manifest.controls.some(control=>control.id==="improve_prompt"))detailControls.improve_prompt=false;
-        if(engine.manifest.id==="minimax-h3-image-edit")detailControls.aspect_ratio="Same as Picture 1";
+        if(engine.manifest.controls.find(control=>control.id==="aspect_ratio")?.options?.includes("Same as Picture 1"))detailControls.aspect_ratio="Same as Picture 1";
         if(engine===upscale)detailControls.scale_by=factor===4?1:0.5;
         const done=await runAndWait(engine,{source_image:asset.id,...(contextId?{reference_image:contextId}:{})},detailControls,run=>{quickRun.current=run.id;});
         if(quickAbort.current||!alive.current)return;
@@ -1747,6 +1748,11 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
     if (!hist || !doc) return;
     const mod = e.ctrlKey || e.metaKey;
     const key = e.key.toLowerCase();
+    // A focused control (button, radio, row, tab) gives the editor only tool keys, Escape, undo/redo, copy and the
+    // select-all/deselect pair. Keys that erase, recolour, rotate or retune the layer need the picture or no focus:
+    // typing a prompt with a button focused must not erase the selection or change the layer.
+    const fromControl=!!target?.closest('button,a[href],[role="radio"],[role="tab"],[role="option"],[tabindex]:not(canvas)');
+    if(fromControl&&!(mod?/^[zycad]$/.test(key):/^(?:[vhbemlwcisz]|escape)$/.test(key)))return;
     if(mod&&key==="t"&&(e.shiftKey||e.altKey))return;
     if(transformSession.current){e.preventDefault();if(key==="escape"||(mod&&key==="z"))finishTransform(false);else if(key==="enter")finishTransform(true);else if(e.key.startsWith("Arrow")){const d=e.shiftKey?10:1;nudgeTransform("move",e.key==="ArrowLeft"?-d:e.key==="ArrowRight"?d:0,e.key==="ArrowUp"?-d:e.key==="ArrowDown"?d:0);}return;}
     if(mod&&key==="t"){e.preventDefault();beginTransform();return;}
@@ -2516,8 +2522,6 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
               :objectScan?.signature===imageSignature(doc)&&objectScan.status==="failed"
                 ?<Button variant="secondary" onClick={()=>void analyseObjects()}>Analyse again</Button>
                 :null}
-            <TextField hideLabel label="Select subject" title="Click a region to select it · Shift adds · Alt removes" placeholder="Click a region, or name one…" value={subject} onChange={setSubject} onKeyDown={(e) => { if (e.key === "Enter") void selectSubject(); }} />
-            {subject.trim()&&<Button variant="secondary" disabled={!canEdit||!authorized||selecting||!!aiBusy} onClick={() => void selectSubject()}>Select</Button>}
           </>}
           {/* Everything about the selection sits together while a selection tool is on; Ctrl+A / Ctrl+D work everywhere. */}
           {SELECT_TOOLS.includes(tool)&&<>
@@ -2525,13 +2529,6 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
             <Button variant="secondary" title="Select all (Ctrl+A)" onClick={()=>selectionAction("all")}>Select all</Button>
             {doc.selection&&<Button variant="secondary" title="Deselect (Ctrl+D)" onClick={()=>selectionAction("clear")}>Deselect</Button>}
           </>}
-          {(upscale||detailUpscale)&&doc&&canEdit&&authorized&&<div className="cf-editor-quicklaunch">
-            <Button variant="secondary" disabled={!!aiBusy||!!quickProgress} onClick={()=>void quickUpscaleVisible("fast")} title="Fast AI upscale of the visible area">Quick upscale</Button>
-            <div className="cf-editor-quickchoices" role="group" aria-label="Quick upscale mode">
-              <Button variant="surface" disabled={!!aiBusy||!!quickProgress} onClick={()=>void quickUpscaleVisible("fast")} title="Fast: ESRGAN detail and real 2x/4x resolution">Fast</Button>
-              <Button variant="surface" disabled={!!aiBusy||!!quickProgress||!detailUpscale} onClick={()=>void quickUpscaleVisible("detail")} title="Detailed: a light redraw of textured tiles, flat areas only enlarged, 2x canvas">Detailed</Button>
-            </div>
-          </div>}
           {tool==="magicEraser"&&<>
             <InlineSelect label="Magic eraser mode" value={magicMode} onChange={value=>{setMagicMode(value as "colour"|"semantic");magicSource.current=null;}} options={[{value:"colour",label:"Colour region"},...(segment?[{value:"semantic",label:"Describe region"}]:[])]}/>
             {magicMode==="colour"?<><SliderField label="Tolerance" min={0} max={255} value={tolerance} onChange={setTolerance}/><Checkbox checked={contiguous} onChange={setContiguous}>Connected only</Checkbox><Meta>Click a colour region to erase it immediately with a clean 1 px matte.</Meta></>:<><TextField label="Remove what" value={subject} onChange={setSubject} placeholder="hair, background, jacket…"/><Button variant="primary" disabled={selecting||!subject.trim()||!authorized} onClick={()=>void selectSubject()}>{selecting?"Finding and erasing…":"Erase described region"}</Button></>}
@@ -2600,6 +2597,7 @@ export function ImageEditor({ workspace, project, userId, call, canEdit, authori
               <canvas ref={canvasRef} tabIndex={0} aria-label="Image" data-tool={tool === "brush" && altHeld && !quickMask ? "eyedropper" : tool} className="cf-editor-canvas" onPointerDown={down} onPointerMove={moveEvent} onPointerUp={up} onPointerCancel={cancelGesture} onLostPointerCapture={() => { if (!preview.current?.poly) cancelGesture(); }} onPointerLeave={() => { if (ringRef.current) ringRef.current.style.display = "none";if(hoveredObject.current>=0){hoveredObject.current=-1;paint(doc);} }} />
               <canvas ref={outlineCanvasRef} className="cf-editor-outline" aria-hidden="true" />
               <div className="cf-editor-quicklayer"><canvas ref={quickOverlayRef} className="cf-editor-quickoverlay" aria-hidden="true" /></div>
+              {(upscale||detailUpscale)&&doc&&canEdit&&authorized&&<QuickUpscaleLaunch busy={!!aiBusy||!!quickProgress} detail={!!detailUpscale} onRun={mode=>void quickUpscaleVisible(mode)}/>}
               {quickProgress&&<div className="cf-editor-quickhud"><Progress floating label={`Quick upscale ${quickScale}×`} value={Math.round(100*quickProgress.done/quickProgress.total)} detail={`Tile ${quickProgress.done} of ${quickProgress.total}${quickSkipped.length?` · ${quickSkipped.length} flat, only enlarged`:""}`} action={<IconButton label="Cancel quick upscale" onClick={()=>void cancelQuickUpscale()}><X size={14}/></IconButton>} /></div>}
               {transforming&&layer&&cropScreen.w>0&&<TransformHandles box={{x:layer.x,y:layer.y,w:layer.w*layer.scale,h:layer.h*layer.scale,rotation:layer.rotation}} viewport={cropScreen} width={doc.width} height={doc.height}
                 onStart={startTransformDrag} onMove={moveTransformDrag} onEnd={()=>{transformDrag.current=null;}} onCancel={cancelTransformDrag} onNudge={nudgeTransform} onApply={()=>finishTransform(true)} onDiscard={()=>finishTransform(false)}/>}

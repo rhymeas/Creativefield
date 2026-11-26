@@ -1,0 +1,10 @@
+/* DockStack: the editor's side column of dock panels, sortable by their heads. */
+.ds-dockstack { position: relative; display: flex; flex-direction: column; width: var(--panel-w); max-width: 100%; padding: var(--space-1); gap: var(--gap-block); isolation: isolate; overflow-anchor: none; scrollbar-gutter: stable; }
+.ds-dockstack > .ds-dock { width: 100%; min-width: 0; position: relative; transition: transform var(--dur-med) var(--ease); }
+.ds-dockstack[data-sorting] { cursor: grabbing; user-select: none; }
+.ds-dockstack[data-sorting] > .ds-dock { will-change: transform; }
+.ds-dockstack > .ds-dock[data-moving] { z-index: 2; transition: none; box-shadow: var(--shadow-pop), inset 0 0 0 1px var(--accent); }
+.ds-dockstack__slot { position: absolute; left: var(--space-1); right: var(--space-1); pointer-events: none; border: 1px dashed var(--accent); border-radius: var(--radius-2xl); background: var(--accent-soft); }
+.ds-dockstack .ds-dock__head { cursor: grab; touch-action: none; user-select: none; }
+.ds-dockstack[data-sorting] .ds-dock__head, .ds-dockstack[data-sorting] .ds-dock__grip { cursor: grabbing; }
+@media (prefers-reduced-motion: reduce) { .ds-dockstack > .ds-dock { transition: none; } }

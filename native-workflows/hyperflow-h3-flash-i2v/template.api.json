@@ -1,8 +1,8 @@
 {
   "1": {
-    "class_type": "HyperFlowGGUFLoader",
+    "class_type": "HyperFlowLoader",
     "inputs": {
-      "unet_name": "minimax_h3_ref2va_hyperflow_flash_14b-Q4_K_M.gguf"
+      "unet_name": "minimax_h3_ref2va_hyperflow_flash_14b-int8_convrot.safetensors"
     }
   },
   "2": {
@@ -75,13 +75,13 @@
         "1",
         0
       ],
-      "steps": 6
+      "steps": 8
     }
   },
   "7": {
     "class_type": "KSamplerSelect",
     "inputs": {
-      "sampler_name": "euler_ancestral"
+      "sampler_name": "euler"
     },
     "_meta": {
       "title": "Pass 1 (steps 1-2): euler ancestral"
@@ -125,7 +125,7 @@
         0
       ],
       "sampler": [
-        "7l",
+        "7",
         0
       ],
       "sigmas": [

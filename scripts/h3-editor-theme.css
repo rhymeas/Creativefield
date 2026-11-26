@@ -229,3 +229,28 @@ button.primary:hover { border-color: var(--cf-glow-border); box-shadow: var(--cf
 /* Timeline tools: the pills get room above and below inside their box. */
 .timeline { grid-template-rows: 52px minmax(0, 1fr); }
 .tl-tools { padding: 0 12.6px; }
+
+/* What happens: Rewrite sits at the right end of its label row. Upstream's ".field > span { display: block }"
+   outranks its own ".label-row { display: flex }", so the button sat right after the words. */
+.field > span.label-row { display: flex; }
+
+/* Export: a small loader while the clips are joined, a check once the file is saved (scripts/h3-editor-cf hooks). */
+#exporterResult[data-state="busy"]::before {
+  content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; vertical-align: -1px;
+  border: 2px solid var(--line-hi); border-top-color: var(--tungsten); border-radius: 50%; animation: cf-spin 0.8s linear infinite;
+}
+#exporterResult[data-state="done"] { color: var(--text); }
+#exporterResult[data-state="done"]::before { content: "\2713"; margin-right: 8px; color: #a9c7b5; } /* --status-ok */
+@keyframes cf-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { #exporterResult[data-state="busy"]::before { animation: none; } }
+
+/* Sound lane: a clip whose own sound was removed keeps its place, with its wave dimmed. */
+.lane.a .wave.cf-muted { opacity: 0.25; }
+
+/* Viewer: the mouse wheel up fills the whole box with the picture; wheel down snaps back to the format. */
+.screen.cf-fill video, .screen.cf-fill img,
+.screen.cf-fill.cut #videoA, .screen.cf-fill.cut #videoB {
+  inset: 0; left: 0; top: 0; translate: none; width: 100%; height: 100%; aspect-ratio: auto; object-fit: cover;
+}
+/* No sound, set before a render: a tick at the left of the render buttons. */
+.inspector-foot .cf-nosound { margin: 0 auto 0 0; }

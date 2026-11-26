@@ -16,13 +16,11 @@ import {CameraPathPreview} from "./CameraPathPreview";
 import {CompareStrip} from "./CompareStrip";
 import {TransformHandles} from "./TransformHandles";
 import {CompareWipe,MaskOverlay,DriftOverlay} from "./PrecisionCompare";
-import {WelcomeDialog} from "./WelcomeDialog";
 import {KeyframeOptions,KeyframeSegment,KeyframeStrip,PanelCrumb} from "./KeyframeStrip";
 import {ShotFrame} from "./ShotFrame";
 import {MosaicGrid,MosaicTile,mosaicAccent} from "./MosaicGrid";
 import {CameraPoseField,CameraPoseStage,describeCameraPose,type CameraPose} from "./CameraMovePicker";
-import welcomeLogo from "../assets/creativefield-logo-trim.png";
-import { ArrowUp, Github, Repeat, Lock, Undo2, Download, Pencil, Maximize2, Camera, Plus, Search, Clock, Dices, LogOut, Settings, Video, History, Image, Info, MinusCircle, RectangleHorizontal, Sparkles, Brush, UserRound } from "lucide-react";
+import { Box, ArrowUp, Github, Repeat, Lock, Undo2, Download, Pencil, Maximize2, Camera, Plus, Search, Clock, Dices, LogOut, Settings, Video, History, Image, Info, MinusCircle, RectangleHorizontal, Sparkles, Brush, UserRound } from "lucide-react";
 import {
   Steps,
   IconLink,
@@ -159,6 +157,7 @@ import {
   GestureStage,
   InbetweenRail,
   CastCard,
+  DropStack,
   DropTarget,
   ScoutReel,
   PerformanceMirror,
@@ -180,6 +179,7 @@ import {
   ProblemHost,
   ChoiceDialog,
 } from "./index";
+import {WelcomeDialogDemo} from "./showcase-dialog-demos";
 
 // Living reference for the design system. Open the app at #ds.
 
@@ -218,18 +218,6 @@ function AdvancedSettingsDemo(){
 }
 
 /** Every dropdown in the app (a Row with options, the team's choice triggers) opens this dialog of boxes. */
-function WelcomeDialogDemo(){
-  const [open,setOpen]=useState(false);
-  const pick=()=>setOpen(false);
-  return <><Button onClick={()=>setOpen(true)}>Open welcome</Button><WelcomeDialog open={open} onClose={()=>setOpen(false)} logo={welcomeLogo} title="What will you make today?" text="Turn a few words, a photo or a clip into pictures, video and 3D." media={<RotatingVideo srcs={["/reels/mj-02.mp4"]}/>} picks={<>
-    <PresetCard size="tool" featured label="FotoField" hint="Layers, masks and AI edits." thumb="/examples/fotofield.webp" onSelect={pick}/>
-    <PresetCard size="tool" label="Make a video" hint="From a photo or a few words." thumb="/examples/video.webp" onSelect={pick}/>
-    <PresetCard size="tool" label="Make a picture" hint="Describe it, get a picture." thumb="/examples/picture.webp" onSelect={pick}/>
-    <PresetCard size="tool" label="New look" hint="Before / after: the line sweeps, or follows the pointer." before="/examples/fotofield.webp" thumb="/examples/picture.webp" onSelect={pick}/>
-    <PresetCard size="tool" label="3D models" hint="Preview or browse 3D." thumb="/examples/model3d.webp" onSelect={pick}/>
-  </>} note={<Meta>Local generation needs a connected ComfyUI worker and its models.</Meta>} action={<Button variant="primary" onClick={()=>setOpen(false)}>Let's create</Button>}/></>;
-}
-
 function ChoiceDialogDemo(){
   const [open,setOpen]=useState(false),[picked,setPicked]=useState("wan-14b");
   return <>
@@ -450,6 +438,7 @@ export default function Showcase() {
             end={<SegmentedTabs quiet label="View" value={seg} onChange={setSeg} items={[{ id: "history", label: "Create Video" }, { id: "how", label: "Storyboard" }]} />}
           />
           <SectionHeader title="Create Video" meta={<Meta>Local ComfyUI</Meta>} />
+          <SectionHeader icon={<Box />} title="Make 3D" />
           <Meta parts={["Latest 200 runs", "Updated 20:52"]} />
         </div>
       </Section>
@@ -532,6 +521,10 @@ export default function Showcase() {
       </Section>
 
       <Section title="Long text, uploads and media">
+        <div style={{ display: "flex", gap: 28, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 20 }}>
+          <div style={{ width: 160, height: 160, position: "relative" }}><DropStack label="Front" /></div>
+          <Meta>Drag state of a media box: images dragged over the panel show this stack in the Front slot. Static state is the thumbnail.</Meta>
+        </div>
         <div style={{ display: "flex", gap: 28, alignItems: "flex-start", flexWrap: "wrap" }}>
           <div style={{ width: 318, background: "var(--surface-panel)", borderRadius: 22, padding: 10, display: "flex", flexDirection: "column", gap: 10 }}>
             <UploadPair>

@@ -147,7 +147,8 @@ function ProjectRuns({workspace,project,call,canEdit,authorized,version,user,tit
   // Only what exists is shown (rule 56): a failed or cancelled run, or one whose result file was removed, leaves the list.
   const shown=runs.filter(run=>!["failed","canceled","cancelled"].includes(run.state)&&!(run.state==="succeeded"&&(!run.output_ids.length||!run.output_content_type)));
   /** What the full view and the details list about a run: model, quality, length, seed and where it ran. */
-  const factsOf=(run:Run,full:Run)=>runFacts(run,{model:jobQueueTitle(run.capability_id,titles),detail:full,cloud:!!cloudWorkers[run.worker_id??""]});
+  // Native routes (Dreamina) name their model in the run detail.
+  const factsOf=(run:Run,full:Run)=>{const modelTitle=(full as {modelTitle?:unknown}).modelTitle;return runFacts(run,{model:typeof modelTitle==="string"?modelTitle:jobQueueTitle(run.capability_id,titles),detail:full,cloud:!!cloudWorkers[run.worker_id??""]});};
   const assetById=new Map([...feedAssets,...Object.values(detailAssets)].map(asset=>[asset.id,asset]));
   /** The run's output file from the loaded assets or from the run detail's measured output list. */
   const outputAsset=(run:Run,full:Run):Asset|undefined=>{

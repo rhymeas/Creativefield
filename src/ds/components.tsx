@@ -422,11 +422,11 @@ export function LazyVideo({ src, poster, label, controls, autoPlay = true, class
 
 /* ── Panel ──────────────────────────────────────────────────── */
 
-export function Panel({ header, children, footer, video }: { header?: ReactNode; children: ReactNode; footer?: ReactNode; video?: string }) {
+export function Panel({ header, children, footer, video, card }: { header?: ReactNode; children: ReactNode; footer?: ReactNode; video?: string; /** A framed card on the surface panel colour (the 3D tools' reference panel). */ card?: boolean }) {
   const reel = useContext(reelContext);
   const src = video ?? reel;
   return (
-    <aside className="ds-panel" data-reel={src ? "" : undefined}>
+    <aside className={cx("ds-panel", card && "ds-panel--card")} data-reel={src ? "" : undefined}>
       <AmbientReel src={src} />
       {header && <div className="ds-panel__header">{header}</div>}
       <div className="ds-panel__body">{children}</div>
@@ -4281,10 +4281,10 @@ export function ChoiceDialog<T extends string | number>({ open, title, options, 
 }
 
 /* SectionHeader: level-1 title for a panel or list, with its caption beside it, never as a chip. */
-export function SectionHeader({ title, meta, end, large }: { title: ReactNode; meta?: ReactNode; end?: ReactNode; /** A page title (Library, Catalogue, Projects). */ large?: boolean }) {
+export function SectionHeader({ title, meta, end, large, icon }: { title: ReactNode; meta?: ReactNode; end?: ReactNode; /** A page title (Library, Catalogue, Projects). */ large?: boolean; /** A small glyph before the title (the 3D panels' cube). Sized and spaced by the DS. */ icon?: ReactNode }) {
   return (
     <div className={cx("ds-sectionhead", large && "ds-sectionhead--large")}>
-      <h1 className="ds-sectionhead__title">{title}</h1>
+      <h1 className="ds-sectionhead__title">{icon && <span className="ds-sectionhead__icon" aria-hidden>{icon}</span>}{title}</h1>
       {meta}
       {end && <span className="ds-contextbar__end">{end}</span>}
     </div>

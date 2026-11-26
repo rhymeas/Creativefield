@@ -1,4 +1,5 @@
 import type { Pool,PoolClient } from "pg";
+import {DREAMINA_IMAGE_MODELS} from './dreamina-native';
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { createHash } from "node:crypto";
@@ -24,7 +25,7 @@ import {openJutsuFlashSourceFrames,withExactOpenJutsuFlashOutput,withPaddedOpenJ
 import {readOpenJutsuTracking} from "./openjutsu-tracking";
 import {addOpenJutsuRoleRepair,OPENJUTSU_ROLE_RESOLVER,openJutsuRoleOrder} from "./openjutsu-role-repair";
 import {inspectCharacterReference,needsOpenJutsuReferencePreparation,prepareOpenJutsuUpload} from "./openjutsu-reference";
-import {requestSchema,publicColumns,canonical,extension,prepareInvocation,enqueuePreparedRun,cancelRun} from "./run-submission";
+import {requestSchema,serverRunRequest,publicColumns,canonical,extension,prepareInvocation,enqueuePreparedRun,cancelRun} from "./run-submission";
 import {applyStoredRunGraphEdits} from "./run-graph-edits";
 import {editedRunRoutes} from "./edited-run";
 import {sdkClient,sdkTransportConfigured,sdkSupportsManifest,cloudInputs,sdkFailureReason} from "./sdk-client";
@@ -1058,7 +1059,7 @@ export class ExecutionService {
   /** A run the server queues on another run's output: same project, worker and slate, sound kept (an Enhance step passes the worker it was routed to). */
   private async queueChainedStep(run:any,key:string,bundle:CapabilityBundle,routeId:string,inputs:Record<string,string>,controls:Record<string,string|number|boolean>,stamp:(invocation:Invocation)=>void):Promise<void>{
     const audioPolicy=bundle.manifest.audioPolicies.includes("preserve")?"preserve":bundle.manifest.audioPolicies[0]??"mute";
-    const body=requestSchema.parse({projectId:run.project_id,workerId:run.worker_id,idempotencyKey:key,capabilityId:bundle.manifest.id,version:bundle.manifest.version,routeId,inputs,controls,audioPolicy});
+    const body=serverRunRequest({projectId:run.project_id,workerId:run.worker_id,capabilityId:bundle.manifest.id,version:bundle.manifest.version,routeId,inputs,controls,audioPolicy},key);
     const requestHash=hashToken(canonical(body));
     await transaction(this.pool,async client=>{
       const prepared=await prepareInvocation(client,this.catalogue,run.workspace_id,body,this.store);
@@ -1533,6 +1534,8 @@ export async function executionRoutes(app:FastifyInstance,pool:Pool,store:DiskSt
     const outputIds=(Array.isArray(row.output_ids)?row.output_ids:[]).filter((value:unknown):value is string=>typeof value==="string");
     row.outputs=outputIds.length?(await pool.query(`SELECT id,content_type,bytes,created_at,COALESCE(metadata->>'width',metadata->'imageValidation'->>'width') AS width,COALESCE(metadata->>'height',metadata->'imageValidation'->>'height') AS height,metadata->>'durationSeconds' AS duration_seconds,metadata FROM assets WHERE workspace_id=$1 AND id=ANY($2::uuid[])`,[workspaceId,outputIds])).rows.map((asset:any)=>({id:asset.id,content_type:asset.content_type,bytes:asset.bytes,created_at:asset.created_at,width:Number(asset.width)||undefined,height:Number(asset.height)||undefined,durationSeconds:Number(asset.duration_seconds)||undefined,metadata:asset.metadata})).sort((left:any,right:any)=>outputIds.indexOf(left.id)-outputIds.indexOf(right.id)):[];
     if(row.outputs.length)await attachGenerationFacts(pool,workspaceId,row.outputs);
+    // Native Dreamina runs have no catalogue entry: name the model they ran on.
+    if(row.route_id==='dreamina-native'){const model=row.invocation?.native?.model;Object.assign(row,{provider:'dreamina',model,modelTitle:DREAMINA_IMAGE_MODELS[model as keyof typeof DREAMINA_IMAGE_MODELS]?.title});}
     return row;});
   app.get(`${base}/runs/:id/provenance`,async request=>{
     const {workspaceId,id}=item.parse(request.params);await member(pool,request,workspaceId);
@@ -1546,6 +1549,7 @@ export async function executionRoutes(app:FastifyInstance,pool:Pool,store:DiskSt
     const outputs=outputIds.map((outputId:string)=>outputRows.find((asset:any)=>asset.id===outputId)).filter(Boolean).map(publicOutputLineage);
     delete run.workflow_revision_id;
     if(run.route_id==='chatgpt-native')return {...run,outputs,execution:'native_codex',provider:'chatgpt',model:run.invocation.native.model,inputs};
+    if(run.route_id==='dreamina-native')return {...run,outputs,execution:'native_cli',provider:'dreamina',model:run.invocation.native.model,modelTitle:DREAMINA_IMAGE_MODELS[run.invocation.native.model as keyof typeof DREAMINA_IMAGE_MODELS]?.title,inputs};
     return {...run,outputs,execution:pinned?"direct_provider":"local_comfy",...(pinned?{provider:pinned.binding.provider,model:pinned.binding.model,adapterId:pinned.binding.adapterId,adapterVersion:pinned.binding.adapterVersion,bindingHash:pinned.binding_hash}:{workflowHash:revision?.sha256,modelRequirements:revision?.manifest.routes.find((r:any)=>r.id===run.invocation.routeId)?.requirements.filter((r:any)=>r.kind==="model"),inputs})};
   });
   app.get(`${base}/runs/:id/preservation/drift`,async(request,reply)=>{
@@ -1597,7 +1601,7 @@ export async function executionRoutes(app:FastifyInstance,pool:Pool,store:DiskSt
     if(user.role!=="admin"&&run.created_by!==user.id)throw new HttpError(403,"Only the run owner or an administrator may cancel");
     const state=await transaction(pool,client=>cancelRun(client,workspaceId,id));
     if(state==="canceled")service.clearMemoryWait(id);
-    if(run.route_id==='chatgpt-native'){await cancelNative?.(workspaceId,id);return {state:(await pool.query('SELECT state FROM runs WHERE workspace_id=$1 AND id=$2',[workspaceId,id])).rows[0]?.state??state};}
+    if(run.route_id==='chatgpt-native'||run.route_id==='dreamina-native'){await cancelNative?.(workspaceId,id);return {state:(await pool.query('SELECT state FROM runs WHERE workspace_id=$1 AND id=$2',[workspaceId,id])).rows[0]?.state??state};}
     return {state:state??run.state};
   });
   app.post(`${base}/runs/:id/retry-publication`,async request=>{

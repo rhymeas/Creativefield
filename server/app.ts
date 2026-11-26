@@ -71,6 +71,8 @@ import {CLOUD_KEY_REFUSED_REASON,cloudAccountFor} from "./cloud-account";
 import {ROUTER_MODELS} from '../src/capabilities/router-models';
 import {cloudReadiness} from "./cloud-readiness";
 import {chatgptImageRoutes} from './chatgpt-images';
+import {dreaminaImageRoutes} from './dreamina-images';
+import type {DreaminaNative} from './dreamina-native';
 import { startGuestCleanup } from "./guest-cleanup";
 import type {ChatgptNative} from './chatgpt-native';
 import {ExportProfileError,exportProfile,exportReadiness,exportVideo,type ExportResult} from "./export-profiles";
@@ -84,7 +86,7 @@ const name = z.string().trim().min(1).max(120);
 const role = z.enum(["admin", "creator", "viewer"]);
 const base = "/api/v1/workspaces/:workspaceId";
 
-export async function buildServer(config: ServerConfig, pool: Pool, dependencies:ProviderDependencies&{catalogue?:CapabilityBundle[];/** Tests of server mechanics that predate the HyperFlow-only decision keep the retired video workflows; the product never sets this. */keepRetiredVideoModels?:boolean;systemVoice?:SystemVoiceEngine;chatgptNative?:ChatgptNative;localComfyStarter?:LocalComfyStarter}={}) {
+export async function buildServer(config: ServerConfig, pool: Pool, dependencies:ProviderDependencies&{catalogue?:CapabilityBundle[];/** Tests of server mechanics that predate the HyperFlow-only decision keep the retired video workflows; the product never sets this. */keepRetiredVideoModels?:boolean;systemVoice?:SystemVoiceEngine;chatgptNative?:ChatgptNative;dreaminaNative?:DreaminaNative;localComfyStarter?:LocalComfyStarter}={}) {
   guardPool(pool);
   const app = Fastify({ logger: false, bodyLimit: 1024 * 1024 });
   const store = new DiskStore(config.storageRoot, config.maxUploadBytes);
@@ -458,7 +460,8 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
     return {state:credential?"ready":"credentials_required",reasons:credential?[]:["Workspace provider credentials are required."],missing:[],credentialValidation:"not_checked"};
   });
   const chatgptImages=await chatgptImageRoutes(app,pool,store,dependencies.chatgptNative);
-  const execution = await executionRoutes(app,pool,store,catalogue,registry,(workspace,id)=>chatgptImages.cancel(workspace,id));
+  const dreaminaImages=await dreaminaImageRoutes(app,pool,store,dependencies.dreaminaNative);
+  const execution = await executionRoutes(app,pool,store,catalogue,registry,async(workspace,id)=>{await chatgptImages.cancel(workspace,id);await dreaminaImages.cancel(workspace,id);});
   const directExecution=new DirectExecutionService(pool,store,config.masterKey,{...dependencies,registry});
   app.addHook("onClose",()=>directExecution.close());
   if (config.guestPerBrowser) { const guestCleanup = startGuestCleanup(pool, config.storageRoot); app.addHook("onClose", async () => guestCleanup.close()); }
@@ -509,6 +512,6 @@ export async function buildServer(config: ServerConfig, pool: Pool, dependencies
   app.get("/comfy/:workspaceId",editorRedirect);
   app.get("/comfy/:workspaceId/*",editorRedirect);
   if(config.serveUi)await serveTeamUi(app,config.uiRoot!,config.nodeEditorOrigin,config.frameOrigins);
-  return { app, store, catalogue, execution,directExecution,chatgptImages,storyboards,videoExtensions,posePreviews,audioProcessing,marketing,workerMonitor:new WorkerMonitor(pool,catalogue) };
+  return { app, store, catalogue, execution,directExecution,chatgptImages,dreaminaImages,storyboards,videoExtensions,posePreviews,audioProcessing,marketing,workerMonitor:new WorkerMonitor(pool,catalogue) };
 }
 
